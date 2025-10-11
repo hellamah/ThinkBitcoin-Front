@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Configurações | ThinkBitcoin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <nav class="top-nav">
+    <a href="/" class="nav-item" aria-label="Início">
+      <span class="material-icons-outlined">home</span>
+    </a>
+    <a href="/login" class="nav-item" aria-label="Entrar">
+      <span class="material-icons-outlined">login</span>
+    </a>
+    <a href="/register" class="nav-item" aria-label="Registrar">
+      <span class="material-icons-outlined">person_add</span>
+    </a>
+    <a href="/dashboard" class="nav-item" aria-label="Painel">
+      <span class="material-icons-outlined">dashboard</span>
+    </a>
+  </nav>
+
+  <div id="toast" class="toast" aria-live="polite"></div>
+
+  <section class="settings-container">
+    <h1>Configurações</h1>
+
+    <section class="panel">
+      <h2>Tema do site</h2>
+      <div class="setting-item">
+        <label for="theme-toggle"><span class="material-icons-outlined">brightness_4</span> Tema do site</label>
+        <button id="theme-toggle">🌙 Modo Escuro</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Idioma preferido</h2>
+      <div class="setting-item">
+        <label for="lang-select"><span class="material-icons-outlined">language</span> Idioma preferido</label>
+        <select id="lang-select">
+          <option value="pt">Português</option>
+          <option value="en">Inglês</option>
+        </select>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Notificações</h2>
+      <div class="setting-item">
+        <label for="alerts-toggle"><span class="material-icons-outlined">notifications</span> Notificações por e-mail</label>
+        <input type="checkbox" id="alerts-toggle" />
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Estilo do Algoritmo</h2>
+      <div class="setting-item">
+        <label for="algo-config"><span class="material-icons-outlined">tune</span> Estilo do Algoritmo</label>
+        <select id="algo-config">
+          <option value="conservador">Conservador</option>
+          <option value="equilibrado">Equilibrado</option>
+          <option value="agressivo">Agressivo</option>
+        </select>
+      </div>
+    </section>
+  </section>
+
+  <footer class="site-footer">
+    <p>&copy; 2025 ThinkBitcoin. Todos os direitos reservados.</p>
+    <p><a href="#">Termos</a> | <a href="#">Privacidade</a> | <a href="#">Contato</a></p>
+  </footer>
+
+  <nav class="bottom-nav">
+    <a href="/" class="nav-item" aria-label="Início">
+      <span class="material-icons-outlined">home</span>
+    </a>
+    <a href="/login" class="nav-item" aria-label="Entrar">
+      <span class="material-icons-outlined">login</span>
+    </a>
+    <a href="/register" class="nav-item" aria-label="Registrar">
+      <span class="material-icons-outlined">person_add</span>
+    </a>
+    <a href="/dashboard" class="nav-item" aria-label="Painel">
+      <span class="material-icons-outlined">dashboard</span>
+    </a>
+  </nav>
+
+  <script>
+    const botao = document.getElementById('theme-toggle');
+    const toast = document.getElementById('toast');
+
+    function mostrarToast(msg) {
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+
+    function aplicarTema() {
+      const temaSalvo = localStorage.getItem('theme');
+      if (temaSalvo === 'light') {
+        document.body.classList.add('light');
+        botao.textContent = '☀️ Modo Claro';
+      }
+    }
+
+    botao.onclick = () => {
+      document.body.classList.toggle('light');
+      const modoClaro = document.body.classList.contains('light');
+      localStorage.setItem('theme', modoClaro ? 'light' : 'dark');
+      botao.textContent = modoClaro ? '☀️ Modo Claro' : '🌙 Modo Escuro';
+      mostrarToast(modoClaro ? 'Tema claro ativado' : 'Tema escuro ativado');
+    };
+
+    aplicarTema();
+  </script>
+</body>
+</html>
