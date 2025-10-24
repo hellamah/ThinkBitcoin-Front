@@ -57,6 +57,8 @@
   "notificationsOn": "Notifications enabled",
   "notificationsOff": "Notifications disabled",
   "notificationsDenied": "Notification permission denied",
+  "notificationsUnsupported": "Notifications are not supported on this browser",
+  "notificationsError": "Could not enable notifications",
   "close": "Close",
   "fetchError": "Failed to fetch data, showing demo",
   "copyRight": "\u00a9 2025 ThinkBitcoin. All rights reserved."

@@ -13,18 +13,24 @@ import '../App.css'
 import { useAuth } from '../context/AuthContext'
 import useTranslation from '../hooks/useTranslation'
 import { API_URL } from '../api'
+import {
+  AlgorithmStyle,
+  Language,
+  Theme,
+} from '../utils/preferences'
+import { isNotificationSupported } from '../utils/browser'
 
 function Settings() {
   const { prefs, updatePreferences, token } = useAuth()
   const { t } = useTranslation()
-  const [light, setLight] = useState(prefs.tema === 'light')
+  const [light, setLight] = useState(prefs.tema === Theme.LIGHT)
   const [idioma, setIdioma] = useState(prefs.idioma)
   const [notifs, setNotifs] = useState(prefs.notificacoes)
   const [estilo, setEstilo] = useState(prefs.estiloAlgoritmo)
   const [toast, setToast] = useState('')
 
   useEffect(() => {
-    setLight(prefs.tema === 'light')
+    setLight(prefs.tema === Theme.LIGHT)
     setIdioma(prefs.idioma)
     setNotifs(prefs.notificacoes)
     setEstilo(prefs.estiloAlgoritmo)
@@ -35,10 +41,10 @@ function Settings() {
   }, [light])
 
   const toggleTheme = () => {
-    const novo = light ? 'dark' : 'light'
+    const novo = light ? Theme.DARK : Theme.LIGHT
     setLight(!light)
     updatePreferences({ tema: novo })
-    setToast(novo === 'light' ? t('lightOn') : t('darkOn'))
+    setToast(novo === Theme.LIGHT ? t('lightOn') : t('darkOn'))
     setTimeout(() => setToast(''), 2000)
   }
 
@@ -49,6 +55,7 @@ function Settings() {
 
   const changeLang = (e) => {
     const lang = e.target.value
+    if (!Object.values(Language).includes(lang)) return
     setIdioma(lang)
     updatePreferences({ idioma: lang })
     confirm()
@@ -59,6 +66,13 @@ function Settings() {
     setNotifs(val)
     updatePreferences({ notificacoes: val })
     if (val) {
+      if (!isNotificationSupported()) {
+        setNotifs(false)
+        updatePreferences({ notificacoes: false })
+        setToast(t('notificationsUnsupported'))
+        setTimeout(() => setToast(''), 2000)
+        return
+      }
       try {
         const perm = await Notification.requestPermission()
         if (perm !== 'granted') {
@@ -76,7 +90,7 @@ function Settings() {
         }
         setToast(t('notificationsOn'))
       } catch {
-        setToast(t('notificationsOn'))
+        setToast(t('notificationsError'))
       }
     } else {
       setToast(t('notificationsOff'))
@@ -86,6 +100,7 @@ function Settings() {
 
   const changeEstilo = (e) => {
     const val = e.target.value
+    if (!Object.values(AlgorithmStyle).includes(val)) return
     setEstilo(val)
     updatePreferences({ estiloAlgoritmo: val })
     confirm()
@@ -125,8 +140,8 @@ function Settings() {
               PaperProps: { sx: { bgcolor: 'var(--color-bg-card)' } },
             }}
           >
-            <MenuItem value="pt">{t('portuguese')}</MenuItem>
-            <MenuItem value="en">{t('english')}</MenuItem>
+            <MenuItem value={Language.PT}>{t('portuguese')}</MenuItem>
+            <MenuItem value={Language.EN}>{t('english')}</MenuItem>
           </Select>
         </div>
       </section>
@@ -164,9 +179,9 @@ function Settings() {
               PaperProps: { sx: { bgcolor: 'var(--color-bg-card)' } },
             }}
           >
-            <MenuItem value="conservador">{t('conservative')}</MenuItem>
-            <MenuItem value="equilibrado">{t('balanced')}</MenuItem>
-            <MenuItem value="agressivo">{t('aggressive')}</MenuItem>
+            <MenuItem value={AlgorithmStyle.CONSERVATIVE}>{t('conservative')}</MenuItem>
+            <MenuItem value={AlgorithmStyle.BALANCED}>{t('balanced')}</MenuItem>
+            <MenuItem value={AlgorithmStyle.AGGRESSIVE}>{t('aggressive')}</MenuItem>
           </Select>
         </div>
       </section>

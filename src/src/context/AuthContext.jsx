@@ -1,7 +1,17 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { ThemeProvider, createTheme } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 import { API_URL } from '../api'
+import {
+  Theme,
+  getInitialPreferences,
+  getStoredTheme,
+  getStoredToken,
+  sanitizePreferences,
+  setStoredTheme,
+  setStoredToken,
+  clearStoredToken,
+} from '../utils/preferences'
 
 const decodeToken = (t) => {
   try {
@@ -31,23 +41,33 @@ const AuthContext = createContext({
 })
 
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(() => localStorage.getItem('token'))
+  const initialToken = getStoredToken()
+  const [token, setToken] = useState(initialToken)
   const [user, setUser] = useState(() =>
-    token ? decodeToken(token) : null
+    initialToken ? decodeToken(initialToken) : null
   )
-  const [prefs, setPrefs] = useState({
-    tema: localStorage.getItem('theme') || 'dark',
-    idioma: 'pt',
-    notificacoes: false,
-    estiloAlgoritmo: 'equilibrado',
-  })
-  const [theme, setTheme] = useState(() =>
-    createTheme({
-      palette: {
-        mode: (localStorage.getItem('theme') || 'dark') === 'light' ? 'light' : 'dark',
-        primary: { main: '#ffd700' },
-      },
-    })
+  const [prefs, setPrefs] = useState(() => getInitialPreferences())
+  const buildTheme = useCallback(
+    (tema) =>
+      createTheme({
+        palette: {
+          mode: tema === Theme.LIGHT ? 'light' : 'dark',
+          primary: { main: '#ffd700' },
+        },
+      }),
+    []
+  )
+  const [theme, setTheme] = useState(() => buildTheme(getStoredTheme()))
+
+  const applyTheme = useCallback(
+    (tema) => {
+      if (typeof document !== 'undefined') {
+        document.body.classList.toggle('light', tema === Theme.LIGHT)
+      }
+      setStoredTheme(tema)
+      setTheme(buildTheme(tema))
+    },
+    [buildTheme]
   )
 
   useEffect(() => {
@@ -56,17 +76,8 @@ export function AuthProvider({ children }) {
   }, [token])
 
   useEffect(() => {
-    document.body.classList.toggle('light', prefs.tema === 'light')
-    localStorage.setItem('theme', prefs.tema)
-    setTheme(
-      createTheme({
-        palette: {
-          mode: prefs.tema === 'light' ? 'light' : 'dark',
-          primary: { main: '#ffd700' },
-        },
-      })
-    )
-  }, [prefs.tema])
+    applyTheme(prefs.tema)
+  }, [prefs.tema, applyTheme])
 
   const carregarPreferencias = async (t) => {
     try {
@@ -76,14 +87,9 @@ export function AuthProvider({ children }) {
       if (!resp.ok) return
       const json = await resp.json()
       if (json.resultado) {
-        setPrefs({
-          tema: json.resultado.tema,
-          idioma: json.resultado.idioma,
-          notificacoes: json.resultado.notificacoes,
-          estiloAlgoritmo: json.resultado.estiloAlgoritmo,
-        })
-        document.body.classList.toggle('light', json.resultado.tema === 'light')
-        localStorage.setItem('theme', json.resultado.tema)
+        setPrefs((atual) =>
+          sanitizePreferences({ ...atual, ...json.resultado })
+        )
       }
     } catch {
       /* ignore */
@@ -92,16 +98,18 @@ export function AuthProvider({ children }) {
 
   const login = async (t) => {
     setToken(t)
-    localStorage.setItem('token', t)
+    setStoredToken(t)
     setUser(decodeToken(t))
     await carregarPreferencias(t)
   }
 
   const logout = () => {
     setToken(null)
-    localStorage.removeItem('token')
+    clearStoredToken()
     setUser(null)
-    setPrefs((p) => ({ ...p }))
+    const defaults = getInitialPreferences()
+    setPrefs(defaults)
+    applyTheme(defaults.tema)
   }
 
   useEffect(() => {
@@ -109,10 +117,9 @@ export function AuthProvider({ children }) {
   }, [token])
 
   const updatePreferences = async (novo) => {
-    const atual = { ...prefs, ...novo }
+    const atual = sanitizePreferences({ ...prefs, ...novo })
     setPrefs(atual)
-    document.body.classList.toggle('light', atual.tema === 'light')
-    localStorage.setItem('theme', atual.tema)
+    applyTheme(atual.tema)
     if (!token) return
     try {
       await fetch(`${API_URL}/ThinkBitcoin/usuariosTB/atualizarPreferencias`, {
