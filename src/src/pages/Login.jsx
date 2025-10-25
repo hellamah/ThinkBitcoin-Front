@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { TextField, Button, Box } from '@mui/material'
 import ErrorMessage from '../components/ErrorMessage'
-import { API_URL } from '../api'
+import { authenticate } from '../utils/authentication'
 import { useAuth } from '../context/AuthContext'
 import useTranslation from '../hooks/useTranslation'
 function Login() {
@@ -34,15 +34,9 @@ function Login() {
     setMensagem('')
     try {
       setCarregando(true)
-      const resposta = await fetch(`${API_URL}/ThinkBitcoin/gerarTokenBearer/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, senha }),
-      })
-      if (!resposta.ok) throw new Error('Erro ao autenticar')
-      const dados = await resposta.json()
-      login(dados.resultado.tokenAutenticado)
-      const nome = obterNome(dados.resultado.tokenAutenticado)
+      const dados = await authenticate({ email, senha })
+      login(dados.tokenAutenticado)
+      const nome = obterNome(dados.tokenAutenticado)
       setMensagem(t('welcome', { name: nome }))
       setTimeout(() => navegar('/dashboard'), 1500)
     } catch {
