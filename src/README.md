@@ -41,7 +41,7 @@ src/
 ```
 
 ## Padrões e Boas Práticas
-- Utilize os utilitários presentes em `src/utils` para trabalhar com enums e armazenamento de preferências.
+- Utilize os utilitários presentes em `src/utils` para trabalhar com enums, autenticação (`authentication.js`) e armazenamento de preferências.
 - Sempre execute `npm test` antes de abrir um pull request.
 - Novas traduções devem ser adicionadas em `src/lang/en.json` e `src/lang/pt.json`.
 
