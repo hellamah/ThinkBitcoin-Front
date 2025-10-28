@@ -12,24 +12,7 @@ import {
   setStoredToken,
   clearStoredToken,
 } from '../utils/preferences'
-
-const decodeToken = (t) => {
-  try {
-    const payload = JSON.parse(atob(t.split('.')[1]))
-    return {
-      nome:
-        payload[
-          'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'
-        ],
-      email:
-        payload[
-          'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'
-        ],
-    }
-  } catch {
-    return null
-  }
-}
+import { decodeAuthenticationToken } from '../utils/authentication'
 
 const AuthContext = createContext({
   token: null,
@@ -44,7 +27,7 @@ export function AuthProvider({ children }) {
   const initialToken = getStoredToken()
   const [token, setToken] = useState(initialToken)
   const [user, setUser] = useState(() =>
-    initialToken ? decodeToken(initialToken) : null
+    decodeAuthenticationToken(initialToken)
   )
   const [prefs, setPrefs] = useState(() => getInitialPreferences())
   const buildTheme = useCallback(
@@ -71,8 +54,7 @@ export function AuthProvider({ children }) {
   )
 
   useEffect(() => {
-    if (token) setUser(decodeToken(token))
-    else setUser(null)
+    setUser(decodeAuthenticationToken(token))
   }, [token])
 
   useEffect(() => {
@@ -99,7 +81,7 @@ export function AuthProvider({ children }) {
   const login = async (t) => {
     setToken(t)
     setStoredToken(t)
-    setUser(decodeToken(t))
+    setUser(decodeAuthenticationToken(t))
     await carregarPreferencias(t)
   }
 
