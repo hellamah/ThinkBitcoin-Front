@@ -2,7 +2,10 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { TextField, Button, Box } from '@mui/material'
 import ErrorMessage from '../components/ErrorMessage'
-import { authenticate } from '../utils/authentication'
+import {
+  authenticate,
+  decodeAuthenticationToken,
+} from '../utils/authentication'
 import { useAuth } from '../context/AuthContext'
 import useTranslation from '../hooks/useTranslation'
 function Login() {
@@ -15,19 +18,6 @@ function Login() {
   const { login } = useAuth()
   const { t } = useTranslation()
 
-  const obterNome = (t) => {
-    try {
-      const payload = JSON.parse(atob(t.split('.')[1]))
-      return (
-        payload[
-          'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'
-        ] || ''
-      )
-    } catch {
-      return ''
-    }
-  }
-
   const processarEnvio = async (e) => {
     e.preventDefault()
     setErro('')
@@ -36,8 +26,8 @@ function Login() {
       setCarregando(true)
       const dados = await authenticate({ email, senha })
       login(dados.tokenAutenticado)
-      const nome = obterNome(dados.tokenAutenticado)
-      setMensagem(t('welcome', { name: nome }))
+      const usuario = decodeAuthenticationToken(dados.tokenAutenticado)
+      setMensagem(t('welcome', { name: usuario?.nome ?? '' }))
       setTimeout(() => navegar('/dashboard'), 1500)
     } catch {
       setErro(t('loginFailed'))
