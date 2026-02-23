@@ -45,6 +45,23 @@ src/
 - Sempre execute `npm test` antes de abrir um pull request.
 - Novas traduções devem ser adicionadas em `src/lang/en.json` e `src/lang/pt.json`.
 
+
+## DevOps
+Foi criada a estrutura `devops/` seguindo o padrão do repositório backend, com os diretórios:
+
+- `devops/deploy`: contém o `docker-compose.yml` para execução local.
+- `devops/helm`: contém o chart Helm (`thinkbitcoin-front`) para Kubernetes.
+- `devops/infra`: reservado para artefatos de infraestrutura.
+
+Também foram adicionados dois workflows no GitHub Actions seguindo o fluxo padrão de validação e entrega contínua:
+
+- `.github/workflows/ci.yml`: executa `npm ci`, `npm test`, `npm run build` e valida o `docker build` em `push` e `pull_request` para `main` e `develop`.
+- `.github/workflows/cd.yml`: publica a imagem Docker no GHCR em `push` para `main` (e também permite execução manual por `workflow_dispatch`).
+
+### Variáveis e segredos esperados
+- `vars.VITE_API_URL`: URL da API usada no build da imagem.
+- `secrets.GITHUB_TOKEN`: token padrão do GitHub Actions para publicar no GHCR.
+
 ## Testes
 ```bash
 cd src
