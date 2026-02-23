@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "thinkbitcoin-front.fullname" . }}
+  labels:
+    {{- include "thinkbitcoin-front.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "thinkbitcoin-front.selectorLabels" . | nindent 4 }}

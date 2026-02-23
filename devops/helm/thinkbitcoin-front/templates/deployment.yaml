@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "thinkbitcoin-front.fullname" . }}
+  labels:
+    {{- include "thinkbitcoin-front.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "thinkbitcoin-front.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "thinkbitcoin-front.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ include "thinkbitcoin-front.name" . }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 80
+              name: http
+              protocol: TCP
+          env:
+            - name: VITE_API_URL
+              value: {{ .Values.env.viteApiUrl | quote }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      nodeSelector:
+        {{- toYaml .Values.nodeSelector | nindent 8 }}
+      tolerations:
+        {{- toYaml .Values.tolerations | nindent 8 }}
+      affinity:
+        {{- toYaml .Values.affinity | nindent 8 }}
