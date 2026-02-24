@@ -19,6 +19,7 @@ import {
   Theme,
 } from '../utils/preferences'
 import { isNotificationSupported } from '../utils/browser'
+import { executeNotificationWorkflow } from '../utils/workflow'
 
 function Settings() {
   const { prefs, updatePreferences, token } = useAuth()
@@ -62,39 +63,20 @@ function Settings() {
   }
 
   const changeAlerts = async (e) => {
-    const val = e.target.checked
-    setNotifs(val)
-    updatePreferences({ notificacoes: val })
-    if (val) {
-      if (!isNotificationSupported()) {
-        setNotifs(false)
-        updatePreferences({ notificacoes: false })
-        setToast(t('notificationsUnsupported'))
-        setTimeout(() => setToast(''), 2000)
-        return
-      }
-      try {
-        const perm = await Notification.requestPermission()
-        if (perm !== 'granted') {
-          setNotifs(false)
-          updatePreferences({ notificacoes: false })
-          setToast(t('notificationsDenied'))
-          setTimeout(() => setToast(''), 2000)
-          return
-        }
-        if (token) {
-          await fetch(`${API_URL}/ThinkBitcoin/notificacoes/subscribe`, {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${token}` },
-          })
-        }
-        setToast(t('notificationsOn'))
-      } catch {
-        setToast(t('notificationsError'))
-      }
-    } else {
-      setToast(t('notificationsOff'))
-    }
+    const enabled = e.target.checked
+    setNotifs(enabled)
+
+    const result = await executeNotificationWorkflow({
+      enabled,
+      token,
+      isNotificationSupported,
+      notificationApi: Notification,
+      baseUrl: API_URL,
+    })
+
+    setNotifs(result.shouldEnableNotifications)
+    updatePreferences({ notificacoes: result.shouldEnableNotifications })
+    setToast(t(result.messageKey))
     setTimeout(() => setToast(''), 2000)
   }
 
