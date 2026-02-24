@@ -1,0 +1,43 @@
+name: Build Pipeline Frontend
+
+on:
+  pull_request:
+    branches: ["main", "develop"]
+  push:
+    branches: ["main", "develop"]
+  workflow_dispatch:
+
+jobs:
+  build-pipeline:
+    name: Testes + Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: src/package-lock.json
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Executar testes
+        run: npm test
+
+      - name: Gerar build de produção
+        run: npm run build
+
+      - name: Publicar artefato de build
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: src/dist
+          if-no-files-found: error

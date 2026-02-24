@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { ApiEndpoint, HttpMethod } from '../src/utils/apiClient'
-import { authenticate } from '../src/utils/authentication'
+import { AuthenticationEndpoint, HttpMethod } from '../src/utils/apiClient'
+import {
+  AuthTokenClaim,
+  authenticate,
+  decodeAuthenticationToken,
+} from '../src/utils/authentication'
 import { API_URL } from '../src/api'
 
 describe('utils/authentication', () => {
@@ -24,7 +28,7 @@ describe('utils/authentication', () => {
     })
 
     expect(fetch).toHaveBeenCalledWith(
-      `${API_URL}${ApiEndpoint.AUTHENTICATION.LOGIN}`,
+      `${API_URL}${AuthenticationEndpoint.LOGIN}`,
       {
         method: HttpMethod.POST,
         headers: { 'Content-Type': 'application/json' },
@@ -52,5 +56,34 @@ describe('utils/authentication', () => {
     await expect(
       authenticate({ email: 'usuario@exemplo.com', senha: 'segredo' })
     ).rejects.toThrow('Token de autenticação ausente na resposta')
+  })
+
+  it('decodifica claims de nome e email do token', () => {
+    const payload = {
+      [AuthTokenClaim.NAME]: 'Satoshi',
+      [AuthTokenClaim.EMAIL]: 'satoshi@bitcoin.org',
+    }
+    const encodedPayload = Buffer.from(JSON.stringify(payload)).toString('base64url')
+    const token = `header.${encodedPayload}.signature`
+
+    expect(decodeAuthenticationToken(token)).toEqual({
+      nome: 'Satoshi',
+      email: 'satoshi@bitcoin.org',
+    })
+  })
+
+  it('retorna dados vazios quando claims não estiverem no payload', () => {
+    const payload = { role: 'admin' }
+    const encodedPayload = Buffer.from(JSON.stringify(payload)).toString('base64url')
+    const token = `header.${encodedPayload}.signature`
+
+    expect(decodeAuthenticationToken(token)).toEqual({
+      nome: '',
+      email: '',
+    })
+  })
+
+  it('retorna nulo para token inválido', () => {
+    expect(decodeAuthenticationToken('token-invalido')).toBeNull()
   })
 })
