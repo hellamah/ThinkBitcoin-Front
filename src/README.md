@@ -53,10 +53,11 @@ Foi criada a estrutura `devops/` seguindo o padrão do repositório backend, com
 - `devops/helm`: contém o chart Helm (`thinkbitcoin-front`) para Kubernetes.
 - `devops/infra`: reservado para artefatos de infraestrutura.
 
-Também foram adicionados dois workflows no GitHub Actions seguindo o fluxo padrão de validação e entrega contínua:
+Também foram adicionados workflows no GitHub Actions seguindo o fluxo padrão de validação, entrega contínua e release:
 
 - `.github/workflows/ci.yml`: executa `npm ci`, `npm test`, `npm run build` e valida o `docker build` em `push` e `pull_request` para `main` e `develop`.
 - `.github/workflows/cd.yml`: publica a imagem Docker no GHCR em `push` para `main` (e também permite execução manual por `workflow_dispatch`).
+- `.github/workflows/release.yml`: em tags `v*.*.*` (ou manualmente), executa `npm ci`, `npm test`, `npm run build`, publica imagem Docker no GHCR com tags de release e cria a release no GitHub com notas automáticas.
 
 ### Variáveis e segredos esperados
 - `vars.VITE_API_URL`: URL da API usada no build da imagem.
