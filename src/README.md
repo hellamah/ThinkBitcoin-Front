@@ -55,7 +55,8 @@ Foi criada a estrutura `devops/` seguindo o padrão do repositório backend, com
 
 Também foram adicionados workflows no GitHub Actions seguindo o fluxo padrão de validação, entrega contínua e release:
 
-- `.github/workflows/ci.yml`: executa `npm ci`, `npm test`, `npm run build` e valida o `docker build` em `push` e `pull_request` para `main` e `develop`.
+- `.github/workflows/build-pipeline.yml`: pipeline dedicado para validação de build, executando `npm ci`, `npm test`, `npm run build` e publicando o artefato `dist` em `push`, `pull_request` e execução manual.
+- `.github/workflows/ci.yml`: valida integração contínua com `npm ci`, `npm test`, `npm run build` e `docker build` em `push` e `pull_request` para `main` e `develop`.
 - `.github/workflows/cd.yml`: publica a imagem Docker no GHCR em `push` para `main` (e também permite execução manual por `workflow_dispatch`).
 - `.github/workflows/release.yml`: em tags `v*.*.*` (ou manualmente), executa `npm ci`, `npm test`, `npm run build`, publica imagem Docker no GHCR com tags de release e cria a release no GitHub com notas automáticas.
 

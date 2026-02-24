@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import {
   executeNotificationWorkflow,
   NotificationWorkflowStep,
@@ -6,11 +6,11 @@ import {
 } from '../src/utils/workflow'
 
 describe('utils/workflow', () => {
-  it('retorna fluxo de desativação quando notificações forem desligadas', async () => {
+  it('retorna skipped quando notificações estão desabilitadas', async () => {
     const result = await executeNotificationWorkflow({
       enabled: false,
       token: null,
-      isNotificationSupported: vi.fn(),
+      isNotificationSupported: () => true,
       notificationApi: { requestPermission: vi.fn() },
     })
 
@@ -61,6 +61,22 @@ describe('utils/workflow', () => {
     expect(result.shouldEnableNotifications).toBe(true)
   })
 
+  it('retorna sucesso sem chamar subscribe quando token não existir', async () => {
+    const fetchImpl = vi.fn()
+
+    const result = await executeNotificationWorkflow({
+      enabled: true,
+      token: null,
+      isNotificationSupported: () => true,
+      notificationApi: { requestPermission: vi.fn().mockResolvedValue('granted') },
+      fetchImpl,
+    })
+
+    expect(fetchImpl).not.toHaveBeenCalled()
+    expect(result.status).toBe(WorkflowStatus.SUCCESS)
+    expect(result.step).toBe(NotificationWorkflowStep.ENABLED)
+  })
+
   it('retorna falha quando a permissão for negada', async () => {
     const result = await executeNotificationWorkflow({
       enabled: true,
@@ -72,6 +88,21 @@ describe('utils/workflow', () => {
     expect(result.status).toBe(WorkflowStatus.FAILED)
     expect(result.step).toBe(NotificationWorkflowStep.DENIED)
     expect(result.messageKey).toBe('notificationsDenied')
+    expect(result.shouldEnableNotifications).toBe(false)
+  })
+
+  it('retorna erro quando requestPermission lança exceção', async () => {
+    const result = await executeNotificationWorkflow({
+      enabled: true,
+      token: 'token-123',
+      isNotificationSupported: () => true,
+      notificationApi: { requestPermission: vi.fn().mockRejectedValue(new Error('boom')) },
+      fetchImpl: vi.fn(),
+    })
+
+    expect(result.status).toBe(WorkflowStatus.FAILED)
+    expect(result.step).toBe(NotificationWorkflowStep.ERROR)
+    expect(result.messageKey).toBe('notificationsError')
     expect(result.shouldEnableNotifications).toBe(false)
   })
 })
