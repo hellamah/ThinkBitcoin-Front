@@ -1,16 +1,27 @@
 # DevOps - ThinkBitcoin Frontend
 
-Estrutura de automação e entrega da aplicação frontend.
+Estrutura de automação e entrega da aplicação frontend, padronizada com o mesmo modelo de diretórios do backend.
 
 ## Estrutura
-- `deploy/`: execução local e comandos de deploy (`docker-compose.yml`).
+- `deploy/`: execução local e automação de deploy.
+  - `docker-compose.yml`: sobe o frontend localmente.
+  - `docker_deploy.ps1`: wrapper para subir o compose com build.
+  - `helm_deploy.ps1`: faz `helm lint` e executa `helm upgrade --install`.
 - `helm/`: chart Helm para implantação em Kubernetes.
-- `infra/`: diretório reservado para arquivos de infraestrutura.
+- `infra/`: scripts operacionais de infraestrutura.
+  - `create_secret.ps1`: cria/aplica secret com `VITE_API_URL`.
+  - `cleanup_old_logs.ps1`: coleta os logs recentes dos pods.
 
 ## Execução local com Docker Compose
 ```bash
 cd devops/deploy
 docker compose up --build -d
+```
+
+Ou, via PowerShell:
+```powershell
+cd devops/deploy
+./docker_deploy.ps1
 ```
 
 A aplicação ficará disponível em `http://localhost:8080`.
@@ -19,4 +30,23 @@ A aplicação ficará disponível em `http://localhost:8080`.
 ```bash
 helm lint devops/helm/thinkbitcoin-front
 helm template thinkbitcoin-front devops/helm/thinkbitcoin-front
+```
+
+Deploy via script:
+```powershell
+cd devops/deploy
+./helm_deploy.ps1 -Namespace thinkbitcoin
+```
+
+## Infra
+Criar/atualizar secret com URL da API:
+```powershell
+cd devops/infra
+./create_secret.ps1 -Namespace thinkbitcoin -ApiUrl "https://api.thinkbitcoin.com"
+```
+
+Coletar logs recentes da aplicação:
+```powershell
+cd devops/infra
+./cleanup_old_logs.ps1 -Namespace thinkbitcoin -Tail 300
 ```
