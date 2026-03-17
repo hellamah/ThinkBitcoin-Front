@@ -55,11 +55,16 @@ src/
 
 
 ## DevOps
-Foi criada a estrutura `devops/` seguindo o padrão do repositório backend, com os diretórios:
+A estrutura `devops/` segue o padrão do backend e está organizada com as mesmas camadas:
 
-- `devops/deploy`: contém o `docker-compose.yml` para execução local.
-- `devops/helm`: contém o chart Helm (`thinkbitcoin-front`) para Kubernetes.
-- `devops/infra`: reservado para artefatos de infraestrutura.
+- `devops/deploy`: automação de deploy local e Kubernetes.
+  - `docker-compose.yml`
+  - `docker_deploy.ps1`
+  - `helm_deploy.ps1`
+- `devops/helm`: chart Helm (`thinkbitcoin-front`) para Kubernetes.
+- `devops/infra`: scripts operacionais.
+  - `create_secret.ps1`
+  - `cleanup_old_logs.ps1`
 
 Também foram adicionados workflows no GitHub Actions seguindo o fluxo padrão de validação, entrega contínua e release:
 
