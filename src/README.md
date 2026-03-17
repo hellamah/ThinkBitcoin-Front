@@ -7,6 +7,14 @@ Aplicação web construída com React e Vite para acompanhar cotações de cript
 - Suporte a autenticação com persistência de token e preferências armazenadas no navegador.
 - Internacionalização com suporte para português e inglês.
 - Utilização de *hooks* customizados para preços (`useCoinPrices`) e tradução (`useTranslation`).
+- Planejamento evolutivo documentado no arquivo `ROADMAP.md`.
+
+## Roadmap
+- O roadmap completo de evolução do produto está em [`ROADMAP.md`](./ROADMAP.md), organizado em quatro fases:
+  - Base do projeto e pipeline de entrega.
+  - Painel operacional do robô trader.
+  - Plataforma de pesquisa de estratégias.
+  - Evolução de UX, gráficos e performance.
 
 ## Pré-requisitos
 - Node.js 18 ou superior.
