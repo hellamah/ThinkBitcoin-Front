@@ -53,12 +53,14 @@ cd devops/infra
 
 
 ## Pipeline Azure DevOps (YAML)
-Arquivo: `devops/azure-pipelines-build-image.yml`
+Arquivo: `devops/azure-pipelines-front-build-image.yml`
 
 Esse pipeline replica o fluxo do build da API (Docker build/push + artefato `image-meta`) adaptado para o frontend:
 - Build e push da imagem com tags `$(Build.BuildId)` e `latest`;
 - Geração do arquivo `devops/deploy/image-tag` com a tag do build;
 - Cópia das pastas `devops/deploy` e `devops/helm/thinkbitcoin-front` para staging;
-- Publicação do artefato `image-meta`.
+- Publicação do artefato `image-meta`;
+- Execução automática em Pull Requests direcionados para as branches `desenv` e `prod`.
+- Pipeline oficial de build de imagem centralizado no Azure DevOps (sem duplicação de workflow equivalente no GitHub Actions).
 
 > Observação: ajuste as variáveis `dockerRegistryServiceConnection` e `imageRepository` conforme seu registry/repositório no Azure DevOps.

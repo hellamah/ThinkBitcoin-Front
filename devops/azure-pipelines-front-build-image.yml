@@ -3,7 +3,11 @@ trigger:
     include:
       - desenv
 
-pr: none
+pr:
+  branches:
+    include:
+      - desenv
+      - prod
 
 pool:
   vmImage: ubuntu-latest
