@@ -7,6 +7,14 @@ Aplicação web construída com React e Vite para acompanhar cotações de cript
 - Suporte a autenticação com persistência de token e preferências armazenadas no navegador.
 - Internacionalização com suporte para português e inglês.
 - Utilização de *hooks* customizados para preços (`useCoinPrices`) e tradução (`useTranslation`).
+- Planejamento evolutivo documentado no arquivo `ROADMAP.md`.
+
+## Roadmap
+- O roadmap completo de evolução do produto está em [`ROADMAP.md`](./ROADMAP.md), organizado em quatro fases:
+  - Base do projeto e pipeline de entrega.
+  - Painel operacional do robô trader.
+  - Plataforma de pesquisa de estratégias.
+  - Evolução de UX, gráficos e performance.
 
 ## Pré-requisitos
 - Node.js 18 ou superior.
@@ -41,24 +49,40 @@ src/
 ```
 
 ## Padrões e Boas Práticas
-- Utilize os utilitários presentes em `src/utils` para trabalhar com enums, autenticação (`authentication.js`), workflows de interface (`workflow.js`) e armazenamento de preferências.
+- Utilize os utilitários presentes em `src/utils` para trabalhar com enums, autenticação (`authentication.js`), camada de API (`apiClient.js`), workflows de interface (`workflow.js`) e armazenamento de preferências.
 - Sempre execute `npm test` antes de abrir um pull request.
 - Novas traduções devem ser adicionadas em `src/lang/en.json` e `src/lang/pt.json`.
 
 
-## DevOps
-Foi criada a estrutura `devops/` seguindo o padrão do repositório backend, com os diretórios:
 
-- `devops/deploy`: contém o `docker-compose.yml` para execução local.
-- `devops/helm`: contém o chart Helm (`thinkbitcoin-front`) para Kubernetes.
-- `devops/infra`: reservado para artefatos de infraestrutura.
+## Depuração no VS Code
+Foi adicionado o arquivo `src/.vscode/launch.json` com configurações prontas para depuração local:
+
+- **ThinkBitcoin Front: Vite (dev)**: inicia o servidor de desenvolvimento via `npm run dev`.
+- **ThinkBitcoin Front: Abrir no Chrome**: abre o app em `http://localhost:5173` com suporte a *breakpoints* no código React.
+- **ThinkBitcoin Front: Testes (Vitest)**: executa os testes (`npm test`) com depuração no terminal integrado.
+
+> Dica: para essas configurações funcionarem sem ajustes, abra no VS Code a pasta `ThinkBitcoin-Front/src` (a que contém o `package.json`) e use a aba **Run and Debug** para selecionar uma configuração.
+
+## DevOps
+A estrutura `devops/` segue o padrão do backend e está organizada com as mesmas camadas:
+
+- `devops/deploy`: automação de deploy local e Kubernetes.
+  - `docker-compose.yml`
+  - `docker_deploy.ps1`
+  - `helm_deploy.ps1`
+- `devops/helm`: chart Helm (`thinkbitcoin-front`) para Kubernetes.
+- `devops/infra`: scripts operacionais.
+  - `create_secret.ps1`
+  - `cleanup_old_logs.ps1`
 
 Também foram adicionados workflows no GitHub Actions seguindo o fluxo padrão de validação, entrega contínua e release:
 
-- `.github/workflows/build-pipeline.yml`: pipeline dedicado para validação de build, executando `npm ci`, `npm test`, `npm run build` e publicando o artefato `dist` em `push`, `pull_request` e execução manual.
 - `.github/workflows/ci.yml`: valida integração contínua com `npm ci`, `npm test`, `npm run build` e `docker build` em `push` e `pull_request` para `main` e `develop`.
 - `.github/workflows/cd.yml`: publica a imagem Docker no GHCR em `push` para `main` (e também permite execução manual por `workflow_dispatch`).
 - `.github/workflows/release.yml`: em tags `v*.*.*` (ou manualmente), executa `npm ci`, `npm test`, `npm run build`, publica imagem Docker no GHCR com tags de release e cria a release no GitHub com notas automáticas.
+
+Para build/push de imagem e geração de artefato `image-meta`, o pipeline oficial está no Azure DevOps em `devops/azure-pipelines-front-build-image.yml`.
 
 ### Variáveis e segredos esperados
 - `vars.VITE_API_URL`: URL da API usada no build da imagem.

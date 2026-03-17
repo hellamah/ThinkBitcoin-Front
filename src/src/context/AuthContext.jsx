@@ -1,7 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { ThemeProvider, createTheme } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
-import { API_URL } from '../api'
 import {
   Theme,
   getInitialPreferences,
@@ -13,6 +12,7 @@ import {
   clearStoredToken,
 } from '../utils/preferences'
 import { decodeAuthenticationToken } from '../utils/authentication'
+import { apiRequest, HttpMethod, UserEndpoint } from '../utils/apiClient'
 
 const AuthContext = createContext({
   token: null,
@@ -63,11 +63,9 @@ export function AuthProvider({ children }) {
 
   const carregarPreferencias = async (t) => {
     try {
-      const resp = await fetch(`${API_URL}/ThinkBitcoin/me`, {
+      const json = await apiRequest(UserEndpoint.ME, {
         headers: { Authorization: `Bearer ${t}` },
       })
-      if (!resp.ok) return
-      const json = await resp.json()
       if (json.resultado) {
         setPrefs((atual) =>
           sanitizePreferences({ ...atual, ...json.resultado })
@@ -104,13 +102,10 @@ export function AuthProvider({ children }) {
     applyTheme(atual.tema)
     if (!token) return
     try {
-      await fetch(`${API_URL}/ThinkBitcoin/usuariosTB/atualizarPreferencias`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(atual),
+      await apiRequest(UserEndpoint.UPDATE_PREFERENCES, {
+        method: HttpMethod.POST,
+        headers: { Authorization: `Bearer ${token}` },
+        body: atual,
       })
     } catch {
       /* ignore */

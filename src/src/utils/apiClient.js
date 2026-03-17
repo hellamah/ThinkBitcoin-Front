@@ -11,6 +11,10 @@ export const ApiEndpoint = Object.freeze({
   AUTHENTICATION: Object.freeze({
     LOGIN: '/ThinkBitcoin/gerarTokenBearer/',
   }),
+  USER: Object.freeze({
+    ME: '/ThinkBitcoin/me',
+    UPDATE_PREFERENCES: '/ThinkBitcoin/usuariosTB/atualizarPreferencias',
+  }),
 })
 
 const JSON_HEADERS = Object.freeze({ 'Content-Type': 'application/json' })
@@ -47,3 +51,4 @@ export const apiRequest = async (
 }
 
 export const AuthenticationEndpoint = ApiEndpoint.AUTHENTICATION
+export const UserEndpoint = ApiEndpoint.USER

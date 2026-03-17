@@ -8,8 +8,10 @@ describe('utils/apiClient', () => {
     global.fetch = vi.fn()
   })
 
-  it('expõe endpoint de autenticação esperado', () => {
+  it('expõe endpoints esperados para autenticação e usuário', () => {
     expect(ApiEndpoint.AUTHENTICATION.LOGIN).toBe('/ThinkBitcoin/gerarTokenBearer/')
+    expect(ApiEndpoint.USER.ME).toBe('/ThinkBitcoin/me')
+    expect(ApiEndpoint.USER.UPDATE_PREFERENCES).toBe('/ThinkBitcoin/usuariosTB/atualizarPreferencias')
   })
 
   it('executa requisição GET sem body e sem content-type automático', async () => {
