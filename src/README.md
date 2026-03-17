@@ -78,10 +78,11 @@ A estrutura `devops/` segue o padrão do backend e está organizada com as mesma
 
 Também foram adicionados workflows no GitHub Actions seguindo o fluxo padrão de validação, entrega contínua e release:
 
-- `.github/workflows/build-pipeline.yml`: pipeline dedicado para validação de build, executando `npm ci`, `npm test`, `npm run build` e publicando o artefato `dist` em `push`, `pull_request` e execução manual.
 - `.github/workflows/ci.yml`: valida integração contínua com `npm ci`, `npm test`, `npm run build` e `docker build` em `push` e `pull_request` para `main` e `develop`.
 - `.github/workflows/cd.yml`: publica a imagem Docker no GHCR em `push` para `main` (e também permite execução manual por `workflow_dispatch`).
 - `.github/workflows/release.yml`: em tags `v*.*.*` (ou manualmente), executa `npm ci`, `npm test`, `npm run build`, publica imagem Docker no GHCR com tags de release e cria a release no GitHub com notas automáticas.
+
+Para build/push de imagem e geração de artefato `image-meta`, o pipeline oficial está no Azure DevOps em `devops/azure-pipelines-front-build-image.yml`.
 
 ### Variáveis e segredos esperados
 - `vars.VITE_API_URL`: URL da API usada no build da imagem.
