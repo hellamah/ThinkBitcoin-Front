@@ -54,6 +54,16 @@ src/
 - Novas traduções devem ser adicionadas em `src/lang/en.json` e `src/lang/pt.json`.
 
 
+
+## Depuração no VS Code
+Foi adicionado o arquivo `src/.vscode/launch.json` com configurações prontas para depuração local:
+
+- **ThinkBitcoin Front: Vite (dev)**: inicia o servidor de desenvolvimento via `npm run dev`.
+- **ThinkBitcoin Front: Abrir no Chrome**: abre o app em `http://localhost:5173` com suporte a *breakpoints* no código React.
+- **ThinkBitcoin Front: Testes (Vitest)**: executa os testes (`npm test`) com depuração no terminal integrado.
+
+> Dica: abra no VS Code a pasta `ThinkBitcoin-Front/src` (onde está o `package.json`), execute `npm install` e então use a aba **Run and Debug** para selecionar uma configuração. Se aparecer `'vite' não é reconhecido`, normalmente faltam as dependências locais (`node_modules`).
+
 ## DevOps
 A estrutura `devops/` segue o padrão do backend e está organizada com as mesmas camadas:
 
