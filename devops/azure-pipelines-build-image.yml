@@ -1,0 +1,66 @@
+trigger:
+  branches:
+    include:
+      - desenv
+
+pr: none
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  dockerRegistryServiceConnection: docker_hub
+  imageRepository: ghcr.io/thinkbitcoin/thinkbitcoin-front
+  dockerfilePath: src/Dockerfile
+  buildContext: src
+  imageTagFile: $(Build.SourcesDirectory)/devops/deploy/image-tag
+
+steps:
+  - checkout: self
+
+  - task: Docker@2
+    displayName: buildAndPush docker
+    inputs:
+      containerRegistry: $(dockerRegistryServiceConnection)
+      repository: $(imageRepository)
+      command: buildAndPush
+      Dockerfile: $(dockerfilePath)
+      buildContext: $(buildContext)
+      tags: |
+        $(Build.BuildId)
+        latest
+
+  - task: PowerShell@2
+    displayName: Set Helm Image Tag
+    inputs:
+      targetType: inline
+      script: |
+        # grava a tag do build em um arquivo que vai junto no artefato image-meta
+        $tag  = "$(Build.BuildId)"
+        $path = "$(imageTagFile)"
+
+        # Garante que a pasta existe
+        $dir = Split-Path -Parent $path
+        New-Item -ItemType Directory -Path $dir -Force | Out-Null
+
+        # Grava a tag (UTF-8)
+        Set-Content -Path $path -Value $tag -Encoding utf8
+
+        # Usa ${path} para evitar erro com ':'
+        Write-Host "Tag escrita em ${path}: $tag"
+
+  - task: CopyFiles@2
+    displayName: Copy Files ps1
+    inputs:
+      SourceFolder: $(Build.SourcesDirectory)/devops
+      Contents: |
+        deploy/**/*
+        helm/thinkbitcoin-front/**/*
+      TargetFolder: $(Build.ArtifactStagingDirectory)
+
+  - task: PublishBuildArtifacts@1
+    displayName: Publish Artifact: image-meta
+    inputs:
+      PathtoPublish: $(Build.ArtifactStagingDirectory)
+      ArtifactName: image-meta
+      publishLocation: Container

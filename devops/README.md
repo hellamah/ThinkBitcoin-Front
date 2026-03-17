@@ -50,3 +50,15 @@ Coletar logs recentes da aplicação:
 cd devops/infra
 ./cleanup_old_logs.ps1 -Namespace thinkbitcoin -Tail 300
 ```
+
+
+## Pipeline Azure DevOps (YAML)
+Arquivo: `devops/azure-pipelines-build-image.yml`
+
+Esse pipeline replica o fluxo do build da API (Docker build/push + artefato `image-meta`) adaptado para o frontend:
+- Build e push da imagem com tags `$(Build.BuildId)` e `latest`;
+- Geração do arquivo `devops/deploy/image-tag` com a tag do build;
+- Cópia das pastas `devops/deploy` e `devops/helm/thinkbitcoin-front` para staging;
+- Publicação do artefato `image-meta`.
+
+> Observação: ajuste as variáveis `dockerRegistryServiceConnection` e `imageRepository` conforme seu registry/repositório no Azure DevOps.
