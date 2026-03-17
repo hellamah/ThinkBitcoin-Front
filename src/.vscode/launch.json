@@ -6,14 +6,14 @@
       "type": "node-terminal",
       "request": "launch",
       "command": "npm run dev",
-      "cwd": "${workspaceFolder}/src"
+      "cwd": "${workspaceFolder}"
     },
     {
       "name": "ThinkBitcoin Front: Abrir no Chrome",
       "type": "pwa-chrome",
       "request": "launch",
       "url": "http://localhost:5173",
-      "webRoot": "${workspaceFolder}/src/src",
+      "webRoot": "${workspaceFolder}/src",
       "preLaunchTask": "npm: dev",
       "sourceMaps": true
     },
@@ -21,7 +21,7 @@
       "name": "ThinkBitcoin Front: Testes (Vitest)",
       "type": "node",
       "request": "launch",
-      "cwd": "${workspaceFolder}/src",
+      "cwd": "${workspaceFolder}",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
         "test"

@@ -62,7 +62,7 @@ Foi adicionado o arquivo `src/.vscode/launch.json` com configurações prontas p
 - **ThinkBitcoin Front: Abrir no Chrome**: abre o app em `http://localhost:5173` com suporte a *breakpoints* no código React.
 - **ThinkBitcoin Front: Testes (Vitest)**: executa os testes (`npm test`) com depuração no terminal integrado.
 
-> Dica: abra o workspace na raiz do repositório e use a aba **Run and Debug** do VS Code para selecionar uma configuração.
+> Dica: para essas configurações funcionarem sem ajustes, abra no VS Code a pasta `ThinkBitcoin-Front/src` (a que contém o `package.json`) e use a aba **Run and Debug** para selecionar uma configuração.
 
 ## DevOps
 A estrutura `devops/` segue o padrão do backend e está organizada com as mesmas camadas:
