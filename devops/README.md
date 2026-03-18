@@ -63,4 +63,5 @@ Esse pipeline replica o fluxo do build da API (Docker build/push + artefato `ima
 - Execução automática em Pull Requests direcionados para as branches `desenv` e `prod` e também em `push` (merge) nessas branches.
 - Pipeline oficial de build de imagem centralizado no Azure DevOps (sem duplicação de workflow equivalente no GitHub Actions).
 
-> Observação: ajuste as variáveis `dockerRegistryServiceConnection` e `imageRepository` conforme seu registry/repositório no Azure DevOps.
+> Observação: ajuste as variáveis `dockerRegistryServiceConnection` e `imageRepository` conforme seu registry/repositório no Azure DevOps.  
+> Exemplo para Docker Hub: `dockerRegistryServiceConnection: docker_hub` e `imageRepository: thinkbitcoin/thinkbitcoin-front`.

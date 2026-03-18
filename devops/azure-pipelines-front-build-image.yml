@@ -15,7 +15,7 @@ pool:
 
 variables:
   dockerRegistryServiceConnection: docker_hub
-  imageRepository: ghcr.io/thinkbitcoin/thinkbitcoin-front
+  imageRepository: thinkbitcoin/thinkbitcoin-front
   dockerfilePath: src/Dockerfile
   buildContext: src
   imageTagFile: $(Build.SourcesDirectory)/devops/deploy/image-tag
