@@ -6,7 +6,7 @@ Estrutura de automação e entrega da aplicação frontend, padronizada com o me
 - `deploy/`: execução local e automação de deploy.
   - `docker-compose.yml`: sobe o frontend localmente.
   - `docker_deploy.ps1`: wrapper para subir o compose com build.
-  - `helm_deploy.ps1`: faz `helm lint` e executa `helm upgrade --install`.
+  - `helm_deploy.ps1`: padroniza deploy Helm (com fallback por variáveis de ambiente/arquivo `image-tag`) e executa `helm upgrade --install`.
 - `helm/`: chart Helm para implantação em Kubernetes.
 - `infra/`: scripts operacionais de infraestrutura.
   - `create_secret.ps1`: cria/aplica secret com `VITE_API_URL`.
@@ -37,6 +37,21 @@ Deploy via script:
 cd devops/deploy
 ./helm_deploy.ps1 -Namespace thinkbitcoin
 ```
+
+
+Exemplo com override de imagem (modelo do release):
+```powershell
+cd devops/deploy
+./helm_deploy.ps1 -Namespace thinkbitcoin -ImageRepository "hellamah/thinkbitcoin.dev.front" -ImageTag "12345"
+```
+
+O script também aceita valores vindos do pipeline:
+- `IMAGE_TAG`/`DOCKER_IMAGE_TAG`;
+- `IMAGE_REPOSITORY`/`DOCKER_IMAGE_REPOSITORY`;
+- `VITE_API_URL`/`FRONT_VITE_API_URL`;
+- `DEPLOY_ENV`/`DEPLOY_ENVIRONMENT` (`dev`, `desenv`, `prod`).
+
+Se `IMAGE_TAG` não for informado, ele tenta ler automaticamente `devops/deploy/image-tag`.
 
 ## Infra
 Criar/atualizar secret com URL da API:
