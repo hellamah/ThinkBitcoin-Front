@@ -60,7 +60,7 @@ Esse pipeline replica o fluxo do build da API (Docker build/push + artefato `ima
 - Geração do arquivo `devops/deploy/image-tag` com a tag do build;
 - Cópia das pastas `devops/deploy` e `devops/helm/thinkbitcoin-front` para staging;
 - Publicação do artefato `image-meta`;
-- Execução automática em Pull Requests direcionados para as branches `desenv` e `prod`.
+- Execução automática em Pull Requests direcionados para as branches `desenv` e `prod` e também em `push` (merge) nessas branches.
 - Pipeline oficial de build de imagem centralizado no Azure DevOps (sem duplicação de workflow equivalente no GitHub Actions).
 
 > Observação: ajuste as variáveis `dockerRegistryServiceConnection` e `imageRepository` conforme seu registry/repositório no Azure DevOps.

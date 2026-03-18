@@ -2,6 +2,7 @@ trigger:
   branches:
     include:
       - desenv
+      - prod
 
 pr:
   branches:
@@ -63,7 +64,7 @@ steps:
       TargetFolder: $(Build.ArtifactStagingDirectory)
 
   - task: PublishBuildArtifacts@1
-    displayName: Publish Artifact: image-meta
+    displayName: "Publish Artifact: image-meta"
     inputs:
       PathtoPublish: $(Build.ArtifactStagingDirectory)
       ArtifactName: image-meta
