@@ -56,12 +56,15 @@ cd devops/infra
 Arquivo: `devops/azure-pipelines-front-build-image.yml`
 
 Esse pipeline replica o fluxo do build da API (Docker build/push + artefato `image-meta`) adaptado para o frontend:
-- Build e push da imagem com tags `$(Build.BuildId)` e `latest`;
+- Resolução automática do repositório Docker com base na branch de destino:
+  - `desenv` → `hellamah/thinkbitcoin.dev.front`
+  - `prod` → `hellamah/thinkbitcoin.prod.front`
+- Compatível com builds de PR e de push, lendo as branches via variáveis de ambiente do agente (`System.PullRequest.TargetBranch` e `Build.SourceBranch`);
+- Build e push da imagem selecionada com tags `$(Build.BuildId)` e `latest`;
 - Geração do arquivo `devops/deploy/image-tag` com a tag do build;
 - Cópia das pastas `devops/deploy` e `devops/helm/thinkbitcoin-front` para staging;
 - Publicação do artefato `image-meta`;
 - Execução automática em Pull Requests direcionados para as branches `desenv` e `prod` e também em `push` (merge) nessas branches.
 - Pipeline oficial de build de imagem centralizado no Azure DevOps (sem duplicação de workflow equivalente no GitHub Actions).
 
-> Observação: ajuste as variáveis `dockerRegistryServiceConnection` e `imageRepository` conforme seu registry/repositório no Azure DevOps.  
-> Exemplo para Docker Hub: `dockerRegistryServiceConnection: docker_hub` e `imageRepository: thinkbitcoin/thinkbitcoin-front`.
+> Observação: ajuste a variável `dockerRegistryServiceConnection` conforme sua Service Connection do Docker Hub no Azure DevOps.
