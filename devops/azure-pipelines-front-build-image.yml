@@ -4,6 +4,8 @@ trigger:
       - desenv
       - prod
 
+name: $(Build.BuildId)
+
 pr:
   branches:
     include:

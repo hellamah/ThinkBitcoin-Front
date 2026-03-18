@@ -71,12 +71,40 @@ cd devops/infra
 Arquivo: `devops/azure-pipelines-front-build-image.yml`
 
 Esse pipeline replica o fluxo do build da API (Docker build/push + artefato `image-meta`) adaptado para o frontend:
+- Nome da execução (`run name`) padronizado para `$(Build.BuildId)` para refletir a numeração do Docker tag (evita formato automático com data + descrição do merge);
 - Resolução automática do repositório Docker com base na branch de destino:
   - `desenv` → `hellamah/thinkbitcoin.dev.front`
   - `prod` → `hellamah/thinkbitcoin.prod.front`
   - A resolução usa variáveis de ambiente do agente (`SYSTEM_PULLREQUEST_TARGETBRANCH` e `BUILD_SOURCEBRANCH`), evitando erro quando o pipeline não está em contexto de Pull Request;
 - Build e push da imagem selecionada com tags `$(Build.BuildId)` e `latest`;
+  - Padrão oficial para o passo **buildAndPush docker** (frontend):
+    ```yaml
+    - task: Docker@2
+      displayName: buildAndPush docker
+      inputs:
+        containerRegistry: $(dockerRegistryServiceConnection)
+        repository: $(imageRepository)
+        command: buildAndPush
+        Dockerfile: $(dockerfilePath)   # src/Dockerfile
+        buildContext: $(buildContext)   # src
+        tags: |
+          $(Build.BuildId)
+          latest
+    ```
+    - No frontend, o `repository` é resolvido por branch (`desenv`/`prod`) e não deve usar o repositório da API.
 - Geração do arquivo `devops/deploy/image-tag` com a tag do build;
+  - Padrão oficial para o passo **Set Helm Image Tag**:
+    ```yaml
+    - powershell: |
+        $tag  = "$(Build.BuildId)"
+        $path = "$(Build.SourcesDirectory)/devops/deploy/image-tag"
+        $dir = Split-Path -Parent $path
+        New-Item -ItemType Directory -Path $dir -Force | Out-Null
+        Set-Content -Path $path -Value $tag -Encoding utf8
+        Write-Host "Tag escrita em ${path}: $tag"
+      displayName: 'Set Helm Image Tag'
+    ```
+    - O uso de `${path}` no `Write-Host` evita erro de parsing com `:`.
 - Cópia das pastas `devops/deploy` e `devops/helm/thinkbitcoin-front` para staging;
 - Publicação do artefato `image-meta`;
 - Execução automática em Pull Requests direcionados para as branches `desenv` e `prod` e também em `push` (merge) nessas branches.
