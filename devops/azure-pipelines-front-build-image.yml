@@ -15,13 +15,40 @@ pool:
 
 variables:
   dockerRegistryServiceConnection: docker_hub
-  imageRepository: thinkbitcoin/thinkbitcoin-front
+  imageRepositoryDev: hellamah/thinkbitcoin.dev.front
+  imageRepositoryProd: hellamah/thinkbitcoin.prod.front
   dockerfilePath: src/Dockerfile
   buildContext: src
   imageTagFile: $(Build.SourcesDirectory)/devops/deploy/image-tag
 
 steps:
   - checkout: self
+
+  - task: PowerShell@2
+    displayName: Resolve Docker image repository by branch
+    inputs:
+      targetType: inline
+      script: |
+        $prTargetBranch = "$(System.PullRequest.TargetBranch)"
+        $sourceBranch = "$(Build.SourceBranch)"
+
+        $effectiveBranch = if (-not [string]::IsNullOrWhiteSpace($prTargetBranch)) { $prTargetBranch } else { $sourceBranch }
+
+        if ($effectiveBranch -eq "refs/heads/prod") {
+          $repository = "$(imageRepositoryProd)"
+          $environment = "prod"
+        }
+        elseif ($effectiveBranch -eq "refs/heads/desenv") {
+          $repository = "$(imageRepositoryDev)"
+          $environment = "desenv"
+        }
+        else {
+          throw "Branch '$effectiveBranch' não suportada para publicação de imagem. Use desenv ou prod."
+        }
+
+        Write-Host "##vso[task.setvariable variable=imageRepository]$repository"
+        Write-Host "##vso[task.setvariable variable=deployEnvironment]$environment"
+        Write-Host "Build para ambiente '$environment' usando repositório '$repository'."
 
   - task: Docker@2
     displayName: buildAndPush docker
