@@ -1,14 +1,16 @@
 trigger:
   branches:
     include:
-      - desenv
-      - prod
+      - Desenv
+      - Prod
+
+name: $(Build.BuildId)
 
 pr:
   branches:
     include:
-      - desenv
-      - prod
+      - Desenv
+      - Prod
 
 pool:
   vmImage: ubuntu-latest
@@ -34,16 +36,16 @@ steps:
 
         $effectiveBranch = if (-not [string]::IsNullOrWhiteSpace($prTargetBranch)) { $prTargetBranch } else { $sourceBranch }
 
-        if ($effectiveBranch -eq "refs/heads/prod") {
+        if ($effectiveBranch -eq "refs/heads/Prod") {
           $repository = "$(imageRepositoryProd)"
           $environment = "prod"
         }
-        elseif ($effectiveBranch -eq "refs/heads/desenv") {
+        elseif ($effectiveBranch -eq "refs/heads/Desenv") {
           $repository = "$(imageRepositoryDev)"
           $environment = "desenv"
         }
         else {
-          throw "Branch '$effectiveBranch' não suportada para publicação de imagem. Use desenv ou prod."
+          throw "Branch '$effectiveBranch' não suportada para publicação de imagem. Use Desenv ou Prod."
         }
 
         Write-Host "##vso[task.setvariable variable=imageRepository]$repository"
