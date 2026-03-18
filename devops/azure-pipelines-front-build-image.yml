@@ -29,8 +29,8 @@ steps:
     inputs:
       targetType: inline
       script: |
-        $prTargetBranch = "$(System.PullRequest.TargetBranch)"
-        $sourceBranch = "$(Build.SourceBranch)"
+        $prTargetBranch = $env:SYSTEM_PULLREQUEST_TARGETBRANCH
+        $sourceBranch = $env:BUILD_SOURCEBRANCH
 
         $effectiveBranch = if (-not [string]::IsNullOrWhiteSpace($prTargetBranch)) { $prTargetBranch } else { $sourceBranch }
 
