@@ -67,7 +67,7 @@ steps:
     inputs:
       targetType: inline
       script: |
-        # grava a tag do build em um arquivo que vai junto nos artefatos do deploy
+        # grava a tag do build em um arquivo que vai junto no artefato image-meta
         $tag  = "$(Build.BuildId)"
         $path = "$(imageTagFile)"
 
@@ -95,11 +95,4 @@ steps:
     inputs:
       PathtoPublish: $(Build.ArtifactStagingDirectory)
       ArtifactName: image-meta
-      publishLocation: Container
-
-  - task: PublishBuildArtifacts@1
-    displayName: Publish Artifact release
-    inputs:
-      PathtoPublish: $(Build.ArtifactStagingDirectory)
-      ArtifactName: release
       publishLocation: Container
