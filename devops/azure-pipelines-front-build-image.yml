@@ -1,14 +1,14 @@
 trigger:
   branches:
     include:
-      - desenv
-      - prod
+      - Desenv
+      - Prod
 
 pr:
   branches:
     include:
-      - desenv
-      - prod
+      - Desenv
+      - Prod
 
 pool:
   vmImage: ubuntu-latest
