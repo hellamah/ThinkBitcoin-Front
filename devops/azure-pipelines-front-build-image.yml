@@ -6,8 +6,6 @@ trigger:
 
 name: $(Build.BuildId)
 
-name: $(Build.BuildId)
-
 pr:
   branches:
     include:
