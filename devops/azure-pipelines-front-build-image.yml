@@ -3,11 +3,8 @@ trigger:
     include:
       - Desenv
       - Prod
-<<<<<<< HEAD
-=======
 
 name: $(Build.BuildId)
->>>>>>> 5d079cb4e68ec25d9166a3032ff24ea186c53729
 
 pr:
   branches:
