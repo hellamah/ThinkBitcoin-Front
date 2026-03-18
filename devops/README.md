@@ -73,8 +73,8 @@ Arquivo: `devops/azure-pipelines-front-build-image.yml`
 Esse pipeline replica o fluxo do build da API (Docker build/push + artefato `image-meta`) adaptado para o frontend:
 - Nome da execução (`run name`) padronizado para `$(Build.BuildId)` para refletir a numeração do Docker tag (evita formato automático com data + descrição do merge);
 - Resolução automática do repositório Docker com base na branch de destino:
-  - `desenv` → `hellamah/thinkbitcoin.dev.front`
-  - `prod` → `hellamah/thinkbitcoin.prod.front`
+  - `Desenv` → `hellamah/thinkbitcoin.dev.front`
+  - `Prod` → `hellamah/thinkbitcoin.prod.front`
   - A resolução usa variáveis de ambiente do agente (`SYSTEM_PULLREQUEST_TARGETBRANCH` e `BUILD_SOURCEBRANCH`), evitando erro quando o pipeline não está em contexto de Pull Request;
 - Build e push da imagem selecionada com tags `$(Build.BuildId)` e `latest`;
   - Padrão oficial para o passo **buildAndPush docker** (frontend):
@@ -91,7 +91,7 @@ Esse pipeline replica o fluxo do build da API (Docker build/push + artefato `ima
           $(Build.BuildId)
           latest
     ```
-    - No frontend, o `repository` é resolvido por branch (`desenv`/`prod`) e não deve usar o repositório da API.
+    - No frontend, o `repository` é resolvido por branch (`Desenv`/`Prod`) e não deve usar o repositório da API.
 - Geração do arquivo `devops/deploy/image-tag` com a tag do build;
   - Padrão oficial para o passo **Set Helm Image Tag**:
     ```yaml
@@ -107,7 +107,7 @@ Esse pipeline replica o fluxo do build da API (Docker build/push + artefato `ima
     - O uso de `${path}` no `Write-Host` evita erro de parsing com `:`.
 - Cópia das pastas `devops/deploy` e `devops/helm/thinkbitcoin-front` para staging;
 - Publicação do artefato `image-meta`;
-- Execução automática em Pull Requests direcionados para as branches `desenv` e `prod` e também em `push` (merge) nessas branches.
+- Execução automática em Pull Requests direcionados para as branches `Desenv` e `Prod` e também em `push` (merge) nessas branches.
 - Pipeline oficial de build de imagem centralizado no Azure DevOps (sem duplicação de workflow equivalente no GitHub Actions).
 
 > Observação: ajuste a variável `dockerRegistryServiceConnection` conforme sua Service Connection do Docker Hub no Azure DevOps.
