@@ -59,6 +59,7 @@ Esse pipeline replica o fluxo do build da API (Docker build/push + artefato `ima
 - Resolução automática do repositório Docker com base na branch de destino:
   - `desenv` → `hellamah/thinkbitcoin.dev.front`
   - `prod` → `hellamah/thinkbitcoin.prod.front`
+  - A resolução usa variáveis de ambiente do agente (`SYSTEM_PULLREQUEST_TARGETBRANCH` e `BUILD_SOURCEBRANCH`), evitando erro quando o pipeline não está em contexto de Pull Request;
 - Build e push da imagem selecionada com tags `$(Build.BuildId)` e `latest`;
 - Geração do arquivo `devops/deploy/image-tag` com a tag do build;
 - Cópia das pastas `devops/deploy` e `devops/helm/thinkbitcoin-front` para staging;
