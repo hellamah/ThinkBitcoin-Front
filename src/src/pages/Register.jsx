@@ -133,7 +133,7 @@ function Register() {
           <ErrorMessage message={erro} />
           {mensagem && <div className="success-msg">{mensagem}</div>}
           <Button variant="contained" type="submit" disabled={carregando} color="primary">
-            {t('signUp')}
+            {t('signUp')} 
           </Button>
           {carregando && <div className="loading-msg">{t('authenticating')}</div>}
         </Box>
