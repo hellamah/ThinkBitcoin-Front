@@ -32,7 +32,9 @@ npm install
 ```
 
 ## Configuração de Ambiente
-Crie um arquivo `.env` dentro da pasta `src/` para controlar o comportamento do frontend durante desenvolvimento local.
+Por padrão, o frontend já sobe em **modo demo funcional sem backend** durante o desenvolvimento local (`npm run dev`), usando dados simulados na camada de API.
+
+Se quiser customizar, crie um arquivo `.env` dentro da pasta `src/`.
 
 Exemplo:
 
@@ -43,7 +45,8 @@ VITE_USE_MOCK=true
 
 - `VITE_USE_MOCK=true`: ativa o mock local da camada de API no frontend.
 - Quando o mock está ativo, endpoints usados pela interface retornam dados fake (incluindo sinal do robô no formato `btc`, `decision` e `confidence`) sem depender do backend.
-- `VITE_USE_MOCK=false` (ou variável ausente): mantém chamadas reais para a API.
+- `VITE_USE_MOCK=false`: força chamadas reais para a API (desativa o modo demo local).
+- Se `VITE_USE_MOCK` estiver ausente, o app usa mock automaticamente em desenvolvimento (`npm run dev`) e usa API real em produção (`npm run build`/deploy).
 
 ## Scripts Disponíveis
 | Comando        | Descrição                                     |
