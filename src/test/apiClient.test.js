@@ -12,6 +12,9 @@ describe('utils/apiClient', () => {
     expect(ApiEndpoint.AUTHENTICATION.LOGIN).toBe('/ThinkBitcoin/gerarTokenBearer/')
     expect(ApiEndpoint.USER.ME).toBe('/ThinkBitcoin/me')
     expect(ApiEndpoint.USER.UPDATE_PREFERENCES).toBe('/ThinkBitcoin/usuariosTB/atualizarPreferencias')
+    expect(ApiEndpoint.USER.REGISTER_CONSULTANT).toBe('/ThinkBitcoin/usuariosTB/inserirConsultor')
+    expect(ApiEndpoint.MARKET.COIN_VALUE('BTC')).toBe('/ThinkBitcoin/moeda/BTC/valor')
+    expect(ApiEndpoint.MARKET.SCRIPT_COMMON).toBe('/ThinkBitcoin/scriptComum')
   })
 
   it('executa requisição GET sem body e sem content-type automático', async () => {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { API_URL } from '../api'
+import { apiRequest, HttpMethod, MarketEndpoint } from '../utils/apiClient'
 import useCoinPrices from '../hooks/useCoinPrices'
 import { useAuth } from '../context/AuthContext'
 import useTranslation from '../hooks/useTranslation'
@@ -66,26 +66,20 @@ function Dashboard() {
   const [intervalo, setIntervalo] = useState('24h')
 
   useEffect(() => {
-    const url = `${API_URL}/ThinkBitcoin/sequenciasRetorno/`
-
     if (!token) {
       setDados(MOCK_DADOS)
       return
     }
 
     setErro('')
-    fetch(url, {
+    apiRequest(MarketEndpoint.RETURN_SEQUENCE, {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then((r) => {
-        if (!r.ok) throw new Error()
-        return r.json()
-      })
       .then((json) => setDados(json.resultado.listaSequenciaRetorno))
       .catch(() => {
         setErro(t('fetchError'))
-      setDados(MOCK_DADOS)
-    })
+        setDados(MOCK_DADOS)
+      })
   }, [token])
 
   const filtrarIntervalo = (lista) => {
@@ -98,8 +92,7 @@ function Dashboard() {
   }
 
   const obterSinal = () => {
-    fetch(`${API_URL}/ThinkBitcoin/scriptComum`, { method: 'POST' })
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
+    apiRequest(MarketEndpoint.SCRIPT_COMMON, { method: HttpMethod.POST })
       .then((j) => setSinal(Number(j.acao)))
       .catch(() => setSinal(null))
   }

@@ -17,7 +17,7 @@ import profileImg from '../assets/profile-circuit.svg'
 import CryptoIcon from '../components/CryptoIcon'
 import Modal from '../components/Modal.jsx'
 import { MdTrendingUp, MdTrendingDown } from 'react-icons/md'
-import { API_URL } from '../api'
+import { apiRequest, MarketEndpoint } from '../utils/apiClient'
 import useCoinPrices from '../hooks/useCoinPrices'
 import useTranslation from '../hooks/useTranslation'
 
@@ -62,11 +62,7 @@ function Home() {
 
   const obterDetalhes = async (moeda) => {
     try {
-      const resp = await fetch(
-        `${API_URL}/ThinkBitcoin/moeda/${moeda.simbolo}/valor`
-      )
-      if (!resp.ok) throw new Error()
-      const json = await resp.json()
+      const json = await apiRequest(MarketEndpoint.COIN_VALUE(moeda.simbolo))
       const valor = json.resultado.valor
       const data = new Date(json.resultado.dataHora).toLocaleString('pt-BR')
       setDetalhes({ moeda, valor, data })
