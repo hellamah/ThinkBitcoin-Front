@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { TextField, Button, Box } from '@mui/material'
 import ErrorMessage from '../components/ErrorMessage'
-import { API_URL } from '../api'
+import { apiRequest, HttpMethod, UserEndpoint } from '../utils/apiClient'
 import { authenticate } from '../utils/authentication'
 import { useAuth } from '../context/AuthContext'
 import useTranslation from '../hooks/useTranslation'
@@ -36,17 +36,14 @@ function Register() {
     setMensagem('')
     try {
       setCarregando(true)
-      const respostaCadastro = await fetch(`${API_URL}/ThinkBitcoin/usuariosTB/inserirConsultor`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      await apiRequest(UserEndpoint.REGISTER_CONSULTANT, {
+        method: HttpMethod.POST,
+        body: {
           ItemUsuarioTB: [
             { nome, email, senha, ativo: true },
           ],
-        }),
+        },
       })
-      if (!respostaCadastro.ok) throw new Error('Erro ao cadastrar')
-      await respostaCadastro.json()
 
       const dadosLogin = await authenticate({ email, senha })
       login(dadosLogin.tokenAutenticado)

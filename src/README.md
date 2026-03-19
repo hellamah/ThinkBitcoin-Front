@@ -31,6 +31,20 @@ cd src
 npm install
 ```
 
+## Configuração de Ambiente
+Crie um arquivo `.env` dentro da pasta `src/` para controlar o comportamento do frontend durante desenvolvimento local.
+
+Exemplo:
+
+```bash
+VITE_API_URL=http://localhost:13500
+VITE_USE_MOCK=true
+```
+
+- `VITE_USE_MOCK=true`: ativa o mock local da camada de API no frontend.
+- Quando o mock está ativo, endpoints usados pela interface retornam dados fake (incluindo sinal do robô no formato `btc`, `decision` e `confidence`) sem depender do backend.
+- `VITE_USE_MOCK=false` (ou variável ausente): mantém chamadas reais para a API.
+
 ## Scripts Disponíveis
 | Comando        | Descrição                                     |
 |----------------|-----------------------------------------------|

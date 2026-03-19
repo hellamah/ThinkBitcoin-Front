@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { API_URL } from '../api'
+import { apiRequest, MarketEndpoint } from '../utils/apiClient'
 
 const COINS = [
   { simbolo: 'BTC', nome: 'Bitcoin' },
@@ -31,11 +31,7 @@ export default function useCoinPrices() {
       const atualizadas = await Promise.all(
         moedasRef.current.map(async (m) => {
           try {
-            const resp = await fetch(
-              `${API_URL}/ThinkBitcoin/moeda/${m.simbolo}/valor`
-            )
-            if (!resp.ok) throw new Error()
-            const json = await resp.json()
+            const json = await apiRequest(MarketEndpoint.COIN_VALUE(m.simbolo))
             const valor = json.resultado.valor
             const historico = [...m.dados.slice(-6), valor]
             const anterior = m.dados[m.dados.length - 1] ?? valor

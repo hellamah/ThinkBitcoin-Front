@@ -1,4 +1,5 @@
 import { API_URL } from '../api'
+import { getMockResponse, USE_MOCK_API } from './mockApi'
 
 export const HttpMethod = Object.freeze({
   GET: 'GET',
@@ -14,6 +15,13 @@ export const ApiEndpoint = Object.freeze({
   USER: Object.freeze({
     ME: '/ThinkBitcoin/me',
     UPDATE_PREFERENCES: '/ThinkBitcoin/usuariosTB/atualizarPreferencias',
+    REGISTER_CONSULTANT: '/ThinkBitcoin/usuariosTB/inserirConsultor',
+  }),
+  MARKET: Object.freeze({
+    COIN_VALUE: (symbol) => `/ThinkBitcoin/moeda/${symbol}/valor`,
+    SCRIPT_COMMON: '/ThinkBitcoin/scriptComum',
+    SCRIPT_COMMON_SWAGGER: '/ThinkBitcoin/AtivadorScript/ScriptComum',
+    RETURN_SEQUENCE: '/ThinkBitcoin/sequenciasRetorno/',
   }),
 })
 
@@ -34,6 +42,11 @@ export const apiRequest = async (
   endpoint,
   { method = HttpMethod.GET, headers = {}, body } = {}
 ) => {
+  if (USE_MOCK_API) {
+    const mockResponse = getMockResponse({ endpoint, method })
+    if (mockResponse) return mockResponse
+  }
+
   const response = await fetch(
     buildUrl(endpoint),
     createRequestInit(method, headers, body)
@@ -52,3 +65,4 @@ export const apiRequest = async (
 
 export const AuthenticationEndpoint = ApiEndpoint.AUTHENTICATION
 export const UserEndpoint = ApiEndpoint.USER
+export const MarketEndpoint = ApiEndpoint.MARKET
