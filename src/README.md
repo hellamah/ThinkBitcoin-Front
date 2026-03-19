@@ -2,6 +2,30 @@
 
 Aplicação web construída com React e Vite para acompanhar cotações de criptoativos, realizar autenticação e gerenciar preferências do usuário.
 
+## Transparência sobre este repositório
+
+⚠️ **Este repositório contém apenas o frontend.**  
+A API e o motor de decisão do ThinkBitcoin são privados e não fazem parte deste código-fonte.
+
+✔️ Este frontend funciona com dados mockados.  
+✔️ Este frontend demonstra a interface do sistema ThinkBitcoin.
+
+## Screenshots / GIF
+
+Mesmo com backend privado, a experiência visual do produto pode ser avaliada por aqui:
+
+### Login
+![Tela de login do ThinkBitcoin](./public/screenshots/login.svg)
+
+### Dashboard
+![Visão de dashboard do ThinkBitcoin](./public/screenshots/dashboard.svg)
+
+### Gráfico
+![Visualização de gráfico de mercado no ThinkBitcoin](./public/screenshots/grafico.svg)
+
+### Decisão do bot
+![Card de decisão do bot no ThinkBitcoin](./public/screenshots/decisao-bot.svg)
+
 ## Para quem está chegando agora
 - **O que é o ThinkBitcoin em 1 frase:** ThinkBitcoin é um sistema experimental de trading com aprendizado por reforço, com uma interface web para acompanhar mercado, autenticação e configurações operacionais.
 - **Por que esse projeto existe:** o projeto existe para transformar pesquisa e operação de estratégias em um fluxo mais claro, com dados visuais, automação e evolução contínua documentada.
