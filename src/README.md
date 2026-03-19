@@ -2,6 +2,11 @@
 
 Aplicação web construída com React e Vite para acompanhar cotações de criptoativos, realizar autenticação e gerenciar preferências do usuário.
 
+## Para quem está chegando agora
+- **O que é o ThinkBitcoin em 1 frase:** ThinkBitcoin é um sistema experimental de trading com aprendizado por reforço, com uma interface web para acompanhar mercado, autenticação e configurações operacionais.
+- **Por que esse projeto existe:** o projeto existe para transformar pesquisa e operação de estratégias em um fluxo mais claro, com dados visuais, automação e evolução contínua documentada.
+- **Quem deveria usar isso:** pessoas desenvolvedoras, analistas e entusiastas de cripto que queiram testar, acompanhar e evoluir estratégias de forma estruturada.
+
 ## Visão Geral
 - Interface responsiva com Material UI e gráficos em tempo real fornecidos pelo Chart.js.
 - Suporte a autenticação com persistência de token e preferências armazenadas no navegador.
@@ -98,6 +103,4 @@ npm test
 Os testes utilizam o Vitest e são executados em modo *headless*.
 
 ## Contribuição
-1. Crie uma *branch* para sua funcionalidade.
-2. Garanta que os testes estejam passando (`npm test`).
-3. Abra um pull request descrevendo claramente as alterações.
+As diretrizes oficiais de contribuição (setup local, estratégia de branches, convenções e fluxo de PR) estão em [`../CONTRIBUTING.md`](../CONTRIBUTING.md).
