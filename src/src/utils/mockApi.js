@@ -12,7 +12,28 @@ const resolveUseMockEnv = () => {
   }
 }
 
-export const USE_MOCK_API = parseUseMockFlag(resolveUseMockEnv())
+const resolveIsDevMode = () => {
+  try {
+    return Boolean(import.meta.env?.DEV)
+  } catch {
+    return false
+  }
+}
+
+const resolveIsTestMode = () => {
+  try {
+    return import.meta.env?.MODE === 'test'
+  } catch {
+    return false
+  }
+}
+
+const resolvedUseMockEnv = resolveUseMockEnv()
+
+export const USE_MOCK_API =
+  typeof resolvedUseMockEnv === 'undefined'
+    ? resolveIsDevMode() && !resolveIsTestMode()
+    : parseUseMockFlag(resolvedUseMockEnv)
 
 const buildMockToken = () => {
   const header = { alg: 'HS256', typ: 'JWT' }
