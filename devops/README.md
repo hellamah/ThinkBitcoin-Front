@@ -3,28 +3,21 @@
 Estrutura de automação e entrega da aplicação frontend, padronizada com o mesmo modelo de diretórios do backend.
 
 ## Estrutura
-- `deploy/`: execução local e automação de deploy.
-  - `docker-compose.yml`: sobe o frontend localmente.
-  - `docker_deploy.ps1`: wrapper para subir o compose com build.
+- `deploy/`: automação de deploy.
   - `helm_deploy.ps1`: padroniza deploy Helm (com fallback por variáveis de ambiente/arquivo `image-tag`) e executa `helm upgrade --install`.
 - `helm/`: chart Helm para implantação em Kubernetes.
 - `infra/`: scripts operacionais de infraestrutura.
   - `create_secret.ps1`: cria/aplica secret com `VITE_API_URL`.
   - `cleanup_old_logs.ps1`: coleta os logs recentes dos pods.
 
-## Execução local com Docker Compose
+## Execução local (desenvolvimento)
+O frontend não usa Docker localmente. Para rodar em modo de desenvolvimento com hot-reload:
 ```bash
-cd devops/deploy
-docker compose up --build -d
+cd src
+npm install   # apenas na primeira vez
+npm run dev
 ```
-
-Ou, via PowerShell:
-```powershell
-cd devops/deploy
-./docker_deploy.ps1
-```
-
-A aplicação ficará disponível em `http://localhost:8080`.
+A aplicação ficará disponível em `http://localhost:5173`.
 
 ## Helm
 ```bash
