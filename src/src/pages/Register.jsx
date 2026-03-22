@@ -22,7 +22,7 @@ function Register() {
       const payload = JSON.parse(atob(t.split('.')[1]))
       return (
         payload[
-          'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'
+        'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'
         ] || ''
       )
     } catch {
@@ -47,8 +47,8 @@ function Register() {
 
       const dadosLogin = await authenticate({ email, senha })
       login(dadosLogin.tokenAutenticado)
-      const nome = obterNome(dadosLogin.tokenAutenticado)
-      setMensagem(t('welcome', { name: nome }))
+      const nomeUsuario = obterNome(dadosLogin.tokenAutenticado)
+      setMensagem(t('welcome', { name: nomeUsuario }))
       setTimeout(() => navegar('/dashboard'), 1500)
     } catch {
       setErro(t('registerFailed'))
@@ -130,7 +130,7 @@ function Register() {
           <ErrorMessage message={erro} />
           {mensagem && <div className="success-msg">{mensagem}</div>}
           <Button variant="contained" type="submit" disabled={carregando} color="primary">
-            {t('signUp')} 
+            {t('signUp')}
           </Button>
           {carregando && <div className="loading-msg">{t('authenticating')}</div>}
         </Box>

@@ -12,7 +12,6 @@ import { useState } from 'react'
 import { Line } from 'react-chartjs-2'
 import Card from '@mui/material/Card'
 import CardActionArea from '@mui/material/CardActionArea'
-import CardContent from '@mui/material/CardContent'
 import profileImg from '../assets/profile-circuit.svg'
 import CryptoIcon from '../components/CryptoIcon'
 import Modal from '../components/Modal.jsx'
@@ -39,12 +38,13 @@ function Home() {
   const { t } = useTranslation()
   const [detalhes, setDetalhes] = useState(null)
   const fechar = () => setDetalhes(null)
-  const rotulos = moedas[0]
+  let rotulos = moedas[0]?.dados
     ? moedas[0].dados.map((_, i) => (i + 1).toString())
     : []
+  if (rotulos.length === 1) rotulos = ['1', '2']
 
   const formatarValor = (v) =>
-    v.toLocaleString('pt-BR', { style: 'currency', currency: 'USD' })
+    (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'USD' })
 
   const opcoes = {
     responsive: true,
@@ -76,9 +76,7 @@ function Home() {
         <h1 className="page-title">{t('homeTitle')}</h1>
         <div className="crypto-list">
           {moedas.map((moeda) => {
-            const isUp =
-              moeda.dados[moeda.dados.length - 1] >=
-              moeda.dados[moeda.dados.length - 2]
+            const isUp = moeda.variacao >= 0
             return (
               <Card key={moeda.simbolo} className="crypto-card">
                 <CardActionArea onClick={() => obterDetalhes(moeda)} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1 }}>
@@ -104,7 +102,7 @@ function Home() {
                         labels: rotulos,
                         datasets: [
                           {
-                            data: moeda.dados,
+                            data: moeda.dados.length === 1 ? [moeda.dados[0], moeda.dados[0]] : moeda.dados,
                             borderColor: '#00BFFF',
                             backgroundColor: 'transparent',
                           },
@@ -135,7 +133,7 @@ function Home() {
                     labels: rotulos,
                     datasets: [
                       {
-                        data: detalhes.moeda.dados,
+                        data: detalhes.moeda.dados.length === 1 ? [detalhes.moeda.dados[0], detalhes.moeda.dados[0]] : detalhes.moeda.dados,
                         borderColor: '#00BFFF',
                         backgroundColor: 'transparent',
                       },

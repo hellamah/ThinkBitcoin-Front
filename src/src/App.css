@@ -1,17 +1,18 @@
 .portfolio-screen {
-  background-color: var(--color-bg);
   color: var(--color-text);
   font-family: 'Inter', sans-serif;
   display: flex;
   flex-direction: column;
-  padding: 16px;
-  padding-bottom: 5rem;
+  padding: 64px 16px;
   min-height: 100vh;
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
   box-sizing: border-box;
 }
 
 .portfolio-screen.no-nav {
-  padding-bottom: 0;
+  padding: 0;
 }
 
 .page-title {
@@ -32,12 +33,11 @@
     font-size: 2.5rem;
   }
 }
-
 .crypto-list {
   width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
 }
 
 .crypto-card {
@@ -113,6 +113,7 @@
   width: 80px;
   height: 32px;
   color: #00bfff;
+  position: relative;
 }
 
 .crypto-carousel {
@@ -171,12 +172,11 @@
 }
 
 .app-header {
-  display: none;
-  position: fixed;
+  position: fixed !important;
   top: 0;
   left: 0;
   right: 0;
-  background-color: var(--color-bg);
+  background-color: var(--color-bg) !important;
   padding: 12px 24px;
   align-items: center;
   border-bottom: 1px solid #222;
@@ -184,18 +184,20 @@
 }
 
 .app-logo {
-  height: 32px;
+  height: 48px;
 }
 
 
 .top-nav {
-  display: flex;
+  display: none;
   gap: 2rem;
   margin-left: 2rem;
 }
 
 .user-greeting {
+  display: none;
   margin-left: auto;
+  padding-left: 1rem;
   color: var(--color-text-secondary);
   font-size: 0.875rem;
 }
@@ -414,6 +416,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  min-height: 100vh;
+  background: radial-gradient(circle at center, #1a1a1a 0%, #0a0a0a 100%);
 }
 
 .form-card input:not(.MuiInputBase-input) {
@@ -570,17 +574,10 @@
 
 @media (min-width: 480px) {
   .portfolio-screen {
-    max-width: 800px;
-    padding: 16px 32px 5rem;
-    margin: 0 auto;
+    padding: 5rem 32px 5rem;
   }
   .nav-item {
     font-size: 2rem;
-  }
-  .crypto-list {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
   }
 
   .dashboard-charts {
@@ -602,6 +599,7 @@
     align-items: center;
   }
   .top-nav {
+    display: flex;
     flex: 1;
     margin-left: 0;
     justify-content: center;
@@ -610,14 +608,15 @@
     display: inline;
   }
   .user-greeting {
+    display: block;
     margin-left: 0;
   }
   .portfolio-screen {
-    padding: 5rem 32px 0;
+    padding: 7rem 32px 0;
     margin: 0 auto;
   }
   .portfolio-screen.no-nav {
-    padding-top: 5rem;
+    padding-top: 7rem;
     margin: 0 auto;
   }
 }

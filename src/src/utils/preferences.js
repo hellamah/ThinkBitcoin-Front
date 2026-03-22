@@ -27,11 +27,31 @@ export const AlgorithmStyle = Object.freeze({
   AGGRESSIVE: 'agressivo',
 })
 
+export const RiskProfile = Object.freeze({
+  CONSERVATIVE: 'conservador',
+  MODERATE: 'moderado',
+  AGGRESSIVE: 'agressivo',
+})
+
+export const ReviewFrequency = Object.freeze({
+  DAILY: 'diaria',
+  WEEKLY: 'semanal',
+  MONTHLY: 'mensal',
+})
+
 export const DEFAULT_PREFERENCES = Object.freeze({
   tema: Theme.DARK,
   idioma: Language.PT,
   notificacoes: false,
   estiloAlgoritmo: AlgorithmStyle.BALANCED,
+  investimentoInicial: 0,
+  riscoMaximoPerda: 2,
+  idMoedaPreferida: null,
+  idCorretoraFavorita: null,
+  saldoSeguranca: 0,
+  idMoedaSaldoSeguranca: null,
+  frequenciaReview: 'diaria',
+  perfilRisco: 'moderado',
 })
 
 const getStorage = () => {
@@ -91,8 +111,15 @@ export const sanitizePreferences = (prefs = {}) => {
     tema: tema ?? DEFAULT_PREFERENCES.tema,
     idioma: idioma ?? DEFAULT_PREFERENCES.idioma,
     estiloAlgoritmo: estilo ?? DEFAULT_PREFERENCES.estiloAlgoritmo,
-    notificacoes:
-      notificacoes ?? DEFAULT_PREFERENCES.notificacoes,
+    notificacoes: notificacoes ?? DEFAULT_PREFERENCES.notificacoes,
+    investimentoInicial: merged.investimentoInicial ?? DEFAULT_PREFERENCES.investimentoInicial,
+    riscoMaximoPerda: merged.riscoMaximoPerda ?? DEFAULT_PREFERENCES.riscoMaximoPerda,
+    idMoedaPreferida: merged.idMoedaPreferida ?? DEFAULT_PREFERENCES.idMoedaPreferida,
+    idCorretoraFavorita: merged.idCorretoraFavorita ?? DEFAULT_PREFERENCES.idCorretoraFavorita,
+    saldoSeguranca: merged.saldoSeguranca ?? DEFAULT_PREFERENCES.saldoSeguranca,
+    idMoedaSaldoSeguranca: merged.idMoedaSaldoSeguranca ?? DEFAULT_PREFERENCES.idMoedaSaldoSeguranca,
+    frequenciaReview: merged.frequenciaReview ?? DEFAULT_PREFERENCES.frequenciaReview,
+    perfilRisco: merged.perfilRisco ?? DEFAULT_PREFERENCES.perfilRisco,
   }
 }
 
