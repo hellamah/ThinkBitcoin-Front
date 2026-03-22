@@ -18,6 +18,7 @@ import CryptoIcon from '../components/CryptoIcon'
 import { MdTrendingUp, MdTrendingDown } from 'react-icons/md'
 import Card from '@mui/material/Card'
 import CardActionArea from '@mui/material/CardActionArea'
+import Button from '@mui/material/Button'
 import ErrorMessage from '../components/ErrorMessage'
 
 ChartJS.register(
@@ -209,18 +210,25 @@ function Dashboard() {
       <h1 className="page-title">{t('dashboard')}</h1>
       <h2 className="page-subtitle">{t('sequence')}</h2>
       <ErrorMessage message={erro} />
-      {sinal !== null && (
-        <div className="signal-banner">
-          {sinal === 1
-            ? t('signalBuy')
-            : sinal === 2
-            ? t('signalSell')
-            : t('signalHold')}
-        </div>
-      )}
-      <button className="update-signal" onClick={obterSinal}>
-        {t('updateSignal')}
-      </button>
+      <div className="dashboard-actions">
+        {sinal !== null && (
+          <div className={`signal-banner ${sinal === 1 ? 'buy' : sinal === 2 ? 'sell' : 'hold'}`}>
+            {sinal === 1
+              ? t('signalBuy')
+              : sinal === 2
+              ? t('signalSell')
+              : t('signalHold')}
+          </div>
+        )}
+        <Button 
+          variant="contained" 
+          color="primary" 
+          onClick={obterSinal}
+          sx={{ fontWeight: 'bold' }}
+        >
+          {t('updateSignal')}
+        </Button>
+      </div>
       <div className="interval-selector">
         {['24h', '7d', '1m'].map((opt) => (
           <button
