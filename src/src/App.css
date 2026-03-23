@@ -9,6 +9,7 @@
   max-width: 1600px;
   margin: 0 auto;
   box-sizing: border-box;
+  align-items: stretch;
 }
 
 .portfolio-screen.no-nav {
@@ -393,6 +394,49 @@
   margin-bottom: 1.5rem;
 }
 
+.dashboard-actions-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.signal-banner-mini {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: uppercase;
+}
+
+.signal-banner-mini.buy {
+  background: rgba(76, 175, 80, 0.1);
+  color: #4caf50;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.signal-banner-mini.sell {
+  background: rgba(244, 67, 54, 0.1);
+  color: #f44336;
+  border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+.signal-banner-mini.hold {
+  background: rgba(255, 215, 0, 0.1);
+  color: var(--color-primary);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+.signal-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 4px currentColor;
+}
+
 .top-list {
   display: flex;
   flex-direction: column;
@@ -643,6 +687,8 @@
     gap: 1rem;
     padding-left: 20px;
     border-left: 1px solid #333;
+    min-width: 200px;
+    justify-content: flex-end;
   }
   .nav-item {
     flex-direction: row;

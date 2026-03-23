@@ -15,10 +15,11 @@ import {
 } from 'chart.js'
 import { Line } from 'react-chartjs-2'
 import CryptoIcon from '../components/CryptoIcon'
-import { MdTrendingUp, MdTrendingDown } from 'react-icons/md'
+import { MdTrendingUp, MdTrendingDown, MdRefresh } from 'react-icons/md'
 import Card from '@mui/material/Card'
 import CardActionArea from '@mui/material/CardActionArea'
 import Button from '@mui/material/Button'
+import IconButton from '@mui/material/IconButton'
 import TextField from '@mui/material/TextField'
 import MenuItem from '@mui/material/MenuItem'
 import Box from '@mui/material/Box'
@@ -272,28 +273,34 @@ function Dashboard() {
 
   return (
     <>
-      <h1 className="page-title">{t('dashboard')}</h1>
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+        <h1 className="page-title" style={{ margin: 0 }}>{t('dashboard')}</h1>
+        
+        <div className="dashboard-actions-top">
+          {sinal !== null && (
+            <div className={`signal-banner-mini ${sinal === 1 ? 'buy' : sinal === 2 ? 'sell' : 'hold'}`}>
+              <span className="signal-dot"></span>
+              {sinal === 1
+                ? t('signalBuy')
+                : sinal === 2
+                ? t('signalSell')
+                : t('signalHold')}
+            </div>
+          )}
+          <IconButton 
+            onClick={obterSinal}
+            sx={{ 
+              color: 'var(--color-primary)',
+              '&:hover': { background: 'rgba(255, 215, 0, 0.1)' }
+            }}
+            title={t('updateSignal')}
+          >
+            <MdRefresh />
+          </IconButton>
+        </div>
+      </header>
       <h2 className="page-subtitle">{t('sequence')}</h2>
       <ErrorMessage message={erro} />
-      <div className="dashboard-actions">
-        {sinal !== null && (
-          <div className={`signal-banner ${sinal === 1 ? 'buy' : sinal === 2 ? 'sell' : 'hold'}`}>
-            {sinal === 1
-              ? t('signalBuy')
-              : sinal === 2
-              ? t('signalSell')
-              : t('signalHold')}
-          </div>
-        )}
-        <Button 
-          variant="contained" 
-          color="primary" 
-          onClick={obterSinal}
-          sx={{ fontWeight: 'bold' }}
-        >
-          {t('updateSignal')}
-        </Button>
-      </div>
       <div className="interval-selector">
         {['24h', '7d', '1m'].map((opt) => (
           <button
