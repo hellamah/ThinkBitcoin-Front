@@ -103,16 +103,21 @@ function Layout({ children }) {
   return (
     <div className={`portfolio-screen${semNav ? ' no-nav' : ''}`}>
       <AppBar position="fixed" color="default" className="app-header">
-        <Toolbar sx={{ display: 'flex', alignItems: 'center' }}>
+        <Toolbar sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 2 }}>
           <img src={logoLight} alt="ThinkBitcoin" className="app-logo" />
           {!semNav && (
-            <Box component="nav" className="top-nav">
-              {links}
-            </Box>
+            <>
+              <Box component="nav" className="top-nav">
+                {comum}
+              </Box>
+              <Box className="user-section">
+                <span className="user-greeting">
+                  {token ? t('welcome', { name: user?.nome || '' }) : t('greetingGuest')}
+                </span>
+                {token ? logado : visitante}
+              </Box>
+            </>
           )}
-          <span className="user-greeting">
-            {token ? t('welcome', { name: user?.nome || '' }) : t('greetingGuest')}
-          </span>
         </Toolbar>
       </AppBar>
       {children}

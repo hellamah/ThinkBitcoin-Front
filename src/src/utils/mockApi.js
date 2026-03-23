@@ -30,16 +30,13 @@ const resolveIsTestMode = () => {
 
 const resolvedUseMockEnv = resolveUseMockEnv()
 
-export const USE_MOCK_API =
-  typeof resolvedUseMockEnv === 'undefined'
-    ? resolveIsDevMode() && !resolveIsTestMode()
-    : parseUseMockFlag(resolvedUseMockEnv)
+export const USE_MOCK_API = false
 
 const buildMockToken = () => {
   const header = { alg: 'HS256', typ: 'JWT' }
   const payload = {
-    'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name': 'Usuário Mock',
-    'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress': 'mock@thinkbitcoin.com',
+    'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name': 'Helama Borges',
+    'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress': 'helama@thinkbitcoin.com',
   }
 
   const encode = (value) => {
@@ -140,8 +137,8 @@ const mockHandlers = [
     response: () => ({
       mensagem: 'Preferências mock retornadas com sucesso',
       resultado: {
-        nome: 'Usuário Mock',
-        email: 'mock@thinkbitcoin.com',
+        nome: 'Helama Borges',
+        email: 'helama@thinkbitcoin.com',
         tema: 'dark',
         idioma: 'pt-BR',
         notificacoes: true,
