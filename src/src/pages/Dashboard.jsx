@@ -91,6 +91,8 @@ function Dashboard() {
   const [historicoMoeda, setHistoricoMoeda] = useState(null)
   const [historicosPorMoeda, setHistoricosPorMoeda] = useState({}) // { BTC: [{valor, dataHora}, ...] }
   const [normalizacao, setNormalizacao] = useState('base100') // 'bruto' | 'minmax' | 'base100' | 'zscore'
+  const filterSummaryRef = useRef('') // Cache de string dos filtros globais (intervalo+datas)
+
   
   // Limpa erro automaticamente após 10 segundos
   useEffect(() => {
@@ -172,54 +174,59 @@ function Dashboard() {
         setDados(MOCK_DADOS)
       })
 
-    // 2. Busca histórico inteligente: só baixa o que ainda não temos, para o intervalo certo
-    const selecionadasAtuais = moedasFiltro
-    
-    // Referência para detectar mudança de intervalo e limpar cache
-    // (Simplificado: se chamar carregarDashboardData, o effect já garante as dependências)
-    const deveRecarregarTudo = true // Forçamos recarga para garantir que o intervalo/filtro de data seja respeitado pela API
-    
-    if (selecionadasAtuais.length > 0) {
-      // Fetches paralelos apenas para quem não temos ainda
-      Promise.all(
-        selecionadasAtuais.map(sigla => {
-          // Se já temos dados e não é refresh forçado, retorna o cache
-          if (historicosPorMoeda[sigla] && !deveRecarregarTudo) {
-            return Promise.resolve({ sigla, registros: historicosPorMoeda[sigla] })
-          }
+    // 2. Busca histórico inteligente: Cache por intervalo + Streaming
+    const currentFilterKey = `${intervalo}-${dataInicio}-${dataFim}`
+    const isSameFilter = filterSummaryRef.current === currentFilterKey
+    filterSummaryRef.current = currentFilterKey
 
-          return apiRequest(`${MarketEndpoint.COIN_VALUE(sigla.toLowerCase())}`, {
-            headers: { Authorization: `Bearer ${token}` },
-            signal,
-          })
-            .then(json => {
-              const res = json?.resultado ?? json?.Resultado ?? json
-              const registros = res?.registros ?? res?.Registros ?? (Array.isArray(res) ? res : [])
-              return { sigla, registros }
-            })
-            .catch((err) => {
-              if (err.name === 'AbortError') return null
-              return { sigla, registros: [] }
-            })
-        })
-      ).then(resultados => {
-          // Filtra out nulls vindos de cancelamento
-          const filtrados = resultados.filter(r => r !== null)
-          if (filtrados.length === 0 && selecionadasAtuais.length > 0) return
-
-        const novoMap = {}
-        filtrados.forEach(({ sigla, registros }) => { novoMap[sigla] = registros })
-        setHistoricosPorMoeda(novoMap)
-        
-        // Mantém sicronização com historicoMoeda (visão singular de tabela)
-        if (filtrados.length > 0) {
-          setHistoricoMoeda({ registros: filtrados[0].registros })
-        }
-      })
-    } else {
-      setHistoricoMoeda(null)
+    // Se mudou o filtro global, limpamos APENAS os dados que existiam para começar do zero no novo intervalo
+    if (!isSameFilter) {
       setHistoricosPorMoeda({})
     }
+
+    moedasFiltro.forEach(sigla => {
+      // Sincroniza tabela com a primeira da lista (mesmo se vier do cache)
+      if (sigla === moedasFiltro[0] && historicosPorMoeda[sigla]) {
+          setHistoricoMoeda({ registros: historicosPorMoeda[sigla] })
+      }
+
+      // Se já temos e o filtro é o mesmo, não fazemos nada (pula fetch)
+      if (isSameFilter && historicosPorMoeda[sigla]) return
+
+      apiRequest(`${MarketEndpoint.COIN_VALUE(sigla.toLowerCase())}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        signal,
+      })
+        .then(json => {
+          if (signal?.aborted) return
+          const res = json?.resultado ?? json?.Resultado ?? json
+          const registros = res?.registros ?? res?.Registros ?? (Array.isArray(res) ? res : [])
+          
+          setHistoricosPorMoeda(prev => ({ ...prev, [sigla]: registros }))
+          
+          // Sincroniza tabela com a primeira carregada
+          if (sigla === moedasFiltro[0]) {
+             setHistoricoMoeda({ registros })
+          }
+        })
+        .catch(err => {
+          if (err.name === 'AbortError') return
+          setHistoricosPorMoeda(prev => ({ ...prev, [sigla]: [] }))
+        })
+    })
+
+    // Limpa moedas que foram removidas do filtro mas permaneciam no cache
+    setHistoricosPorMoeda(prev => {
+        const novoMap = { ...prev }
+        let changed = false
+        Object.keys(novoMap).forEach(key => {
+            if (!moedasFiltro.includes(key)) {
+                delete novoMap[key]
+                changed = true
+            }
+        })
+        return changed ? novoMap : prev
+    })
   }
 
   useEffect(() => {
