@@ -18,6 +18,7 @@ export const ApiEndpoint = Object.freeze({
     REGISTER_CONSULTANT: '/ThinkBitcoin/usuariosTB/inserirConsultor',
   }),
   MARKET: Object.freeze({
+    COIN_LIST: '/ThinkBitcoin/moedas',
     COIN_VALUE: (symbol) => `/ThinkBitcoin/moeda/${symbol}/valor`,
     SCRIPT_COMMON: '/ThinkBitcoin/scriptComum',
     SCRIPT_COMMON_SWAGGER: '/ThinkBitcoin/AtivadorScript/ScriptComum',

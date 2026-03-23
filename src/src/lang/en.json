@@ -74,5 +74,17 @@
   "weekly": "Weekly",
   "monthly": "Monthly",
   "moderate": "Moderate",
+  "loadingCoins": "Loading coins...",
+  "startDate": "Start Date",
+  "endDate": "End Date",
+  "coin": "Coin",
+  "result": "Result",
+  "win": "Win (WIN)",
+  "loss": "Loss (LOSS)",
+  "all": "All",
+  "applyFilters": "Apply Filters",
+  "coinHistory": "Coin History",
+  "date": "Date",
+  "value": "Value",
   "copyRight": "© 2025 ThinkBitcoin. All rights reserved."
 }

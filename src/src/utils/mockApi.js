@@ -86,8 +86,15 @@ const buildCoinValueResponse = (symbol) => {
   return {
     mensagem: 'Mock de valor de moeda retornado com sucesso',
     resultado: {
-      valor: value,
-      dataHora: new Date().toISOString(),
+      totalRegistros: 1,
+      totalPaginas: 1,
+      paginaAtual: 1,
+      registros: [
+        {
+          valor: value,
+          dataHora: new Date().toISOString(),
+        }
+      ],
     },
   }
 }
@@ -104,6 +111,9 @@ const buildSequenceResponse = () => {
   return {
     mensagem: 'Mock de sequência retornado com sucesso',
     resultado: {
+      totalRegistros: points.length,
+      totalPaginas: 1,
+      paginaAtual: 1,
       listaSequenciaRetorno: points.map((point, index) => ({
         idSequenciaRetorno: `mock-sequencia-${index + 1}`,
         dataHora: new Date(now - point.hour * 60 * 60 * 1000).toISOString(),
@@ -136,6 +146,7 @@ const mockHandlers = [
         idioma: 'pt-BR',
         notificacoes: true,
         estiloAlgoritmo: 'balanceado',
+        frequenciaAlerta: 'media',
       },
     }),
   },
@@ -151,15 +162,7 @@ const mockHandlers = [
   },
   {
     method: 'GET',
-    match: (endpoint) => /^\/ThinkBitcoin\/moeda\/[^/]+\/valor$/i.test(endpoint),
-    response: (endpoint) => {
-      const [, symbol] = endpoint.match(/^\/ThinkBitcoin\/moeda\/([^/]+)\/valor$/i) ?? []
-      return buildCoinValueResponse(symbol ?? 'BTC')
-    },
-  },
-  {
-    method: 'GET',
-    match: (endpoint) => endpoint === '/ThinkBitcoin/sequenciasRetorno/' || /^\/ThinkBitcoin\/sequenciasRetorno\/.+$/i.test(endpoint),
+    match: (endpoint) => !!endpoint.match(/^\/ThinkBitcoin\/sequenciasRetorno\/(\?.*)?$/i) || !!endpoint.match(/^\/ThinkBitcoin\/sequenciasRetorno\/[^/?]+(\?.*)?$/i),
     response: () => buildSequenceResponse(),
   },
   {

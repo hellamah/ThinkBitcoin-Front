@@ -19,6 +19,18 @@ import { MdTrendingUp, MdTrendingDown } from 'react-icons/md'
 import Card from '@mui/material/Card'
 import CardActionArea from '@mui/material/CardActionArea'
 import Button from '@mui/material/Button'
+import TextField from '@mui/material/TextField'
+import MenuItem from '@mui/material/MenuItem'
+import Box from '@mui/material/Box'
+import Grid from '@mui/material/Grid'
+import Pagination from '@mui/material/Pagination'
+import Table from '@mui/material/Table'
+import TableBody from '@mui/material/TableBody'
+import TableCell from '@mui/material/TableCell'
+import TableContainer from '@mui/material/TableContainer'
+import TableHead from '@mui/material/TableHead'
+import TableRow from '@mui/material/TableRow'
+import Paper from '@mui/material/Paper'
 import ErrorMessage from '../components/ErrorMessage'
 
 ChartJS.register(
@@ -65,23 +77,76 @@ function Dashboard() {
   const [erro, setErro] = useState('')
   const [sinal, setSinal] = useState(null)
   const [intervalo, setIntervalo] = useState('24h')
+  
+  // Filtros dinâmicos
+  const [dataInicio, setDataInicio] = useState('')
+  const [dataFim, setDataFim] = useState('')
+  const [moedaFiltro, setMoedaFiltro] = useState('')
+  const [resultadoFiltro, setResultadoFiltro] = useState('')
+  const [pagina, setPagina] = useState(1)
+  const [quantidade, setQuantidade] = useState(20)
+  const [totalPaginas, setTotalPaginas] = useState(1)
+  const [historicoMoeda, setHistoricoMoeda] = useState(null)
 
-  useEffect(() => {
+  const carregarDashboardData = async () => {
     if (!token) {
       setDados(MOCK_DADOS)
       return
     }
 
     setErro('')
-    apiRequest(MarketEndpoint.RETURN_SEQUENCE, {
+    
+    // 1. Busca Sequências (Gráficos)
+    const params = new URLSearchParams()
+    if (dataInicio) params.append('dataInicio', dataInicio)
+    if (dataFim) params.append('dataFim', dataFim)
+    if (moedaFiltro) params.append('siglaMoeda', moedaFiltro)
+    if (resultadoFiltro && resultadoFiltro !== 'ALL') params.append('resultado', resultadoFiltro)
+    params.append('pagina', pagina)
+    params.append('quantidade', quantidade)
+
+    const urlSequence = `${MarketEndpoint.RETURN_SEQUENCE}?${params.toString()}`
+
+    apiRequest(urlSequence, {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then((json) => setDados(json.resultado.listaSequenciaRetorno))
-      .catch(() => {
+      .then((json) => {
+        const resultado = json?.resultado
+        setDados(resultado?.listaSequenciaRetorno || resultado?.ListaSequenciaRetorno || [])
+        setTotalPaginas(resultado?.totalPaginas || resultado?.TotalPaginas || 1)
+      })
+      .catch((err) => {
+        console.error('Erro ao buscar sequências:', err)
         setErro(t('fetchError'))
         setDados(MOCK_DADOS)
       })
-  }, [token])
+
+    // 2. Busca Histórico de Moeda (se filtrada)
+    if (moedaFiltro) {
+      const urlHistory = `${MarketEndpoint.COIN_VALUE(moedaFiltro.toLowerCase())}?${params.toString()}`
+      apiRequest(urlHistory, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((json) => {
+          setHistoricoMoeda(json?.resultado)
+        })
+        .catch((err) => {
+          console.error('Erro ao buscar histórico da moeda:', err)
+          setHistoricoMoeda(null)
+        })
+    } else {
+      setHistoricoMoeda(null)
+    }
+  }
+
+  useEffect(() => {
+    carregarDashboardData()
+  }, [token, pagina, quantidade])
+
+  const aplicarFiltros = () => {
+    setPagina(1)
+    carregarDashboardData()
+  }
 
   const filtrarIntervalo = (lista) => {
     const agora = Date.now()
@@ -241,27 +306,31 @@ function Dashboard() {
         ))}
       </div>
       <div className="crypto-carousel">
-        {moedasCarousel.map((m) => {
-          const isUp = m.variacao >= 0
-          return (
-            <Card key={m.simbolo} className="carousel-item" sx={{ minWidth: 120 }}>
-              <CardActionArea sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 1 }}>
-                <CryptoIcon simbolo={m.simbolo} />
-                <div className="carousel-info">
-                  <span className="carousel-name">{m.nome}</span>
-                  <span className={`carousel-price ${isUp ? 'positive' : 'negative'}`}> 
-                    {m.valor.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
-                    {isUp ? (
-                      <MdTrendingUp className="trend-icon" />
-                    ) : (
-                      <MdTrendingDown className="trend-icon" />
-                    )}
-                  </span>
-                </div>
-              </CardActionArea>
-            </Card>
-          )
-        })}
+        {moedasCarousel.length === 0 ? (
+          <div className="loading-msg">{t('loadingCoins')}</div>
+        ) : (
+          moedasCarousel.map((m) => {
+            const isUp = m.variacao >= 0
+            return (
+              <Card key={m.simbolo} className="carousel-item" sx={{ minWidth: 120 }}>
+                <CardActionArea sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 1 }}>
+                  <CryptoIcon simbolo={m.simbolo} />
+                  <div className="carousel-info">
+                    <span className="carousel-name">{m.nome}</span>
+                    <span className={`carousel-price ${isUp ? 'positive' : 'negative'}`}> 
+                      {m.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                      {isUp ? (
+                        <MdTrendingUp className="trend-icon" />
+                      ) : (
+                        <MdTrendingDown className="trend-icon" />
+                      )}
+                    </span>
+                  </div>
+                </CardActionArea>
+              </Card>
+            )
+          })
+        )}
       </div>
       <section className="panel top-coins">
         <h2>{t('topCoins')}</h2>
@@ -282,6 +351,69 @@ function Dashboard() {
             })}
         </div>
       </section>
+
+      <section className="panel filters-panel" style={{ marginTop: '20px', marginBottom: '20px', padding: '15px' }}>
+        <h3 style={{ marginBottom: '15px' }}>{t('applyFilters')}</h3>
+        <Grid container spacing={2} alignItems="center">
+          <Grid item xs={12} sm={6} md={2.4}>
+            <TextField
+              fullWidth
+              label={t('startDate')}
+              type="date"
+              value={dataInicio}
+              onChange={(e) => setDataInicio(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              size="small"
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={2.4}>
+            <TextField
+              fullWidth
+              label={t('endDate')}
+              type="date"
+              value={dataFim}
+              onChange={(e) => setDataFim(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              size="small"
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={2.4}>
+            <TextField
+              fullWidth
+              select
+              label={t('coin')}
+              value={moedaFiltro}
+              onChange={(e) => setMoedaFiltro(e.target.value)}
+              size="small"
+            >
+              <MenuItem value="">{t('all')}</MenuItem>
+              {moedasCarousel.map((m) => (
+                <MenuItem key={m.simbolo} value={m.simbolo}>{m.simbolo}</MenuItem>
+              ))}
+            </TextField>
+          </Grid>
+          <Grid item xs={12} sm={6} md={2.4}>
+            <TextField
+              fullWidth
+              select
+              label={t('result')}
+              value={resultadoFiltro}
+              onChange={(e) => setResultadoFiltro(e.target.value)}
+              size="small"
+            >
+              <MenuItem value="ALL">{t('all')}</MenuItem>
+              <MenuItem value="WIN">{t('win')}</MenuItem>
+              <MenuItem value="LOSS">{t('loss')}</MenuItem>
+            </TextField>
+          </Grid>
+          <Grid item xs={12} md={2.4}>
+            <Button variant="contained" fullWidth onClick={aplicarFiltros}>
+              {t('applyFilters')}
+            </Button>
+          </Grid>
+        </Grid>
+      </section>
+
       <div className="dashboard-charts">
         <section className="panel chart-panel">
           <h2>{t('tradedValue')}</h2>
@@ -298,6 +430,43 @@ function Dashboard() {
           </div>
         </section>
       </div>
+
+      {moedaFiltro && historicoMoeda && (
+        <section className="panel history-panel" style={{ marginTop: '20px' }}>
+          <h2>{t('coinHistory')}: {moedaFiltro}</h2>
+          <TableContainer component={Paper} sx={{ backgroundColor: 'transparent', boxShadow: 'none' }}>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ color: '#aaa', fontWeight: 'bold' }}>{t('date')}</TableCell>
+                  <TableCell sx={{ color: '#aaa', fontWeight: 'bold' }}>{t('value')}</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {(historicoMoeda?.registros || historicoMoeda?.Registros || []).map((item, idx) => (
+                  <TableRow key={idx}>
+                    <TableCell sx={{ color: '#eee' }}>{new Date(item.dataHora).toLocaleString('pt-BR')}</TableCell>
+                    <TableCell sx={{ color: '#eee' }}>
+                      {(item.valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </section>
+      )}
+
+      {totalPaginas > 1 && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3, mb: 3 }}>
+          <Pagination 
+            count={totalPaginas} 
+            page={pagina} 
+            onChange={(_, val) => setPagina(val)} 
+            color="primary" 
+          />
+        </Box>
+      )}
     </>
   )
 }
