@@ -138,41 +138,8 @@ function Dashboard() {
     setErro('')
     const signal = controller?.signal
     
-    // 1. Busca Sequências (Gráficos)
-    const params = new URLSearchParams()
-    if (dataInicio) params.append('dataInicio', dataInicio)
-    if (dataFim) params.append('dataFim', dataFim)
-    
-    // Suporte a múltiplas moedas: Adiciona cada sigla individualmente
-    moedasFiltro.forEach(sigla => {
-      params.append('siglaMoeda', sigla)
-    })
-
-    if (resultadoFiltro && resultadoFiltro !== 'ALL') params.append('resultado', resultadoFiltro)
-    params.append('pagina', pagina)
-    params.append('quantidade', quantidade)
-
-    const urlSequence = `${MarketEndpoint.RETURN_SEQUENCE}?${params.toString()}`
-
-    apiRequest(urlSequence, {
-      headers: { Authorization: `Bearer ${token}` },
-      signal,
-    })
-      .then((json) => {
-        if (signal?.aborted) return
-        const res = json?.resultado ?? json?.Resultado ?? json
-        const dataList = res?.listaSequenciaRetorno ?? res?.ListaSequenciaRetorno ?? 
-                         res?.sequencias ?? res?.Sequencias ?? 
-                         (Array.isArray(res) ? res : [])
-        
-        setDados(dataList)
-        setTotalPaginas(res?.totalPaginas ?? res?.TotalPaginas ?? 1)
-      })
-      .catch((err) => {
-        console.error('Erro ao buscar sequências:', err)
-        setErro(t('fetchError'))
-        setDados(MOCK_DADOS)
-      })
+    // 1. Busca Sequências (Gráficos) - REMOVIDO TEMPORARIAMENTE (BACKEND EM DESENVOLVIMENTO)
+    setDados(MOCK_DADOS)
 
     // 2. Busca histórico inteligente: Cache por intervalo + Streaming
     const currentFilterKey = `${intervalo}-${dataInicio}-${dataFim}`
@@ -264,15 +231,7 @@ function Dashboard() {
     return filtrados.length > 0 ? filtrados : lista
   }
 
-  const obterSinal = () => {
-    apiRequest(MarketEndpoint.SCRIPT_COMMON, { method: HttpMethod.POST })
-      .then((j) => setSinal(Number(j.acao)))
-      .catch(() => setSinal(null))
-  }
-
-  useEffect(() => {
-    obterSinal()
-  }, [])
+  // Carregamento de sinal via Script Common removido até nova definição do backend
 
   const dadosFiltrados = filtrarIntervalo(dados)
   const moedasUnicas = [...new Set(dadosFiltrados.map(d => d.siglaMoeda || d.SiglaMoeda || 'Ativo'))]
@@ -423,32 +382,12 @@ function Dashboard() {
         <div>
           <h1 className="page-title" style={{ margin: 0 }}>{t('dashboard')}</h1>
           <p style={{ margin: '4px 0 0', color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
-            Bem-vindo ao seu painel de controle de ativos
+            {t('welcome', { name: (prefs?.nome || user?.nome || '') })}
           </p>
         </div>
         
         <div className="dashboard-actions-top">
-          {sinal !== null && (
-            <div className={`signal-banner-mini ${sinal === 1 ? 'buy' : sinal === 2 ? 'sell' : 'hold'}`}>
-              <span className="signal-dot"></span>
-              {sinal === 1
-                ? t('signalBuy')
-                : sinal === 2
-                ? t('signalSell')
-                : t('signalHold')}
-            </div>
-          )}
-          <IconButton 
-            onClick={obterSinal}
-            sx={{ 
-                background: 'rgba(255, 215, 0, 0.05)',
-              color: 'var(--color-primary)',
-              '&:hover': { background: 'rgba(255, 215, 0, 0.1)' }
-            }}
-            title={t('updateSignal')}
-          >
-            <MdRefresh />
-          </IconButton>
+           {/* Botão de atualização de sinal removido até backend estar pronto */}
         </div>
       </header>
       

@@ -16,10 +16,13 @@ import Button from '@mui/material/Button'
 import Switch from '@mui/material/Switch'
 import Select from '@mui/material/Select'
 import MenuItem from '@mui/material/MenuItem'
+import TextField from '@mui/material/TextField' // Adicionado
+import Box from '@mui/material/Box' // Adicionado
+import Grid from '@mui/material/Grid' // Adicionado
 import '../App.css'
 import { useAuth } from '../context/AuthContext'
 import useTranslation from '../hooks/useTranslation'
-import { apiRequest } from '../utils/apiClient'
+import { apiRequest, MarketEndpoint } from '../utils/apiClient'
 import { API_URL } from '../api'
 import {
   AlgorithmStyle,
@@ -37,20 +40,18 @@ function Settings() {
   const [toast, setToast] = useState('')
   const [moedas, setMoedas] = useState([])
   const [exchanges, setExchanges] = useState([])
-  const [light, setLight] = useState(prefs?.tema === Theme.LIGHT)
-  const [idioma, setIdioma] = useState(prefs?.idioma || Language.PT)
-  const [notifs, setNotifs] = useState(prefs?.notificacoes || false)
-  const [estilo, setEstilo] = useState(prefs?.estiloAlgoritmo || AlgorithmStyle.BALANCED)
 
   useEffect(() => {
     const carregarDados = async () => {
       try {
-        const [resMoedas, resExchanges] = await Promise.all([
-          apiRequest('/ThinkBitcoin/moedas'),
-          apiRequest('/ThinkBitcoin/exchanges')
+        const [resM, resE] = await Promise.all([
+          apiRequest(MarketEndpoint.COIN_LIST),
+          apiRequest(MarketEndpoint.EXCHANGES)
         ])
-        if (resMoedas.sucesso) setMoedas(resMoedas.resultado)
-        if (resExchanges.sucesso) setExchanges(resExchanges.resultado)
+        const listaM = resM?.resultado || resM?.Resultado || (Array.isArray(resM) ? resM : [])
+        const listaE = resE?.resultado || resE?.Resultado || (Array.isArray(resE) ? resE : [])
+        setMoedas(listaM)
+        setExchanges(listaE)
       } catch (err) {
         console.error('Erro ao carregar dados:', err)
       }
@@ -58,43 +59,27 @@ function Settings() {
     carregarDados()
   }, [])
 
-  useEffect(() => {
-    if (!prefs) return
-    setLight(prefs.tema === Theme.LIGHT)
-    setIdioma(prefs.idioma)
-    setNotifs(prefs.notificacoes)
-    setEstilo(prefs.estiloAlgoritmo)
-  }, [prefs])
-
-  useEffect(() => {
-    document.body.classList.toggle('light', light)
-  }, [light])
-
-  const toggleTheme = () => {
-    const novo = light ? Theme.DARK : Theme.LIGHT
-    setLight(!light)
-    updatePreferences({ tema: novo })
-    setToast(novo === Theme.LIGHT ? t('lightOn') : t('darkOn'))
+  const confirm = () => {
+    setToast(t('settingsSaved') || 'Configurações salvas!')
     setTimeout(() => setToast(''), 2000)
   }
 
-  const confirm = () => {
-    setToast(t('settingsSaved'))
+  const toggleTheme = () => {
+    const novo = (prefs?.tema === Theme.DARK) ? Theme.LIGHT : Theme.DARK
+    updatePreferences({ tema: novo })
+    setToast(novo === Theme.LIGHT ? t('lightOn') : t('darkOn'))
     setTimeout(() => setToast(''), 2000)
   }
 
   const changeLang = (e) => {
     const lang = e.target.value
     if (!Object.values(Language).includes(lang)) return
-    setIdioma(lang)
     updatePreferences({ idioma: lang })
     confirm()
   }
 
   const changeAlerts = async (e) => {
     const enabled = e.target.checked
-    setNotifs(enabled)
-
     const result = await executeNotificationWorkflow({
       enabled,
       token,
@@ -102,8 +87,6 @@ function Settings() {
       notificationApi: Notification,
       baseUrl: API_URL,
     })
-
-    setNotifs(result.shouldEnableNotifications)
     updatePreferences({ notificacoes: result.shouldEnableNotifications })
     setToast(t(result.messageKey))
     setTimeout(() => setToast(''), 2000)
@@ -112,195 +95,275 @@ function Settings() {
   const changeEstilo = (e) => {
     const val = e.target.value
     if (!Object.values(AlgorithmStyle).includes(val)) return
-    setEstilo(val)
     updatePreferences({ estiloAlgoritmo: val })
     confirm()
   }
 
+  const renderPanel = (icon, title, children) => (
+    <section className="panel settings-panel" style={{ 
+        padding: '24px', 
+        marginBottom: '24px',
+        background: 'linear-gradient(145deg, rgba(40, 40, 40, 0.4), rgba(20, 20, 20, 0.6))',
+        border: '1px solid rgba(255, 255, 255, 0.05)',
+        backdropFilter: 'blur(10px)',
+        borderRadius: '16px',
+        transition: 'all 0.3s ease',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column'
+    }}>
+      <header style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '24px' }}>
+        <div style={{ 
+            color: 'var(--color-primary)', 
+            fontSize: '1.6rem', 
+            display: 'flex',
+            background: 'rgba(255, 215, 0, 0.1)',
+            padding: '8px',
+            borderRadius: '12px'
+        }}>
+            {icon}
+        </div>
+        <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, letterSpacing: '-0.2px' }}>{title}</h2>
+      </header>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', flex: 1 }}>
+        {children}
+      </div>
+    </section>
+  )
+
+
+  const renderField = (label, component) => (
+    <Box sx={{ 
+        display: 'flex', 
+        flexDirection: { xs: 'column', sm: 'row' }, 
+        justifyContent: 'space-between', 
+        alignItems: { xs: 'flex-start', sm: 'center' }, 
+        gap: 2,
+        width: '100%'
+    }}>
+      <label style={{ 
+          color: 'rgba(255,255,255,0.6)', 
+          fontSize: '0.88rem',
+          fontWeight: 500,
+          whiteSpace: 'nowrap'
+      }}>
+          {label}
+      </label>
+      <Box sx={{ width: { xs: '100%', sm: 'auto' }, display: 'flex', justifyContent: 'flex-end' }}>
+        {component}
+      </Box>
+    </Box>
+  )
+
+  const selectSx = { 
+    minWidth: 160, 
+    bgcolor: 'rgba(255,255,255,0.04)',
+    borderRadius: '10px',
+    '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.1)' },
+    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'var(--color-primary)' },
+    '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'var(--color-primary)' }
+  }
+
   return (
-    <div className="settings-container">
-      <h1>{t('settingsTitle')}</h1>
+    <div className="settings-page" style={{ padding: '0 16px 120px', maxWidth: '1000px', margin: '0 auto', width: '100%' }}>
+      <header style={{ marginBottom: '48px', textAlign: 'center' }}>
+        <h1 className="page-title" style={{ fontSize: '2.5rem' }}>{t('settingsTitle')}</h1>
+        <Box sx={{ width: '40px', height: '4px', bgcolor: 'var(--color-primary)', margin: '16px auto', borderRadius: '2px' }} />
+        <p style={{ color: 'var(--color-text-secondary)', fontSize: '1rem', opacity: 0.8 }}>
+            Configurações e personalização da sua plataforma de trade
+        </p>
+      </header>
 
-      <section className="panel">
-        <h2>{t('themeTitle')}</h2>
-        <div className="setting-item">
-          <label htmlFor="theme-toggle">
-            <MdBrightness4 /> {t('themeSite')}
-          </label>
-          <Button id="theme-toggle" variant="contained" color="primary" onClick={toggleTheme}>
-            {light ? t('lightMode') : t('darkMode')}
-          </Button>
-        </div>
-      </section>
+      <Grid container spacing={4} alignItems="stretch">
+        <Grid item xs={12} md={6} style={{ display: 'flex', flexDirection: 'column' }}>
+          {renderPanel(<MdBrightness4 />, t('themeTitle'), (
 
-      <section className="panel">
-        <h2>{t('preferredLanguage')}</h2>
-        <div className="setting-item">
-          <label htmlFor="lang-select">
-            <MdLanguage /> {t('language')}
-          </label>
-          <Select
-            id="lang-select"
-            value={idioma}
-            onChange={changeLang}
-            variant="filled"
-            color="primary"
-            sx={{ minWidth: 120, backgroundColor: 'var(--color-bg)' }}
-            inputProps={{ style: { color: 'var(--color-text)' } }}
-            MenuProps={{
-              PaperProps: { sx: { bgcolor: 'var(--color-bg-card)' } },
-            }}
-          >
-            <MenuItem value={Language.PT}>{t('portuguese')}</MenuItem>
-            <MenuItem value={Language.EN}>{t('english')}</MenuItem>
-          </Select>
-        </div>
-      </section>
 
-      <section className="panel">
-        <h2>{t('notifications')}</h2>
-        <div className="setting-item">
-          <label htmlFor="alerts-toggle">
-            <MdNotifications /> {t('emailNotifications')}
-          </label>
-          <Switch
-            id="alerts-toggle"
-            checked={notifs}
-            onChange={changeAlerts}
-            color="primary"
-          />
-        </div>
-      </section>
-
-      <section className="panel">
-        <h2>{t('algorithmStyle')}</h2>
-        <div className="setting-item">
-          <label htmlFor="algo-config">
-            <MdTune /> {t('algorithmStyle')}
-          </label>
-          <Select
-            id="algo-config"
-            value={estilo}
-            onChange={changeEstilo}
-            variant="filled"
-            color="primary"
-            sx={{ minWidth: 140, backgroundColor: 'var(--color-bg)' }}
-            inputProps={{ style: { color: 'var(--color-text)' } }}
-            MenuProps={{
-              PaperProps: { sx: { bgcolor: 'var(--color-bg-card)' } },
-            }}
-          >
-            <MenuItem value={AlgorithmStyle.CONSERVATIVE}>{t('conservative')}</MenuItem>
-            <MenuItem value={AlgorithmStyle.BALANCED}>{t('balanced')}</MenuItem>
-            <MenuItem value={AlgorithmStyle.AGGRESSIVE}>{t('aggressive')}</MenuItem>
-          </Select>
-        </div>
-      </section>
-
-      <section className="panel">
-        <h2>{t('traderLabTitle')}</h2>
-        <div className="setting-item">
-          <label><MdAccountBalanceWallet /> {t('initialInvestment')}</label>
-          <input
-            type="number"
-            value={prefs.investimentoInicial}
-            onChange={(e) => updatePreferences({ investimentoInicial: Number(e.target.value) })}
-          />
-        </div>
-        <div className="setting-item">
-          <label><MdCurrencyBitcoin /> {t('preferredCoin')}</label>
-          <Select
-            value={prefs.idMoedaPreferida || ''}
-            onChange={(e) => updatePreferences({ idMoedaPreferida: e.target.value })}
-            variant="filled" size="small"
-            sx={{ minWidth: 120, backgroundColor: 'var(--color-bg)' }}
-            inputProps={{ style: { color: 'var(--color-text)' } }}
-          >
-            <MenuItem value=""><em>{t('none') || 'Nenhuma'}</em></MenuItem>
-            {moedas.map(m => (
-              <MenuItem key={m.id} value={m.id}>{m.sigla} - {m.nome}</MenuItem>
-            ))}
-          </Select>
-        </div>
-        <div className="setting-item">
-          <label><MdStore /> {t('preferredExchange')}</label>
-          <Select
-            value={prefs.idCorretoraFavorita || ''}
-            onChange={(e) => updatePreferences({ idCorretoraFavorita: e.target.value })}
-            variant="filled" size="small"
-            sx={{ minWidth: 120, backgroundColor: 'var(--color-bg)' }}
-            inputProps={{ style: { color: 'var(--color-text)' } }}
-          >
-            <MenuItem value=""><em>{t('none') || 'Nenhuma'}</em></MenuItem>
-            {exchanges.map(e => (
-              <MenuItem key={e.id} value={e.id}>{e.nome}</MenuItem>
-            ))}
-          </Select>
-        </div>
-      </section>
-
-      <section className="panel">
-        <h2>{t('riskManagementTitle')}</h2>
-        <div className="setting-item">
-          <label><MdTrendingDown /> {t('maxRiskPerTrade')}</label>
-          <input
-            type="number"
-            value={prefs.riscoMaximoPerda}
-            onChange={(e) => updatePreferences({ riscoMaximoPerda: Number(e.target.value) })}
-          />
-        </div>
-        <div className="setting-item">
-          <label><MdSecurity /> {t('safetyBalance')}</label>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <input
-              type="number"
-              style={{ width: '100px' }}
-              value={prefs.saldoSeguranca}
-              onChange={(e) => updatePreferences({ saldoSeguranca: Number(e.target.value) })}
-            />
-            <Select
-              value={prefs.idMoedaSaldoSeguranca || ''}
-              onChange={(e) => updatePreferences({ idMoedaSaldoSeguranca: e.target.value })}
-              variant="filled" size="small"
-              sx={{ minWidth: 100, backgroundColor: 'var(--color-bg)' }}
-              inputProps={{ style: { color: 'var(--color-text)' } }}
-            >
-              <MenuItem value=""><em>{t('none') || 'Asset'}</em></MenuItem>
-              {moedas.map(m => (
-                <MenuItem key={m.id} value={m.id}>{m.sigla}</MenuItem>
+            <>
+              {renderField(t('themeSite'), (
+                <Button 
+                    variant="contained" 
+                    onClick={toggleTheme}
+                    fullWidth
+                    startIcon={<MdBrightness4 />}
+                    sx={{ 
+                        bgcolor: 'var(--color-primary)', 
+                        color: '#000',
+                        fontWeight: 700,
+                        borderRadius: '10px',
+                        '&:hover': { bgcolor: '#e0c200' }
+                    }}
+                >
+                  {prefs?.tema === Theme.LIGHT ? t('lightMode') : t('darkMode')}
+                </Button>
               ))}
-            </Select>
-          </div>
-        </div>
-        <div className="setting-item">
-          <label><MdHistory /> {t('reviewFrequency')}</label>
-          <Select
-            value={prefs.frequenciaReview}
-            onChange={(e) => updatePreferences({ frequenciaReview: e.target.value })}
-            variant="filled" size="small"
-            sx={{ minWidth: 120, backgroundColor: 'var(--color-bg)' }}
-            inputProps={{ style: { color: 'var(--color-text)' } }}
-          >
-            <MenuItem value={ReviewFrequency.DAILY}>{t('daily')}</MenuItem>
-            <MenuItem value={ReviewFrequency.WEEKLY}>{t('weekly')}</MenuItem>
-            <MenuItem value={ReviewFrequency.MONTHLY}>{t('monthly')}</MenuItem>
-          </Select>
-        </div>
-        <div className="setting-item">
-          <label><MdAssessment /> {t('riskProfile')}</label>
-          <Select
-            value={prefs.perfilRisco}
-            onChange={(e) => updatePreferences({ perfilRisco: e.target.value })}
-            variant="filled" size="small"
-            sx={{ minWidth: 120, backgroundColor: 'var(--color-bg)' }}
-            inputProps={{ style: { color: 'var(--color-text)' } }}
-          >
-            <MenuItem value={RiskProfile.CONSERVATIVE}>{t('conservative')}</MenuItem>
-            <MenuItem value={RiskProfile.MODERATE}>{t('moderate')}</MenuItem>
-            <MenuItem value={RiskProfile.AGGRESSIVE}>{t('aggressive')}</MenuItem>
-          </Select>
-        </div>
-      </section>
+              {renderField(t('language'), (
+                <Select
+                  value={prefs?.idioma || Language.PT}
+                  onChange={changeLang}
+                  size="small"
+                  sx={selectSx}
+                >
+                  <MenuItem value={Language.PT}>{t('portuguese')}</MenuItem>
+                  <MenuItem value={Language.EN}>{t('english')}</MenuItem>
+                </Select>
+              ))}
+            </>
+          ))}
+
+          {renderPanel(<MdNotifications />, t('notifications'), (
+            renderField(t('emailNotifications'), (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>{prefs?.notificacoes ? t('enabled') : t('disabled')}</span>
+                  <Switch
+                    checked={!!prefs?.notificacoes}
+                    onChange={changeAlerts}
+                    color="primary"
+                  />
+              </Box>
+            ))
+          ))}
+        </Grid>
+
+        <Grid item xs={12} md={6} style={{ display: 'flex', flexDirection: 'column' }}>
+          {renderPanel(<MdTune />, t('algorithmStyle'), (
+
+            renderField(t('algorithmStyle') || 'Estilo do Robô', (
+              <Select
+                value={prefs?.estiloAlgoritmo || AlgorithmStyle.BALANCED}
+                onChange={changeEstilo}
+                size="small"
+                sx={selectSx}
+              >
+                <MenuItem value={AlgorithmStyle.CONSERVATIVE}>{t('conservative')}</MenuItem>
+                <MenuItem value={AlgorithmStyle.BALANCED}>{t('balanced')}</MenuItem>
+                <MenuItem value={AlgorithmStyle.AGGRESSIVE}>{t('aggressive')}</MenuItem>
+              </Select>
+            ))
+          ))}
+
+
+          {renderPanel(<MdAccountBalanceWallet />, t('traderLabTitle'), (
+            <>
+              {renderField(t('initialInvestment'), (
+                <TextField
+                  type="number"
+                  variant="outlined"
+                  size="small"
+                  defaultValue={prefs?.investimentoInicial || 0}
+                  onBlur={(e) => {
+                      updatePreferences({ investimentoInicial: Number(e.target.value) })
+                      confirm()
+                  }}
+                  sx={{ 
+                      width: 160, 
+                      '& .MuiOutlinedInput-root': { bgcolor: 'rgba(255,255,255,0.04)', borderRadius: '10px' } 
+                  }}
+                  InputProps={{ startAdornment: <Box sx={{ mr: 1, opacity: 0.5, fontSize: '0.8rem' }}>R$</Box> }}
+                />
+              ))}
+
+              {renderField(t('preferredCoin'), (
+                <Select
+                  value={prefs?.idMoedaPreferida || ''}
+                  onChange={(e) => updatePreferences({ idMoedaPreferida: e.target.value })}
+                  size="small"
+                  sx={selectSx}
+                >
+                  <MenuItem value=""><em>{t('none') || 'Padrão'}</em></MenuItem>
+                  {moedas.map(m => (
+                    <MenuItem key={m.id} value={m.id}>{m.sigla}</MenuItem>
+                  ))}
+                </Select>
+              ))}
+            </>
+          ))}
+        </Grid>
+
+        <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'center' }}>
+            <Box sx={{ width: '100%', maxWidth: '900px' }}>
+                {renderPanel(<MdSecurity />, t('riskManagementTitle'), (
+                   <Grid container spacing={4}>
+                      <Grid item xs={12} md={6}>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                            {renderField(t('maxRiskPerTrade'), (
+                                <TextField
+                                    type="number"
+                                    size="small"
+                                    defaultValue={prefs?.riscoMaximoPerda || 0}
+                                    onBlur={(e) => {
+                                        updatePreferences({ riscoMaximoPerda: Number(e.target.value) })
+                                        confirm()
+                                    }}
+                                    sx={{ width: 140, '& .MuiOutlinedInput-root': { bgcolor: 'rgba(255,255,255,0.04)', borderRadius: '10px' } }}
+                                    InputProps={{ endAdornment: <Box sx={{ ml: 1, opacity: 0.5 }}>%</Box> }}
+                                />
+                            ))}
+
+                            {renderField(t('reviewFrequency'), (
+                                <Select
+                                    value={prefs?.frequenciaReview || ReviewFrequency.DAILY}
+                                    onChange={(e) => updatePreferences({ frequenciaReview: e.target.value })}
+                                    size="small"
+                                    sx={selectSx}
+                                >
+                                    <MenuItem value={ReviewFrequency.DAILY}><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><MdHistory /> {t('daily')}</Box></MenuItem>
+                                    <MenuItem value={ReviewFrequency.WEEKLY}><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><MdHistory /> {t('weekly')}</Box></MenuItem>
+                                    <MenuItem value={ReviewFrequency.MONTHLY}><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><MdHistory /> {t('monthly')}</Box></MenuItem>
+                                </Select>
+                            ))}
+                        </Box>
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                            {renderField(t('safetyBalance'), (
+                                <Box sx={{ display: 'flex', gap: 1 }}>
+                                    <TextField
+                                        type="number"
+                                        size="small"
+                                        placeholder="0.00"
+                                        defaultValue={prefs?.saldoSeguranca || 0}
+                                        onBlur={(e) => {
+                                            updatePreferences({ saldoSeguranca: Number(e.target.value) })
+                                            confirm()
+                                        }}
+                                        sx={{ width: 100, '& .MuiOutlinedInput-root': { bgcolor: 'rgba(255,255,255,0.04)', borderRadius: '10px' } }}
+                                    />
+
+                                    <Select
+                                        value={prefs?.idMoedaSaldoSeguranca || ''}
+                                        onChange={(e) => updatePreferences({ idMoedaSaldoSeguranca: e.target.value })}
+                                        size="small"
+                                        sx={{ ...selectSx, minWidth: 90 }}
+                                    >
+                                        <MenuItem value=""><em>--</em></MenuItem>
+                                        {moedas.map(m => (
+                                            <MenuItem key={m.id} value={m.id}>{m.sigla}</MenuItem>
+                                        ))}
+                                    </Select>
+                                </Box>
+                            ))}
+                            {renderField(t('riskProfile'), (
+                                <Select
+                                    value={prefs?.perfilRisco || RiskProfile.MODERATE}
+                                    onChange={(e) => updatePreferences({ perfilRisco: e.target.value })}
+                                    size="small"
+                                    sx={selectSx}
+                                >
+                                    <MenuItem value={RiskProfile.CONSERVATIVE}>{t('conservative')}</MenuItem>
+                                    <MenuItem value={RiskProfile.MODERATE}>{t('moderate')}</MenuItem>
+                                    <MenuItem value={RiskProfile.AGGRESSIVE}>{t('aggressive')}</MenuItem>
+                                </Select>
+                            ))}
+                        </Box>
+                      </Grid>
+                   </Grid>
+                ))}
+            </Box>
+        </Grid>
+
+      </Grid>
+
 
       <div className={`toast${toast ? ' show' : ''}`}>{toast}</div>
     </div>
@@ -308,3 +371,4 @@ function Settings() {
 }
 
 export default Settings
+

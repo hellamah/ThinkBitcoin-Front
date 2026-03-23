@@ -9,8 +9,8 @@ const getLocation = () => {
 }
 
 const location = getLocation()
-const defaultPort = location.protocol === 'https:' ? '13501' : '13500'
-const hostUrl = `${location.protocol}//${location.hostname}:${defaultPort}`
+const defaultPort = '13501'
+const hostUrl = `https://${location.hostname}:${defaultPort}`
 
 const resolveEnvUrl = () => {
   try {
@@ -21,5 +21,6 @@ const resolveEnvUrl = () => {
 }
 
 const envUrl = resolveEnvUrl()
+const isDev = typeof import.meta !== 'undefined' && import.meta.env?.DEV
 
-export const API_URL = envUrl || hostUrl
+export const API_URL = envUrl || (isDev ? '' : hostUrl)

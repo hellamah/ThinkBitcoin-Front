@@ -64,12 +64,7 @@ export const executeNotificationWorkflow = async ({
       }
     }
 
-    if (token) {
-      await fetchImpl(`${baseUrl}/ThinkBitcoin/notificacoes/subscribe`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      })
-    }
+    // O endpoint de subscribe foi removido. Agora as notificações são controladas via preferências.
 
     return {
       status: WorkflowStatus.SUCCESS,

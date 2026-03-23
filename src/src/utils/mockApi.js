@@ -112,7 +112,7 @@ const buildSequenceResponse = () => {
       totalPaginas: 1,
       paginaAtual: 1,
       listaSequenciaRetorno: points.map((point, index) => ({
-        idSequenciaRetorno: `mock-sequencia-${index + 1}`,
+        idSequenciaRetorno: `00000000-0000-4000-a000-00000000000${index + 1}`,
         dataHora: new Date(now - point.hour * 60 * 60 * 1000).toISOString(),
         valorNegociado: point.price,
         variacaoPercentual: point.change,
@@ -125,7 +125,7 @@ const buildSequenceResponse = () => {
 const mockHandlers = [
   {
     method: 'POST',
-    match: (endpoint) => endpoint === '/ThinkBitcoin/gerarTokenBearer/',
+    match: (endpoint) => endpoint === '/ThinkBitcoin/gerarTokenBearer',
     response: () => ({
       mensagem: 'Token mock gerado com sucesso',
       resultado: { tokenAutenticado: buildMockToken() },
@@ -133,24 +133,40 @@ const mockHandlers = [
   },
   {
     method: 'GET',
-    match: (endpoint) => endpoint === '/ThinkBitcoin/me',
+    match: (endpoint) => endpoint === '/ThinkBitcoin/preferencias/minhas',
     response: () => ({
       mensagem: 'Preferências mock retornadas com sucesso',
       resultado: {
+        idPreferenciasUsuarioTB: 'b282e124-4dd8-4ccd-a9c6-5b6b0c324a50',
         nome: 'Helama Borges',
         email: 'helama@thinkbitcoin.com',
         tema: 'dark',
-        idioma: 'pt-BR',
+        idioma: 'pt',
         notificacoes: true,
-        estiloAlgoritmo: 'balanceado',
-        frequenciaAlerta: 'media',
-        idMoedaPreferida: 'BTC',
+        estiloAlgoritmo: 'equilibrado',
+        frequenciaReview: 'diaria',
+        idMoedaPreferida: '8a8a8a8a-8a8a-8a8a-8a8a-8a8a8a8a8a8a', // Exemplo de UUID
+        investimentoInicial: 1000.0,
+        riscoMaximoPerda: 2.5,
+        perfilRisco: 'moderado'
       },
     }),
   },
   {
-    method: 'POST',
-    match: (endpoint) => endpoint === '/ThinkBitcoin/usuariosTB/atualizarPreferencias',
+    method: 'GET',
+    match: (endpoint) => !!endpoint.match(/^\/ThinkBitcoin\/usuariosTB\/\d+(\?.*)?$/),
+    response: () => ({
+      mensagem: 'Usuário mock retornado com sucesso',
+      resultado: {
+        listaUsuarioTB: [
+          { nome: 'Helama Borges', email: 'helama@thinkbitcoin.com' }
+        ]
+      }
+    }),
+  },
+  {
+    method: 'PUT',
+    match: (endpoint) => endpoint === '/ThinkBitcoin/preferencias',
     response: () => ({ mensagem: 'Preferências mock atualizadas com sucesso' }),
   },
   {
@@ -165,7 +181,7 @@ const mockHandlers = [
   },
   {
     method: 'POST',
-    match: (endpoint) => endpoint === '/ThinkBitcoin/scriptComum' || endpoint === '/ThinkBitcoin/AtivadorScript/ScriptComum',
+    match: (endpoint) => endpoint === '/ThinkBitcoin/AtivadorScript/ScriptComum',
     response: () => ({
       btc: 68000,
       decision: 'BUY',

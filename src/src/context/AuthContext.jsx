@@ -12,7 +12,7 @@ import {
   clearStoredToken,
 } from '../utils/preferences'
 import { decodeAuthenticationToken } from '../utils/authentication'
-import { apiRequest, HttpMethod, UserEndpoint } from '../utils/apiClient'
+import { apiRequest, HttpMethod, UserEndpoint, PreferencesEndpoint } from '../utils/apiClient'
 
 const AuthContext = createContext({
   token: null,
@@ -63,7 +63,7 @@ export function AuthProvider({ children }) {
 
   const carregarPreferencias = async (t) => {
     try {
-      const json = await apiRequest(UserEndpoint.ME, {
+      const json = await apiRequest(PreferencesEndpoint.MINE, {
         headers: { Authorization: `Bearer ${t}` },
       })
       const resData = json?.resultado || json?.Resultado || json
@@ -103,8 +103,8 @@ export function AuthProvider({ children }) {
     applyTheme(atual.tema)
     if (!token) return
     try {
-      await apiRequest(UserEndpoint.UPDATE_PREFERENCES, {
-        method: HttpMethod.POST,
+      await apiRequest(PreferencesEndpoint.ALL, {
+        method: HttpMethod.PUT,
         headers: { Authorization: `Bearer ${token}` },
         body: atual,
       })

@@ -108,6 +108,9 @@ export const sanitizePreferences = (prefs = {}) => {
   const notificacoes = normalizeBoolean(merged.notificacoes)
 
   return {
+    idPreferenciasUsuarioTB: merged.idPreferenciasUsuarioTB ?? merged.IdPreferenciasUsuarioTB ?? null,
+    nome: merged.nome ?? merged.Nome ?? null,
+    email: merged.email ?? merged.Email ?? null,
     tema: tema ?? DEFAULT_PREFERENCES.tema,
     idioma: idioma ?? DEFAULT_PREFERENCES.idioma,
     estiloAlgoritmo: estilo ?? DEFAULT_PREFERENCES.estiloAlgoritmo,
@@ -117,7 +120,7 @@ export const sanitizePreferences = (prefs = {}) => {
     idMoedaPreferida: merged.idMoedaPreferida ?? merged.IdMoedaPreferida ?? DEFAULT_PREFERENCES.idMoedaPreferida,
     idCorretoraFavorita: merged.idCorretoraFavorita ?? merged.IdCorretoraFavorita ?? DEFAULT_PREFERENCES.idCorretoraFavorita,
     saldoSeguranca: merged.saldoSeguranca ?? DEFAULT_PREFERENCES.saldoSeguranca,
-    idMoedaSaldoSeguranca: merged.idMoedaSaldoSeguranca ?? DEFAULT_PREFERENCES.idMoedaSaldoSeguranca,
+    idMoedaSaldoSeguranca: merged.idMoedaSaldoSeguranca ?? DEFAULT_PREFERENCES.IdMoedaSaldoSeguranca ?? DEFAULT_PREFERENCES.idMoedaSaldoSeguranca,
     frequenciaReview: merged.frequenciaReview ?? DEFAULT_PREFERENCES.frequenciaReview,
     perfilRisco: merged.perfilRisco ?? DEFAULT_PREFERENCES.perfilRisco,
   }

@@ -10,19 +10,29 @@ export const HttpMethod = Object.freeze({
 
 export const ApiEndpoint = Object.freeze({
   AUTHENTICATION: Object.freeze({
-    LOGIN: '/ThinkBitcoin/gerarTokenBearer/',
+    LOGIN: '/ThinkBitcoin/gerarTokenBearer',
   }),
   USER: Object.freeze({
-    ME: '/ThinkBitcoin/me',
-    UPDATE_PREFERENCES: '/ThinkBitcoin/usuariosTB/atualizarPreferencias',
+    ME: (id) => `/ThinkBitcoin/usuariosTB/${id}`,
+    LIST: '/ThinkBitcoin/usuariosTB', // PUT for multiple update
     REGISTER_CONSULTANT: '/ThinkBitcoin/usuariosTB/inserirConsultor',
+    REGISTER_MINER: '/ThinkBitcoin/usuariosTB/inserirMinerador',
+    DELETE: (id) => `/ThinkBitcoin/usuariosTB/${id}`,
+  }),
+  PREFERENCES: Object.freeze({
+    ALL: '/ThinkBitcoin/preferencias',
+    MINE: '/ThinkBitcoin/preferencias/minhas',
+    BY_ID: (id) => `/ThinkBitcoin/preferencias/${id}`,
   }),
   MARKET: Object.freeze({
     COIN_LIST: '/ThinkBitcoin/moedas',
     COIN_VALUE: (symbol) => `/ThinkBitcoin/moeda/${symbol}/valor`,
-    SCRIPT_COMMON: '/ThinkBitcoin/scriptComum',
-    SCRIPT_COMMON_SWAGGER: '/ThinkBitcoin/AtivadorScript/ScriptComum',
-    RETURN_SEQUENCE: '/ThinkBitcoin/sequenciasRetorno/',
+    SCRIPT_COMMON: '/ThinkBitcoin/AtivadorScript/ScriptComum',
+    RETURN_SEQUENCE: (id = '') => `/ThinkBitcoin/sequenciasRetorno/${id}`,
+    EXCHANGES: '/ThinkBitcoin/exchanges',
+  }),
+  CARGO: Object.freeze({
+    UPDATE: '/ThinkBitcoin/CargoUsuarioTB/AlterarCargoUsuarioTB',
   }),
 })
 
@@ -67,3 +77,5 @@ export const apiRequest = async (
 export const AuthenticationEndpoint = ApiEndpoint.AUTHENTICATION
 export const UserEndpoint = ApiEndpoint.USER
 export const MarketEndpoint = ApiEndpoint.MARKET
+export const PreferencesEndpoint = ApiEndpoint.PREFERENCES
+export const CargoEndpoint = ApiEndpoint.CARGO

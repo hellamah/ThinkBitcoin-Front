@@ -28,7 +28,7 @@ function Login() {
       login(dados.tokenAutenticado)
       const usuario = decodeAuthenticationToken(dados.tokenAutenticado)
       setMensagem(t('welcome', { name: usuario?.nome ?? '' }))
-      setTimeout(() => navegar('/dashboard'), 1500)
+      setTimeout(() => navegar('/dashboard'), 500)
     } catch {
       setErro(t('loginFailed'))
     } finally {

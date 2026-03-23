@@ -39,7 +39,7 @@ function Register() {
       await apiRequest(UserEndpoint.REGISTER_CONSULTANT, {
         method: HttpMethod.POST,
         body: {
-          ItemUsuarioTB: [
+          itemUsuarioTB: [
             { nome, email, senha, ativo: true },
           ],
         },
@@ -49,7 +49,7 @@ function Register() {
       login(dadosLogin.tokenAutenticado)
       const nomeUsuario = obterNome(dadosLogin.tokenAutenticado)
       setMensagem(t('welcome', { name: nomeUsuario }))
-      setTimeout(() => navegar('/dashboard'), 1500)
+      setTimeout(() => navegar('/dashboard'), 500)
     } catch {
       setErro(t('registerFailed'))
     } finally {
