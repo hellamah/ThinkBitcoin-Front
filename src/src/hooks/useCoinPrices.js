@@ -16,13 +16,20 @@ export default function useCoinPrices() {
     const inicializarMoedas = async () => {
       try {
         const json = await apiRequest(MarketEndpoint.COIN_LIST)
-        const lista = (json.resultado || []).map((m) => ({
-          simbolo: m.sigla,
-          nome: m.nome,
-          valor: 0,
-          dados: [],
-          variacao: 0,
-        }))
+        const lista = (json.resultado || [])
+          .map((m) => ({
+            id: m.id || m.Id,
+            simbolo: m.sigla || m.Sigla,
+            nome: m.nome || m.Nome,
+            valor: 0,
+            dados: [],
+            variacao: 0,
+          }))
+          .filter(
+            (m) =>
+              m.simbolo?.toUpperCase() !== 'USDT' &&
+              (m.nome ? !m.nome.toLowerCase().includes('dolar') : true)
+          )
         if (ativo) {
           setMoedas(lista)
           // Após inicializar a lista, busca os valores pela primeira vez
@@ -43,9 +50,19 @@ export default function useCoinPrices() {
             // Usa o símbolo (sigla) para buscar o valor. Convertemos para lowercase conforme o exemplo do usuário.
             const json = await apiRequest(MarketEndpoint.COIN_VALUE(m.simbolo.toLowerCase()))
             
-            // O backend agora retorna ObterValorMoedaHistoricoRespostaDTO com registros
-            const registros = json?.resultado?.registros || json?.resultado?.Registros
-            const valor = registros?.[0]?.valor ?? 0
+            // Tenta extrair o valor de várias formas possíveis (suporte a real API e Paginação)
+            let valor = 0
+            if (typeof json === 'number') {
+              valor = json
+            } else if (json?.resultado?.registros?.[0]) {
+              valor = json.resultado.registros[0].valor ?? json.resultado.registros[0].Valor ?? 0
+            } else if (json?.registros?.[0]) {
+              valor = json.registros[0].valor ?? json.registros[0].Valor ?? 0
+            } else if (json?.resultado?.valor !== undefined) {
+              valor = json.resultado.valor ?? json.resultado.Valor ?? 0
+            } else if (json?.valor !== undefined) {
+              valor = json.valor ?? json.Valor ?? 0
+            }
             
             const historico = [...m.dados.slice(-6), valor]
             const anterior = m.dados[m.dados.length - 1] ?? valor

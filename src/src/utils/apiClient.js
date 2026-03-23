@@ -41,7 +41,7 @@ const createRequestInit = (method, headers, body) => {
 
 export const apiRequest = async (
   endpoint,
-  { method = HttpMethod.GET, headers = {}, body } = {}
+  { method = HttpMethod.GET, headers = {}, body, signal } = {}
 ) => {
   if (USE_MOCK_API) {
     const mockResponse = getMockResponse({ endpoint, method })
@@ -50,7 +50,7 @@ export const apiRequest = async (
 
   const response = await fetch(
     buildUrl(endpoint),
-    createRequestInit(method, headers, body)
+    { ...createRequestInit(method, headers, body), signal }
   )
 
   if (!response.ok) {

@@ -144,6 +144,7 @@ const mockHandlers = [
         notificacoes: true,
         estiloAlgoritmo: 'balanceado',
         frequenciaAlerta: 'media',
+        idMoedaPreferida: 'BTC',
       },
     }),
   },

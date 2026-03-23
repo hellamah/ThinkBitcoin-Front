@@ -85,7 +85,7 @@ function Login() {
               },
             }}
           />
-          <ErrorMessage message={erro} />
+          <ErrorMessage message={erro} onClose={() => setErro('')} />
           {mensagem && <div className="success-msg">{mensagem}</div>}
           <Button variant="contained" type="submit" disabled={carregando} color="primary">
             {t('signIn')}

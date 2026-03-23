@@ -66,9 +66,10 @@ export function AuthProvider({ children }) {
       const json = await apiRequest(UserEndpoint.ME, {
         headers: { Authorization: `Bearer ${t}` },
       })
-      if (json.resultado) {
+      const resData = json?.resultado || json?.Resultado || json
+      if (resData) {
         setPrefs((atual) =>
-          sanitizePreferences({ ...atual, ...json.resultado })
+          sanitizePreferences({ ...atual, ...resData })
         )
       }
     } catch {
