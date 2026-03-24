@@ -126,10 +126,18 @@ const mockHandlers = [
   {
     method: 'POST',
     match: (endpoint) => endpoint === '/ThinkBitcoin/gerarTokenBearer',
-    response: () => ({
-      mensagem: 'Token mock gerado com sucesso',
-      resultado: { tokenAutenticado: buildMockToken() },
-    }),
+    response: () => {
+      // Cria um payload mock no padrão JWT para o decode da aplicação
+      const payload = {
+        'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name': 'Helama Teste',
+        'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress': 'ssssssshelamaborges@gmail.com'
+      }
+      const base64Payload = btoa(JSON.stringify(payload))
+      return {
+        mensagem: 'Token mock gerado com sucesso',
+        resultado: { tokenAutenticado: `header.${base64Payload}.signature` },
+      }
+    },
   },
   {
     method: 'GET',
@@ -138,14 +146,14 @@ const mockHandlers = [
       mensagem: 'Preferências mock retornadas com sucesso',
       resultado: {
         idPreferenciasUsuarioTB: 'b282e124-4dd8-4ccd-a9c6-5b6b0c324a50',
-        nome: 'Helama Borges',
-        email: 'helama@thinkbitcoin.com',
+        nome: 'Helama Teste',
+        email: 'ssssssshelamaborges@gmail.com',
         tema: 'dark',
         idioma: 'pt',
         notificacoes: true,
         estiloAlgoritmo: 'equilibrado',
         frequenciaReview: 'diaria',
-        idMoedaPreferida: '8a8a8a8a-8a8a-8a8a-8a8a-8a8a8a8a8a8a', // Exemplo de UUID
+        idMoedaPreferida: '8a8a8a8a-8a8a-8a8a-8a8a-8a8a8a8a8a8a',
         investimentoInicial: 1000.0,
         riscoMaximoPerda: 2.5,
         perfilRisco: 'moderado'
@@ -188,6 +196,15 @@ const mockHandlers = [
       confidence: 0.73,
       acao: 1,
     }),
+  },
+  {
+    method: 'GET',
+    match: (endpoint) => !!endpoint.match(/^\/ThinkBitcoin\/moeda\/[^/]+\/valor(\?.*)?$/i),
+    response: (endpoint) => {
+      const match = endpoint.match(/\/moeda\/([^/]+)\/valor/i)
+      const symbol = match ? match[1] : 'BTC'
+      return buildCoinValueResponse(symbol)
+    },
   },
 ]
 

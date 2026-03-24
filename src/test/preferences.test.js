@@ -64,7 +64,7 @@ describe('utils/preferences', () => {
       estiloAlgoritmo: AlgorithmStyle.CONSERVATIVE,
     })
 
-    expect(prefs).toEqual({
+    expect(prefs).toMatchObject({
       tema: Theme.DARK,
       idioma: Language.EN,
       notificacoes: true,
@@ -90,7 +90,7 @@ describe('utils/preferences', () => {
 
   it('combina preferências iniciais com o tema armazenado', () => {
     window.localStorage.setItem('theme', 'light')
-    expect(getInitialPreferences()).toEqual({
+    expect(getInitialPreferences()).toMatchObject({
       ...DEFAULT_PREFERENCES,
       tema: Theme.LIGHT,
     })

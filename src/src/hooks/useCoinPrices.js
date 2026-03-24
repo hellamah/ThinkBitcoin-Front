@@ -37,6 +37,16 @@ export default function useCoinPrices() {
         }
       } catch (err) {
         console.error('Erro ao listar moedas:', err)
+        // Fallback Premium: Garante que o usuário veja algo mesmo se o backend falhar
+        const mockLista = [
+          { id: 'btc-id', simbolo: 'BTC', nome: 'Bitcoin', valor: 0, dados: [], variacao: 0 },
+          { id: 'eth-id', simbolo: 'ETH', nome: 'Ethereum', valor: 0, dados: [], variacao: 0 },
+          { id: 'sol-id', simbolo: 'SOL', nome: 'Solana', valor: 0, dados: [], variacao: 0 },
+        ]
+        if (ativo) {
+          setMoedas(mockLista)
+          obterValores(mockLista)
+        }
       }
     }
 

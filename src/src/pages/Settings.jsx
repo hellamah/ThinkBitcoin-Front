@@ -54,6 +54,12 @@ function Settings() {
         setExchanges(listaE)
       } catch (err) {
         console.error('Erro ao carregar dados:', err)
+        // Fallback para manter a interface funcional
+        setMoedas([
+          { id: 'btc-id', sigla: 'BTC', nome: 'Bitcoin' },
+          { id: 'eth-id', sigla: 'ETH', nome: 'Ethereum' },
+          { id: 'sol-id', sigla: 'SOL', nome: 'Solana' },
+        ])
       }
     }
     carregarDados()
@@ -259,7 +265,7 @@ function Settings() {
                       width: 160, 
                       '& .MuiOutlinedInput-root': { bgcolor: 'rgba(255,255,255,0.04)', borderRadius: '10px' } 
                   }}
-                  InputProps={{ startAdornment: <Box sx={{ mr: 1, opacity: 0.5, fontSize: '0.8rem' }}>R$</Box> }}
+                  InputProps={{ startAdornment: <Box sx={{ mr: 1, opacity: 0.5, fontSize: '0.8rem' }}>$</Box> }}
                 />
               ))}
 

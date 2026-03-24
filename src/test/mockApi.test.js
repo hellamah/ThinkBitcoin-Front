@@ -4,7 +4,7 @@ import { getMockResponse } from '../src/utils/mockApi'
 describe('utils/mockApi', () => {
   it('retorna mock de sinal com dados fake para ScriptComum', () => {
     const response = getMockResponse({
-      endpoint: '/ThinkBitcoin/scriptComum',
+      endpoint: '/ThinkBitcoin/AtivadorScript/ScriptComum',
       method: 'POST',
     })
 
@@ -25,8 +25,12 @@ describe('utils/mockApi', () => {
     expect(response).toMatchObject({
       mensagem: expect.any(String),
       resultado: {
-        valor: expect.any(Number),
-        dataHora: expect.any(String),
+        registros: [
+          {
+            valor: expect.any(Number),
+            dataHora: expect.any(String),
+          }
+        ],
       },
     })
   })

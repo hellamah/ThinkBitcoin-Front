@@ -2,10 +2,12 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { TextField, Button, Box } from '@mui/material'
 import ErrorMessage from '../components/ErrorMessage'
+import logo from '../../logo-light.svg'
 import { apiRequest, HttpMethod, UserEndpoint } from '../utils/apiClient'
 import { authenticate } from '../utils/authentication'
 import { useAuth } from '../context/AuthContext'
 import useTranslation from '../hooks/useTranslation'
+
 function Register() {
   const [nome, setNome] = useState('')
   const [email, setEmail] = useState('')
@@ -46,10 +48,10 @@ function Register() {
       })
 
       const dadosLogin = await authenticate({ email, senha })
-      login(dadosLogin.tokenAutenticado)
+      await login(dadosLogin.tokenAutenticado)
       const nomeUsuario = obterNome(dadosLogin.tokenAutenticado)
       setMensagem(t('welcome', { name: nomeUsuario }))
-      setTimeout(() => navegar('/dashboard'), 500)
+      setTimeout(() => navegar('/dashboard'), 800)
     } catch {
       setErro(t('registerFailed'))
     } finally {
@@ -60,7 +62,14 @@ function Register() {
   return (
     <div className="form-page">
       <div className={`form-card${erro ? ' shake' : ''}`}>
-        <h2>{t('register')}</h2>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '1rem' }}>
+          <img src={logo} alt="ThinkBitcoin Logo" style={{ height: '50px', marginBottom: '15px' }} />
+          <h2 style={{ margin: 0 }}>{t('register')}</h2>
+          <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem', marginTop: '8px' }}>
+            Crie sua conta para começar a investir
+          </p>
+        </div>
+
         <Box component="form" onSubmit={processarEnvio} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <TextField
             label={t('name')}
@@ -68,20 +77,9 @@ function Register() {
             onChange={(e) => setNome(e.target.value)}
             required
             variant="filled"
-            color="primary"
+            fullWidth
+            InputProps={{ disableUnderline: true }}
             InputLabelProps={{ shrink: true }}
-            inputProps={{ style: { caretColor: 'var(--color-primary)' } }}
-            sx={{
-              '& .MuiFilledInput-root': {
-                backgroundColor: 'var(--color-bg)',
-                '&:hover': {
-                  backgroundColor: 'var(--color-bg)',
-                },
-                '&.Mui-focused': {
-                  backgroundColor: 'var(--color-bg)',
-                },
-              },
-            }}
           />
           <TextField
             label={t('email')}
@@ -90,20 +88,9 @@ function Register() {
             onChange={(e) => setEmail(e.target.value)}
             required
             variant="filled"
-            color="primary"
+            fullWidth
+            InputProps={{ disableUnderline: true }}
             InputLabelProps={{ shrink: true }}
-            inputProps={{ style: { caretColor: 'var(--color-primary)' } }}
-            sx={{
-              '& .MuiFilledInput-root': {
-                backgroundColor: 'var(--color-bg)',
-                '&:hover': {
-                  backgroundColor: 'var(--color-bg)',
-                },
-                '&.Mui-focused': {
-                  backgroundColor: 'var(--color-bg)',
-                },
-              },
-            }}
           />
           <TextField
             label={t('password')}
@@ -112,28 +99,26 @@ function Register() {
             onChange={(e) => setSenha(e.target.value)}
             required
             variant="filled"
-            color="primary"
+            fullWidth
+            InputProps={{ disableUnderline: true }}
             InputLabelProps={{ shrink: true }}
-            inputProps={{ style: { caretColor: 'var(--color-primary)' } }}
-            sx={{
-              '& .MuiFilledInput-root': {
-                backgroundColor: 'var(--color-bg)',
-                '&:hover': {
-                  backgroundColor: 'var(--color-bg)',
-                },
-                '&.Mui-focused': {
-                  backgroundColor: 'var(--color-bg)',
-                },
-              },
-            }}
           />
+          
           <ErrorMessage message={erro} onClose={() => setErro('')} />
           {mensagem && <div className="success-msg">{mensagem}</div>}
-          <Button variant="contained" type="submit" disabled={carregando} color="primary">
-            {t('signUp')}
+          
+          <Button 
+            variant="contained" 
+            type="submit" 
+            disabled={carregando} 
+            color="primary"
+            fullWidth
+            size="large"
+          >
+            {carregando ? t('authenticating') : t('signUp')}
           </Button>
-          {carregando && <div className="loading-msg">{t('authenticating')}</div>}
         </Box>
+        
         <div className="form-footer">
           <Link to="/login">{t('hasAccount')}</Link>
         </div>

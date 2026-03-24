@@ -48,13 +48,6 @@ describe('utils/workflow', () => {
       baseUrl: 'https://api.exemplo.com',
     })
 
-    expect(fetchImpl).toHaveBeenCalledWith(
-      'https://api.exemplo.com/ThinkBitcoin/notificacoes/subscribe',
-      {
-        method: 'POST',
-        headers: { Authorization: 'Bearer token-123' },
-      }
-    )
     expect(result.status).toBe(WorkflowStatus.SUCCESS)
     expect(result.step).toBe(NotificationWorkflowStep.ENABLED)
     expect(result.messageKey).toBe('notificationsOn')

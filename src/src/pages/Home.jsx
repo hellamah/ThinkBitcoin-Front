@@ -44,7 +44,7 @@ function Home() {
   if (rotulos.length === 1) rotulos = ['1', '2']
 
   const formatarValor = (v) =>
-    (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'USD' })
+    (v || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
 
   const opcoes = {
     responsive: true,
@@ -64,7 +64,7 @@ function Home() {
     try {
       const json = await apiRequest(MarketEndpoint.COIN_VALUE(moeda.simbolo))
       const valor = json.resultado.valor
-      const data = new Date(json.resultado.dataHora).toLocaleString('pt-BR')
+      const data = new Date(json.resultado.dataHora).toLocaleString('en-US')
       setDetalhes({ moeda, valor, data })
     } catch {
       setDetalhes({ error: t('fetchError') })

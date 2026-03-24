@@ -160,7 +160,9 @@ function Dashboard() {
       // Se já temos e o filtro é o mesmo, não fazemos nada (pula fetch)
       if (isSameFilter && historicosPorMoeda[sigla]) return
 
-      apiRequest(`${MarketEndpoint.COIN_VALUE(sigla.toLowerCase())}`, {
+      if (!sigla || sigla === 'Ativo') return
+
+      apiRequest(MarketEndpoint.COIN_VALUE(sigla.toLowerCase()), {
         headers: { Authorization: `Bearer ${token}` },
         signal,
       })
@@ -238,32 +240,10 @@ function Dashboard() {
 
 
   // --- MEMOIZAÇÃO DOS DADOS DO GRÁFICO (Performance Máxima) ---
-  const { labelsGrafico, datasetsPreco, multiMoeda, timestampsUnicos } = useMemo(() => {
+  const { dadosGraficoPreco, dadosGraficoVariacao, multiMoeda } = useMemo(() => {
     const CORES_SIMPLE = ['#FFD700', '#2196f3', '#4caf50', '#e91e63', '#9c27b0', '#ff9800', '#00bcd4']
     
-    // Helper de normalização dentro do memo
-    const normalizar = (valores, metodo) => {
-      if (!valores.length) return valores
-      if (metodo === 'minmax') {
-        const min = Math.min(...valores)
-        const max = Math.max(...valores)
-        const range = max - min
-        return range === 0 ? valores.map(() => 0) : valores.map(v => (v - min) / range)
-      }
-      if (metodo === 'base100') {
-        const base = valores[0]
-        return base === 0 ? valores.map(() => 100) : valores.map(v => (v / base) * 100)
-      }
-      if (metodo === 'zscore') {
-        const n = valores.length
-        const media = valores.reduce((s, v) => s + v, 0) / n
-        const std = Math.sqrt(valores.reduce((s, v) => s + (v - media) ** 2, 0) / n)
-        return std === 0 ? valores.map(() => 0) : valores.map(v => (v - media) / std)
-      }
-      return valores
-    }
-
-    // 1. Coleta e ordena TODOS os timestamps de todas as moedas selecionadas (Eixo X comum)
+    // 1. Timestamps comuns
     const allTimestampsSet = new Set()
     Object.values(historicosPorMoeda).forEach(lista => {
         lista.forEach(r => {
@@ -271,29 +251,25 @@ function Dashboard() {
         })
     })
     const timestampsUnicos = Array.from(allTimestampsSet).sort()
-    
     const labels = timestampsUnicos.map(t => 
-      new Date(t).toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })
+      new Date(t).toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })
     )
 
     const moedasOrdenadas = Object.keys(historicosPorMoeda).filter(sig => historicosPorMoeda[sig]?.length > 0)
     const multi = moedasOrdenadas.length > 1
 
-    const datasets = moedasOrdenadas.map((sigla, idx) => {
+    const datasetsPreco = moedasOrdenadas.map((sigla, idx) => {
       const cor = CORES_SIMPLE[idx % CORES_SIMPLE.length]
-      const list = historicosPorMoeda[sigla] || []
-      
       const priceMap = new Map()
-      list.forEach(r => {
-          if (r.dataHora) priceMap.set(r.dataHora, r.valor ?? r.Valor ?? 0)
+      const historico = historicosPorMoeda[sigla] || []
+      historico.forEach(r => {
+          if (!r) return
+          const val = r.valor ?? r.Valor ?? r.valorNegociado ?? r.ValorNegociado ?? 0
+          if (r.dataHora) priceMap.set(r.dataHora, val)
       })
-
-      const valoresAlinhados = timestampsUnicos.map(ts => priceMap.get(ts) ?? null)
-      const valores = multi ? normalizar(valoresAlinhados.map(v => v ?? 0), normalizacao) : valoresAlinhados
-      
       return {
         label: sigla,
-        data: valores,
+        data: timestampsUnicos.map(ts => priceMap.get(ts) ?? null),
         borderColor: cor,
         backgroundColor: `${cor}18`,
         tension: 0.3,
@@ -304,22 +280,36 @@ function Dashboard() {
       }
     })
 
-    return { labelsGrafico: labels, datasetsPreco: datasets, multiMoeda: multi, timestampsUnicos }
-  }, [historicosPorMoeda, normalizacao])
+    const datasetsVariacao = moedasOrdenadas.map((sigla, idx) => {
+      const cor = CORES_SIMPLE[idx % CORES_SIMPLE.length]
+      const varMap = new Map()
+      const historico = historicosPorMoeda[sigla] || []
+      historico.forEach(r => {
+          if (!r) return
+          const val = r.variacaoPercentual ?? r.VariacaoPercentual ?? r.variacao ?? r.Variacao ?? 0
+          if (r.dataHora) varMap.set(r.dataHora, val * 100) // Converte para % decimal se necessário
+      })
+      return {
+        label: sigla,
+        data: timestampsUnicos.map(ts => varMap.get(ts) ?? null),
+        borderColor: cor,
+        backgroundColor: `${cor}18`,
+        tension: 0.3,
+        fill: !multi && idx === 0,
+        pointRadius: multi ? 0 : 3,
+        borderWidth: 2,
+        spanGaps: true,
+      }
+    })
 
-  const dadosGrafico = useMemo(() => ({ labels: labelsGrafico, datasets: datasetsPreco }), [labelsGrafico, datasetsPreco])
+    return { 
+      dadosGraficoPreco: { labels, datasets: datasetsPreco }, 
+      dadosGraficoVariacao: { labels, datasets: datasetsVariacao },
+      multiMoeda: multi 
+    }
+  }, [historicosPorMoeda])
 
-
-  // Label do eixo Y baseado no método de normalização
-  const yTickCallback = (v) => {
-    if (!multiMoeda) return `R$${Number(v).toLocaleString('pt-BR')}`
-    if (normalizacao === 'minmax') return `${(v * 100).toFixed(0)}%`
-    if (normalizacao === 'base100') return v.toFixed(1)
-    if (normalizacao === 'zscore') return v.toFixed(2)
-    return `R$${Number(v).toLocaleString('pt-BR')}`
-  }
-
-  const opcoesDashboard = {
+  const baseOpcoes = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -330,31 +320,65 @@ function Dashboard() {
       tooltip: {
         mode: 'index',
         intersect: false,
-        callbacks: {
-          label: (ctx) => {
-            const v = ctx.parsed.y
-            const sigla = ctx.dataset.label
-            if (!multiMoeda) return `${sigla}: R$${Number(v).toLocaleString('pt-BR')}`
-            if (normalizacao === 'minmax') return `${sigla}: ${(v * 100).toFixed(2)}%`
-            if (normalizacao === 'base100') return `${sigla}: ${v.toFixed(2)} (base 100)`
-            if (normalizacao === 'zscore') return `${sigla}: ${v.toFixed(3)}σ`
-            return `${sigla}: ${v}`
-          }
-        }
       }
     },
     scales: {
       x: { display: false },
       y: {
-        ticks: { color: '#888', callback: yTickCallback },
-        grid: { color: 'rgba(255,255,255,0.05)' }
+        grid: { color: 'rgba(255,255,255,0.05)' },
+        ticks: { color: '#888' }
       }
     }
   }
 
-  // Aliases para os dois gráficos (mesmo dado de preço)
-  const dadosNegociados = dadosGrafico
-  const dadosVariacao = dadosGrafico
+  const opcoesPreco = {
+    ...baseOpcoes,
+    plugins: {
+      ...baseOpcoes.plugins,
+      tooltip: {
+        ...baseOpcoes.plugins.tooltip,
+        callbacks: {
+          label: (ctx) => `${ctx.dataset.label}: $${Number(ctx.parsed.y).toLocaleString('en-US')}`
+        }
+      }
+    },
+    scales: {
+      ...baseOpcoes.scales,
+      y: {
+        ...baseOpcoes.scales.y,
+        ticks: { 
+          ...baseOpcoes.scales.y.ticks,
+          callback: (v) => `$${Number(v).toLocaleString('en-US')}`
+        }
+      }
+    }
+  }
+
+  const opcoesVariacao = {
+    ...baseOpcoes,
+    plugins: {
+      ...baseOpcoes.plugins,
+      tooltip: {
+        ...baseOpcoes.plugins.tooltip,
+        callbacks: {
+          label: (ctx) => `${ctx.dataset.label}: ${Number(ctx.parsed.y).toFixed(2)}%`
+        }
+      }
+    },
+    scales: {
+      ...baseOpcoes.scales,
+      y: {
+        ...baseOpcoes.scales.y,
+        ticks: { 
+          ...baseOpcoes.scales.y.ticks,
+          callback: (v) => `${v.toFixed(2)}%`
+        }
+      }
+    }
+  }
+
+  const dadosNegociados = dadosGraficoPreco
+  const dadosVariacao = dadosGraficoVariacao
 
   const ultimoNegociado = dadosFiltrados.length
     ? (
@@ -363,7 +387,7 @@ function Dashboard() {
         dadosFiltrados[dadosFiltrados.length - 1].valor ?? 
         dadosFiltrados[dadosFiltrados.length - 1].Valor ?? 
         0
-      ).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+      ).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
     : '-'
 
   const ultimaVariacao = dadosFiltrados.length
@@ -436,16 +460,18 @@ function Dashboard() {
                     className={`carousel-card-inner ${isSelected ? 'selected' : ''}`}
                     onClick={() => selecionarMoeda(m.simbolo)}
                     sx={{
-                      padding: '16px',
+                      padding: '24px 16px',
                       display: 'flex',
+                      flexDirection: 'column',
                       alignItems: 'center',
-                      gap: 2,
+                      justifyContent: 'center',
+                      gap: 1.5,
                       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                       border: isSelected ? '1px solid var(--color-primary)' : '1px solid transparent',
-                      background: isSelected ? 'rgba(255, 215, 0, 0.03)' : 'transparent',
+                      background: isSelected ? 'rgba(255, 215, 0, 0.05)' : 'transparent',
                       '&:hover': {
                         backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                        transform: 'translateY(-2px)'
+                        transform: 'translateY(-4px)'
                       }
                     }}
                   >
@@ -457,7 +483,7 @@ function Dashboard() {
                         {m.simbolo}
                       </span>
                       <span className={`carousel-price ${isUp ? 'positive' : 'negative'}`} style={{ fontSize: '0.85rem' }}> 
-                        {m.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        {m.valor.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
                       </span>
                       <div className={`carousel-mini-var ${isUp ? 'up' : 'down'}`}>
                         {isUp ? <MdTrendingUp /> : <MdTrendingDown />}
@@ -602,14 +628,14 @@ function Dashboard() {
           <h2>{t('tradedValue')}</h2>
           <div className="chart-note">{t('lastValue')}: {ultimoNegociado}</div>
           <div className="chart-container">
-            <Line data={dadosNegociados} options={opcoesDashboard} />
+            <Line data={dadosNegociados} options={opcoesPreco} />
           </div>
         </section>
         <section className="panel chart-panel">
           <h2>{t('percentVariation')}</h2>
           <div className="chart-note">{t('lastVariation')}: {ultimaVariacao}</div>
           <div className="chart-container">
-            <Line data={dadosVariacao} options={opcoesDashboard} />
+            <Line data={dadosVariacao} options={opcoesVariacao} />
           </div>
         </section>
       </div>
@@ -628,9 +654,9 @@ function Dashboard() {
               <TableBody>
                 {(historicoMoeda?.registros || historicoMoeda?.Registros || []).map((item, idx) => (
                   <TableRow key={idx}>
-                    <TableCell sx={{ color: '#eee' }}>{new Date(item.dataHora).toLocaleString('pt-BR')}</TableCell>
+                    <TableCell sx={{ color: '#eee' }}>{new Date(item.dataHora).toLocaleString('en-US')}</TableCell>
                     <TableCell sx={{ color: '#eee' }}>
-                      {(item.valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                      {(item.valor || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
                     </TableCell>
                   </TableRow>
                 ))}

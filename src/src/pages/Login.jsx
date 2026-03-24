@@ -2,12 +2,14 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { TextField, Button, Box } from '@mui/material'
 import ErrorMessage from '../components/ErrorMessage'
+import logo from '../../logo-light.svg'
 import {
   authenticate,
   decodeAuthenticationToken,
 } from '../utils/authentication'
 import { useAuth } from '../context/AuthContext'
 import useTranslation from '../hooks/useTranslation'
+
 function Login() {
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
@@ -25,10 +27,10 @@ function Login() {
     try {
       setCarregando(true)
       const dados = await authenticate({ email, senha })
-      login(dados.tokenAutenticado)
+      await login(dados.tokenAutenticado)
       const usuario = decodeAuthenticationToken(dados.tokenAutenticado)
       setMensagem(t('welcome', { name: usuario?.nome ?? '' }))
-      setTimeout(() => navegar('/dashboard'), 500)
+      setTimeout(() => navegar('/dashboard'), 800)
     } catch {
       setErro(t('loginFailed'))
     } finally {
@@ -39,8 +41,15 @@ function Login() {
   return (
     <div className="form-page">
       <div className={`form-card${erro ? ' shake' : ''}`}>
-        <h2>{t('login')}</h2>
-        <Box component="form" onSubmit={processarEnvio} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '1rem' }}>
+          <img src={logo} alt="ThinkBitcoin Logo" style={{ height: '60px', marginBottom: '20px' }} />
+          <h2 style={{ margin: 0 }}>{t('login')}</h2>
+          <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem', marginTop: '8px' }}>
+            Acesse sua conta para continuar
+          </p>
+        </div>
+        
+        <Box component="form" onSubmit={processarEnvio} sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
           <TextField
             label={t('email')}
             type="email"
@@ -48,20 +57,9 @@ function Login() {
             onChange={(e) => setEmail(e.target.value)}
             required
             variant="filled"
-            color="primary"
+            fullWidth
+            InputProps={{ disableUnderline: true }}
             InputLabelProps={{ shrink: true }}
-            inputProps={{ style: { caretColor: 'var(--color-primary)' } }}
-            sx={{
-              '& .MuiFilledInput-root': {
-                backgroundColor: 'var(--color-bg)',
-                '&:hover': {
-                  backgroundColor: 'var(--color-bg)',
-                },
-                '&.Mui-focused': {
-                  backgroundColor: 'var(--color-bg)',
-                },
-              },
-            }}
           />
           <TextField
             label={t('password')}
@@ -70,28 +68,26 @@ function Login() {
             onChange={(e) => setSenha(e.target.value)}
             required
             variant="filled"
-            color="primary"
+            fullWidth
+            InputProps={{ disableUnderline: true }}
             InputLabelProps={{ shrink: true }}
-            inputProps={{ style: { caretColor: 'var(--color-primary)' } }}
-            sx={{
-              '& .MuiFilledInput-root': {
-                backgroundColor: 'var(--color-bg)',
-                '&:hover': {
-                  backgroundColor: 'var(--color-bg)',
-                },
-                '&.Mui-focused': {
-                  backgroundColor: 'var(--color-bg)',
-                },
-              },
-            }}
           />
+          
           <ErrorMessage message={erro} onClose={() => setErro('')} />
           {mensagem && <div className="success-msg">{mensagem}</div>}
-          <Button variant="contained" type="submit" disabled={carregando} color="primary">
-            {t('signIn')}
+          
+          <Button 
+            variant="contained" 
+            type="submit" 
+            disabled={carregando} 
+            color="primary"
+            fullWidth
+            size="large"
+          >
+            {carregando ? t('authenticating') : t('signIn')}
           </Button>
-          {carregando && <div className="loading-msg">{t('authenticating')}</div>}
         </Box>
+        
         <div className="form-footer">
           <Link to="/register">{t('registerPrompt')}</Link>
         </div>
