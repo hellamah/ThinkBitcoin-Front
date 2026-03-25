@@ -15,7 +15,7 @@ import {
 } from 'chart.js'
 import { Line } from 'react-chartjs-2'
 import CryptoIcon from '../components/CryptoIcon'
-import { MdTrendingUp, MdTrendingDown, MdRefresh } from 'react-icons/md'
+import { MdTrendingUp, MdTrendingDown, MdRefresh, MdSmartToy, MdClose } from 'react-icons/md'
 import Card from '@mui/material/Card'
 import CardActionArea from '@mui/material/CardActionArea'
 import Button from '@mui/material/Button'
@@ -89,6 +89,8 @@ function Dashboard() {
   const [quantidade, setQuantidade] = useState(20)
   const [totalPaginas, setTotalPaginas] = useState(1)
   const [historicoMoeda, setHistoricoMoeda] = useState(null)
+  const [showMonitor, setShowMonitor] = useState(false)
+  const [moedaMonitor, setMoedaMonitor] = useState(null)
   const [historicosPorMoeda, setHistoricosPorMoeda] = useState({}) // { BTC: [{valor, dataHora}, ...] }
   const [normalizacao, setNormalizacao] = useState('base100') // 'bruto' | 'minmax' | 'base100' | 'zscore'
   const filterSummaryRef = useRef('') // Cache de string dos filtros globais (intervalo+datas)
@@ -416,6 +418,41 @@ function Dashboard() {
       </header>
       
       <ErrorMessage message={erro} onClose={() => setErro('')} />
+
+      {showMonitor && (
+        <section className="agent-monitor-container">
+          <div className="agent-monitor-panel">
+            <div className="scanline"></div>
+            <div className="agent-monitor-header">
+              <div className="agent-status-badge">
+                <div className="status-dot-pulse"></div>
+                CORE_AGENT_LINK::SIGNALR_ACTIVE_{moedaMonitor}
+              </div>
+              <IconButton onClick={() => setShowMonitor(false)} size="small" sx={{ color: 'var(--neon-green)' }}>
+                <MdClose />
+              </IconButton>
+            </div>
+            <div className="agent-chat-area">
+              <div className="agent-message">
+                <span className="agent-prefix">&gt; [SYSTEM]</span>
+                <span className="agent-msg-content">Initializing neural bridge to Ollama instance...</span>
+              </div>
+              <div className="agent-message">
+                <span className="agent-prefix">&gt; [ATLAS]</span>
+                <span className="agent-msg-content">Analyzing {moedaMonitor} market regime. Detecting bullish divergence patterns in M15.</span>
+              </div>
+              <div className="agent-message">
+                <span className="agent-prefix">&gt; [ECHO]</span>
+                <span className="agent-msg-content">Cross-referencing with sentiment-oscillator. Synergy score at 0.89.</span>
+              </div>
+              <div className="decor-hex">
+                0x45 0x67 0x89 0xAB 0xCD 0xEF
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       <section className="panel top-coins">
         <h2>{t('topCoins')}</h2>
         <div className="top-list">
@@ -490,6 +527,19 @@ function Dashboard() {
                         {Math.abs(m.variacao).toFixed(1)}%
                       </div>
                     </div>
+                    
+                    <IconButton 
+                      className="ai-chat-btn-overlay"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMoedaMonitor(m.simbolo);
+                        setShowMonitor(true);
+                      }}
+                      title={`Conversar com IA sobre ${m.simbolo}`}
+                    >
+                      <MdSmartToy />
+                    </IconButton>
+
                     {isSelected && (
                         <div className="selected-indicator">
                             <div className="dot"></div>
