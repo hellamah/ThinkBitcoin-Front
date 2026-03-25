@@ -3,6 +3,7 @@ import { MdHome, MdLogin, MdPersonAdd, MdDashboard, MdLogout, MdSettings } from 
 import AppBar from '@mui/material/AppBar'
 import Toolbar from '@mui/material/Toolbar'
 import IconButton from '@mui/material/IconButton'
+import Button from '@mui/material/Button'
 import Box from '@mui/material/Box'
 import logoLight from '../../logo-light.svg'
 import '../App.css'
@@ -102,21 +103,55 @@ function Layout({ children }) {
 
   return (
     <div className={`portfolio-screen${semNav ? ' no-nav' : ''}`}>
-      <AppBar position="fixed" color="default" className="app-header">
-        <Toolbar sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 2 }}>
-          <img src={logoLight} alt="ThinkBitcoin" className="app-logo" />
+      <AppBar position="fixed" className="app-header-floating">
+        <Toolbar className="header-toolbar">
+          <div className="header-left">
+            <NavLink to="/" className="logo-link">
+              <img src={logoLight} alt="ThinkBitcoin" className="app-logo" />
+            </NavLink>
+            {!semNav && (
+              <Box component="nav" className="desktop-nav">
+                <IconButton
+                  component={NavLink}
+                  to="/dashboard"
+                  className={linkClass}
+                  title={t('nav.dashboard')}
+                >
+                  <MdDashboard />
+                  <span className="nav-label">{t('nav.dashboard')}</span>
+                </IconButton>
+              </Box>
+            )}
+          </div>
+
           {!semNav && (
-            <>
-              <Box component="nav" className="top-nav">
-                {comum}
-              </Box>
-              <Box className="user-section">
-                <span className="user-greeting">
-                  {token ? t('welcome', { name: user?.nome || '' }) : t('greetingGuest')}
+            <div className="header-right">
+              <IconButton
+                component={NavLink}
+                to="/settings"
+                className={linkClass}
+                title={t('nav.settings')}
+              >
+                <MdSettings />
+              </IconButton>
+              
+              <div className="user-info-pill">
+                <span className="user-name">
+                  {token ? (user?.nome || t('activeUser')) : t('greetingGuest')}
                 </span>
-                {token ? logado : visitante}
-              </Box>
-            </>
+                {token ? (
+                  <IconButton onClick={logout} className="logout-btn" title={t('nav.logout')}>
+                    <MdLogout />
+                  </IconButton>
+                ) : (
+                  <div className="guest-actions">
+                    <Button component={NavLink} to="/login" variant="text" size="small" sx={{ color: 'white' }}>
+                      {t('nav.login')}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
           )}
         </Toolbar>
       </AppBar>
