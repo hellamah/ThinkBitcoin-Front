@@ -16,18 +16,18 @@ export default function useCoinPrices() {
     const inicializarMoedas = async () => {
       try {
         const json = await apiRequest(MarketEndpoint.COIN_LIST)
-        const lista = (json.resultado || [])
+        const lista = ((json?.resultado || json?.Resultado) || [])
           .map((m) => ({
-            id: m.id || m.Id,
-            simbolo: m.sigla || m.Sigla,
-            nome: m.nome || m.Nome,
+            id: m?.id || m?.Id,
+            simbolo: m?.sigla || m?.Sigla,
+            nome: m?.nome || m?.Nome,
             valor: 0,
             dados: [],
             variacao: 0,
           }))
           .filter(
             (m) =>
-              m.simbolo?.toUpperCase() !== 'USDT' &&
+              m && m.simbolo?.toUpperCase() !== 'USDT' &&
               (m.nome ? !m.nome.toLowerCase().includes('dolar') : true)
           )
         if (ativo) {
@@ -62,16 +62,15 @@ export default function useCoinPrices() {
             
             // Tenta extrair o valor de várias formas possíveis (suporte a real API e Paginação)
             let valor = 0
+            const res = json?.resultado ?? json?.Resultado ?? json
+            const registro = res?.registros?.[0] ?? res?.Registros?.[0] ?? (Array.isArray(res) ? res[0] : res)
+            
             if (typeof json === 'number') {
               valor = json
-            } else if (json?.resultado?.registros?.[0]) {
-              valor = json.resultado.registros[0].valor ?? json.resultado.registros[0].Valor ?? 0
-            } else if (json?.registros?.[0]) {
-              valor = json.registros[0].valor ?? json.registros[0].Valor ?? 0
-            } else if (json?.resultado?.valor !== undefined) {
-              valor = json.resultado.valor ?? json.resultado.Valor ?? 0
-            } else if (json?.valor !== undefined) {
-              valor = json.valor ?? json.Valor ?? 0
+            } else if (registro) {
+              valor = registro.valorNegociado ?? registro.ValorNegociado ?? 
+                      registro.valor ?? registro.Valor ?? 
+                      res?.valor ?? res?.Valor ?? 0
             }
             
             const historico = [...m.dados.slice(-6), valor]

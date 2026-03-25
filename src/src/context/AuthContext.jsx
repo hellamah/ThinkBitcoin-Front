@@ -106,7 +106,7 @@ export function AuthProvider({ children }) {
       await apiRequest(PreferencesEndpoint.ALL, {
         method: HttpMethod.PUT,
         headers: { Authorization: `Bearer ${token}` },
-        body: atual,
+        body: { preferencias: atual },
       })
     } catch {
       /* ignore */

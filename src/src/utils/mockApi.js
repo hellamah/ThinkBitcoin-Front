@@ -153,10 +153,13 @@ const mockHandlers = [
         notificacoes: true,
         estiloAlgoritmo: 'equilibrado',
         frequenciaReview: 'diaria',
-        idMoedaPreferida: '8a8a8a8a-8a8a-8a8a-8a8a-8a8a8a8a8a8a',
+        siglaMoedaPreferida: 'BTC',
+        siglaEmpresaExterna: 'MB',
         investimentoInicial: 1000.0,
         riscoMaximoPerda: 2.5,
-        perfilRisco: 'moderado'
+        perfilRisco: 'moderado',
+        siglaMoedaUltimaInteracaoIA: 'ETH',
+        dataUltimaInteracaoIA: new Date().toISOString()
       },
     }),
   },
@@ -175,11 +178,14 @@ const mockHandlers = [
   {
     method: 'PUT',
     match: (endpoint) => endpoint === '/ThinkBitcoin/preferencias',
-    response: () => ({ mensagem: 'Preferências mock atualizadas com sucesso' }),
+    response: (endpoint, body) => {
+      console.log('Mock PUT Preferences:', body);
+      return { mensagem: 'Preferências mock atualizadas com sucesso' };
+    },
   },
   {
     method: 'POST',
-    match: (endpoint) => endpoint === '/ThinkBitcoin/usuariosTB/inserirConsultor',
+    match: (endpoint) => endpoint === '/ThinkBitcoin/usuariosTB/',
     response: () => ({ mensagem: 'Usuário mock cadastrado com sucesso' }),
   },
   {
@@ -206,13 +212,25 @@ const mockHandlers = [
       return buildCoinValueResponse(symbol)
     },
   },
+  {
+    method: 'GET',
+    match: (endpoint) => endpoint === '/ThinkBitcoin/exchanges',
+    response: () => ({
+      mensagem: 'Exchanges mock retornadas com sucesso',
+      resultado: [
+        { id: '1', nome: 'Mercado Bitcoin', sigla: 'MB' },
+        { id: '2', nome: 'Binance', sigla: 'BNB' },
+        { id: '3', nome: 'Coinbase', sigla: 'CB' },
+      ],
+    }),
+  },
 ]
 
-export const getMockResponse = ({ endpoint, method }) => {
+export const getMockResponse = ({ endpoint, method, body }) => {
   const normalizedMethod = String(method ?? 'GET').toUpperCase()
   const handler = mockHandlers.find(
     (item) => item.method === normalizedMethod && item.match(endpoint)
   )
 
-  return handler ? handler.response(endpoint) : null
+  return handler ? handler.response(endpoint, body) : null
 }

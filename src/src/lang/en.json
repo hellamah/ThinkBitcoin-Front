@@ -86,5 +86,12 @@
   "coinHistory": "Coin History",
   "date": "Date",
   "value": "Value",
+  "settingsSubtitle": "Settings and personalization of your trading platform",
+  "none": "Default",
+  "personalInfo": "Personal Information",
+  "cargo": "Occupation",
+  "exchange": "Exchange",
+  "miner": "Miner (AI Access)",
+  "consultant": "Consultant (Basic Access)",
   "copyRight": "© 2025 ThinkBitcoin. All rights reserved."
 }

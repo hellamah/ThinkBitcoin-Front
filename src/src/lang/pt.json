@@ -86,5 +86,12 @@
   "coinHistory": "Histórico da Moeda",
   "date": "Data",
   "value": "Valor",
+  "settingsSubtitle": "Configurações e personalização da sua plataforma de trade",
+  "none": "Padrão",
+  "personalInfo": "Dados Pessoais",
+  "cargo": "Ocupação",
+  "exchange": "Exchange",
+  "miner": "Minerador (Acesso a IA)",
+  "consultant": "Consultor (Acesso Básico)",
   "copyRight": "© 2025 ThinkBitcoin. Todos os direitos reservados."
 }

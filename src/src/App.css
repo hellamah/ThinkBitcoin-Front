@@ -6,18 +6,17 @@
   font-family: 'Inter', sans-serif;
   display: flex;
   flex-direction: column;
-  padding: 100px 16px 64px;
+  padding: 100px 0 64px; /* Removido padding horizontal para permitir fundos full-width */
   min-height: 100vh;
   width: 100%;
-  max-width: 1600px;
-  margin: 0 auto;
   box-sizing: border-box;
   align-items: stretch;
+  background-color: var(--color-bg); /* Cor de fundo base garante preenchimento total */
 }
 
-.portfolio-screen.no-nav {
-  padding: 0;
-}
+/* Transicionado para o uso de MUI Container para garantir simetria e compatibilidade com Grids */
+
+/* Removido o no-nav para manter padronização do Header em todas as telas */
 
 .page-title {
   font-size: 2.2rem;
@@ -701,10 +700,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
+  width: 100%;
   position: relative;
-  background: #050505;
   overflow: hidden;
+  box-sizing: border-box;
 }
 .form-page::before {
   content: '';

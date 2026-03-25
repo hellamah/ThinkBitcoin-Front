@@ -15,8 +15,7 @@ export const ApiEndpoint = Object.freeze({
   USER: Object.freeze({
     ME: (id) => `/ThinkBitcoin/usuariosTB/${id}`,
     LIST: '/ThinkBitcoin/usuariosTB/',
-    REGISTER_CONSULTANT: '/ThinkBitcoin/usuariosTB/inserirConsultor',
-    REGISTER_MINER: '/ThinkBitcoin/usuariosTB/inserirMinerador',
+    CREATE: '/ThinkBitcoin/usuariosTB/',
     DELETE: (id) => `/ThinkBitcoin/usuariosTB/${id}`,
   }),
   PREFERENCES: Object.freeze({
@@ -54,7 +53,7 @@ export const apiRequest = async (
   { method = HttpMethod.GET, headers = {}, body, signal } = {}
 ) => {
   if (USE_MOCK_API) {
-    const mockResponse = getMockResponse({ endpoint, method })
+    const mockResponse = getMockResponse({ endpoint, method, body })
     if (mockResponse) return mockResponse
   }
 

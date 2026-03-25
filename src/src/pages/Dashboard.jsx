@@ -24,6 +24,7 @@ import TextField from '@mui/material/TextField'
 import MenuItem from '@mui/material/MenuItem'
 import Box from '@mui/material/Box'
 import Grid from '@mui/material/Grid'
+import Typography from '@mui/material/Typography'
 import Pagination from '@mui/material/Pagination'
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
@@ -71,7 +72,7 @@ const MOCK_DADOS = [
 ]
 
 function Dashboard() {
-  const { token, prefs } = useAuth()
+  const { token, user: usuario, prefs } = useAuth()
   const moedasCarousel = useCoinPrices()
   const { t } = useTranslation()
   const hasInitializedPref = useRef(false)
@@ -108,26 +109,43 @@ function Dashboard() {
 
   // Inicializa com a moeda preferida do usuário - Tentativa Ultra Resiliente
   useEffect(() => {
-    if (!token || hasInitializedPref.current || !moedasCarousel.length) return
+    try {
+      if (!token || hasInitializedPref.current || !moedasCarousel?.length) return
 
-    // Busca valor da preferência em qualquer propriedade possível
-    const moedaProp = 
-      prefs?.idMoedaPreferida || 
-      prefs?.IdMoedaPreferida || 
-      prefs?.moedaPreferida || 
-      prefs?.MoedaPreferida
-    
-    if (moedaProp) {
-        // Tenta encontrar por ID primeiro, depois por Símbolo
-        const match = moedasCarousel.find(m => 
-            String(m.id) === String(moedaProp) || 
-            String(m.simbolo).toUpperCase() === String(moedaProp).toUpperCase().trim()
-        )
+      const moedaProp = 
+        prefs?.siglaMoedaPreferida ||
+        prefs?.SiglaMoedaPreferida ||
+        prefs?.idMoedaPreferida || 
+        prefs?.IdMoedaPreferida || 
+        prefs?.moedaPreferida || 
+        prefs?.MoedaPreferida
+      
+      let initialized = false
+      if (moedaProp) {
+          const match = moedasCarousel.find(m => 
+              (m.id && String(m.id) === String(moedaProp)) || 
+              (m.simbolo && String(m.simbolo).toUpperCase() === String(moedaProp).toUpperCase().trim())
+          )
 
-        if (match) {
-            setMoedasFiltro([match.simbolo])
-            hasInitializedPref.current = true
-        }
+          if (match) {
+              setMoedasFiltro([match.simbolo])
+              initialized = true
+          }
+      }
+
+      if (!initialized && moedasCarousel.length > 0) {
+          const btc = moedasCarousel.find(m => m.simbolo === 'BTC') || moedasCarousel[0]
+          if (btc) {
+              setMoedasFiltro([btc.simbolo])
+              initialized = true
+          }
+      }
+
+      if (initialized) {
+          hasInitializedPref.current = true
+      }
+    } catch (err) {
+      console.error('Erro na inicialização do Dashboard:', err)
     }
   }, [prefs, token, moedasCarousel])
 
@@ -247,11 +265,20 @@ function Dashboard() {
     
     // 1. Timestamps comuns
     const allTimestampsSet = new Set()
-    Object.values(historicosPorMoeda).forEach(lista => {
-        lista.forEach(r => {
-            if (r.dataHora) allTimestampsSet.add(r.dataHora)
+    try {
+        Object.values(historicosPorMoeda || {}).forEach(lista => {
+            if (Array.isArray(lista)) {
+                lista.forEach(r => {
+                    if (r) {
+                        const dh = r.dataHora ?? r.DataHora
+                        if (dh) allTimestampsSet.add(dh)
+                    }
+                })
+            }
         })
-    })
+    } catch (err) {
+        console.error('Erro ao processar timestamps:', err)
+    }
     const timestampsUnicos = Array.from(allTimestampsSet).sort()
     const labels = timestampsUnicos.map(t => 
       new Date(t).toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })
@@ -267,7 +294,8 @@ function Dashboard() {
       historico.forEach(r => {
           if (!r) return
           const val = r.valor ?? r.Valor ?? r.valorNegociado ?? r.ValorNegociado ?? 0
-          if (r.dataHora) priceMap.set(r.dataHora, val)
+          const dh = r.dataHora ?? r.DataHora
+          if (dh) priceMap.set(dh, val)
       })
       return {
         label: sigla,
@@ -285,11 +313,19 @@ function Dashboard() {
     const datasetsVariacao = moedasOrdenadas.map((sigla, idx) => {
       const cor = CORES_SIMPLE[idx % CORES_SIMPLE.length]
       const varMap = new Map()
-      const historico = historicosPorMoeda[sigla] || []
-      historico.forEach(r => {
+      const hist = (historicosPorMoeda && sigla) ? (historicosPorMoeda[sigla] || []) : []
+      const dataInicioObj = new Date(dataInicio)
+      const dataFimObj = new Date(dataFim)
+
+      hist.filter(item => {
+        if (!item || !item.dataHora) return false
+        const itemDate = new Date(item.dataHora)
+        return itemDate >= dataInicioObj && itemDate <= dataFimObj
+      }).forEach(r => {
           if (!r) return
           const val = r.variacaoPercentual ?? r.VariacaoPercentual ?? r.variacao ?? r.Variacao ?? 0
-          if (r.dataHora) varMap.set(r.dataHora, val * 100) // Converte para % decimal se necessário
+          const dh = r.dataHora ?? r.DataHora
+          if (dh) varMap.set(dh, val * 100) // Converte para % decimal se necessário
       })
       return {
         label: sigla,
@@ -382,33 +418,35 @@ function Dashboard() {
   const dadosNegociados = dadosGraficoPreco
   const dadosVariacao = dadosGraficoVariacao
 
-  const ultimoNegociado = dadosFiltrados.length
-    ? (
-        dadosFiltrados[dadosFiltrados.length - 1].valorNegociado ?? 
-        dadosFiltrados[dadosFiltrados.length - 1].ValorNegociado ?? 
-        dadosFiltrados[dadosFiltrados.length - 1].valor ?? 
-        dadosFiltrados[dadosFiltrados.length - 1].Valor ?? 
-        0
-      ).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
-    : '-'
+  const ultimoNegociado = useMemo(() => {
+    const sigla = moedasFiltro[0]
+    const hist = (historicosPorMoeda && sigla) ? (historicosPorMoeda[sigla] || []) : []
+    if (!hist.length) return '-'
+    const last = hist[hist.length - 1]
+    const val = last?.valor ?? last?.Valor ?? last?.valorNegociado ?? last?.ValorNegociado ?? 0
+    return Number(val).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
+  }, [historicosPorMoeda, moedasFiltro])
 
-  const ultimaVariacao = dadosFiltrados.length
-    ? `${((
-        dadosFiltrados[dadosFiltrados.length - 1].variacaoPercentual ?? 
-        dadosFiltrados[dadosFiltrados.length - 1].VariacaoPercentual ?? 
-        dadosFiltrados[dadosFiltrados.length - 1].variacao ?? 
-        dadosFiltrados[dadosFiltrados.length - 1].Variacao ?? 
-        0
-      ) * 100).toFixed(2)}%`
-    : '-'
+  const ultimaVariacao = useMemo(() => {
+    const sigla = moedasFiltro[0]
+    const hist = (historicosPorMoeda && sigla) ? (historicosPorMoeda[sigla] || []) : []
+    if (!hist.length) return '-'
+    const last = hist[hist.length - 1]
+    const val = last?.variacaoPercentual ?? last?.VariacaoPercentual ?? last?.variacao ?? last?.Variacao ?? 0
+    return `${(Number(val) * 100).toFixed(2)}%`
+  }, [historicosPorMoeda, moedasFiltro])
 
-  return (
+  // Top level error boundary for the component render
+  if (!token) return <Box sx={{ p: 5 }}>Redirecting to login...</Box>
+
+  try {
+     return (
     <div className="dashboard-container">
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <h1 className="page-title" style={{ margin: 0 }}>{t('dashboard')}</h1>
           <p style={{ margin: '4px 0 0', color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
-            {t('welcome', { name: (prefs?.nome || user?.nome || '') })}
+            {t('welcome', { name: (prefs?.nome || usuario?.nome || '') })}
           </p>
         </div>
         
@@ -453,31 +491,57 @@ function Dashboard() {
         </section>
       )}
 
-      <section className="panel top-coins">
-        <h2>{t('topCoins')}</h2>
+      <Box 
+        className="panel top-coins" 
+        sx={{ 
+          background: 'rgba(20, 20, 20, 0.6) !important', 
+          backdropFilter: 'blur(15px) !important',
+          border: '1px solid rgba(255, 215, 0, 0.1) !important',
+          mb: 3
+        }}
+      >
+        <h2><MdTrendingUp style={{ verticalAlign: 'middle', marginRight: '8px' }} /> {t('topCoins')}</h2>
         <div className="top-list">
-          {moedasCarousel
-            .slice()
-            .sort((a, b) => b.variacao - a.variacao)
-            .slice(0, 5)
-            .map((m) => {
-              const up = m.variacao >= 0
-              return (
-                <div key={m.simbolo} className="top-item">
-                  <CryptoIcon simbolo={m.simbolo} />
-                  <span className="top-name">{m.nome}</span>
-                  <span className={`top-var ${up ? 'positive' : 'negative'}`}>
-                    {up ? '+' : ''}{m.variacao.toFixed(2)}%
-                  </span>
-                </div>
-              )
-            })}
+          {moedasCarousel.length === 0 ? (
+             <Box sx={{ p: 3, textAlign: 'center', opacity: 0.6 }}>
+                <Typography variant="body2">{t('loadingCoins')}...</Typography>
+             </Box>
+          ) : (
+            moedasCarousel
+              .slice()
+              .sort((a, b) => b.variacao - a.variacao)
+              .slice(0, 5)
+              .map((m) => {
+                const up = m.variacao >= 0
+                return (
+                  <div key={m.simbolo} className="top-item">
+                    <CryptoIcon simbolo={m.simbolo} />
+                    <span className="top-name">{m.nome}</span>
+                    <span className={`top-var ${up ? 'positive' : 'negative'}`}>
+                      {up ? '+' : ''}{m.variacao.toFixed(2)}%
+                    </span>
+                  </div>
+                )
+              })
+          )}
         </div>
-      </section>
+      </Box>
 
       <div className="crypto-carousel">
         {moedasCarousel.length === 0 ? (
-          <div className="loading-msg">{t('loadingCoins')}</div>
+          <Box sx={{ 
+            width: '100%', 
+            p: 4, 
+            textAlign: 'center', 
+            background: 'rgba(20, 20, 20, 0.4)', 
+            borderRadius: '16px', 
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255,255,255,0.05)'
+          }}>
+            <Typography variant="body1" sx={{ color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+               <MdRefresh className="spin" /> {t('loadingCoins')}
+            </Typography>
+          </Box>
         ) : (
           moedasCarousel.map((m) => {
             const isUp = m.variacao >= 0
@@ -674,24 +738,35 @@ function Dashboard() {
       </div>
 
       <div className="dashboard-charts">
-        <section className="panel chart-panel">
+        <Box className="panel chart-panel" sx={{ 
+          background: 'rgba(20, 20, 20, 0.6) !important', 
+          backdropFilter: 'blur(15px) !important',
+          border: '1px solid rgba(255, 255, 255, 0.05) !important'
+        }}>
           <h2>{t('tradedValue')}</h2>
           <div className="chart-note">{t('lastValue')}: {ultimoNegociado}</div>
           <div className="chart-container">
             <Line data={dadosNegociados} options={opcoesPreco} />
           </div>
-        </section>
-        <section className="panel chart-panel">
+        </Box>
+        <Box className="panel chart-panel" sx={{ 
+          background: 'rgba(20, 20, 20, 0.6) !important', 
+          backdropFilter: 'blur(15px) !important',
+          border: '1px solid rgba(255, 255, 255, 0.05) !important'
+        }}>
           <h2>{t('percentVariation')}</h2>
           <div className="chart-note">{t('lastVariation')}: {ultimaVariacao}</div>
           <div className="chart-container">
             <Line data={dadosVariacao} options={opcoesVariacao} />
           </div>
-        </section>
+        </Box>
       </div>
 
       {moedasFiltro.length > 0 && historicoMoeda && (
-        <section className="panel history-panel" style={{ marginTop: '20px' }}>
+        <Box className="panel history-panel" sx={{ 
+          marginTop: '20px', 
+          background: 'rgba(20, 20, 20, 0.6) !important' 
+        }}>
           <h2>{t('coinHistory')}: {moedasFiltro[0]}</h2>
           <TableContainer component={Paper} sx={{ backgroundColor: 'transparent', boxShadow: 'none' }}>
             <Table size="small">
@@ -702,18 +777,22 @@ function Dashboard() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {(historicoMoeda?.registros || historicoMoeda?.Registros || []).map((item, idx) => (
-                  <TableRow key={idx}>
-                    <TableCell sx={{ color: '#eee' }}>{new Date(item.dataHora).toLocaleString('en-US')}</TableCell>
-                    <TableCell sx={{ color: '#eee' }}>
-                      {(item.valor || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {(historicoMoeda?.registros || historicoMoeda?.Registros || []).map((item, idx) => {
+                  const dh = item?.dataHora ?? item?.DataHora
+                  const val = item?.valor ?? item?.Valor ?? item?.valorNegociado ?? item?.ValorNegociado ?? 0
+                  return (
+                    <TableRow key={idx}>
+                      <TableCell sx={{ color: '#eee' }}>{dh ? new Date(dh).toLocaleString('en-US') : '-'}</TableCell>
+                      <TableCell sx={{ color: '#eee' }}>
+                        {Number(val).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
               </TableBody>
             </Table>
           </TableContainer>
-        </section>
+        </Box>
       )}
 
       {totalPaginas > 1 && (
@@ -727,7 +806,19 @@ function Dashboard() {
         </Box>
       )}
     </div>
-  )
+    )
+  } catch (err) {
+    console.error('Erro fatal no render do Dashboard:', err)
+    return (
+      <Box sx={{ p: 5, color: '#ff5252', background: '#0a0a0a', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+        <Typography variant="h5">Ocorreu um erro ao carregar o Dashboard.</Typography>
+        <Typography sx={{ mt: 2, opacity: 0.7 }}>{err.message}</Typography>
+        <Button variant="outlined" sx={{ mt: 4, color: '#ffd700', borderColor: '#ffd700' }} onClick={() => window.location.reload()}>
+          Recarregar Página
+        </Button>
+      </Box>
+    )
+  }
 }
 
 export default Dashboard

@@ -16,9 +16,17 @@ import Button from '@mui/material/Button'
 import Switch from '@mui/material/Switch'
 import Select from '@mui/material/Select'
 import MenuItem from '@mui/material/MenuItem'
-import TextField from '@mui/material/TextField' // Adicionado
-import Box from '@mui/material/Box' // Adicionado
-import Grid from '@mui/material/Grid' // Adicionado
+import TextField from '@mui/material/TextField'
+import Box from '@mui/material/Box'
+import Grid from '@mui/material/Grid'
+import Typography from '@mui/material/Typography'
+import Paper from '@mui/material/Paper'
+import Table from '@mui/material/Table'
+import TableBody from '@mui/material/TableBody'
+import TableCell from '@mui/material/TableCell'
+import TableContainer from '@mui/material/TableContainer'
+import TableHead from '@mui/material/TableHead'
+import TableRow from '@mui/material/TableRow'
 import '../App.css'
 import { useAuth } from '../context/AuthContext'
 import useTranslation from '../hooks/useTranslation'
@@ -106,35 +114,41 @@ function Settings() {
   }
 
   const renderPanel = (icon, title, children) => (
-    <section className="panel settings-panel" style={{ 
-        padding: '24px', 
-        marginBottom: '24px',
-        background: 'linear-gradient(145deg, rgba(40, 40, 40, 0.4), rgba(20, 20, 20, 0.6))',
-        border: '1px solid rgba(255, 255, 255, 0.05)',
-        backdropFilter: 'blur(10px)',
-        borderRadius: '16px',
-        transition: 'all 0.3s ease',
+    <Box className="panel settings-panel" sx={{ 
+        padding: '32px', 
+        marginBottom: '32px',
+        background: 'rgba(20, 20, 20, 0.8)',
+        backdropFilter: 'blur(20px)',
+        border: '1px solid rgba(255, 215, 0, 0.12)',
+        borderRadius: '24px',
+        transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
         height: '100%',
         display: 'flex',
-        flexDirection: 'column'
+        flexDirection: 'column',
+        boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)',
+        '&:hover': {
+            borderColor: 'rgba(255, 215, 0, 0.3)',
+            transform: 'translateY(-4px)'
+        }
     }}>
-      <header style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '24px' }}>
+      <header style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
         <div style={{ 
             color: 'var(--color-primary)', 
-            fontSize: '1.6rem', 
+            fontSize: '1.5rem', 
             display: 'flex',
-            background: 'rgba(255, 215, 0, 0.1)',
-            padding: '8px',
-            borderRadius: '12px'
+            background: 'rgba(255, 215, 0, 0.08)',
+            padding: '12px',
+            borderRadius: '16px',
+            boxShadow: '0 0 15px rgba(255, 215, 0, 0.1)'
         }}>
             {icon}
         </div>
-        <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, letterSpacing: '-0.2px' }}>{title}</h2>
+        <Typography variant="h6" sx={{ margin: 0, fontWeight: 800, color: '#fff', letterSpacing: '-0.3px' }}>{title}</Typography>
       </header>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', flex: 1 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', flex: 1 }}>
         {children}
       </div>
-    </section>
+    </Box>
   )
 
 
@@ -145,16 +159,12 @@ function Settings() {
         justifyContent: 'space-between', 
         alignItems: { xs: 'flex-start', sm: 'center' }, 
         gap: 2,
-        width: '100%'
+        width: '100%',
+        py: 0.5
     }}>
-      <label style={{ 
-          color: 'rgba(255,255,255,0.6)', 
-          fontSize: '0.88rem',
-          fontWeight: 500,
-          whiteSpace: 'nowrap'
-      }}>
+      <Typography sx={fieldLabelStyle}>
           {label}
-      </label>
+      </Typography>
       <Box sx={{ width: { xs: '100%', sm: 'auto' }, display: 'flex', justifyContent: 'flex-end' }}>
         {component}
       </Box>
@@ -163,24 +173,39 @@ function Settings() {
 
   const selectSx = { 
     minWidth: 160, 
-    bgcolor: 'rgba(255,255,255,0.04)',
-    borderRadius: '10px',
-    '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.1)' },
+    bgcolor: 'rgba(255,255,255,0.03)',
+    borderRadius: '12px',
+    '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.08)' },
     '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'var(--color-primary)' },
-    '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'var(--color-primary)' }
+    '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'var(--color-primary)' },
+    '& .MuiSelect-select': { py: 1.2, color: 'rgba(255,255,255,0.9)' }
+  }
+
+  const fieldLabelStyle = { 
+    color: 'rgba(255,255,255,0.5)', 
+    fontSize: '0.85rem',
+    fontWeight: 500,
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px'
   }
 
   return (
-    <div className="settings-page" style={{ padding: '0 16px 120px', maxWidth: '1000px', margin: '0 auto', width: '100%' }}>
-      <header style={{ marginBottom: '48px', textAlign: 'center' }}>
-        <h1 className="page-title" style={{ fontSize: '2.5rem' }}>{t('settingsTitle')}</h1>
-        <Box sx={{ width: '40px', height: '4px', bgcolor: 'var(--color-primary)', margin: '16px auto', borderRadius: '2px' }} />
-        <p style={{ color: 'var(--color-text-secondary)', fontSize: '1rem', opacity: 0.8 }}>
-            Configurações e personalização da sua plataforma de trade
-        </p>
+    <Box className="settings-page" sx={{ 
+      py: 6, 
+      width: '100%', 
+      display: 'flex', 
+      flexDirection: 'column', 
+      alignItems: 'center' 
+    }}>
+      <header style={{ marginBottom: '64px', textAlign: 'center', width: '100%' }}>
+        <Typography variant="h2" sx={{ fontWeight: 800, color: '#fff', letterSpacing: '-1px', mb: 1 }}>{t('settingsTitle')}</Typography>
+        <Box sx={{ width: '60px', height: '4px', bgcolor: 'var(--color-primary)', margin: '16px auto', borderRadius: '4px', boxShadow: '0 0 10px var(--color-primary)' }} />
+        <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '1.1rem' }}>
+            {t('settingsSubtitle') || 'Configurações e personalização da sua plataforma de trade'}
+        </Typography>
       </header>
 
-      <Grid container spacing={4} alignItems="stretch">
+      <Grid container spacing={4} alignItems="stretch" sx={{ width: '100%', margin: 0 }}>
         <Grid item xs={12} md={6} style={{ display: 'flex', flexDirection: 'column' }}>
           {renderPanel(<MdBrightness4 />, t('themeTitle'), (
 
@@ -188,19 +213,25 @@ function Settings() {
             <>
               {renderField(t('themeSite'), (
                 <Button 
-                    variant="contained" 
+                    variant="outlined" 
                     onClick={toggleTheme}
                     fullWidth
-                    startIcon={<MdBrightness4 />}
+                    startIcon={prefs?.tema === Theme.LIGHT ? <MdBrightness4 /> : <Box sx={{ color: 'var(--color-primary)', display: 'flex' }}><MdBrightness4 /></Box>}
                     sx={{ 
-                        bgcolor: 'var(--color-primary)', 
-                        color: '#000',
-                        fontWeight: 700,
-                        borderRadius: '10px',
-                        '&:hover': { bgcolor: '#e0c200' }
+                        borderColor: 'rgba(255,255,255,0.1)',
+                        color: '#fff',
+                        py: 1.2,
+                        borderRadius: '12px',
+                        background: 'rgba(255,255,255,0.03)',
+                        '&:hover': { 
+                            borderColor: 'var(--color-primary)',
+                            background: 'rgba(255,215,0,0.05)'
+                        }
                     }}
                 >
-                  {prefs?.tema === Theme.LIGHT ? t('lightMode') : t('darkMode')}
+                  <Box sx={{ fontWeight: 700 }}>
+                    {prefs?.tema === Theme.LIGHT ? t('lightMode').toUpperCase() : t('darkMode').toUpperCase()}
+                  </Box>
                 </Button>
               ))}
               {renderField(t('language'), (
@@ -271,14 +302,14 @@ function Settings() {
 
               {renderField(t('preferredCoin'), (
                 <Select
-                  value={prefs?.idMoedaPreferida || ''}
-                  onChange={(e) => updatePreferences({ idMoedaPreferida: e.target.value })}
+                  value={prefs?.siglaMoedaPreferida || ''}
+                  onChange={(e) => updatePreferences({ siglaMoedaPreferida: e.target.value })}
                   size="small"
                   sx={selectSx}
                 >
                   <MenuItem value=""><em>{t('none') || 'Padrão'}</em></MenuItem>
                   {moedas.map(m => (
-                    <MenuItem key={m.id} value={m.id}>{m.sigla}</MenuItem>
+                    <MenuItem key={m.sigla} value={m.sigla}>{m.sigla}</MenuItem>
                   ))}
                 </Select>
               ))}
@@ -337,14 +368,14 @@ function Settings() {
                                     />
 
                                     <Select
-                                        value={prefs?.idMoedaSaldoSeguranca || ''}
-                                        onChange={(e) => updatePreferences({ idMoedaSaldoSeguranca: e.target.value })}
+                                        value={prefs?.siglaMoedaUltimaInteracaoIA || ''}
+                                        onChange={(e) => updatePreferences({ siglaMoedaUltimaInteracaoIA: e.target.value })}
                                         size="small"
                                         sx={{ ...selectSx, minWidth: 90 }}
                                     >
                                         <MenuItem value=""><em>--</em></MenuItem>
                                         {moedas.map(m => (
-                                            <MenuItem key={m.id} value={m.id}>{m.sigla}</MenuItem>
+                                            <MenuItem key={m.sigla} value={m.sigla}>{m.sigla}</MenuItem>
                                         ))}
                                     </Select>
                                 </Box>
@@ -371,8 +402,17 @@ function Settings() {
       </Grid>
 
 
-      <div className={`toast${toast ? ' show' : ''}`}>{toast}</div>
-    </div>
+      <Box className={`toast${toast ? ' show' : ''}`} sx={{ 
+          background: 'rgba(255, 215, 0, 0.9)', 
+          color: '#000', 
+          fontWeight: 700,
+          borderRadius: '12px',
+          px: 3, py: 1.5,
+          boxShadow: '0 10px 30px rgba(255, 215, 0, 0.3)'
+      }}>
+          {toast}
+      </Box>
+    </Box>
   )
 }
 
