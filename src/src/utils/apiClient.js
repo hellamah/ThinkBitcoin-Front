@@ -10,7 +10,7 @@ export const HttpMethod = Object.freeze({
 
 export const ApiEndpoint = Object.freeze({
   AUTHENTICATION: Object.freeze({
-    LOGIN: '/ThinkBitcoin/gerarTokenBearer/',
+    LOGIN: '/ThinkBitcoin/gerarTokenBearer',
   }),
   USER: Object.freeze({
     ME: (id) => `/ThinkBitcoin/usuariosTB/${id}`,
@@ -19,7 +19,7 @@ export const ApiEndpoint = Object.freeze({
     DELETE: (id) => `/ThinkBitcoin/usuariosTB/${id}`,
   }),
   PREFERENCES: Object.freeze({
-    ALL: '/ThinkBitcoin/preferencias/',
+    ALL: '/ThinkBitcoin/preferencias',
     MINE: '/ThinkBitcoin/preferencias/minhas',
     BY_ID: (id) => `/ThinkBitcoin/preferencias/${id}`,
   }),

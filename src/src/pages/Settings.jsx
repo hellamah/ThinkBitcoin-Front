@@ -45,6 +45,7 @@ import { executeNotificationWorkflow } from '../utils/workflow'
 function Settings() {
   const { t } = useTranslation()
   const { token, prefs, updatePreferences } = useAuth()
+  const [localPrefs, setLocalPrefs] = useState(prefs)
   const [toast, setToast] = useState('')
   const [moedas, setMoedas] = useState([])
   const [exchanges, setExchanges] = useState([])
@@ -72,6 +73,10 @@ function Settings() {
     }
     carregarDados()
   }, [])
+
+  useEffect(() => {
+    if (prefs) setLocalPrefs(prefs)
+  }, [prefs])
 
   const confirm = () => {
     setToast(t('settingsSaved') || 'Configurações salvas!')
@@ -236,8 +241,12 @@ function Settings() {
               ))}
               {renderField(t('language'), (
                 <Select
-                  value={prefs?.idioma || Language.PT}
-                  onChange={changeLang}
+                  value={localPrefs?.idioma || Language.PT}
+                  onChange={(e) => {
+                      const val = e.target.value
+                      setLocalPrefs(p => ({ ...p, idioma: val }))
+                      changeLang(e)
+                  }}
                   size="small"
                   sx={selectSx}
                 >
@@ -251,10 +260,14 @@ function Settings() {
           {renderPanel(<MdNotifications />, t('notifications'), (
             renderField(t('emailNotifications'), (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>{prefs?.notificacoes ? t('enabled') : t('disabled')}</span>
+                  <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>{localPrefs?.notificacoes ? t('enabled') : t('disabled')}</span>
                   <Switch
-                    checked={!!prefs?.notificacoes}
-                    onChange={changeAlerts}
+                    checked={!!localPrefs?.notificacoes}
+                    onChange={(e) => {
+                        const val = e.target.checked
+                        setLocalPrefs(p => ({ ...p, notificacoes: val }))
+                        changeAlerts(e)
+                    }}
                     color="primary"
                   />
               </Box>
@@ -267,8 +280,12 @@ function Settings() {
 
             renderField(t('algorithmStyle') || 'Estilo do Robô', (
               <Select
-                value={prefs?.estiloAlgoritmo || AlgorithmStyle.BALANCED}
-                onChange={changeEstilo}
+                value={localPrefs?.estiloAlgoritmo || AlgorithmStyle.BALANCED}
+                onChange={(e) => {
+                    const val = e.target.value
+                    setLocalPrefs(p => ({ ...p, estiloAlgoritmo: val }))
+                    changeEstilo(e)
+                }}
                 size="small"
                 sx={selectSx}
               >
@@ -287,9 +304,11 @@ function Settings() {
                   type="number"
                   variant="outlined"
                   size="small"
-                  defaultValue={prefs?.investimentoInicial || 0}
+                  value={localPrefs?.investimentoInicial ?? 0}
+                  onChange={(e) => setLocalPrefs(p => ({ ...p, investimentoInicial: e.target.value }))}
                   onBlur={(e) => {
-                      updatePreferences({ investimentoInicial: Number(e.target.value) })
+                      const val = parseFloat(e.target.value) || 0
+                      updatePreferences({ investimentoInicial: val })
                       confirm()
                   }}
                   sx={{ 
@@ -302,8 +321,13 @@ function Settings() {
 
               {renderField(t('preferredCoin'), (
                 <Select
-                  value={prefs?.siglaMoedaPreferida || ''}
-                  onChange={(e) => updatePreferences({ siglaMoedaPreferida: e.target.value })}
+                  value={localPrefs?.siglaMoedaPreferida || ''}
+                  onChange={(e) => {
+                      const val = e.target.value
+                      setLocalPrefs(p => ({ ...p, siglaMoedaPreferida: val }))
+                      updatePreferences({ siglaMoedaPreferida: val })
+                      confirm()
+                  }}
                   size="small"
                   sx={selectSx}
                 >
@@ -327,9 +351,11 @@ function Settings() {
                                 <TextField
                                     type="number"
                                     size="small"
-                                    defaultValue={prefs?.riscoMaximoPerda || 0}
+                                    value={localPrefs?.riscoMaximoPerda ?? 0}
+                                    onChange={(e) => setLocalPrefs(p => ({ ...p, riscoMaximoPerda: e.target.value }))}
                                     onBlur={(e) => {
-                                        updatePreferences({ riscoMaximoPerda: Number(e.target.value) })
+                                        const val = parseFloat(e.target.value) || 0
+                                        updatePreferences({ riscoMaximoPerda: val })
                                         confirm()
                                     }}
                                     sx={{ width: 140, '& .MuiOutlinedInput-root': { bgcolor: 'rgba(255,255,255,0.04)', borderRadius: '10px' } }}
@@ -338,9 +364,14 @@ function Settings() {
                             ))}
 
                             {renderField(t('reviewFrequency'), (
-                                <Select
-                                    value={prefs?.frequenciaReview || ReviewFrequency.DAILY}
-                                    onChange={(e) => updatePreferences({ frequenciaReview: e.target.value })}
+                                 <Select
+                                    value={localPrefs?.frequenciaReview || ReviewFrequency.DAILY}
+                                    onChange={(e) => {
+                                        const val = e.target.value
+                                        setLocalPrefs(p => ({ ...p, frequenciaReview: val }))
+                                        updatePreferences({ frequenciaReview: val })
+                                        confirm()
+                                    }}
                                     size="small"
                                     sx={selectSx}
                                 >
@@ -359,17 +390,24 @@ function Settings() {
                                         type="number"
                                         size="small"
                                         placeholder="0.00"
-                                        defaultValue={prefs?.saldoSeguranca || 0}
+                                        value={localPrefs?.saldoSeguranca ?? 0}
+                                        onChange={(e) => setLocalPrefs(p => ({ ...p, saldoSeguranca: e.target.value }))}
                                         onBlur={(e) => {
-                                            updatePreferences({ saldoSeguranca: Number(e.target.value) })
+                                            const val = parseFloat(e.target.value) || 0
+                                            updatePreferences({ saldoSeguranca: val })
                                             confirm()
                                         }}
                                         sx={{ width: 100, '& .MuiOutlinedInput-root': { bgcolor: 'rgba(255,255,255,0.04)', borderRadius: '10px' } }}
                                     />
 
                                     <Select
-                                        value={prefs?.siglaMoedaUltimaInteracaoIA || ''}
-                                        onChange={(e) => updatePreferences({ siglaMoedaUltimaInteracaoIA: e.target.value })}
+                                        value={localPrefs?.siglaMoedaUltimaInteracaoIA || ''}
+                                        onChange={(e) => {
+                                            const val = e.target.value
+                                            setLocalPrefs(p => ({ ...p, siglaMoedaUltimaInteracaoIA: val }))
+                                            updatePreferences({ siglaMoedaUltimaInteracaoIA: val })
+                                            confirm()
+                                        }}
                                         size="small"
                                         sx={{ ...selectSx, minWidth: 90 }}
                                     >
@@ -382,8 +420,13 @@ function Settings() {
                             ))}
                             {renderField(t('riskProfile'), (
                                 <Select
-                                    value={prefs?.perfilRisco || RiskProfile.MODERATE}
-                                    onChange={(e) => updatePreferences({ perfilRisco: e.target.value })}
+                                    value={localPrefs?.perfilRisco || RiskProfile.MODERATE}
+                                    onChange={(e) => {
+                                        const val = e.target.value
+                                        setLocalPrefs(p => ({ ...p, perfilRisco: val }))
+                                        updatePreferences({ perfilRisco: val })
+                                        confirm()
+                                    }}
                                     size="small"
                                     sx={selectSx}
                                 >
