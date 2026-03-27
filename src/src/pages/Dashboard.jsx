@@ -236,6 +236,31 @@ function Dashboard() {
     setPagina(1)
   }
 
+  const handleDebateTrigger = async (sigla) => {
+    if (!token) return
+
+    setMoedaMonitor(sigla)
+    setShowMonitor(true)
+
+    try {
+      const idUsuarioTB = prefs?.idPreferenciasUsuarioTB || '3fa85f64-5717-4562-b3fc-2c963f66afa6'
+
+      await apiRequest(MarketEndpoint.DEBATE, {
+        method: HttpMethod.POST,
+        headers: { Authorization: `Bearer ${token}` },
+        body: {
+          siglaMoeda: sigla,
+          idUsuarioTB,
+          quantidadeRegistros: 0,
+        },
+      })
+      console.log(`Debate solicitado para ${sigla} via RabbitMQ`)
+    } catch (err) {
+      console.error('Erro ao iniciar debate:', err)
+      setErro(t('errorTriggeringDebate') || 'Erro ao iniciar debate com a IA')
+    }
+  }
+
   const filtrarIntervalo = (lista) => {
     if (!lista || !Array.isArray(lista) || lista.length === 0) return []
     const agora = Date.now()
@@ -596,8 +621,7 @@ function Dashboard() {
                       className="ai-chat-btn-overlay"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setMoedaMonitor(m.simbolo);
-                        setShowMonitor(true);
+                        handleDebateTrigger(m.simbolo);
                       }}
                       title={`Conversar com IA sobre ${m.simbolo}`}
                     >

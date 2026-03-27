@@ -29,6 +29,7 @@ export const ApiEndpoint = Object.freeze({
     SCRIPT_COMMON: '/ThinkBitcoin/AtivadorScript/ScriptComum',
     RETURN_SEQUENCE: (id = '') => `/ThinkBitcoin/sequenciasRetorno/${id}`,
     EXCHANGES: '/ThinkBitcoin/exchanges',
+    DEBATE: '/ThinkBitcoin/debate',
   }),
   CARGO: Object.freeze({
     UPDATE: '/ThinkBitcoin/CargoUsuarioTB/AlterarCargoUsuarioTB/',

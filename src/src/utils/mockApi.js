@@ -224,6 +224,17 @@ const mockHandlers = [
       ],
     }),
   },
+  {
+    method: 'POST',
+    match: (endpoint) => endpoint === '/ThinkBitcoin/debate',
+    response: (endpoint, body) => {
+      console.log('Mock POST Debate Triggered:', body);
+      return { 
+        mensagem: 'Debate iniciado com sucesso via fila RabbitMQ',
+        resultado: true 
+      };
+    },
+  },
 ]
 
 export const getMockResponse = ({ endpoint, method, body }) => {
