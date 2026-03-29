@@ -80,7 +80,7 @@ function Dashboard() {
   const [erro, setErro] = useState('')
   const [sinal, setSinal] = useState(null)
   const [intervalo, setIntervalo] = useState('1m') // Mudado para 1m como padrão para garantir visualização inicial
-  
+
   // Filtros dinâmicos
   const [dataInicio, setDataInicio] = useState('')
   const [dataFim, setDataFim] = useState('')
@@ -96,7 +96,7 @@ function Dashboard() {
   const [normalizacao, setNormalizacao] = useState('base100') // 'bruto' | 'minmax' | 'base100' | 'zscore'
   const filterSummaryRef = useRef('') // Cache de string dos filtros globais (intervalo+datas)
 
-  
+
   // Limpa erro automaticamente após 10 segundos
   useEffect(() => {
     if (erro) {
@@ -112,37 +112,37 @@ function Dashboard() {
     try {
       if (!token || hasInitializedPref.current || !moedasCarousel?.length) return
 
-      const moedaProp = 
+      const moedaProp =
         prefs?.siglaMoedaPreferida ||
         prefs?.SiglaMoedaPreferida ||
-        prefs?.idMoedaPreferida || 
-        prefs?.IdMoedaPreferida || 
-        prefs?.moedaPreferida || 
+        prefs?.idMoedaPreferida ||
+        prefs?.IdMoedaPreferida ||
+        prefs?.moedaPreferida ||
         prefs?.MoedaPreferida
-      
+
       let initialized = false
       if (moedaProp) {
-          const match = moedasCarousel.find(m => 
-              (m.id && String(m.id) === String(moedaProp)) || 
-              (m.simbolo && String(m.simbolo).toUpperCase() === String(moedaProp).toUpperCase().trim())
-          )
+        const match = moedasCarousel.find(m =>
+          (m.id && String(m.id) === String(moedaProp)) ||
+          (m.simbolo && String(m.simbolo).toUpperCase() === String(moedaProp).toUpperCase().trim())
+        )
 
-          if (match) {
-              setMoedasFiltro([match.simbolo])
-              initialized = true
-          }
+        if (match) {
+          setMoedasFiltro([match.simbolo])
+          initialized = true
+        }
       }
 
       if (!initialized && moedasCarousel.length > 0) {
-          const btc = moedasCarousel.find(m => m.simbolo === 'BTC') || moedasCarousel[0]
-          if (btc) {
-              setMoedasFiltro([btc.simbolo])
-              initialized = true
-          }
+        const btc = moedasCarousel.find(m => m.simbolo === 'BTC') || moedasCarousel[0]
+        if (btc) {
+          setMoedasFiltro([btc.simbolo])
+          initialized = true
+        }
       }
 
       if (initialized) {
-          hasInitializedPref.current = true
+        hasInitializedPref.current = true
       }
     } catch (err) {
       console.error('Erro na inicialização do Dashboard:', err)
@@ -157,7 +157,7 @@ function Dashboard() {
 
     setErro('')
     const signal = controller?.signal
-    
+
     // 1. Busca Sequências (Gráficos) - REMOVIDO TEMPORARIAMENTE (BACKEND EM DESENVOLVIMENTO)
     setDados(MOCK_DADOS)
 
@@ -174,7 +174,7 @@ function Dashboard() {
     moedasFiltro.forEach(sigla => {
       // Sincroniza tabela com a primeira da lista (mesmo se vier do cache)
       if (sigla === moedasFiltro[0] && historicosPorMoeda[sigla]) {
-          setHistoricoMoeda({ registros: historicosPorMoeda[sigla] })
+        setHistoricoMoeda({ registros: historicosPorMoeda[sigla] })
       }
 
       // Se já temos e o filtro é o mesmo, não fazemos nada (pula fetch)
@@ -190,12 +190,12 @@ function Dashboard() {
           if (signal?.aborted) return
           const res = json?.resultado ?? json?.Resultado ?? json
           const registros = res?.registros ?? res?.Registros ?? (Array.isArray(res) ? res : [])
-          
+
           setHistoricosPorMoeda(prev => ({ ...prev, [sigla]: registros }))
-          
+
           // Sincroniza tabela com a primeira carregada
           if (sigla === moedasFiltro[0]) {
-             setHistoricoMoeda({ registros })
+            setHistoricoMoeda({ registros })
           }
         })
         .catch(err => {
@@ -206,15 +206,15 @@ function Dashboard() {
 
     // Limpa moedas que foram removidas do filtro mas permaneciam no cache
     setHistoricosPorMoeda(prev => {
-        const novoMap = { ...prev }
-        let changed = false
-        Object.keys(novoMap).forEach(key => {
-            if (!moedasFiltro.includes(key)) {
-                delete novoMap[key]
-                changed = true
-            }
-        })
-        return changed ? novoMap : prev
+      const novoMap = { ...prev }
+      let changed = false
+      Object.keys(novoMap).forEach(key => {
+        if (!moedasFiltro.includes(key)) {
+          delete novoMap[key]
+          changed = true
+        }
+      })
+      return changed ? novoMap : prev
     })
   }
 
@@ -243,7 +243,7 @@ function Dashboard() {
     setShowMonitor(true)
 
     try {
-      const idUsuarioTB = prefs?.idPreferenciasUsuarioTB || '3fa85f64-5717-4562-b3fc-2c963f66afa6'
+      const idUsuarioTB = prefs?.idPreferenciasUsuarioTB
 
       await apiRequest(MarketEndpoint.DEBATE, {
         method: HttpMethod.POST,
@@ -251,7 +251,7 @@ function Dashboard() {
         body: {
           siglaMoeda: sigla,
           idUsuarioTB,
-          quantidadeRegistros: 0,
+          quantidadeRegistros: 5,
         },
       })
       console.log(`Debate solicitado para ${sigla} via RabbitMQ`)
@@ -266,7 +266,7 @@ function Dashboard() {
     const agora = Date.now()
     const map = { '24h': 86400000, '7d': 604800000, '1m': 2592000000 }
     const limite = map[intervalo] || 2592000000
-    
+
     const filtrados = lista.filter((d) => {
       const dHora = d.dataHora || d.DataHora
       if (!dHora) return false
@@ -287,25 +287,25 @@ function Dashboard() {
   // --- MEMOIZAÇÃO DOS DADOS DO GRÁFICO (Performance Máxima) ---
   const { dadosGraficoPreco, dadosGraficoVariacao, multiMoeda } = useMemo(() => {
     const CORES_SIMPLE = ['#FFD700', '#2196f3', '#4caf50', '#e91e63', '#9c27b0', '#ff9800', '#00bcd4']
-    
+
     // 1. Timestamps comuns
     const allTimestampsSet = new Set()
     try {
-        Object.values(historicosPorMoeda || {}).forEach(lista => {
-            if (Array.isArray(lista)) {
-                lista.forEach(r => {
-                    if (r) {
-                        const dh = r.dataHora ?? r.DataHora
-                        if (dh) allTimestampsSet.add(dh)
-                    }
-                })
+      Object.values(historicosPorMoeda || {}).forEach(lista => {
+        if (Array.isArray(lista)) {
+          lista.forEach(r => {
+            if (r) {
+              const dh = r.dataHora ?? r.DataHora
+              if (dh) allTimestampsSet.add(dh)
             }
-        })
+          })
+        }
+      })
     } catch (err) {
-        console.error('Erro ao processar timestamps:', err)
+      console.error('Erro ao processar timestamps:', err)
     }
     const timestampsUnicos = Array.from(allTimestampsSet).sort()
-    const labels = timestampsUnicos.map(t => 
+    const labels = timestampsUnicos.map(t =>
       new Date(t).toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })
     )
 
@@ -317,10 +317,10 @@ function Dashboard() {
       const priceMap = new Map()
       const historico = historicosPorMoeda[sigla] || []
       historico.forEach(r => {
-          if (!r) return
-          const val = r.valor ?? r.Valor ?? r.valorNegociado ?? r.ValorNegociado ?? 0
-          const dh = r.dataHora ?? r.DataHora
-          if (dh) priceMap.set(dh, val)
+        if (!r) return
+        const val = r.valor ?? r.Valor ?? r.valorNegociado ?? r.ValorNegociado ?? 0
+        const dh = r.dataHora ?? r.DataHora
+        if (dh) priceMap.set(dh, val)
       })
       return {
         label: sigla,
@@ -347,10 +347,10 @@ function Dashboard() {
         const itemDate = new Date(item.dataHora)
         return itemDate >= dataInicioObj && itemDate <= dataFimObj
       }).forEach(r => {
-          if (!r) return
-          const val = r.variacaoPercentual ?? r.VariacaoPercentual ?? r.variacao ?? r.Variacao ?? 0
-          const dh = r.dataHora ?? r.DataHora
-          if (dh) varMap.set(dh, val * 100) // Converte para % decimal se necessário
+        if (!r) return
+        const val = r.variacaoPercentual ?? r.VariacaoPercentual ?? r.variacao ?? r.Variacao ?? 0
+        const dh = r.dataHora ?? r.DataHora
+        if (dh) varMap.set(dh, val * 100) // Converte para % decimal se necessário
       })
       return {
         label: sigla,
@@ -365,10 +365,10 @@ function Dashboard() {
       }
     })
 
-    return { 
-      dadosGraficoPreco: { labels, datasets: datasetsPreco }, 
+    return {
+      dadosGraficoPreco: { labels, datasets: datasetsPreco },
       dadosGraficoVariacao: { labels, datasets: datasetsVariacao },
-      multiMoeda: multi 
+      multiMoeda: multi
     }
   }, [historicosPorMoeda])
 
@@ -409,7 +409,7 @@ function Dashboard() {
       ...baseOpcoes.scales,
       y: {
         ...baseOpcoes.scales.y,
-        ticks: { 
+        ticks: {
           ...baseOpcoes.scales.y.ticks,
           callback: (v) => `$${Number(v).toLocaleString('en-US')}`
         }
@@ -432,7 +432,7 @@ function Dashboard() {
       ...baseOpcoes.scales,
       y: {
         ...baseOpcoes.scales.y,
-        ticks: { 
+        ticks: {
           ...baseOpcoes.scales.y.ticks,
           callback: (v) => `${v.toFixed(2)}%`
         }
@@ -465,123 +465,123 @@ function Dashboard() {
   if (!token) return <Box sx={{ p: 5 }}>Redirecting to login...</Box>
 
   try {
-     return (
-    <div className="dashboard-container">
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
-        <div>
-          <h1 className="page-title" style={{ margin: 0 }}>{t('dashboard')}</h1>
-          <p style={{ margin: '4px 0 0', color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
-            {t('welcome', { name: (prefs?.nome || usuario?.nome || '') })}
-          </p>
-        </div>
-        
-        <div className="dashboard-actions-top">
-           {/* Botão de atualização de sinal removido até backend estar pronto */}
-        </div>
-      </header>
-      
-      <ErrorMessage message={erro} onClose={() => setErro('')} />
-
-      {showMonitor && (
-        <section className="agent-monitor-container">
-          <div className="agent-monitor-panel">
-            <div className="scanline"></div>
-            <div className="agent-monitor-header">
-              <div className="agent-status-badge">
-                <div className="status-dot-pulse"></div>
-                CORE_AGENT_LINK::SIGNALR_ACTIVE_{moedaMonitor}
-              </div>
-              <IconButton onClick={() => setShowMonitor(false)} size="small" sx={{ color: 'var(--neon-green)' }}>
-                <MdClose />
-              </IconButton>
-            </div>
-            <div className="agent-chat-area">
-              <div className="agent-message">
-                <span className="agent-prefix">&gt; [SYSTEM]</span>
-                <span className="agent-msg-content">Initializing neural bridge to Ollama instance...</span>
-              </div>
-              <div className="agent-message">
-                <span className="agent-prefix">&gt; [ATLAS]</span>
-                <span className="agent-msg-content">Analyzing {moedaMonitor} market regime. Detecting bullish divergence patterns in M15.</span>
-              </div>
-              <div className="agent-message">
-                <span className="agent-prefix">&gt; [ECHO]</span>
-                <span className="agent-msg-content">Cross-referencing with sentiment-oscillator. Synergy score at 0.89.</span>
-              </div>
-              <div className="decor-hex">
-                0x45 0x67 0x89 0xAB 0xCD 0xEF
-              </div>
-            </div>
+    return (
+      <div className="dashboard-container">
+        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
+          <div>
+            <h1 className="page-title" style={{ margin: 0 }}>{t('dashboard')}</h1>
+            <p style={{ margin: '4px 0 0', color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
+              {t('welcome', { name: (prefs?.nome || usuario?.nome || '') })}
+            </p>
           </div>
-        </section>
-      )}
 
-      <Box 
-        className="panel top-coins" 
-        sx={{ 
-          background: 'rgba(20, 20, 20, 0.6) !important', 
-          backdropFilter: 'blur(15px) !important',
-          border: '1px solid rgba(255, 215, 0, 0.1) !important',
-          mb: 3
-        }}
-      >
-        <h2><MdTrendingUp style={{ verticalAlign: 'middle', marginRight: '8px' }} /> {t('topCoins')}</h2>
-        <div className="top-list">
-          {moedasCarousel.length === 0 ? (
-             <Box sx={{ p: 3, textAlign: 'center', opacity: 0.6 }}>
+          <div className="dashboard-actions-top">
+            {/* Botão de atualização de sinal removido até backend estar pronto */}
+          </div>
+        </header>
+
+        <ErrorMessage message={erro} onClose={() => setErro('')} />
+
+        {showMonitor && (
+          <section className="agent-monitor-container">
+            <div className="agent-monitor-panel">
+              <div className="scanline"></div>
+              <div className="agent-monitor-header">
+                <div className="agent-status-badge">
+                  <div className="status-dot-pulse"></div>
+                  CORE_AGENT_LINK::SIGNALR_ACTIVE_{moedaMonitor}
+                </div>
+                <IconButton onClick={() => setShowMonitor(false)} size="small" sx={{ color: 'var(--neon-green)' }}>
+                  <MdClose />
+                </IconButton>
+              </div>
+              <div className="agent-chat-area">
+                <div className="agent-message">
+                  <span className="agent-prefix">&gt; [SYSTEM]</span>
+                  <span className="agent-msg-content">Initializing neural bridge to Ollama instance...</span>
+                </div>
+                <div className="agent-message">
+                  <span className="agent-prefix">&gt; [ATLAS]</span>
+                  <span className="agent-msg-content">Analyzing {moedaMonitor} market regime. Detecting bullish divergence patterns in M15.</span>
+                </div>
+                <div className="agent-message">
+                  <span className="agent-prefix">&gt; [ECHO]</span>
+                  <span className="agent-msg-content">Cross-referencing with sentiment-oscillator. Synergy score at 0.89.</span>
+                </div>
+                <div className="decor-hex">
+                  0x45 0x67 0x89 0xAB 0xCD 0xEF
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        <Box
+          className="panel top-coins"
+          sx={{
+            background: 'rgba(20, 20, 20, 0.6) !important',
+            backdropFilter: 'blur(15px) !important',
+            border: '1px solid rgba(255, 215, 0, 0.1) !important',
+            mb: 3
+          }}
+        >
+          <h2><MdTrendingUp style={{ verticalAlign: 'middle', marginRight: '8px' }} /> {t('topCoins')}</h2>
+          <div className="top-list">
+            {moedasCarousel.length === 0 ? (
+              <Box sx={{ p: 3, textAlign: 'center', opacity: 0.6 }}>
                 <Typography variant="body2">{t('loadingCoins')}...</Typography>
-             </Box>
-          ) : (
-            moedasCarousel
-              .slice()
-              .sort((a, b) => b.variacao - a.variacao)
-              .slice(0, 5)
-              .map((m) => {
-                const up = m.variacao >= 0
-                return (
-                  <div key={m.simbolo} className="top-item">
-                    <CryptoIcon simbolo={m.simbolo} />
-                    <span className="top-name">{m.nome}</span>
-                    <span className={`top-var ${up ? 'positive' : 'negative'}`}>
-                      {up ? '+' : ''}{m.variacao.toFixed(2)}%
-                    </span>
-                  </div>
-                )
-              })
-          )}
-        </div>
-      </Box>
+              </Box>
+            ) : (
+              moedasCarousel
+                .slice()
+                .sort((a, b) => b.variacao - a.variacao)
+                .slice(0, 5)
+                .map((m) => {
+                  const up = m.variacao >= 0
+                  return (
+                    <div key={m.simbolo} className="top-item">
+                      <CryptoIcon simbolo={m.simbolo} />
+                      <span className="top-name">{m.nome}</span>
+                      <span className={`top-var ${up ? 'positive' : 'negative'}`}>
+                        {up ? '+' : ''}{m.variacao.toFixed(2)}%
+                      </span>
+                    </div>
+                  )
+                })
+            )}
+          </div>
+        </Box>
 
-      <div className="crypto-carousel">
-        {moedasCarousel.length === 0 ? (
-          <Box sx={{ 
-            width: '100%', 
-            p: 4, 
-            textAlign: 'center', 
-            background: 'rgba(20, 20, 20, 0.4)', 
-            borderRadius: '16px', 
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255,255,255,0.05)'
-          }}>
-            <Typography variant="body1" sx={{ color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-               <MdRefresh className="spin" /> {t('loadingCoins')}
-            </Typography>
-          </Box>
-        ) : (
-          moedasCarousel.map((m) => {
-            const isUp = m.variacao >= 0
-            const isSelected = moedasFiltro.includes(m.simbolo)
-            return (
-              <Card 
-                key={m.simbolo} 
-                className={`carousel-item ${isSelected ? 'selected' : ''}`}
-                sx={{ 
-                  minWidth: 120,
-                  border: isSelected ? '2px solid var(--color-primary) !important' : '1px solid rgba(255,255,255,0.05) !important',
-                  transform: isSelected ? 'scale(1.05)' : 'none',
-                  boxShadow: isSelected ? '0 0 15px rgba(255, 215, 0, 0.3) !important' : 'none'
-                }}
-              >
+        <div className="crypto-carousel">
+          {moedasCarousel.length === 0 ? (
+            <Box sx={{
+              width: '100%',
+              p: 4,
+              textAlign: 'center',
+              background: 'rgba(20, 20, 20, 0.4)',
+              borderRadius: '16px',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255,255,255,0.05)'
+            }}>
+              <Typography variant="body1" sx={{ color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                <MdRefresh className="spin" /> {t('loadingCoins')}
+              </Typography>
+            </Box>
+          ) : (
+            moedasCarousel.map((m) => {
+              const isUp = m.variacao >= 0
+              const isSelected = moedasFiltro.includes(m.simbolo)
+              return (
+                <Card
+                  key={m.simbolo}
+                  className={`carousel-item ${isSelected ? 'selected' : ''}`}
+                  sx={{
+                    minWidth: 120,
+                    border: isSelected ? '2px solid var(--color-primary) !important' : '1px solid rgba(255,255,255,0.05) !important',
+                    transform: isSelected ? 'scale(1.05)' : 'none',
+                    boxShadow: isSelected ? '0 0 15px rgba(255, 215, 0, 0.3) !important' : 'none'
+                  }}
+                >
                   <CardActionArea
                     className={`carousel-card-inner ${isSelected ? 'selected' : ''}`}
                     onClick={() => selecionarMoeda(m.simbolo)}
@@ -602,13 +602,13 @@ function Dashboard() {
                     }}
                   >
                     <div className={`coin-icon-wrapper ${isSelected ? 'pulse' : ''}`}>
-                        <CryptoIcon simbolo={m.simbolo} />
+                      <CryptoIcon simbolo={m.simbolo} />
                     </div>
                     <div className="carousel-info">
                       <span className="carousel-name" style={{ fontWeight: isSelected ? 700 : 400, color: isSelected ? 'var(--color-primary)' : 'inherit' }}>
                         {m.simbolo}
                       </span>
-                      <span className={`carousel-price ${isUp ? 'positive' : 'negative'}`} style={{ fontSize: '0.85rem' }}> 
+                      <span className={`carousel-price ${isUp ? 'positive' : 'negative'}`} style={{ fontSize: '0.85rem' }}>
                         {m.valor.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
                       </span>
                       <div className={`carousel-mini-var ${isUp ? 'up' : 'down'}`}>
@@ -616,8 +616,8 @@ function Dashboard() {
                         {Math.abs(m.variacao).toFixed(1)}%
                       </div>
                     </div>
-                    
-                    <IconButton 
+
+                    <IconButton
                       className="ai-chat-btn-overlay"
                       onClick={(e) => {
                         e.stopPropagation();
@@ -629,207 +629,207 @@ function Dashboard() {
                     </IconButton>
 
                     {isSelected && (
-                        <div className="selected-indicator">
-                            <div className="dot"></div>
-                        </div>
+                      <div className="selected-indicator">
+                        <div className="dot"></div>
+                      </div>
                     )}
                   </CardActionArea>
-              </Card>
-            )
-          })
-        )}
-      </div>
+                </Card>
+              )
+            })
+          )}
+        </div>
 
-      <section className="panel filters-panel" style={{ marginBottom: '40px', padding: '20px' }}>
-        <Box sx={{ 
-          display: 'flex', 
-          flexDirection: { xs: 'column', md: 'row' },
-          gap: 3, 
-          alignItems: 'flex-end', 
-          justifyContent: 'center',
-          flexWrap: 'wrap'
-        }}>
-          <Box sx={{ flex: '1 1 180px', minWidth: '150px' }}>
-            <TextField
-              fullWidth
-              label={t('startDate')}
-              type="date"
-              value={dataInicio}
-              onChange={(e) => setDataInicio(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              size="small"
-              variant="outlined"
-              sx={{ 
-                '& .MuiOutlinedInput-root': {
+        <section className="panel filters-panel" style={{ marginBottom: '40px', padding: '20px' }}>
+          <Box sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', md: 'row' },
+            gap: 3,
+            alignItems: 'flex-end',
+            justifyContent: 'center',
+            flexWrap: 'wrap'
+          }}>
+            <Box sx={{ flex: '1 1 180px', minWidth: '150px' }}>
+              <TextField
+                fullWidth
+                label={t('startDate')}
+                type="date"
+                value={dataInicio}
+                onChange={(e) => setDataInicio(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                size="small"
+                variant="outlined"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
                     backgroundColor: 'rgba(255,255,255,0.02)',
                     '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' }
-                }
-              }}
-            />
-          </Box>
-          <Box sx={{ flex: '1 1 180px', minWidth: '150px' }}>
-            <TextField
-              fullWidth
-              label={t('endDate')}
-              type="date"
-              value={dataFim}
-              onChange={(e) => setDataFim(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              size="small"
-              variant="outlined"
-              sx={{ 
-                '& .MuiOutlinedInput-root': {
+                  }
+                }}
+              />
+            </Box>
+            <Box sx={{ flex: '1 1 180px', minWidth: '150px' }}>
+              <TextField
+                fullWidth
+                label={t('endDate')}
+                type="date"
+                value={dataFim}
+                onChange={(e) => setDataFim(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                size="small"
+                variant="outlined"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
                     backgroundColor: 'rgba(255,255,255,0.02)',
                     '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' }
-                }
-              }}
-            />
-          </Box>
+                  }
+                }}
+              />
+            </Box>
 
-          <Box sx={{ flex: '0 1 140px', minWidth: '120px' }}>
-            <TextField
-              fullWidth
-              select
-              label={t('result')}
-              value={resultadoFiltro}
-              onChange={(e) => setResultadoFiltro(e.target.value)}
-              size="small"
-              variant="outlined"
-              sx={{ 
-                '& .MuiOutlinedInput-root': {
+            <Box sx={{ flex: '0 1 140px', minWidth: '120px' }}>
+              <TextField
+                fullWidth
+                select
+                label={t('result')}
+                value={resultadoFiltro}
+                onChange={(e) => setResultadoFiltro(e.target.value)}
+                size="small"
+                variant="outlined"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
                     backgroundColor: 'rgba(255,255,255,0.02)',
                     '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' }
-                }
-              }}
-            >
-              <MenuItem value="ALL">{t('all')}</MenuItem>
-              <MenuItem value="WIN">{t('win')}</MenuItem>
-              <MenuItem value="LOSS">{t('loss')}</MenuItem>
-            </TextField>
-          </Box>
+                  }
+                }}
+              >
+                <MenuItem value="ALL">{t('all')}</MenuItem>
+                <MenuItem value="WIN">{t('win')}</MenuItem>
+                <MenuItem value="LOSS">{t('loss')}</MenuItem>
+              </TextField>
+            </Box>
 
-          <Box sx={{ flex: '0 1 180px', minWidth: '160px' }}>
-            <div className="interval-selector-mini" style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', padding: '4px', border: '1px solid rgba(255,255,255,0.1)', height: '40px', boxSizing: 'border-box' }}>
-              {['24h', '7d', '1m'].map((opt) => (
+            <Box sx={{ flex: '0 1 180px', minWidth: '160px' }}>
+              <div className="interval-selector-mini" style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', padding: '4px', border: '1px solid rgba(255,255,255,0.1)', height: '40px', boxSizing: 'border-box' }}>
+                {['24h', '7d', '1m'].map((opt) => (
+                  <button
+                    key={opt}
+                    className={`interval-btn-mini ${intervalo === opt ? 'active' : ''}`}
+                    onClick={() => {
+                      setIntervalo(opt)
+                      setPagina(1) // Opcional: resetar página se mudar o intervalo? Geralmente sim.
+                    }}
+                    style={{ flex: 1, padding: '0 8px', fontSize: '0.8rem' }}
+                  >
+                    {t(`interval${opt}`)}
+                  </button>
+                ))}
+              </div>
+            </Box>
+          </Box>
+        </section>
+
+        <div style={{ marginTop: '40px', marginBottom: '16px', padding: '0 4px', display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+          <h2 style={{ margin: 0, fontSize: '1.25rem' }}>{t('sequence')}</h2>
+          {multiMoeda && (
+            <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.8rem', color: '#888', alignSelf: 'center' }}>Normalização:</span>
+              {[
+                { key: 'base100', label: 'Base 100', title: 'Performance relativa — começa em 100 para todas' },
+                { key: 'minmax', label: 'Min-Max', title: 'Escala 0 a 1 relativa ao período' },
+                { key: 'zscore', label: 'Z-Score', title: 'Volatilidade — desvios em relação à média' },
+              ].map(({ key, label, title }) => (
                 <button
-                  key={opt}
-                  className={`interval-btn-mini ${intervalo === opt ? 'active' : ''}`}
-                  onClick={() => {
-                    setIntervalo(opt)
-                    setPagina(1) // Opcional: resetar página se mudar o intervalo? Geralmente sim.
+                  key={key}
+                  title={title}
+                  onClick={() => setNormalizacao(key)}
+                  style={{
+                    padding: '4px 12px',
+                    fontSize: '0.78rem',
+                    borderRadius: '20px',
+                    border: normalizacao === key ? '1px solid #FFD700' : '1px solid #444',
+                    background: normalizacao === key ? 'rgba(255,215,0,0.12)' : 'transparent',
+                    color: normalizacao === key ? '#FFD700' : '#888',
+                    cursor: 'pointer',
+                    fontWeight: normalizacao === key ? 600 : 400,
+                    transition: 'all 0.2s',
                   }}
-                  style={{ flex: 1, padding: '0 8px', fontSize: '0.8rem' }}
                 >
-                  {t(`interval${opt}`)}
+                  {label}
                 </button>
               ))}
             </div>
-          </Box>
-        </Box>
-      </section>
+          )}
+        </div>
 
-      <div style={{ marginTop: '40px', marginBottom: '16px', padding: '0 4px', display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-        <h2 style={{ margin: 0, fontSize: '1.25rem' }}>{t('sequence')}</h2>
-        {multiMoeda && (
-          <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.8rem', color: '#888', alignSelf: 'center' }}>Normalização:</span>
-            {[
-              { key: 'base100', label: 'Base 100', title: 'Performance relativa — começa em 100 para todas' },
-              { key: 'minmax', label: 'Min-Max', title: 'Escala 0 a 1 relativa ao período' },
-              { key: 'zscore', label: 'Z-Score', title: 'Volatilidade — desvios em relação à média' },
-            ].map(({ key, label, title }) => (
-              <button
-                key={key}
-                title={title}
-                onClick={() => setNormalizacao(key)}
-                style={{
-                  padding: '4px 12px',
-                  fontSize: '0.78rem',
-                  borderRadius: '20px',
-                  border: normalizacao === key ? '1px solid #FFD700' : '1px solid #444',
-                  background: normalizacao === key ? 'rgba(255,215,0,0.12)' : 'transparent',
-                  color: normalizacao === key ? '#FFD700' : '#888',
-                  cursor: 'pointer',
-                  fontWeight: normalizacao === key ? 600 : 400,
-                  transition: 'all 0.2s',
-                }}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+        <div className="dashboard-charts">
+          <Box className="panel chart-panel" sx={{
+            background: 'rgba(20, 20, 20, 0.6) !important',
+            backdropFilter: 'blur(15px) !important',
+            border: '1px solid rgba(255, 255, 255, 0.05) !important'
+          }}>
+            <h2>{t('tradedValue')}</h2>
+            <div className="chart-note">{t('lastValue')}: {ultimoNegociado}</div>
+            <div className="chart-container">
+              <Line data={dadosNegociados} options={opcoesPreco} />
+            </div>
+          </Box>
+          <Box className="panel chart-panel" sx={{
+            background: 'rgba(20, 20, 20, 0.6) !important',
+            backdropFilter: 'blur(15px) !important',
+            border: '1px solid rgba(255, 255, 255, 0.05) !important'
+          }}>
+            <h2>{t('percentVariation')}</h2>
+            <div className="chart-note">{t('lastVariation')}: {ultimaVariacao}</div>
+            <div className="chart-container">
+              <Line data={dadosVariacao} options={opcoesVariacao} />
+            </div>
+          </Box>
+        </div>
+
+        {moedasFiltro.length > 0 && historicoMoeda && (
+          <Box className="panel history-panel" sx={{
+            marginTop: '20px',
+            background: 'rgba(20, 20, 20, 0.6) !important'
+          }}>
+            <h2>{t('coinHistory')}: {moedasFiltro[0]}</h2>
+            <TableContainer component={Paper} sx={{ backgroundColor: 'transparent', boxShadow: 'none' }}>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ color: '#aaa', fontWeight: 'bold' }}>{t('date')}</TableCell>
+                    <TableCell sx={{ color: '#aaa', fontWeight: 'bold' }}>{t('value')}</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {(historicoMoeda?.registros || historicoMoeda?.Registros || []).map((item, idx) => {
+                    const dh = item?.dataHora ?? item?.DataHora
+                    const val = item?.valor ?? item?.Valor ?? item?.valorNegociado ?? item?.ValorNegociado ?? 0
+                    return (
+                      <TableRow key={idx}>
+                        <TableCell sx={{ color: '#eee' }}>{dh ? new Date(dh).toLocaleString('en-US') : '-'}</TableCell>
+                        <TableCell sx={{ color: '#eee' }}>
+                          {Number(val).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Box>
+        )}
+
+        {totalPaginas > 1 && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3, mb: 3 }}>
+            <Pagination
+              count={totalPaginas}
+              page={pagina}
+              onChange={(_, val) => setPagina(val)}
+              color="primary"
+            />
+          </Box>
         )}
       </div>
-
-      <div className="dashboard-charts">
-        <Box className="panel chart-panel" sx={{ 
-          background: 'rgba(20, 20, 20, 0.6) !important', 
-          backdropFilter: 'blur(15px) !important',
-          border: '1px solid rgba(255, 255, 255, 0.05) !important'
-        }}>
-          <h2>{t('tradedValue')}</h2>
-          <div className="chart-note">{t('lastValue')}: {ultimoNegociado}</div>
-          <div className="chart-container">
-            <Line data={dadosNegociados} options={opcoesPreco} />
-          </div>
-        </Box>
-        <Box className="panel chart-panel" sx={{ 
-          background: 'rgba(20, 20, 20, 0.6) !important', 
-          backdropFilter: 'blur(15px) !important',
-          border: '1px solid rgba(255, 255, 255, 0.05) !important'
-        }}>
-          <h2>{t('percentVariation')}</h2>
-          <div className="chart-note">{t('lastVariation')}: {ultimaVariacao}</div>
-          <div className="chart-container">
-            <Line data={dadosVariacao} options={opcoesVariacao} />
-          </div>
-        </Box>
-      </div>
-
-      {moedasFiltro.length > 0 && historicoMoeda && (
-        <Box className="panel history-panel" sx={{ 
-          marginTop: '20px', 
-          background: 'rgba(20, 20, 20, 0.6) !important' 
-        }}>
-          <h2>{t('coinHistory')}: {moedasFiltro[0]}</h2>
-          <TableContainer component={Paper} sx={{ backgroundColor: 'transparent', boxShadow: 'none' }}>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={{ color: '#aaa', fontWeight: 'bold' }}>{t('date')}</TableCell>
-                  <TableCell sx={{ color: '#aaa', fontWeight: 'bold' }}>{t('value')}</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {(historicoMoeda?.registros || historicoMoeda?.Registros || []).map((item, idx) => {
-                  const dh = item?.dataHora ?? item?.DataHora
-                  const val = item?.valor ?? item?.Valor ?? item?.valorNegociado ?? item?.ValorNegociado ?? 0
-                  return (
-                    <TableRow key={idx}>
-                      <TableCell sx={{ color: '#eee' }}>{dh ? new Date(dh).toLocaleString('en-US') : '-'}</TableCell>
-                      <TableCell sx={{ color: '#eee' }}>
-                        {Number(val).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Box>
-      )}
-
-      {totalPaginas > 1 && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3, mb: 3 }}>
-          <Pagination 
-            count={totalPaginas} 
-            page={pagina} 
-            onChange={(_, val) => setPagina(val)} 
-            color="primary" 
-          />
-        </Box>
-      )}
-    </div>
     )
   } catch (err) {
     console.error('Erro fatal no render do Dashboard:', err)

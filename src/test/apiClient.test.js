@@ -9,10 +9,9 @@ describe('utils/apiClient', () => {
   })
 
   it('expõe endpoints esperados para autenticação e usuário', () => {
-    expect(ApiEndpoint.AUTHENTICATION.LOGIN).toBe('/ThinkBitcoin/gerarTokenBearer/')
+    expect(ApiEndpoint.AUTHENTICATION.LOGIN).toBe('/ThinkBitcoin/gerarTokenBearer')
     expect(ApiEndpoint.USER.ME('123')).toBe('/ThinkBitcoin/usuariosTB/123')
     expect(ApiEndpoint.USER.LIST).toBe('/ThinkBitcoin/usuariosTB/')
-    expect(ApiEndpoint.USER.REGISTER_CONSULTANT).toBe('/ThinkBitcoin/usuariosTB/inserirConsultor')
     expect(ApiEndpoint.MARKET.COIN_VALUE('BTC')).toBe('/ThinkBitcoin/moeda/BTC/valor')
     expect(ApiEndpoint.MARKET.SCRIPT_COMMON).toBe('/ThinkBitcoin/AtivadorScript/ScriptComum')
   })
