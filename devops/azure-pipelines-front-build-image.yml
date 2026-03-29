@@ -70,19 +70,17 @@ steps:
     inputs:
       targetType: inline
       script: |
-        # grava a tag do build em um arquivo que vai junto no artefato front-meta
         $tag  = "$(Build.BuildId)"
-        $path = "$(imageTagFile)"
+        # GRAVE DIRETAMENTE NO STAGING DISTRICT, NA PASTA DEPLOY
+        $path = "$(Build.ArtifactStagingDirectory)/deploy/image-tag"
 
-        # Garante que a pasta existe
         $dir = Split-Path -Parent $path
-        New-Item -ItemType Directory -Path $dir -Force | Out-Null
+        if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
 
-        # Grava a tag (UTF-8)
-        Set-Content -Path $path -Value $tag -Encoding utf8
-
-        # Usa ${path} para evitar erro com ':'
-        Write-Host "Tag escrita em ${path}: $tag"
+        # Use ASCII ou UTF8 sem BOM (Set-Content as vezes coloca caracteres estranhos que o script não lê)
+        $tag | Out-File -FilePath $path -Encoding ascii -NoNewline
+        
+        Write-Host "Tag escrita em $path: $tag"
 
   - task: CopyFiles@2
     displayName: Copy Files ps1
