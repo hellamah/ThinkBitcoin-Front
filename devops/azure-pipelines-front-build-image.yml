@@ -71,16 +71,19 @@ steps:
       targetType: inline
       script: |
         $tag  = "$(Build.BuildId)"
-        # GRAVE DIRETAMENTE NO STAGING DISTRICT, NA PASTA DEPLOY
         $path = "$(Build.ArtifactStagingDirectory)/deploy/image-tag"
 
+        # Garante que a pasta existe (Force funciona no Linux/Windows)
         $dir = Split-Path -Parent $path
-        if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+        if (-not (Test-Path $dir)) { 
+            New-Item -ItemType Directory -Path $dir -Force | Out-Null 
+        }
 
-        # Use ASCII ou UTF8 sem BOM (Set-Content as vezes coloca caracteres estranhos que o script não lê)
-        $tag | Out-File -FilePath $path -Encoding ascii -NoNewline
+        # No Linux, Out-File é o mais seguro para garantir o conteúdo limpo
+        $tag | Out-File -FilePath $path -NoNewline -Encoding ascii
         
-        Write-Host "Tag escrita em $path: $tag"
+        # O pulo do gato: usar ${} para o PowerShell não se confundir com o ':'
+        Write-Host "Tag escrita em ${path}: ${tag}"
 
   - task: CopyFiles@2
     displayName: Copy Files ps1
