@@ -16,7 +16,7 @@ describe('utils/apiClient', () => {
     expect(ApiEndpoint.MARKET.SCRIPT_COMMON).toBe('/ThinkBitcoin/AtivadorScript/ScriptComum')
   })
 
-  it('executa requisição GET sem body e sem content-type automático', async () => {
+  it('executa requisição GET sem body e sem content-type automatico', async () => {
     fetch.mockResolvedValue({
       ok: true,
       status: 200,
