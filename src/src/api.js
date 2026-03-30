@@ -9,8 +9,9 @@ const getLocation = () => {
 }
 
 const location = getLocation()
+const protocol = location.protocol === 'https:' ? 'https:' : 'http:'
 const defaultPort = '13501'
-const hostUrl = `https://${location.hostname}:${defaultPort}`
+const hostUrl = `${protocol}//${location.hostname}:${defaultPort}`
 
 const resolveEnvUrl = () => {
   try {
