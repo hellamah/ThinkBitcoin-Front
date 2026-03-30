@@ -1,0 +1,147 @@
+# ThinkBitcoin Frontend
+
+Aplicação web construída com React e Vite para acompanhar cotações de criptoativos, realizar autenticação e gerenciar preferências do usuário.
+
+## Transparência sobre este repositório
+
+⚠️ **Este repositório contém apenas o frontend.**  
+A API e o motor de decisão do ThinkBitcoin são privados e não fazem parte deste código-fonte.
+
+✔️ Este frontend funciona com dados mockados.  
+✔️ Este frontend demonstra a interface do sistema ThinkBitcoin.
+
+## Screenshots / GIF
+
+Mesmo com backend privado, a experiência visual do produto pode ser avaliada por aqui:
+
+### Login
+![Tela de login do ThinkBitcoin](./public/screenshots/login.svg)
+
+### Dashboard
+![Visão de dashboard do ThinkBitcoin](./public/screenshots/dashboard.svg)
+
+### Gráfico
+![Visualização de gráfico de mercado no ThinkBitcoin](./public/screenshots/grafico.svg)
+
+### Decisão do bot
+![Card de decisão do bot no ThinkBitcoin](./public/screenshots/decisao-bot.svg)
+
+## Para quem está chegando agora
+- **O que é o ThinkBitcoin em 1 frase:** ThinkBitcoin é um sistema experimental de trading com aprendizado por reforço, com uma interface web para acompanhar mercado, autenticação e configurações operacionais.
+- **Por que esse projeto existe:** o projeto existe para transformar pesquisa e operação de estratégias em um fluxo mais claro, com dados visuais, automação e evolução contínua documentada.
+- **Quem deveria usar isso:** pessoas desenvolvedoras, analistas e entusiastas de cripto que queiram testar, acompanhar e evoluir estratégias de forma estruturada.
+
+## Visão Geral
+- Interface responsiva com Material UI e gráficos em tempo real fornecidos pelo Chart.js.
+- Suporte a autenticação com persistência de token e preferências armazenadas no navegador.
+- Internacionalização com suporte para português e inglês.
+- Utilização de *hooks* customizados para preços (`useCoinPrices`) e tradução (`useTranslation`).
+- Planejamento evolutivo documentado no arquivo `ROADMAP.md`.
+
+## Roadmap
+- O roadmap completo de evolução do produto está em [`ROADMAP.md`](./ROADMAP.md), organizado em quatro fases:
+  - Base do projeto e pipeline de entrega.
+  - Painel operacional do robô trader.
+  - Plataforma de pesquisa de estratégias.
+  - Evolução de UX, gráficos e performance.
+
+## Pré-requisitos
+- Node.js 18 ou superior.
+- npm 10 ou superior.
+
+## Instalação
+```bash
+cd src
+npm install
+```
+
+## Configuração de Ambiente
+Por padrão, o frontend já sobe em **modo demo funcional sem backend** durante o desenvolvimento local (`npm run dev`), usando dados simulados na camada de API.
+
+Se quiser customizar, crie um arquivo `.env` dentro da pasta `src/`.
+
+Exemplo:
+
+```bash
+VITE_API_URL=http://localhost:13500
+VITE_USE_MOCK=true
+```
+
+- `VITE_USE_MOCK=true`: ativa o mock local da camada de API no frontend.
+- Quando o mock está ativo, endpoints usados pela interface retornam dados fake (incluindo sinal do robô no formato `btc`, `decision` e `confidence`) sem depender do backend.
+- `VITE_USE_MOCK=false`: força chamadas reais para a API (desativa o modo demo local).
+- Se `VITE_USE_MOCK` estiver ausente, o app usa mock automaticamente em desenvolvimento (`npm run dev`) e usa API real em produção (`npm run build`/deploy).
+
+## Scripts Disponíveis
+| Comando        | Descrição                                     |
+|----------------|-----------------------------------------------|
+| `npm run dev`  | Inicia o servidor de desenvolvimento do Vite. |
+| `npm run build`| Gera a versão otimizada para produção.        |
+| `npm run preview` | Visualiza localmente o *build* gerado.     |
+| `npm test`     | Executa a suíte de testes com o Vitest.       |
+
+## Estrutura Principal
+```
+src/
+├─ src/
+│  ├─ components/        # Componentes reutilizáveis (Layout, Modal, etc.)
+│  ├─ context/           # Contextos globais (AuthContext)
+│  ├─ hooks/             # Hooks customizados (tradução, preços)
+│  ├─ lang/              # Arquivos de tradução
+│  ├─ pages/             # Páginas principais da aplicação
+│  └─ utils/             # Utilidades compartilhadas (enums, helpers)
+├─ public/               # Recursos estáticos usados pelo Vite
+└─ test/                 # Testes automatizados
+```
+
+## Padrões e Boas Práticas
+- Utilize os utilitários presentes em `src/utils` para trabalhar com enums, autenticação (`authentication.js`), camada de API (`apiClient.js`), workflows de interface (`workflow.js`) e armazenamento de preferências.
+- Sempre execute `npm test` antes de abrir um pull request.
+- Novas traduções devem ser adicionadas em `src/lang/en.json` e `src/lang/pt.json`.
+
+
+
+## Depuração no VS Code
+Foi adicionado o arquivo `src/.vscode/launch.json` com configurações prontas para depuração local:
+
+- **ThinkBitcoin Front: Vite (dev)**: inicia o servidor de desenvolvimento via `npm run dev`.
+- **ThinkBitcoin Front: Abrir no Chrome**: abre o app em `http://localhost:5173` com suporte a *breakpoints* no código React.
+- **ThinkBitcoin Front: Testes (Vitest)**: executa os testes (`npm test`) com depuração no terminal integrado.
+
+> Dica: para essas configurações funcionarem sem ajustes, abra no VS Code a pasta `ThinkBitcoin-Front/src` (a que contém o `package.json`) e use a aba **Run and Debug** para selecionar uma configuração.
+
+## DevOps
+A estrutura `devops/` segue o padrão do backend e está organizada com as mesmas camadas:
+
+- `devops/deploy`: automação de deploy local e Kubernetes.
+  - `docker-compose.yml`
+  - `docker_deploy.ps1`
+  - `helm_deploy.ps1`
+- `devops/helm`: chart Helm (`thinkbitcoin-front`) para Kubernetes.
+- `devops/infra`: scripts operacionais.
+  - `create_secret.ps1`
+  - `cleanup_old_logs.ps1`
+
+Também foram adicionados workflows no GitHub Actions seguindo o fluxo padrão de validação, entrega contínua e release:
+
+- `.github/workflows/ci.yml`: valida integração contínua com `npm ci`, `npm test`, `npm run build` e `docker build` em `push` e `pull_request` para `main` e `develop`.
+- `.github/workflows/cd.yml`: publica a imagem Docker no GHCR em `push` para `main` (e também permite execução manual por `workflow_dispatch`).
+- `.github/workflows/release.yml`: em tags `v*.*.*` (ou manualmente), executa `npm ci`, `npm test`, `npm run build`, publica imagem Docker no GHCR com tags de release e cria a release no GitHub com notas automáticas.
+
+Para build/push de imagem, o pipeline oficial está no Azure DevOps em `devops/azure-pipelines-front-build-image.yml`, com gatilhos em PR e também em merge (`push`) para `desenv` e `prod`.
+
+Esse pipeline publica o artefato `front-meta` (artefato oficial do frontend).
+
+### Variáveis e segredos esperados
+- `vars.VITE_API_URL`: URL da API usada no build da imagem.
+- `secrets.GITHUB_TOKEN`: token padrão do GitHub Actions para publicar no GHCR.
+
+## Testes
+```bash
+cd src
+npm test
+```
+Os testes utilizam o Vitest e são executados em modo *headless*.
+
+## Contribuição
+As diretrizes oficiais de contribuição (setup local, estratégia de branches, convenções e fluxo de PR) estão em [`../CONTRIBUTING.md`](../CONTRIBUTING.md).

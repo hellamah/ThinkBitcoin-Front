@@ -12,12 +12,11 @@ import { useState } from 'react'
 import { Line } from 'react-chartjs-2'
 import Card from '@mui/material/Card'
 import CardActionArea from '@mui/material/CardActionArea'
-import CardContent from '@mui/material/CardContent'
-import profileImg from '../assets/profile-circuit.svg'
+import Box from '@mui/material/Box'
 import CryptoIcon from '../components/CryptoIcon'
 import Modal from '../components/Modal.jsx'
 import { MdTrendingUp, MdTrendingDown } from 'react-icons/md'
-import { API_URL } from '../api'
+import { apiRequest, MarketEndpoint } from '../utils/apiClient'
 import useCoinPrices from '../hooks/useCoinPrices'
 import useTranslation from '../hooks/useTranslation'
 
@@ -39,12 +38,13 @@ function Home() {
   const { t } = useTranslation()
   const [detalhes, setDetalhes] = useState(null)
   const fechar = () => setDetalhes(null)
-  const rotulos = moedas[0]
+  let rotulos = moedas[0]?.dados
     ? moedas[0].dados.map((_, i) => (i + 1).toString())
     : []
+  if (rotulos.length === 1) rotulos = ['1', '2']
 
   const formatarValor = (v) =>
-    v.toLocaleString('pt-BR', { style: 'currency', currency: 'USD' })
+    (v || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
 
   const opcoes = {
     responsive: true,
@@ -62,13 +62,9 @@ function Home() {
 
   const obterDetalhes = async (moeda) => {
     try {
-      const resp = await fetch(
-        `${API_URL}/ThinkBitcoin/moeda/${moeda.simbolo}/valor`
-      )
-      if (!resp.ok) throw new Error()
-      const json = await resp.json()
+      const json = await apiRequest(MarketEndpoint.COIN_VALUE(moeda.simbolo))
       const valor = json.resultado.valor
-      const data = new Date(json.resultado.dataHora).toLocaleString('pt-BR')
+      const data = new Date(json.resultado.dataHora).toLocaleString('en-US')
       setDetalhes({ moeda, valor, data })
     } catch {
       setDetalhes({ error: t('fetchError') })
@@ -76,55 +72,89 @@ function Home() {
   }
 
     return (
-      <>
-        <h1 className="page-title">{t('homeTitle')}</h1>
-        <div className="crypto-list">
-          {moedas.map((moeda) => {
-            const isUp =
-              moeda.dados[moeda.dados.length - 1] >=
-              moeda.dados[moeda.dados.length - 2]
+      <div className="home-content-wrapper">
+        <section className="hero-section">
+          <h1 className="hero-title">
+            Inteligência que <br />
+            <span style={{ color: 'var(--color-primary)', WebkitTextFillColor: 'var(--color-primary)' }}>Antecipa</span> o Mercado.
+          </h1>
+          <p className="hero-subtitle">
+            Onde o pensamento estratégico encontra a liquidez digital. 
+            Monitore a volatilidade com precisão algorítmica e insights em tempo real.
+          </p>
+        </section>
+
+        <div className="section-header" style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
+            <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 200, color: 'var(--color-text-secondary)' }}>ATIVOS EM DESTAQUE</h2>
+            <div style={{ flex: 1, height: '1px', background: 'linear-gradient(90deg, rgba(255,255,255,0.1), transparent)' }}></div>
+        </div>
+
+        <div className="crypto-grid-v2">
+          {moedas.map((moeda, idx) => {
+            const isUp = moeda.variacao >= 0
             return (
-              <Card key={moeda.simbolo} className="crypto-card">
-                <CardActionArea onClick={() => obterDetalhes(moeda)} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1 }}>
-                  <div className="crypto-main">
-                    <div className="icon">
-                      <CryptoIcon simbolo={moeda.simbolo} />
+              <Card 
+                key={moeda.simbolo} 
+                className={`crypto-card-premium stagger-${(idx % 8) + 1}`}
+                sx={{ background: 'transparent', boxShadow: 'none' }}
+              >
+                <CardActionArea 
+                    onClick={() => obterDetalhes(moeda)} 
+                    className="card-content-v2"
+                >
+                  <div className="card-header-v2">
+                    <div className="card-title-group">
+                        <span className="card-coin-name">{moeda.nome}</span>
+                        <span className="card-coin-symbol">{moeda.simbolo} / USD</span>
                     </div>
-                    <div className="crypto-info">
-                      <div className="crypto-name">{moeda.nome}</div>
-                      <div className={`crypto-price ${isUp ? 'positive' : 'negative'}`}>
-                        {formatarValor(moeda.valor)}
-                        {isUp ? (
-                          <MdTrendingUp className="trend-icon" />
-                        ) : (
-                          <MdTrendingDown className="trend-icon" />
-                        )}
-                      </div>
-                    </div>
+                    <Box sx={{ p: 1.5, background: 'rgba(255,255,255,0.03)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                        <CryptoIcon simbolo={moeda.simbolo} size={32} />
+                    </Box>
                   </div>
-                  <div className="chart-preview">
+
+                  <div className="card-middle-v2" style={{ height: '80px', margin: '8px 0' }}>
                     <Line
                       data={{
                         labels: rotulos,
                         datasets: [
                           {
-                            data: moeda.dados,
-                            borderColor: '#00BFFF',
+                            data: moeda.dados.length === 1 ? [moeda.dados[0], moeda.dados[0]] : moeda.dados,
+                            borderColor: isUp ? '#00ffaa' : '#ff4444',
                             backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            pointRadius: 0
                           },
                         ],
                       }}
                       options={opcoes}
                     />
                   </div>
+
+                  <div className="card-footer-v2" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                    <div className="card-price-large">
+                        {formatarValor(moeda.valor)}
+                    </div>
+                    <div className={`crypto-variation ${isUp ? 'positive' : 'negative'}`} style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '4px',
+                        padding: '4px 8px',
+                        background: isUp ? 'rgba(0, 255, 170, 0.1)' : 'rgba(255, 68, 68, 0.1)',
+                        borderRadius: '8px',
+                        fontSize: '0.9rem',
+                        fontWeight: 700
+                    }}>
+                      {isUp ? <MdTrendingUp /> : <MdTrendingDown />}
+                      {Math.abs(moeda.variacao).toFixed(2)}%
+                    </div>
+                  </div>
                 </CardActionArea>
               </Card>
             )
           })}
         </div>
-        <div className="brain-footer">
-          <img src={profileImg} alt="profile" />
-        </div>
+        
         <Modal visible={!!detalhes} onClose={fechar}>
           {detalhes?.error ? (
             <p>{detalhes.error}</p>
@@ -133,25 +163,33 @@ function Home() {
               <h2>{detalhes.moeda.nome}</h2>
               <p>{formatarValor(detalhes.valor)}</p>
               <p>{detalhes.data}</p>
-              <div className="chart-preview" style={{ width: '100%', height: '80px' }}>
+              <div className="chart-preview" style={{ width: '100%', height: '140px', marginTop: '20px' }}>
                 <Line
                   data={{
                     labels: rotulos,
                     datasets: [
                       {
-                        data: detalhes.moeda.dados,
-                        borderColor: '#00BFFF',
+                        data: detalhes.moeda.dados.length === 1 ? [detalhes.moeda.dados[0], detalhes.moeda.dados[0]] : detalhes.moeda.dados,
+                        borderColor: detalhes.moeda.variacao >= 0 ? '#00ffaa' : '#ff4444',
                         backgroundColor: 'transparent',
+                        borderWidth: 2,
+                        tension: 0.4
                       },
                     ],
                   }}
-                  options={opcoes}
+                  options={{
+                      ...opcoes,
+                      scales: {
+                          x: { display: true, grid: { display: false }, ticks: { color: '#666' } },
+                          y: { display: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#666' } }
+                      }
+                  }}
                 />
               </div>
             </>
           ) : null}
         </Modal>
-      </>
+      </div>
     )
 }
 

@@ -24,7 +24,8 @@ const ICONS = {
 }
 
 function CryptoIcon({ simbolo, size = 40 }) {
-  const src = ICONS[simbolo.toUpperCase()]
+  const safeSimbolo = String(simbolo || 'ATV').toUpperCase()
+  const src = ICONS[safeSimbolo]
   if (!src) {
     return (
       <svg

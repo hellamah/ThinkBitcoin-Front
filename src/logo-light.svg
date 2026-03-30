@@ -1,22 +1,32 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg"
-     width="300" height="80" viewBox="0 0 600 160" fill="none">
-
-  <style>
-    .brain-left  { stroke: #FFD700; stroke-width: 5; fill: none; }
-    .brain-right { stroke: #00BFFF; stroke-width: 5; fill: none; }
-    .symbol      { font-size: 52px; font-weight: bold; fill: #FFD700; font-family: Arial, sans-serif; }
-    .text-label  { font-size: 42px; font-weight: 700; fill: #000000; font-family: Inter, sans-serif; }
-  </style>
-
-  <g id="logo-icon" transform="translate(20,30)">
-    <path class="brain-left" d="M40,90 C20,90 20,60 40,60 C30,40 30,20 40,10" />
-    <path class="brain-right" d="M80,90 C100,90 100,60 80,60 C90,40 90,20 80,10" />
-    <text class="symbol" x="58" y="75">₿</text>
-  </g>
-
-  <g id="logo-text" transform="translate(140,85)">
-    <text class="text-label">ThinkBitcoin</text>
-  </g>
-
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="80" viewBox="0 0 300 80" fill="none">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@200;800&amp;display=swap');
+        .logo-text { font-family: 'Outfit', sans-serif; transition: all 0.3s ease; }
+    </style>
+    <defs>
+        <linearGradient id="gold-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#D4AF37" />
+            <stop offset="50%" stop-color="#F9E076" />
+            <stop offset="100%" stop-color="#8E6E2E" />
+        </linearGradient>
+    </defs>
+    
+    <!-- Robust Geometric Icon -->
+    <g transform="translate(15, 15)">
+        <!-- Outer Golden Circle -->
+        <circle cx="25" cy="25" r="23" stroke="url(#gold-grad)" stroke-width="2.5" />
+        
+        <!-- Clean B Symbol -->
+        <path d="M22 13V37M22 13C28 13 32 16 32 20C32 24 28 25 22 25C28 25 32 26 32 30C32 34 28 37 22 37M20 9V13M24 9V13M20 37V41M24 37V41" 
+              stroke="url(#gold-grad)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />
+        
+        <!-- Subtle connection dots (representing "Think") -->
+        <circle cx="25" cy="2" r="2" fill="url(#gold-grad)" />
+        <circle cx="25" cy="48" r="2" fill="url(#gold-grad)" />
+    </g>
+    
+    <!-- Approved Typography -->
+    <text x="80" y="52" class="logo-text" fill="white" font-size="34" letter-spacing="-1.2">
+        <tspan font-weight="200" opacity="0.8">Think</tspan><tspan font-weight="900">Bitcoin</tspan>
+    </text>
 </svg>

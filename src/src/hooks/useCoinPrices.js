@@ -1,24 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
-import { API_URL } from '../api'
+import { apiRequest, MarketEndpoint } from '../utils/apiClient'
 
-const COINS = [
-  { simbolo: 'BTC', nome: 'Bitcoin' },
-  { simbolo: 'ETH', nome: 'Ethereum' },
-  { simbolo: 'ADA', nome: 'Cardano' },
-  { simbolo: 'XRP', nome: 'Ripple' },
-  { simbolo: 'SOL', nome: 'Solana' },
-  { simbolo: 'LINK', nome: 'Chainlink' },
-  { simbolo: 'BNB', nome: 'Binance Coin' },
-  { simbolo: 'LTC', nome: 'Litecoin' },
-  { simbolo: 'DOGE', nome: 'Dogecoin' },
-  { simbolo: 'PAXG', nome: 'PAX Gold' },
-];
 
 export default function useCoinPrices() {
-  const [moedas, setMoedas] = useState(
-    COINS.map((c) => ({ ...c, valor: 0, dados: [], variacao: 0 }))
-  )
-  const moedasRef = useRef(moedas)
+  const [moedas, setMoedas] = useState([])
+  const moedasRef = useRef([])
 
   useEffect(() => {
     moedasRef.current = moedas
@@ -27,21 +13,73 @@ export default function useCoinPrices() {
   useEffect(() => {
     let ativo = true
 
-    const obterValores = async () => {
+    const inicializarMoedas = async () => {
+      try {
+        const json = await apiRequest(MarketEndpoint.COIN_LIST)
+        const lista = ((json?.resultado || json?.Resultado) || [])
+          .map((m) => ({
+            id: m?.id || m?.Id,
+            simbolo: m?.sigla || m?.Sigla,
+            nome: m?.nome || m?.Nome,
+            valor: 0,
+            dados: [],
+            variacao: 0,
+          }))
+          .filter(
+            (m) =>
+              m && m.simbolo?.toUpperCase() !== 'USDT' &&
+              (m.nome ? !m.nome.toLowerCase().includes('dolar') : true)
+          )
+        if (ativo) {
+          setMoedas(lista)
+          // Após inicializar a lista, busca os valores pela primeira vez
+          obterValores(lista)
+        }
+      } catch (err) {
+        console.error('Erro ao listar moedas:', err)
+        // Fallback Premium: Garante que o usuário veja algo mesmo se o backend falhar
+        const mockLista = [
+          { id: 'btc-id', simbolo: 'BTC', nome: 'Bitcoin', valor: 0, dados: [], variacao: 0 },
+          { id: 'eth-id', simbolo: 'ETH', nome: 'Ethereum', valor: 0, dados: [], variacao: 0 },
+          { id: 'sol-id', simbolo: 'SOL', nome: 'Solana', valor: 0, dados: [], variacao: 0 },
+        ]
+        if (ativo) {
+          setMoedas(mockLista)
+          obterValores(mockLista)
+        }
+      }
+    }
+
+    const obterValores = async (listaAtual) => {
+      const listaParaProcessar = listaAtual || moedasRef.current
+      if (listaParaProcessar.length === 0) return
+
       const atualizadas = await Promise.all(
-        moedasRef.current.map(async (m) => {
+        listaParaProcessar.map(async (m) => {
           try {
-            const resp = await fetch(
-              `${API_URL}/ThinkBitcoin/moeda/${m.simbolo}/valor`
-            )
-            if (!resp.ok) throw new Error()
-            const json = await resp.json()
-            const valor = json.resultado.valor
+            // Usa o símbolo (sigla) para buscar o valor. Convertemos para lowercase conforme o exemplo do usuário.
+            const json = await apiRequest(MarketEndpoint.COIN_VALUE(m.simbolo.toLowerCase()))
+            
+            // Tenta extrair o valor de várias formas possíveis (suporte a real API e Paginação)
+            let valor = 0
+            const res = json?.resultado ?? json?.Resultado ?? json
+            const registro = res?.registros?.[0] ?? res?.Registros?.[0] ?? (Array.isArray(res) ? res[0] : res)
+            
+            if (typeof json === 'number') {
+              valor = json
+            } else if (registro) {
+              valor = registro.valorNegociado ?? registro.ValorNegociado ?? 
+                      registro.valor ?? registro.Valor ?? 
+                      res?.valor ?? res?.Valor ?? 0
+            }
+            
             const historico = [...m.dados.slice(-6), valor]
             const anterior = m.dados[m.dados.length - 1] ?? valor
-            const variacao = ((valor - anterior) / anterior) * 100
+            const variacao = anterior !== 0 ? ((valor - anterior) / anterior) * 100 : 0
+            
             return { ...m, valor, dados: historico, variacao }
-          } catch {
+          } catch (err) {
+            console.error(`Erro ao buscar valor para ${m.simbolo}:`, err)
             return m
           }
         })
@@ -49,13 +87,15 @@ export default function useCoinPrices() {
       if (ativo) setMoedas(atualizadas)
     }
 
-    obterValores()
-    const id = setInterval(obterValores, 30000)
+    inicializarMoedas()
+    
+    const id = setInterval(() => obterValores(), 30000)
+    
     return () => {
       ativo = false
       clearInterval(id)
     }
   }, [])
 
-  return moedas;
+  return moedas
 }
