@@ -20,6 +20,8 @@ const resolveEnvUrl = () => {
     return undefined
   }
 }
+const envUrl = resolveEnvUrl()
+const isDev = import.meta.env?.DEV
 
 const runtimeUrl = typeof window !== 'undefined' ? window?._env_?.VITE_API_URL : undefined
 const useRuntime = runtimeUrl && !runtimeUrl.startsWith('${')

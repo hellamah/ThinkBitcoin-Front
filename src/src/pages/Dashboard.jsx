@@ -1,5 +1,7 @@
 import { useEffect, useState, useRef, useMemo } from 'react'
+import { format, subDays, subMonths } from 'date-fns'
 import { apiRequest, HttpMethod, MarketEndpoint } from '../utils/apiClient'
+import * as mathUtils from '../utils/mathUtils'
 import useCoinPrices from '../hooks/useCoinPrices'
 import { useAuth } from '../context/AuthContext'
 import useTranslation from '../hooks/useTranslation'
@@ -182,7 +184,14 @@ function Dashboard() {
 
       if (!sigla || sigla === 'Ativo') return
 
-      apiRequest(MarketEndpoint.COIN_VALUE(sigla.toLowerCase()), {
+      let url = MarketEndpoint.COIN_VALUE(sigla.toLowerCase())
+      const params = new URLSearchParams()
+      if (dataInicio) params.append('dataInicio', dataInicio)
+      if (dataFim) params.append('dataFim', dataFim)
+      if (intervalo) params.append('intervalo', intervalo)
+      if (params.toString()) url += `?${params.toString()}`
+
+      apiRequest(url, {
         headers: { Authorization: `Bearer ${token}` },
         signal,
       })
@@ -288,16 +297,31 @@ function Dashboard() {
   const { dadosGraficoPreco, dadosGraficoVariacao, multiMoeda } = useMemo(() => {
     const CORES_SIMPLE = ['#FFD700', '#2196f3', '#4caf50', '#e91e63', '#9c27b0', '#ff9800', '#00bcd4']
 
-    // 1. Timestamps comuns
+    // 1. Timestamps comuns (após filtros globais)
     const allTimestampsSet = new Set()
+    const dInicio = dataInicio ? new Date(dataInicio).getTime() : null
+    const dFim = dataFim ? new Date(`${dataFim}T23:59:59`).getTime() : null
+
     try {
       Object.values(historicosPorMoeda || {}).forEach(lista => {
         if (Array.isArray(lista)) {
           lista.forEach(r => {
-            if (r) {
-              const dh = r.dataHora ?? r.DataHora
-              if (dh) allTimestampsSet.add(dh)
+            if (!r) return
+            const dh = r.dataHora ?? r.DataHora
+            if (!dh) return
+
+            const time = new Date(dh).getTime()
+            if (dInicio && time < dInicio) return
+            if (dFim && time > dFim) return
+
+            // Filtro de resultado (Opcional: aplicado ao gráfico também para consistência)
+            if (resultadoFiltro && resultadoFiltro !== 'ALL') {
+              const v = r.variacaoPercentual ?? r.VariacaoPercentual ?? 0
+              if (resultadoFiltro === 'WIN' && v <= 0) return
+              if (resultadoFiltro === 'LOSS' && v >= 0) return
             }
+
+            allTimestampsSet.add(dh)
           })
         }
       })
@@ -316,15 +340,27 @@ function Dashboard() {
       const cor = CORES_SIMPLE[idx % CORES_SIMPLE.length]
       const priceMap = new Map()
       const historico = historicosPorMoeda[sigla] || []
+
       historico.forEach(r => {
         if (!r) return
         const val = r.valor ?? r.Valor ?? r.valorNegociado ?? r.ValorNegociado ?? 0
         const dh = r.dataHora ?? r.DataHora
         if (dh) priceMap.set(dh, val)
       })
+
+      let dataRaw = timestampsUnicos.map(ts => priceMap.get(ts) ?? null)
+
+      // Aplicar Normalização se multi-moeda
+      let dataFinal = dataRaw
+      if (multi) {
+        if (normalizacao === 'base100') dataFinal = mathUtils.normalizeToBase100(dataRaw)
+        else if (normalizacao === 'minmax') dataFinal = mathUtils.normalizeMinMax(dataRaw)
+        else if (normalizacao === 'zscore') dataFinal = mathUtils.normalizeZScore(dataRaw)
+      }
+
       return {
         label: sigla,
-        data: timestampsUnicos.map(ts => priceMap.get(ts) ?? null),
+        data: dataFinal,
         borderColor: cor,
         backgroundColor: `${cor}18`,
         tension: 0.3,
@@ -339,19 +375,14 @@ function Dashboard() {
       const cor = CORES_SIMPLE[idx % CORES_SIMPLE.length]
       const varMap = new Map()
       const hist = (historicosPorMoeda && sigla) ? (historicosPorMoeda[sigla] || []) : []
-      const dataInicioObj = new Date(dataInicio)
-      const dataFimObj = new Date(dataFim)
 
-      hist.filter(item => {
-        if (!item || !item.dataHora) return false
-        const itemDate = new Date(item.dataHora)
-        return itemDate >= dataInicioObj && itemDate <= dataFimObj
-      }).forEach(r => {
+      hist.forEach(r => {
         if (!r) return
         const val = r.variacaoPercentual ?? r.VariacaoPercentual ?? r.variacao ?? r.Variacao ?? 0
         const dh = r.dataHora ?? r.DataHora
         if (dh) varMap.set(dh, val * 100) // Converte para % decimal se necessário
       })
+
       return {
         label: sigla,
         data: timestampsUnicos.map(ts => varMap.get(ts) ?? null),
@@ -370,7 +401,7 @@ function Dashboard() {
       dadosGraficoVariacao: { labels, datasets: datasetsVariacao },
       multiMoeda: multi
     }
-  }, [historicosPorMoeda])
+  }, [historicosPorMoeda, dataInicio, dataFim, resultadoFiltro, normalizacao])
 
   const baseOpcoes = {
     responsive: true,
@@ -401,7 +432,13 @@ function Dashboard() {
       tooltip: {
         ...baseOpcoes.plugins.tooltip,
         callbacks: {
-          label: (ctx) => `${ctx.dataset.label}: $${Number(ctx.parsed.y).toLocaleString('en-US')}`
+          label: (ctx) => {
+            const val = Number(ctx.parsed.y)
+            if (multiMoeda && normalizacao === 'base100') return `${ctx.dataset.label}: ${val.toFixed(2)} (Base 100)`
+            if (multiMoeda && normalizacao === 'minmax') return `${ctx.dataset.label}: ${val.toFixed(4)} (Min-Max)`
+            if (multiMoeda && normalizacao === 'zscore') return `${ctx.dataset.label}: ${val.toFixed(4)} (Z-Score)`
+            return `${ctx.dataset.label}: $${val.toLocaleString('en-US')}`
+          }
         }
       }
     },
@@ -411,7 +448,10 @@ function Dashboard() {
         ...baseOpcoes.scales.y,
         ticks: {
           ...baseOpcoes.scales.y.ticks,
-          callback: (v) => `$${Number(v).toLocaleString('en-US')}`
+          callback: (v) => {
+            if (multiMoeda && normalizacao !== 'bruto') return v.toFixed(2)
+            return `$${Number(v).toLocaleString('en-US')}`
+          }
         }
       }
     }
@@ -460,6 +500,33 @@ function Dashboard() {
     const val = last?.variacaoPercentual ?? last?.VariacaoPercentual ?? last?.variacao ?? last?.Variacao ?? 0
     return `${(Number(val) * 100).toFixed(2)}%`
   }, [historicosPorMoeda, moedasFiltro])
+
+  const historicoFiltrado = useMemo(() => {
+    let registros = historicoMoeda?.registros || []
+
+    // Filtro de data
+    if (dataInicio || dataFim) {
+      const dInicio = dataInicio ? new Date(dataInicio).getTime() : null
+      const dFim = dataFim ? new Date(`${dataFim}T23:59:59`).getTime() : null
+
+      registros = registros.filter(r => {
+        const time = new Date(r.dataHora || r.DataHora).getTime()
+        if (dInicio && time < dInicio) return false
+        if (dFim && time > dFim) return false
+        return true
+      })
+    }
+
+    // Filtro de resultado
+    if (resultadoFiltro && resultadoFiltro !== 'ALL') {
+      registros = registros.filter(r => {
+        const v = r.variacaoPercentual ?? r.VariacaoPercentual ?? 0
+        return resultadoFiltro === 'WIN' ? v > 0 : v < 0
+      })
+    }
+
+    return registros
+  }, [historicoMoeda, dataInicio, dataFim, resultadoFiltro])
 
   // Top level error boundary for the component render
   if (!token) return <Box sx={{ p: 5 }}>Redirecting to login...</Box>
@@ -715,8 +782,26 @@ function Dashboard() {
                     key={opt}
                     className={`interval-btn-mini ${intervalo === opt ? 'active' : ''}`}
                     onClick={() => {
+                      const agora = new Date()
+                      let inicioDate
+                      
+                      if (opt === '24h') {
+                        inicioDate = subDays(agora, 1)
+                      } else if (opt === '7d') {
+                        inicioDate = subDays(agora, 7)
+                      } else if (opt === '1m') {
+                        inicioDate = subMonths(agora, 1)
+                      } else {
+                        inicioDate = agora
+                      }
+                      
+                      const formattedInicio = format(inicioDate, 'yyyy-MM-dd')
+                      const formattedFim = format(agora, 'yyyy-MM-dd')
+                      
+                      setDataInicio(formattedInicio)
+                      setDataFim(formattedFim)
                       setIntervalo(opt)
-                      setPagina(1) // Opcional: resetar página se mudar o intervalo? Geralmente sim.
+                      setPagina(1)
                     }}
                     style={{ flex: 1, padding: '0 8px', fontSize: '0.8rem' }}
                   >
@@ -798,21 +883,36 @@ function Dashboard() {
                   <TableRow>
                     <TableCell sx={{ color: '#aaa', fontWeight: 'bold' }}>{t('date')}</TableCell>
                     <TableCell sx={{ color: '#aaa', fontWeight: 'bold' }}>{t('value')}</TableCell>
+                    <TableCell sx={{ color: '#aaa', fontWeight: 'bold' }}>{t('variation')}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {(historicoMoeda?.registros || historicoMoeda?.Registros || []).map((item, idx) => {
-                    const dh = item?.dataHora ?? item?.DataHora
-                    const val = item?.valor ?? item?.Valor ?? item?.valorNegociado ?? item?.ValorNegociado ?? 0
-                    return (
-                      <TableRow key={idx}>
-                        <TableCell sx={{ color: '#eee' }}>{dh ? new Date(dh).toLocaleString('en-US') : '-'}</TableCell>
-                        <TableCell sx={{ color: '#eee' }}>
-                          {Number(val).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
+                  {historicoFiltrado.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={3} align="center" sx={{ color: '#666', py: 4 }}>
+                        {t('noRecordsFound') || 'Nenhum registro encontrado para os filtros selecionados'}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    historicoFiltrado.map((r, idx) => {
+                      const val = r.valor ?? r.Valor ?? r.valorNegociado ?? r.ValorNegociado ?? 0
+                      const dVar = r.variacaoPercentual ?? r.VariacaoPercentual ?? r.variacao ?? r.Variacao ?? 0
+                      const isUp = dVar >= 0
+                      return (
+                        <TableRow key={idx}>
+                          <TableCell sx={{ color: '#ccc' }}>
+                            {new Date(r.dataHora || r.DataHora).toLocaleString()}
+                          </TableCell>
+                          <TableCell sx={{ color: '#fff' }}>
+                            {val.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                          </TableCell>
+                          <TableCell sx={{ color: isUp ? '#4caf50' : '#f44336' }}>
+                            {isUp ? '+' : ''}{(dVar * 100).toFixed(2)}%
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })
+                  )}
                 </TableBody>
               </Table>
             </TableContainer>
