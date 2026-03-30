@@ -1,9 +1,9 @@
 param(
     [string]$ReleaseName = "thinkbitcoin-front",
     [string]$Namespace = "thinkbitcoin",
-    [string]$ChartPath = "../helm/thinkbitcoin-front",
-    [string]$ValuesFile = "../helm/thinkbitcoin-front/values.yaml",
-    [string]$ImageTagFile = "./image-tag",
+    [string]$ChartPath = "$PSScriptRoot/../helm/thinkbitcoin-front",
+    [string]$ValuesFile = "$PSScriptRoot/../helm/thinkbitcoin-front/values.yaml",
+    [string]$ImageTagFile = "$PSScriptRoot/image-tag",
     [ValidateSet("dev", "desenv", "prod")]
     [string]$Environment,
     [string]$ImageRepository,
@@ -130,5 +130,6 @@ if (-not [string]::IsNullOrWhiteSpace($resolvedEnvironment)) {
 
 Write-Log -Level INFO -Message "Executando Helm upgrade/install..."
 helm @helmArgs
+if ($LASTEXITCODE -ne 0) { throw "Execução do Helm falhou com código $LASTEXITCODE." }
 
 Write-Log -Level OK -Message "Deploy Helm concluído."
