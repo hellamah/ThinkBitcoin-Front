@@ -94,7 +94,7 @@ if ([string]::IsNullOrWhiteSpace($resolvedImageTag)) {
 }
 
 $helmArgs = [System.Collections.Generic.List[string]]::new()
-$helmArgs.AddRange(@(
+$helmArgs.AddRange([string[]]@(
     "upgrade",
     "--install",
     $ReleaseName,

@@ -36,7 +36,7 @@ steps:
         $sourceBranch = $env:BUILD_SOURCEBRANCH
 
         $effectiveBranch = if (-not [string]::IsNullOrWhiteSpace($prTargetBranch)) { $prTargetBranch } else { $sourceBranch }
-
+        
         if ($effectiveBranch -eq "refs/heads/Prod") {
           $repository = "$(imageRepositoryProd)"
           $environment = "prod"
