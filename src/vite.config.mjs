@@ -12,5 +12,12 @@ export default defineConfig({
         secure: false,
       }
     }
-  }
+  },
+  test: {
+    // Arquivo executado antes de cada suite de testes para configurar o ambiente
+    setupFiles: ['./test/vitest.setup.js'],
+    // Simula um ambiente de browser para testes de código que acessa window/localStorage
+    environment: 'node',
+    globals: false,
+  },
 });

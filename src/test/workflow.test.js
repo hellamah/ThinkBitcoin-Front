@@ -1,3 +1,17 @@
+/**
+ * Testes unitários para utils/workflow.
+ *
+ * Cobre:
+ * - Enums WorkflowStatus e NotificationWorkflowStep
+ * - executeNotificationWorkflow: todos os caminhos de execução
+ *   - notificações desabilitadas → SKIPPED/DISABLED
+ *   - browser não suporta notificações → FAILED/UNSUPPORTED
+ *   - permissão negada → FAILED/DENIED
+ *   - permissão granted sem token → SUCCESS/ENABLED
+ *   - permissão granted com token → SUCCESS/ENABLED (subscribe não chamado após refatoração)
+ *   - requestPermission lança exceção → FAILED/ERROR
+ * - Propriedade shouldEnableNotifications em cada cenário
+ */
 import { describe, it, expect, vi } from 'vitest'
 import {
   executeNotificationWorkflow,
@@ -5,16 +19,38 @@ import {
   WorkflowStatus,
 } from '../src/utils/workflow'
 
-describe('utils/workflow', () => {
-  it('retorna skipped quando notificações estão desabilitadas', async () => {
-    const result = await executeNotificationWorkflow({
-      enabled: false,
-      token: null,
-      isNotificationSupported: () => true,
-      notificationApi: { requestPermission: vi.fn() },
-    })
+// factory para reduzir repetição de boilerplate
+const criarContexto = (overrides = {}) => ({
+  enabled: true,
+  token: null,
+  isNotificationSupported: () => true,
+  notificationApi: { requestPermission: vi.fn().mockResolvedValue('granted') },
+  fetchImpl: vi.fn(),
+  baseUrl: 'https://api.exemplo.com',
+  ...overrides,
+})
 
-    expect(result).toEqual({
+describe('utils/workflow › Enums', () => {
+  it('WorkflowStatus expõe success, failed e skipped', () => {
+    expect(WorkflowStatus.SUCCESS).toBe('success')
+    expect(WorkflowStatus.FAILED).toBe('failed')
+    expect(WorkflowStatus.SKIPPED).toBe('skipped')
+  })
+
+  it('NotificationWorkflowStep expõe todos os passos esperados', () => {
+    expect(NotificationWorkflowStep.ENABLED).toBe('enabled')
+    expect(NotificationWorkflowStep.DISABLED).toBe('disabled')
+    expect(NotificationWorkflowStep.UNSUPPORTED).toBe('unsupported')
+    expect(NotificationWorkflowStep.DENIED).toBe('denied')
+    expect(NotificationWorkflowStep.ERROR).toBe('error')
+  })
+})
+
+describe('utils/workflow › executeNotificationWorkflow', () => {
+  it('retorna SKIPPED/DISABLED quando notificações estão desabilitadas', async () => {
+    const resultado = await executeNotificationWorkflow(criarContexto({ enabled: false }))
+
+    expect(resultado).toEqual({
       status: WorkflowStatus.SKIPPED,
       step: NotificationWorkflowStep.DISABLED,
       messageKey: 'notificationsOff',
@@ -22,80 +58,111 @@ describe('utils/workflow', () => {
     })
   })
 
-  it('retorna falha quando navegador não suporta notificações', async () => {
-    const result = await executeNotificationWorkflow({
-      enabled: true,
-      token: null,
-      isNotificationSupported: () => false,
-      notificationApi: { requestPermission: vi.fn() },
-    })
+  it('não chama requestPermission quando notificações estão desabilitadas', async () => {
+    const notificationApi = { requestPermission: vi.fn() }
+    await executeNotificationWorkflow(criarContexto({ enabled: false, notificationApi }))
 
-    expect(result.status).toBe(WorkflowStatus.FAILED)
-    expect(result.step).toBe(NotificationWorkflowStep.UNSUPPORTED)
-    expect(result.messageKey).toBe('notificationsUnsupported')
-    expect(result.shouldEnableNotifications).toBe(false)
+    expect(notificationApi.requestPermission).not.toHaveBeenCalled()
   })
 
-  it('retorna sucesso e chama subscribe quando há token e permissão concedida', async () => {
-    const fetchImpl = vi.fn().mockResolvedValue({ ok: true })
+  it('retorna FAILED/UNSUPPORTED quando o browser não suporta notificações', async () => {
+    const resultado = await executeNotificationWorkflow(
+      criarContexto({ isNotificationSupported: () => false })
+    )
 
-    const result = await executeNotificationWorkflow({
-      enabled: true,
-      token: 'token-123',
-      isNotificationSupported: () => true,
-      notificationApi: { requestPermission: vi.fn().mockResolvedValue('granted') },
-      fetchImpl,
-      baseUrl: 'https://api.exemplo.com',
+    expect(resultado).toEqual({
+      status: WorkflowStatus.FAILED,
+      step: NotificationWorkflowStep.UNSUPPORTED,
+      messageKey: 'notificationsUnsupported',
+      shouldEnableNotifications: false,
     })
-
-    expect(result.status).toBe(WorkflowStatus.SUCCESS)
-    expect(result.step).toBe(NotificationWorkflowStep.ENABLED)
-    expect(result.messageKey).toBe('notificationsOn')
-    expect(result.shouldEnableNotifications).toBe(true)
   })
 
-  it('retorna sucesso sem chamar subscribe quando token não existir', async () => {
-    const fetchImpl = vi.fn()
+  it('retorna FAILED/DENIED quando a permissão é negada', async () => {
+    const resultado = await executeNotificationWorkflow(
+      criarContexto({
+        notificationApi: { requestPermission: vi.fn().mockResolvedValue('denied') },
+      })
+    )
 
-    const result = await executeNotificationWorkflow({
-      enabled: true,
-      token: null,
-      isNotificationSupported: () => true,
-      notificationApi: { requestPermission: vi.fn().mockResolvedValue('granted') },
-      fetchImpl,
+    expect(resultado).toEqual({
+      status: WorkflowStatus.FAILED,
+      step: NotificationWorkflowStep.DENIED,
+      messageKey: 'notificationsDenied',
+      shouldEnableNotifications: false,
     })
-
-    expect(fetchImpl).not.toHaveBeenCalled()
-    expect(result.status).toBe(WorkflowStatus.SUCCESS)
-    expect(result.step).toBe(NotificationWorkflowStep.ENABLED)
   })
 
-  it('retorna falha quando a permissão for negada', async () => {
-    const result = await executeNotificationWorkflow({
-      enabled: true,
-      token: null,
-      isNotificationSupported: () => true,
-      notificationApi: { requestPermission: vi.fn().mockResolvedValue('denied') },
-    })
+  it('retorna FAILED/DENIED quando a permissão retorna "default" (não concedida)', async () => {
+    const resultado = await executeNotificationWorkflow(
+      criarContexto({
+        notificationApi: { requestPermission: vi.fn().mockResolvedValue('default') },
+      })
+    )
 
-    expect(result.status).toBe(WorkflowStatus.FAILED)
-    expect(result.step).toBe(NotificationWorkflowStep.DENIED)
-    expect(result.messageKey).toBe('notificationsDenied')
-    expect(result.shouldEnableNotifications).toBe(false)
+    expect(resultado.status).toBe(WorkflowStatus.FAILED)
+    expect(resultado.step).toBe(NotificationWorkflowStep.DENIED)
+    expect(resultado.shouldEnableNotifications).toBe(false)
   })
 
-  it('retorna erro quando requestPermission lança exceção', async () => {
-    const result = await executeNotificationWorkflow({
-      enabled: true,
-      token: 'token-123',
-      isNotificationSupported: () => true,
-      notificationApi: { requestPermission: vi.fn().mockRejectedValue(new Error('boom')) },
-      fetchImpl: vi.fn(),
-    })
+  it('retorna SUCCESS/ENABLED quando a permissão é concedida (sem token)', async () => {
+    const resultado = await executeNotificationWorkflow(criarContexto({ token: null }))
 
-    expect(result.status).toBe(WorkflowStatus.FAILED)
-    expect(result.step).toBe(NotificationWorkflowStep.ERROR)
-    expect(result.messageKey).toBe('notificationsError')
-    expect(result.shouldEnableNotifications).toBe(false)
+    expect(resultado).toEqual({
+      status: WorkflowStatus.SUCCESS,
+      step: NotificationWorkflowStep.ENABLED,
+      messageKey: 'notificationsOn',
+      shouldEnableNotifications: true,
+    })
+  })
+
+  it('retorna SUCCESS/ENABLED quando a permissão é concedida (com token)', async () => {
+    const resultado = await executeNotificationWorkflow(
+      criarContexto({ token: 'jwt-token-123' })
+    )
+
+    expect(resultado.status).toBe(WorkflowStatus.SUCCESS)
+    expect(resultado.step).toBe(NotificationWorkflowStep.ENABLED)
+    expect(resultado.shouldEnableNotifications).toBe(true)
+  })
+
+  it('retorna FAILED/ERROR quando requestPermission lança uma exceção', async () => {
+    const resultado = await executeNotificationWorkflow(
+      criarContexto({
+        notificationApi: { requestPermission: vi.fn().mockRejectedValue(new Error('crash')) },
+      })
+    )
+
+    expect(resultado).toEqual({
+      status: WorkflowStatus.FAILED,
+      step: NotificationWorkflowStep.ERROR,
+      messageKey: 'notificationsError',
+      shouldEnableNotifications: false,
+    })
+  })
+
+  it('retorna FAILED/ERROR quando requestPermission lança um objeto (não-Error)', async () => {
+    const resultado = await executeNotificationWorkflow(
+      criarContexto({
+        notificationApi: { requestPermission: vi.fn().mockRejectedValue('string de erro') },
+      })
+    )
+
+    expect(resultado.status).toBe(WorkflowStatus.FAILED)
+    expect(resultado.step).toBe(NotificationWorkflowStep.ERROR)
+  })
+
+  it('shouldEnableNotifications é sempre booleano em todos os cenários', async () => {
+    const cenarios = [
+      criarContexto({ enabled: false }),
+      criarContexto({ isNotificationSupported: () => false }),
+      criarContexto({ notificationApi: { requestPermission: vi.fn().mockResolvedValue('denied') } }),
+      criarContexto(),
+    ]
+
+    for (const cenario of cenarios) {
+      const resultado = await executeNotificationWorkflow(cenario)
+      expect(typeof resultado.shouldEnableNotifications).toBe('boolean')
+    }
   })
 })

@@ -6,6 +6,7 @@ metadata:
     {{- include "thinkbitcoin-front.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
   selector:
     matchLabels:
       {{- include "thinkbitcoin-front.selectorLabels" . | nindent 6 }}
