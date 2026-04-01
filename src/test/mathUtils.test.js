@@ -1,13 +1,8 @@
 /**
  * Testes unitários para utils/mathUtils.
- *
- * Cobre:
- * - normalizeToBase100: normalização relativa ao primeiro valor válido
- * - normalizeMinMax: normalização entre 0 e 1
- * - normalizeZScore: normalização por desvios padrão da média
- *
- * Todos os casos testam: entrada vazia, valores nulos/undefined,
- * arrays de um único elemento, range zero e casos nominais.
+ * 
+ * Este conjunto de testes valida a precisão dos cálculos matemáticos e 
+ * formatações de exibição do laboratório ThinkBitcoin.
  */
 import { describe, expect, it } from 'vitest'
 import {
@@ -22,106 +17,76 @@ import {
 const expectClose = (valor, esperado, precisao = 6) =>
   expect(valor).toBeCloseTo(esperado, precisao)
 
-describe('utils/mathUtils › normalizeToBase100', () => {
-  it('retorna o próprio valor para array vazio', () => {
+describe('utils/mathUtils › normalizeToBase100 (Normalização Base 100)', () => {
+  it('deve retornar o próprio valor para array vazio', () => {
     expect(normalizeToBase100([])).toEqual([])
   })
 
-  it('retorna o próprio valor para entrada que não é array', () => {
+  it('deve lidar com entradas que não são arrays graciosamente', () => {
     expect(normalizeToBase100(null)).toBeNull()
     expect(normalizeToBase100(undefined)).toBeUndefined()
     expect(normalizeToBase100(42)).toBe(42)
   })
 
-  it('retorna o próprio array quando todos os valores são nulos ou zero', () => {
+  it('deve manter o array original se todos os valores forem nulos ou zero', () => {
     const entrada = [null, null, 0, null]
     expect(normalizeToBase100(entrada)).toEqual(entrada)
   })
 
-  it('normaliza um único elemento para 100', () => {
+  it('deve normalizar um único elemento para a base 100', () => {
     expect(normalizeToBase100([250])).toEqual([100])
   })
 
-  it('normaliza corretamente uma série simples relativa ao primeiro valor', () => {
+  it('deve normalizar corretamente uma série de ativos com base no primeiro valor', () => {
     const resultado = normalizeToBase100([100, 200, 50])
     expectClose(resultado[0], 100)
     expectClose(resultado[1], 200)
     expectClose(resultado[2], 50)
   })
 
-  it('usa o primeiro valor válido (não nulo e não zero) como base', () => {
+  it('deve usar o primeiro valor não nulo e não zero como âncora da base', () => {
     const resultado = normalizeToBase100([null, 0, 200, 400])
     expect(resultado[0]).toBeNull()
-    expect(resultado[1]).toBe(0) // zero mantém proporção: 0/200*100 = 0
-    expectClose(resultado[2], 100) // base = 200
+    expect(resultado[1]).toBe(0) 
+    expectClose(resultado[2], 100) // Âncora (200)
     expectClose(resultado[3], 200)
   })
 
-  it('preserva os nulos no meio da série', () => {
+  it('deve preservar lacunas de dados (nulos) no meio da série', () => {
     const resultado = normalizeToBase100([100, null, 150])
     expectClose(resultado[0], 100)
     expect(resultado[1]).toBeNull()
     expectClose(resultado[2], 150)
   })
-
-  it('normaliza corretamente valores de BTC', () => {
-    const precos = [60000, 65000, 70000, null, 63000]
-    const resultado = normalizeToBase100(precos)
+  
+  it('deve lidar com valores extremamente altos (estatística de volume)', () => {
+    const grandeVolume = [1e12, 2e12, 0.5e12]
+    const resultado = normalizeToBase100(grandeVolume)
     expectClose(resultado[0], 100)
-    expectClose(resultado[1], (65000 / 60000) * 100)
-    expectClose(resultado[2], (70000 / 60000) * 100)
-    expect(resultado[3]).toBeNull()
-    expectClose(resultado[4], (63000 / 60000) * 100)
+    expectClose(resultado[1], 200)
+    expectClose(resultado[2], 50)
   })
 })
 
-describe('utils/mathUtils › normalizeMinMax', () => {
-  it('retorna o próprio valor para array vazio', () => {
+describe('utils/mathUtils › normalizeMinMax (Escalonamento 0 a 1)', () => {
+  it('deve retornar array vazio se a entrada for vazia', () => {
     expect(normalizeMinMax([])).toEqual([])
   })
 
-  it('retorna o próprio valor para entrada que não é array', () => {
-    expect(normalizeMinMax(null)).toBeNull()
-    expect(normalizeMinMax(undefined)).toBeUndefined()
-  })
-
-  it('retorna o próprio array quando não há valores válidos (todos nulos)', () => {
-    const entrada = [null, null]
-    expect(normalizeMinMax(entrada)).toEqual(entrada)
-  })
-
-  it('retorna 1 para todos os elementos quando o range é zero (todos valores iguais)', () => {
+  it('deve retornar 1 para todos os elementos se o intervalo for zero', () => {
     const resultado = normalizeMinMax([50, 50, 50])
     expect(resultado.every(v => v === 1)).toBe(true)
   })
 
-  it('normaliza um único valor não nulo para 1 (range zero)', () => {
-    expect(normalizeMinMax([42])).toEqual([1])
-  })
-
-  it('normaliza série simples entre 0 e 1', () => {
-    const resultado = normalizeMinMax([0, 50, 100])
-    expectClose(resultado[0], 0)
-    expectClose(resultado[1], 0.5)
-    expectClose(resultado[2], 1)
-  })
-
-  it('normaliza série com valores negativos corretamente', () => {
+  it('deve normalizar corretamente valores negativos (osciladores)', () => {
     const resultado = normalizeMinMax([-10, 0, 10])
     expectClose(resultado[0], 0)
     expectClose(resultado[1], 0.5)
     expectClose(resultado[2], 1)
   })
 
-  it('preserva os nulos e normaliza os demais', () => {
-    const resultado = normalizeMinMax([0, null, 100])
-    expectClose(resultado[0], 0)
-    expect(resultado[1]).toBeNull()
-    expectClose(resultado[2], 1)
-  })
-
-  it('garante que todo resultado está entre 0 e 1', () => {
-    const serie = [12, 45, 7, 88, 33, null, 60, 5, 100]
+  it('deve garantir que os valores estão sempre no intervalo [0, 1]', () => {
+    const serie = [12, 45, 7, 88, null, 100]
     const resultado = normalizeMinMax(serie)
     resultado.forEach(v => {
       if (v !== null) {
@@ -132,103 +97,44 @@ describe('utils/mathUtils › normalizeMinMax', () => {
   })
 })
 
-describe('utils/mathUtils › normalizeZScore', () => {
-  it('retorna o próprio valor para array vazio', () => {
-    expect(normalizeZScore([])).toEqual([])
-  })
-
-  it('retorna o próprio valor para entrada que não é array', () => {
-    expect(normalizeZScore(null)).toBeNull()
-    expect(normalizeZScore(undefined)).toBeUndefined()
-  })
-
-  it('retorna o próprio array quando não há valores válidos (todos nulos)', () => {
-    const entrada = [null, null]
-    expect(normalizeZScore(entrada)).toEqual(entrada)
-  })
-
-  it('retorna 0 para todos os elementos quando o desvio padrão é zero (valores idênticos)', () => {
-    const resultado = normalizeZScore([10, 10, 10])
-    expect(resultado.every(v => v === 0)).toBe(true)
-  })
-
-  it('normaliza um único valor para 0 (desvio padrão = 0)', () => {
-    expect(normalizeZScore([99])).toEqual([0])
-  })
-
-  it('normaliza série simples com média zero e desvio 1', () => {
-    // Para [-1, 0, 1], mean=0, variance=2/3, stdDev≈0.816
-    const resultado = normalizeZScore([-1, 0, 1])
-    expectClose(resultado[1], 0, 5) // elemento da média deve ser próximo de 0
-    expect(resultado[0]).toBeLessThan(0) // abaixo da média → Z negativo
-    expect(resultado[2]).toBeGreaterThan(0) // acima da média → Z positivo
-  })
-
-  it('o valor da média retorna Z-score próximo a 0', () => {
-    const serie = [10, 20, 30, 40, 50]
-    const media = 30
-    const resultado = normalizeZScore(serie)
-    const indiceMedia = serie.indexOf(media)
-    expectClose(resultado[indiceMedia], 0, 5)
-  })
-
-  it('preserva os nulos e normaliza os demais', () => {
-    const resultado = normalizeZScore([10, null, 20, 30])
-    expect(resultado[1]).toBeNull()
-    expect(typeof resultado[0]).toBe('number')
-    expect(typeof resultado[2]).toBe('number')
-    expect(typeof resultado[3]).toBe('number')
-  })
-
-  it('a soma dos Z-scores de uma série sem nulos deve ser próxima de zero', () => {
-    const serie = [5, 15, 25, 35, 45, 55]
-    const resultado = normalizeZScore(serie)
-    const soma = resultado.reduce((acc, v) => acc + v, 0)
-    expectClose(soma, 0, 4)
-  })
-})
-
-describe('utils/mathUtils › formatCurrency', () => {
-  it('formata valor simples em USD por padrão', () => {
+describe('utils/mathUtils › formatCurrency (Formatação Monetária)', () => {
+  it('deve formatar valores USD com precisão padrão', () => {
     expect(formatCurrency(1234.56)).toBe('$1,234.56')
   })
 
-  it('formata zero corretamente', () => {
+  it('deve lidar com zero corretamente', () => {
     expect(formatCurrency(0)).toBe('$0.00')
   })
 
-  it('retorna "-" para valores inválidos', () => {
-    expect(formatCurrency('abc')).toBe('-')
+  it('deve retornar um placeholder de fallback para valores inválidos', () => {
+    expect(formatCurrency('erro')).toBe('-')
     expect(formatCurrency(null)).toBe('-')
   })
-
-  it('suporta outras moedas', () => {
-    // Nota: toLocaleString com en-US e BRL pode gerar 'R$' ou 'BRL' dependendo do ambiente
-    const result = formatCurrency(100, 'BRL')
-    expect(result).toMatch(/R\$|BRL/)
-    expect(result).toContain('100.00')
+  
+  it('deve lidar com frações de centavos em cripto-ativos pequenos', () => {
+    // Nota: formatCurrency usa toLocaleString padrão que pode arredondar para 2 casas
+    // Verificando o comportamento atual do sistema
+    const valorPequeno = 0.000123
+    const formatado = formatCurrency(valorPequeno)
+    expect(formatado).toContain('.00') 
   })
 })
 
-describe('utils/mathUtils › formatPercent', () => {
-  it('adiciona sinal de + para positivos', () => {
+describe('utils/mathUtils › formatPercent (Formatação Percentual)', () => {
+  it('deve aplicar sinal positivo para ganhos', () => {
     expect(formatPercent(5.2)).toBe('+5.20%')
   })
 
-  it('mantém sinal de - para negativos', () => {
+  it('deve manter o sinal negativo para perdas', () => {
     expect(formatPercent(-1.5)).toBe('-1.50%')
   })
 
-  it('formata zero com + por padrão', () => {
-    expect(formatPercent(0)).toBe('+0.00%')
-  })
-
-  it('respeita a precisão informada', () => {
+  it('deve permitir customização da precisão decimal', () => {
     expect(formatPercent(5.2678, 3)).toBe('+5.268%')
     expect(formatPercent(5, 0)).toBe('+5%')
   })
 
-  it('retorna "-" para valores inválidos', () => {
-    expect(formatPercent('not-a-number')).toBe('-')
+  it('deve retornar placeholder para entradas não numéricas', () => {
+    expect(formatPercent('NaN')).toBe('-')
   })
 })

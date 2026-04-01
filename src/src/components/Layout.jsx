@@ -10,10 +10,21 @@ import logoLight from '../../logo-light.svg'
 import '../App.css'
 import { useAuth } from '../context/AuthContext'
 import useTranslation from '../hooks/useTranslation'
+import { useRef } from 'react'
 function Layout({ children }) {
   const { token, user, logout } = useAuth()
   const { t } = useTranslation()
   const location = useLocation()
+  const containerRef = useRef(null)
+  
+  const handleMouseMove = (e) => {
+    if (!containerRef.current) return
+    const { left, top } = containerRef.current.getBoundingClientRect()
+    const x = e.clientX - left
+    const y = e.clientY - top
+    containerRef.current.style.setProperty('--mouse-x', `${x}px`)
+    containerRef.current.style.setProperty('--mouse-y', `${y}px`)
+  }
   const semNav = false /* Padronizado para manter Header/Footer em todas as telas */
 
   const linkClass = ({ isActive }) => `nav-item${isActive ? ' active' : ''}`
@@ -103,7 +114,20 @@ function Layout({ children }) {
   )
 
   return (
-    <div className={`portfolio-screen${semNav ? ' no-nav' : ''}`}>
+    <div 
+      className={`portfolio-screen${semNav ? ' no-nav' : ''}`}
+      ref={containerRef}
+      onMouseMove={handleMouseMove}
+    >
+      <div className="liquid-mesh-container">
+        <div className="blob blob-1"></div>
+        <div className="blob blob-2"></div>
+        <div className="blob blob-3"></div>
+        <div className="mouse-spotlight"></div>
+      </div>
+      <div className="ambient-glow-aura"></div>
+      <div className="grain-overlay-main"></div>
+
       <AppBar position="fixed" className="app-header-floating" sx={{ width: '100%', left: 0 }}>
         <Container maxWidth="xl">
           <Toolbar className="header-toolbar" disableGutters>
@@ -158,11 +182,10 @@ function Layout({ children }) {
           </Toolbar>
         </Container>
       </AppBar>
-      <Box component="main" sx={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', width: '100%' }}>
-          <Container maxWidth="xl" sx={{ flex: 1, display: 'flex', flexDirection: 'column', py: 0 }}>
-            {children}
-          </Container>
-      </Box>
+      
+      <main className="main-content-premium" key={location.pathname}>
+        {children}
+      </main>
       <nav className="bottom-nav">{links}</nav>
       <footer className="app-footer">
         <p>{t('copyRight')}</p>

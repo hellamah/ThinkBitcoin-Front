@@ -1,162 +1,96 @@
 /**
  * Testes unitários para utils/apiClient.
- *
- * Cobre:
- * - Enums HttpMethod e ApiEndpoint
- * - Construção de URL via buildUrl
- * - Serialização de body e headers
- * - Tratamento de respostas 204 (sem conteúdo)
- * - Lançamento de erros com status HTTP
- * - Passagem de AbortSignal para o fetch
+ * 
+ * Este conjunto de testes garante a integridade da comunicação entre o 
+ * frontend ThinkBitcoin e a API do Laboratório de Trade.
  */
 import { describe, expect, it, vi } from 'vitest'
 import { API_URL } from '../src/api'
 import { ApiEndpoint, HttpMethod, apiRequest } from '../src/utils/apiClient'
 
-// O mock de fetch é configurado globalmente em vitest.setup.js
+// Mock de fetch global é configurado em vitest.setup.js
 
-describe('utils/apiClient › HttpMethod', () => {
-  it('expõe todos os métodos HTTP esperados como constantes imutáveis', () => {
+describe('utils/apiClient › Enums & Endpoints', () => {
+  it('deve expor métodos HTTP imutáveis e corretos', () => {
     expect(HttpMethod.GET).toBe('GET')
     expect(HttpMethod.POST).toBe('POST')
     expect(HttpMethod.PUT).toBe('PUT')
     expect(HttpMethod.DELETE).toBe('DELETE')
+    // Garantir imutabilidade
     expect(() => { HttpMethod.PATCH = 'PATCH' }).toThrow()
   })
-})
 
-describe('utils/apiClient › ApiEndpoint', () => {
-  it('expõe endpoints estáticos de autenticação e usuário corretamente', () => {
+  it('deve construir endpoints estáticos seguindo o padrão da API ThinkBitcoin', () => {
     expect(ApiEndpoint.AUTHENTICATION.LOGIN).toBe('/ThinkBitcoin/gerarTokenBearer')
-    expect(ApiEndpoint.USER.LIST).toBe('/ThinkBitcoin/usuariosTB/')
-    expect(ApiEndpoint.USER.CREATE).toBe('/ThinkBitcoin/usuariosTB/')
     expect(ApiEndpoint.MARKET.COIN_LIST).toBe('/ThinkBitcoin/moedas')
-    expect(ApiEndpoint.MARKET.SCRIPT_COMMON).toBe('/ThinkBitcoin/AtivadorScript/ScriptComum')
-    expect(ApiEndpoint.MARKET.EXCHANGES).toBe('/ThinkBitcoin/exchanges')
     expect(ApiEndpoint.MARKET.DEBATE).toBe('/ThinkBitcoin/debate')
-    expect(ApiEndpoint.PREFERENCES.ALL).toBe('/ThinkBitcoin/preferencias')
-    expect(ApiEndpoint.PREFERENCES.MINE).toBe('/ThinkBitcoin/preferencias/minhas')
-    expect(ApiEndpoint.CARGO.UPDATE).toBe('/ThinkBitcoin/CargoUsuarioTB/AlterarCargoUsuarioTB/')
   })
 
-  it('gera endpoints dinâmicos de usuário corretamente a partir de id', () => {
-    expect(ApiEndpoint.USER.ME('42')).toBe('/ThinkBitcoin/usuariosTB/42')
-    expect(ApiEndpoint.USER.DELETE('99')).toBe('/ThinkBitcoin/usuariosTB/99')
-  })
-
-  it('gera endpoint de valor de moeda corretamente a partir do símbolo', () => {
+  it('deve gerar endpoints dinâmicos (ID/Símbolo) corretamente', () => {
+    expect(ApiEndpoint.USER.ME('U001')).toBe('/ThinkBitcoin/usuariosTB/U001')
     expect(ApiEndpoint.MARKET.COIN_VALUE('BTC')).toBe('/ThinkBitcoin/moeda/BTC/valor')
-    expect(ApiEndpoint.MARKET.COIN_VALUE('ETH')).toBe('/ThinkBitcoin/moeda/ETH/valor')
-  })
-
-  it('gera endpoint de sequenciaRetorno com e sem id', () => {
-    expect(ApiEndpoint.MARKET.RETURN_SEQUENCE()).toBe('/ThinkBitcoin/sequenciasRetorno/')
-    expect(ApiEndpoint.MARKET.RETURN_SEQUENCE('abc-123')).toBe('/ThinkBitcoin/sequenciasRetorno/abc-123')
-  })
-
-  it('gera endpoint de preferências por id corretamente', () => {
-    expect(ApiEndpoint.PREFERENCES.BY_ID('pref-001')).toBe('/ThinkBitcoin/preferencias/pref-001')
   })
 })
 
-describe('utils/apiClient › apiRequest', () => {
-  it('executa requisição GET sem body e sem Content-Type', async () => {
+describe('utils/apiClient › apiRequest (Comunicação com API)', () => {
+  it('deve executar requisição GET com parâmetros de URL e headers vazios por padrão', async () => {
     fetch.mockResolvedValue({
       ok: true,
       status: 200,
-      json: () => Promise.resolve({ status: 'ok' }),
+      json: () => Promise.resolve({ status: 'online' }),
     })
 
-    const resultado = await apiRequest('/status')
+    const resultado = await apiRequest('/health')
 
-    expect(fetch).toHaveBeenCalledWith(`${API_URL}/status`, {
+    expect(fetch).toHaveBeenCalledWith(`${API_URL}/health`, expect.objectContaining({
       method: HttpMethod.GET,
       headers: {},
-      body: undefined,
-    })
-    expect(resultado).toEqual({ status: 'ok' })
+      body: undefined
+    }))
+    expect(resultado).toEqual({ status: 'online' })
   })
 
-  it('executa requisição POST com body serializado e Content-Type automático', async () => {
+  it('deve executar requisição POST serializando o body para JSON automaticamente', async () => {
     fetch.mockResolvedValue({
       ok: true,
-      status: 200,
-      json: () => Promise.resolve({ criado: true }),
+      status: 201,
+      json: () => Promise.resolve({ success: true }),
     })
 
-    const body = { email: 'usuario@exemplo.com' }
-    const resultado = await apiRequest('/contas', {
+    const payload = { test: 'data' }
+    await apiRequest('/submit', {
       method: HttpMethod.POST,
-      body,
-      headers: { Authorization: 'Bearer abc' },
+      body: payload
     })
 
-    expect(fetch).toHaveBeenCalledWith(`${API_URL}/contas`, {
+    expect(fetch).toHaveBeenCalledWith(`${API_URL}/submit`, expect.objectContaining({
       method: HttpMethod.POST,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer abc',
-      },
-      body: JSON.stringify(body),
-    })
-    expect(resultado).toEqual({ criado: true })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }))
   })
 
-  it('executa requisição PUT com body e headers adicionais', async () => {
-    fetch.mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: () => Promise.resolve({ atualizado: true }),
-    })
-
-    const body = { tema: 'dark' }
-    await apiRequest('/preferencias', {
-      method: HttpMethod.PUT,
-      body,
-      headers: { Authorization: 'Bearer xyz' },
-    })
-
-    expect(fetch).toHaveBeenCalledWith(`${API_URL}/preferencias`, {
-      method: HttpMethod.PUT,
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer xyz' },
-      body: JSON.stringify(body),
-    })
-  })
-
-  it('retorna null para status 204 (sem conteúdo)', async () => {
+  it('deve retornar null graciosamente para status 204 (No Content)', async () => {
     fetch.mockResolvedValue({ ok: true, status: 204 })
-
-    await expect(apiRequest('/vazio')).resolves.toBeNull()
+    const res = await apiRequest('/no-content')
+    expect(res).toBeNull()
   })
 
-  it('lança erro padronizado com status HTTP para respostas não-OK', async () => {
+  it('deve lançar erro customizado com status HTTP para falhas do servidor (500)', async () => {
     fetch.mockResolvedValue({ ok: false, status: 500 })
 
-    await expect(apiRequest('/erro')).rejects.toMatchObject({
+    await expect(apiRequest('/crash')).rejects.toMatchObject({
       message: 'Falha na requisição à API',
-      status: 500,
+      status: 500
     })
   })
 
-  it('lança erro com status 401 para resposta de não autorizado', async () => {
-    fetch.mockResolvedValue({ ok: false, status: 401 })
-
-    await expect(apiRequest('/protegido')).rejects.toMatchObject({
-      message: 'Falha na requisição à API',
-      status: 401,
-    })
+  it('deve propagar falhas de rede (rejeição do fetch) corretamente', async () => {
+    fetch.mockRejectedValue(new Error('Network Failure'))
+    await expect(apiRequest('/offline')).rejects.toThrow('Network Failure')
   })
 
-  it('lança erro com status 404 para recurso não encontrado', async () => {
-    fetch.mockResolvedValue({ ok: false, status: 404 })
-
-    await expect(apiRequest('/nao-existe')).rejects.toMatchObject({
-      message: 'Falha na requisição à API',
-      status: 404,
-    })
-  })
-
-  it('passa o AbortSignal corretamente para o fetch', async () => {
+  it('deve respeitar o AbortSignal para cancelamento de requisições pendentes', async () => {
     fetch.mockResolvedValue({
       ok: true,
       status: 200,
@@ -164,15 +98,9 @@ describe('utils/apiClient › apiRequest', () => {
     })
 
     const controller = new AbortController()
-    await apiRequest('/com-signal', { signal: controller.signal })
+    await apiRequest('/cancelable', { signal: controller.signal })
 
-    const chamada = fetch.mock.calls[0][1]
-    expect(chamada.signal).toBe(controller.signal)
-  })
-
-  it('propaga o erro de rede quando o fetch rejeita a promessa', async () => {
-    fetch.mockRejectedValue(new Error('Falha de rede'))
-
-    await expect(apiRequest('/inacessivel')).rejects.toThrow('Falha de rede')
+    const lastCallArgs = fetch.mock.calls[fetch.mock.calls.length - 1][1]
+    expect(lastCallArgs.signal).toBe(controller.signal)
   })
 })

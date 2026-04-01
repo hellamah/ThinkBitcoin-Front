@@ -26,6 +26,7 @@ a {
   color: var(--color-primary);
   text-decoration: inherit;
 }
+
 a:hover {
   color: #e0b800;
 }
@@ -40,7 +41,6 @@ body {
 #root {
   width: 100%;
   display: flex;
-  justify-content: center;
 }
 
 h1 {
@@ -67,13 +67,16 @@ button {
   cursor: pointer;
   transition: border-color 0.25s, background-color 0.25s;
 }
+
 button:hover {
   border-color: var(--color-primary);
 }
+
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
+
 button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
