@@ -56,8 +56,8 @@ describe('utils/mockApi › getMockResponse', () => {
         resultado: {
           registros: [
             {
-              valor: expect.any(Number),
-              dataHora: expect.any(String),
+              precoFechamento: expect.any(Number),
+              horaReferencia: expect.any(String),
             },
           ],
         },
@@ -70,7 +70,7 @@ describe('utils/mockApi › getMockResponse', () => {
         method: 'GET',
       })
 
-      expect(resp?.resultado?.registros?.[0]?.valor).toBeCloseTo(3500, -2)
+      expect(resp?.resultado?.registros?.[0]?.precoFechamento).toBeCloseTo(3500, -2)
     })
 
     it('retorna dados de valor para endpoint de DOGE (valor fracionário)', () => {
@@ -79,7 +79,7 @@ describe('utils/mockApi › getMockResponse', () => {
         method: 'GET',
       })
 
-      expect(resp?.resultado?.registros?.[0]?.valor).toBeLessThan(1)
+      expect(resp?.resultado?.registros?.[0]?.precoFechamento).toBeLessThan(1)
     })
 
     it('retorna valor numérico para símbolo desconhecido (fallback de 100)', () => {
@@ -88,7 +88,7 @@ describe('utils/mockApi › getMockResponse', () => {
         method: 'GET',
       })
 
-      expect(resp?.resultado?.registros?.[0]?.valor).toBeCloseTo(100, -1)
+      expect(resp?.resultado?.registros?.[0]?.precoFechamento).toBeCloseTo(100, -1)
     })
 
     it('aceita query string na URL do endpoint de moeda', () => {

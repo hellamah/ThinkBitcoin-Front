@@ -164,7 +164,7 @@ function Dashboard() {
     setDados(MOCK_DADOS)
 
     // 2. Busca histórico inteligente: Cache por intervalo + Streaming
-    const currentFilterKey = `${intervalo}-${dataInicio}-${dataFim}`
+    const currentFilterKey = `${intervalo}-${dataInicio}-${dataFim}-${pagina}-${quantidade}`
     const isSameFilter = filterSummaryRef.current === currentFilterKey
     filterSummaryRef.current = currentFilterKey
 
@@ -189,6 +189,9 @@ function Dashboard() {
       if (dataInicio) params.append('dataInicio', dataInicio)
       if (dataFim) params.append('dataFim', dataFim)
       if (intervalo) params.append('intervalo', intervalo)
+      if (pagina) params.append('pagina', pagina)
+      if (quantidade) params.append('quantidade', quantidade)
+      params.append('ordemAsc', 'false')
       if (params.toString()) url += `?${params.toString()}`
 
       apiRequest(url, {
@@ -199,8 +202,10 @@ function Dashboard() {
           if (signal?.aborted) return
           const res = json?.resultado ?? json?.Resultado ?? json
           const registros = res?.registros ?? res?.Registros ?? (Array.isArray(res) ? res : [])
+          const paginas = res?.totalPaginas ?? res?.TotalPaginas ?? 1
 
           setHistoricosPorMoeda(prev => ({ ...prev, [sigla]: registros }))
+          setTotalPaginas(paginas)
 
           // Sincroniza tabela com a primeira carregada
           if (sigla === moedasFiltro[0]) {
@@ -307,7 +312,7 @@ function Dashboard() {
         if (Array.isArray(lista)) {
           lista.forEach(r => {
             if (!r) return
-            const dh = r.dataHora ?? r.DataHora
+            const dh = r.horaReferencia ?? r.HoraReferencia ?? r.dataHora ?? r.DataHora
             if (!dh) return
 
             const time = new Date(dh).getTime()
@@ -316,7 +321,7 @@ function Dashboard() {
 
             // Filtro de resultado (Opcional: aplicado ao gráfico também para consistência)
             if (resultadoFiltro && resultadoFiltro !== 'ALL') {
-              const v = r.variacaoPercentual ?? r.VariacaoPercentual ?? 0
+              const v = r.precoPercentualVariacao ?? r.PrecoPercentualVariacao ?? r.variacaoPercentual ?? r.VariacaoPercentual ?? 0
               if (resultadoFiltro === 'WIN' && v <= 0) return
               if (resultadoFiltro === 'LOSS' && v >= 0) return
             }
@@ -343,8 +348,8 @@ function Dashboard() {
 
       historico.forEach(r => {
         if (!r) return
-        const val = r.valor ?? r.Valor ?? r.valorNegociado ?? r.ValorNegociado ?? 0
-        const dh = r.dataHora ?? r.DataHora
+        const val = r.precoFechamento ?? r.PrecoFechamento ?? r.valor ?? r.Valor ?? r.valorNegociado ?? r.ValorNegociado ?? 0
+        const dh = r.horaReferencia ?? r.HoraReferencia ?? r.dataHora ?? r.DataHora
         if (dh) priceMap.set(dh, val)
       })
 
@@ -378,9 +383,9 @@ function Dashboard() {
 
       hist.forEach(r => {
         if (!r) return
-        const val = r.variacaoPercentual ?? r.VariacaoPercentual ?? r.variacao ?? r.Variacao ?? 0
-        const dh = r.dataHora ?? r.DataHora
-        if (dh) varMap.set(dh, val * 100) // Converte para % decimal se necessário
+        const val = r.precoPercentualVariacao ?? r.PrecoPercentualVariacao ?? r.variacaoPercentual ?? r.VariacaoPercentual ?? r.variacao ?? r.Variacao ?? 0
+        const dh = r.horaReferencia ?? r.HoraReferencia ?? r.dataHora ?? r.DataHora
+        if (dh) varMap.set(dh, val) // Converte para % decimal se necessário
       })
 
       return {
@@ -488,7 +493,7 @@ function Dashboard() {
     const hist = (historicosPorMoeda && sigla) ? (historicosPorMoeda[sigla] || []) : []
     if (!hist.length) return '-'
     const last = hist[hist.length - 1]
-    const val = last?.valor ?? last?.Valor ?? last?.valorNegociado ?? last?.ValorNegociado ?? 0
+    const val = last?.precoFechamento ?? last?.PrecoFechamento ?? last?.valor ?? last?.Valor ?? last?.valorNegociado ?? last?.ValorNegociado ?? 0
     return Number(val).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
   }, [historicosPorMoeda, moedasFiltro])
 
@@ -497,8 +502,8 @@ function Dashboard() {
     const hist = (historicosPorMoeda && sigla) ? (historicosPorMoeda[sigla] || []) : []
     if (!hist.length) return '-'
     const last = hist[hist.length - 1]
-    const val = last?.variacaoPercentual ?? last?.VariacaoPercentual ?? last?.variacao ?? last?.Variacao ?? 0
-    return `${(Number(val) * 100).toFixed(2)}%`
+    const val = last?.precoPercentualVariacao ?? last?.PrecoPercentualVariacao ?? last?.variacaoPercentual ?? last?.VariacaoPercentual ?? last?.variacao ?? last?.Variacao ?? 0
+    return `${Number(val).toFixed(2)}%`
   }, [historicosPorMoeda, moedasFiltro])
 
   const historicoFiltrado = useMemo(() => {
@@ -510,7 +515,7 @@ function Dashboard() {
       const dFim = dataFim ? new Date(`${dataFim}T23:59:59`).getTime() : null
 
       registros = registros.filter(r => {
-        const time = new Date(r.dataHora || r.DataHora).getTime()
+        const time = new Date(r.horaReferencia ?? r.HoraReferencia ?? r.dataHora ?? r.DataHora).getTime()
         if (dInicio && time < dInicio) return false
         if (dFim && time > dFim) return false
         return true
@@ -520,7 +525,7 @@ function Dashboard() {
     // Filtro de resultado
     if (resultadoFiltro && resultadoFiltro !== 'ALL') {
       registros = registros.filter(r => {
-        const v = r.variacaoPercentual ?? r.VariacaoPercentual ?? 0
+        const v = r.precoPercentualVariacao ?? r.PrecoPercentualVariacao ?? r.variacaoPercentual ?? r.VariacaoPercentual ?? 0
         return resultadoFiltro === 'WIN' ? v > 0 : v < 0
       })
     }
@@ -895,19 +900,19 @@ function Dashboard() {
                     </TableRow>
                   ) : (
                     historicoFiltrado.map((r, idx) => {
-                      const val = r.valor ?? r.Valor ?? r.valorNegociado ?? r.ValorNegociado ?? 0
-                      const dVar = r.variacaoPercentual ?? r.VariacaoPercentual ?? r.variacao ?? r.Variacao ?? 0
+                      const val = r.precoFechamento ?? r.PrecoFechamento ?? r.valor ?? r.Valor ?? r.valorNegociado ?? r.ValorNegociado ?? 0
+                      const dVar = r.precoPercentualVariacao ?? r.PrecoPercentualVariacao ?? r.variacaoPercentual ?? r.VariacaoPercentual ?? r.variacao ?? r.Variacao ?? 0
                       const isUp = dVar >= 0
                       return (
                         <TableRow key={idx}>
                           <TableCell sx={{ color: '#ccc' }}>
-                            {new Date(r.dataHora || r.DataHora).toLocaleString()}
+                            {new Date(r.horaReferencia ?? r.HoraReferencia ?? r.dataHora ?? r.DataHora).toLocaleString()}
                           </TableCell>
                           <TableCell sx={{ color: '#fff' }}>
                             {val.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
                           </TableCell>
                           <TableCell sx={{ color: isUp ? '#4caf50' : '#f44336' }}>
-                            {isUp ? '+' : ''}{(dVar * 100).toFixed(2)}%
+                            {isUp ? '+' : ''}{Number(dVar).toFixed(2)}%
                           </TableCell>
                         </TableRow>
                       )

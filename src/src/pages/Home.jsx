@@ -63,8 +63,13 @@ function Home() {
   const obterDetalhes = async (moeda) => {
     try {
       const json = await apiRequest(MarketEndpoint.COIN_VALUE(moeda.simbolo))
-      const valor = json.resultado.valor
-      const data = new Date(json.resultado.dataHora).toLocaleString('en-US')
+      const res = json?.resultado ?? json?.Resultado ?? json
+      const registro = res?.registros?.[0] ?? res?.Registros?.[0] ?? (Array.isArray(res) ? res[0] : res)
+      
+      const valor = registro?.precoFechamento ?? registro?.PrecoFechamento ?? res?.valor ?? 0
+      const dataStr = registro?.horaReferencia ?? registro?.HoraReferencia ?? res?.dataHora ?? new Date().toISOString()
+      const data = new Date(dataStr).toLocaleString('en-US')
+      
       setDetalhes({ moeda, valor, data })
     } catch {
       setDetalhes({ error: t('fetchError') })

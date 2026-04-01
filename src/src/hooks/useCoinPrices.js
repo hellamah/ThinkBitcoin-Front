@@ -68,14 +68,18 @@ export default function useCoinPrices() {
             if (typeof json === 'number') {
               valor = json
             } else if (registro) {
-              valor = registro.valorNegociado ?? registro.ValorNegociado ?? 
+              valor = registro.precoFechamento ?? registro.PrecoFechamento ?? 
+                      registro.valorNegociado ?? registro.ValorNegociado ?? 
                       registro.valor ?? registro.Valor ?? 
                       res?.valor ?? res?.Valor ?? 0
             }
             
+            const apiVariacao = registro?.precoPercentualVariacao ?? registro?.PrecoPercentualVariacao ?? 
+                                registro?.variacaoPercentual ?? registro?.VariacaoPercentual ?? null
+            
             const historico = [...m.dados.slice(-6), valor]
             const anterior = m.dados[m.dados.length - 1] ?? valor
-            const variacao = anterior !== 0 ? ((valor - anterior) / anterior) * 100 : 0
+            const variacao = apiVariacao !== null ? apiVariacao : (anterior !== 0 ? ((valor - anterior) / anterior) * 100 : 0)
             
             return { ...m, valor, dados: historico, variacao }
           } catch (err) {

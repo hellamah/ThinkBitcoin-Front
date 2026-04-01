@@ -77,19 +77,42 @@ const hashSymbol = (symbol) =>
 const buildCoinValueResponse = (symbol) => {
   const normalized = symbol.toUpperCase()
   const baseValue = MOCK_COIN_BASE_VALUE[normalized] ?? 100
-  const variationFactor = ((hashSymbol(normalized) % 13) - 6) * 0.0015
+  const variationFactor = ((hashSymbol(normalized) % 17) - 8) * 0.0025
   const value = Number((baseValue * (1 + variationFactor)).toFixed(2))
 
   return {
-    mensagem: 'Mock de valor de moeda retornado com sucesso',
+    mensagem: 'Operação realizada com sucesso',
     resultado: {
       totalRegistros: 1,
       totalPaginas: 1,
       paginaAtual: 1,
       registros: [
         {
-          valor: value,
-          dataHora: new Date().toISOString(),
+          precoFechamento: value,
+          horaReferencia: new Date().toISOString(),
+          precoMaior: value * 1.01,
+          precoMedio: value * 0.995,
+          precoMenor: value * 0.98,
+          precoAbertura: value * 0.99,
+          precoAmplitude: value * 0.03,
+          precoPercentualVariacao: variationFactor * 100,
+          precoRatioCompraVenda: 1.5,
+          precoTotalNegociada: value * 1000,
+          precoVolume: 150.5,
+          precoDeltaUltimoAbertura: value * 0.01,
+          precoVariacaoAbsoluta: value * 0.01,
+          precoCorpoCandle: value * 0.01,
+          precoSombraSuperior: value * 0.005,
+          precoSombraInferior: value * 0.005,
+          precoDirecao: variationFactor >= 0 ? 1 : -1,
+          precoVolatilidadePercentual: 0.5,
+          precoFinanceiroPorTrade: 450.0,
+          quantidadeNegociada: 150.5,
+          volumeComprado: 90.3,
+          volumeVendido: 60.2,
+          dominanciaCompradoraPercentual: 60.0,
+          dominanciaVendedoraPercentual: 40.0,
+          volumeDelta: 30.1,
         }
       ],
     },
