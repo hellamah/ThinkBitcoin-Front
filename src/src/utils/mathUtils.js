@@ -54,3 +54,35 @@ export const normalizeZScore = (values) => {
   if (stdDev === 0) return values.map(v => (v !== null && v !== undefined ? 0 : null))
   return values.map(v => (v !== null && v !== undefined ? (v - mean) / stdDev : null))
 }
+
+/**
+ * Formata um valor numérico para moeda (USD por padrão).
+ * 
+ * @param {number|string} value - Valor a ser formatado.
+ * @param {string} [currency='USD'] - Símbolo da moeda.
+ * @returns {string} - Valor formatado (ex: $1.234,56).
+ */
+export const formatCurrency = (value, currency = 'USD') => {
+  if (value === null || value === undefined || value === '') return '-'
+  const num = Number(value)
+  if (isNaN(num)) return '-'
+  return num.toLocaleString('en-US', { 
+    style: 'currency', 
+    currency 
+  })
+}
+
+/**
+ * Formata um valor numérico para percentual com sinal.
+ * 
+ * @param {number|string} value - Valor percentual (ex: 5.2).
+ * @param {number} [precision=2] - Casas decimais.
+ * @returns {string} - Valor formatado com sinal (ex: +5.20% ou -1.50%).
+ */
+export const formatPercent = (value, precision = 2) => {
+  if (value === null || value === undefined || value === '') return '-'
+  const num = Number(value)
+  if (isNaN(num)) return '-'
+  const sign = num >= 0 ? '+' : ''
+  return `${sign}${num.toFixed(precision)}%`
+}

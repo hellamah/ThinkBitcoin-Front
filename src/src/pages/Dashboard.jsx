@@ -521,7 +521,7 @@ function Dashboard() {
     if (!hist.length) return '-'
     const last = hist[hist.length - 1]
     const val = last?.precoFechamento ?? last?.PrecoFechamento ?? last?.valor ?? last?.Valor ?? last?.valorNegociado ?? last?.ValorNegociado ?? 0
-    return Number(val).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
+    return mathUtils.formatCurrency(val)
   }, [historicosPorMoeda, moedasFiltro])
 
   const ultimaVariacao = useMemo(() => {
@@ -530,7 +530,7 @@ function Dashboard() {
     if (!hist.length) return '-'
     const last = hist[hist.length - 1]
     const val = last?.precoPercentualVariacao ?? last?.PrecoPercentualVariacao ?? last?.variacaoPercentual ?? last?.VariacaoPercentual ?? last?.variacao ?? last?.Variacao ?? 0
-    return `${Number(val).toFixed(2)}%`
+    return mathUtils.formatPercent(val)
   }, [historicosPorMoeda, moedasFiltro])
 
   const historicoFiltrado = useMemo(() => {
@@ -615,27 +615,7 @@ function Dashboard() {
           </section>
         )}
 
-        <Box
-          className="panel top-coins"
-          sx={{
-            background: 'rgba(20, 20, 20, 0.4) !important',
-            backdropFilter: 'blur(20px) !important',
-            border: '1px solid rgba(255, 215, 0, 0.15) !important',
-            mb: 4,
-            position: 'relative',
-            overflow: 'hidden',
-            '&::after': {
-              content: '""',
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '2px',
-              background: 'linear-gradient(90deg, transparent, var(--color-primary), transparent)',
-              opacity: 0.5
-            }
-          }}
-        >
+        <Box className="panel top-coins">
           <h2><MdTrendingUp style={{ verticalAlign: 'middle', marginRight: '10px' }} /> {t('topCoins')}</h2>
           <div className="top-list">
             {moedasCarousel.length === 0 ? (
@@ -650,11 +630,11 @@ function Dashboard() {
                 .map((m) => {
                   const up = m.variacao >= 0
                   return (
-                    <div key={m.simbolo} className="top-item" style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                    <div key={m.simbolo} className="top-item">
                       <CryptoIcon simbolo={m.simbolo} />
-                      <span className="top-name" style={{ fontFamily: "'Outfit', sans-serif", letterSpacing: '0.5px' }}>{m.nome}</span>
-                      <span className={`top-var ${up ? 'positive' : 'negative'}`} style={{ fontSize: '1rem', fontWeight: 700 }}>
-                        {up ? '+' : ''}{m.variacao.toFixed(2)}%
+                      <span className="top-name">{m.nome}</span>
+                      <span className={`top-var ${up ? 'positive' : 'negative'}`}>
+                        {mathUtils.formatPercent(m.variacao)}
                       </span>
                     </div>
                   )
@@ -720,11 +700,11 @@ function Dashboard() {
                         {m.simbolo}
                       </span>
                       <span className={`carousel-price ${isUp ? 'positive' : 'negative'}`} style={{ fontSize: '0.85rem' }}>
-                        {m.valor.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                        {mathUtils.formatCurrency(m.valor)}
                       </span>
                       <div className={`carousel-mini-var ${isUp ? 'up' : 'down'}`}>
                         {isUp ? <MdTrendingUp /> : <MdTrendingDown />}
-                        {Math.abs(m.variacao).toFixed(1)}%
+                        {mathUtils.formatPercent(m.variacao, 1)}
                       </div>
                     </div>
 
@@ -751,7 +731,7 @@ function Dashboard() {
           )}
         </div>
 
-        <section className="panel filters-panel" style={{ marginBottom: '40px', padding: '20px' }}>
+        <section className="panel filters-panel">
           <Box sx={{
             display: 'flex',
             flexDirection: { xs: 'column', md: 'row' },
@@ -901,22 +881,14 @@ function Dashboard() {
         </div>
 
         <div className="dashboard-charts">
-          <Box className="panel chart-panel" sx={{
-            background: 'rgba(20, 20, 20, 0.6) !important',
-            backdropFilter: 'blur(15px) !important',
-            border: '1px solid rgba(255, 255, 255, 0.05) !important'
-          }}>
+          <Box className="panel chart-panel">
             <h2>{t('tradedValue')}</h2>
             <div className="chart-note">{t('lastValue')}: {ultimoNegociado}</div>
             <div className="chart-container">
               <Line data={dadosNegociados} options={opcoesPreco} />
             </div>
           </Box>
-          <Box className="panel chart-panel" sx={{
-            background: 'rgba(20, 20, 20, 0.6) !important',
-            backdropFilter: 'blur(15px) !important',
-            border: '1px solid rgba(255, 255, 255, 0.05) !important'
-          }}>
+          <Box className="panel chart-panel">
             <h2>{t('percentVariation')}</h2>
             <div className="chart-note">{t('lastVariation')}: {ultimaVariacao}</div>
             <div className="chart-container">
@@ -928,9 +900,6 @@ function Dashboard() {
         {moedasFiltro.length > 0 && historicoMoeda && (
           <Box className="panel history-panel" sx={{
             marginTop: '32px',
-            background: 'rgba(15, 15, 15, 0.5) !important',
-            border: '1px solid rgba(255,255,255,0.05) !important',
-            borderRadius: '24px !important',
             overflow: 'hidden'
           }}>
             <h2 style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -971,12 +940,12 @@ function Dashboard() {
                             {toLocal(r.horaReferencia ?? r.HoraReferencia ?? r.dataHora ?? r.DataHora)}
                           </TableCell>
                           <TableCell sx={{ color: '#fff', fontWeight: 600 }}>
-                            {val.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                            {mathUtils.formatCurrency(val)}
                           </TableCell>
                           <TableCell sx={{ color: isUp ? '#4caf50' : '#f44336', fontWeight: 700 }}>
                             <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                               {isUp ? <MdTrendingUp /> : <MdTrendingDown />}
-                              {isUp ? '+' : ''}{Number(dVar).toFixed(2)}%
+                              {mathUtils.formatPercent(dVar)}
                             </span>
                           </TableCell>
                         </TableRow>

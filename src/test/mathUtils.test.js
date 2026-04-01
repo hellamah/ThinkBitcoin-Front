@@ -14,6 +14,8 @@ import {
   normalizeToBase100,
   normalizeMinMax,
   normalizeZScore,
+  formatCurrency,
+  formatPercent,
 } from '../src/utils/mathUtils'
 
 // Utilitário de comparação com tolerância para aritmética de ponto flutuante
@@ -183,5 +185,50 @@ describe('utils/mathUtils › normalizeZScore', () => {
     const resultado = normalizeZScore(serie)
     const soma = resultado.reduce((acc, v) => acc + v, 0)
     expectClose(soma, 0, 4)
+  })
+})
+
+describe('utils/mathUtils › formatCurrency', () => {
+  it('formata valor simples em USD por padrão', () => {
+    expect(formatCurrency(1234.56)).toBe('$1,234.56')
+  })
+
+  it('formata zero corretamente', () => {
+    expect(formatCurrency(0)).toBe('$0.00')
+  })
+
+  it('retorna "-" para valores inválidos', () => {
+    expect(formatCurrency('abc')).toBe('-')
+    expect(formatCurrency(null)).toBe('-')
+  })
+
+  it('suporta outras moedas', () => {
+    // Nota: toLocaleString com en-US e BRL pode gerar 'R$' ou 'BRL' dependendo do ambiente
+    const result = formatCurrency(100, 'BRL')
+    expect(result).toMatch(/R\$|BRL/)
+    expect(result).toContain('100.00')
+  })
+})
+
+describe('utils/mathUtils › formatPercent', () => {
+  it('adiciona sinal de + para positivos', () => {
+    expect(formatPercent(5.2)).toBe('+5.20%')
+  })
+
+  it('mantém sinal de - para negativos', () => {
+    expect(formatPercent(-1.5)).toBe('-1.50%')
+  })
+
+  it('formata zero com + por padrão', () => {
+    expect(formatPercent(0)).toBe('+0.00%')
+  })
+
+  it('respeita a precisão informada', () => {
+    expect(formatPercent(5.2678, 3)).toBe('+5.268%')
+    expect(formatPercent(5, 0)).toBe('+5%')
+  })
+
+  it('retorna "-" para valores inválidos', () => {
+    expect(formatPercent('not-a-number')).toBe('-')
   })
 })
