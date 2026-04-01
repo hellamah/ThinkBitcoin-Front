@@ -5,6 +5,7 @@ import * as mathUtils from '../utils/mathUtils'
 import useCoinPrices from '../hooks/useCoinPrices'
 import { useAuth } from '../context/AuthContext'
 import useTranslation from '../hooks/useTranslation'
+import { toLocal, toLocalChartLabel, toUTCISO } from '../utils/dateUtils'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -186,8 +187,8 @@ function Dashboard() {
 
       let url = MarketEndpoint.COIN_VALUE(sigla.toLowerCase())
       const params = new URLSearchParams()
-      if (dataInicio) params.append('dataInicio', dataInicio)
-      if (dataFim) params.append('dataFim', dataFim)
+      if (dataInicio) params.append('dataInicio', dataInicio.includes('T') ? dataInicio : toUTCISO(new Date(`${dataInicio}T00:00:00`)))
+      if (dataFim) params.append('dataFim', dataFim.includes('T') ? dataFim : toUTCISO(new Date(`${dataFim}T23:59:59`)))
       if (intervalo) params.append('intervalo', intervalo)
       if (pagina) params.append('pagina', pagina)
       if (quantidade) params.append('quantidade', quantidade)
@@ -247,7 +248,13 @@ function Dashboard() {
         return [...prev, simbolo]
       }
     })
+    
+    // Reset da Hierarquia de Filtros (Nível 1 -> Todos os inferiores)
     setPagina(1)
+    setDataInicio('')
+    setDataFim('')
+    setIntervalo('1m')
+    setResultadoFiltro('ALL')
   }
 
   const handleDebateTrigger = async (sigla) => {
@@ -305,7 +312,7 @@ function Dashboard() {
     // 1. Timestamps comuns (após filtros globais)
     const allTimestampsSet = new Set()
     const dInicio = dataInicio ? new Date(dataInicio).getTime() : null
-    const dFim = dataFim ? new Date(`${dataFim}T23:59:59`).getTime() : null
+    const dFim = dataFim ? new Date(dataFim.includes('T') ? dataFim : `${dataFim}T23:59:59`).getTime() : null
 
     try {
       Object.values(historicosPorMoeda || {}).forEach(lista => {
@@ -334,9 +341,7 @@ function Dashboard() {
       console.error('Erro ao processar timestamps:', err)
     }
     const timestampsUnicos = Array.from(allTimestampsSet).sort()
-    const labels = timestampsUnicos.map(t =>
-      new Date(t).toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })
-    )
+    const labels = timestampsUnicos.map(t => toLocalChartLabel(t))
 
     const moedasOrdenadas = Object.keys(historicosPorMoeda).filter(sig => historicosPorMoeda[sig]?.length > 0)
     const multi = moedasOrdenadas.length > 1
@@ -367,11 +372,20 @@ function Dashboard() {
         label: sigla,
         data: dataFinal,
         borderColor: cor,
-        backgroundColor: `${cor}18`,
-        tension: 0.3,
-        fill: !multi && idx === 0,
-        pointRadius: multi ? 0 : 3,
-        borderWidth: 2,
+        backgroundColor: (context) => {
+          const chart = context.chart;
+          const {ctx, chartArea} = chart;
+          if (!chartArea) return null;
+          const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+          gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+          gradient.addColorStop(1, `${cor}22`);
+          return gradient;
+        },
+        tension: 0.4,
+        fill: true,
+        pointRadius: multi ? 0 : 2,
+        pointHoverRadius: 5,
+        borderWidth: 2.5,
         spanGaps: true,
       }
     })
@@ -392,11 +406,20 @@ function Dashboard() {
         label: sigla,
         data: timestampsUnicos.map(ts => varMap.get(ts) ?? null),
         borderColor: cor,
-        backgroundColor: `${cor}18`,
-        tension: 0.3,
-        fill: !multi && idx === 0,
-        pointRadius: multi ? 0 : 3,
-        borderWidth: 2,
+        backgroundColor: (context) => {
+          const chart = context.chart;
+          const {ctx, chartArea} = chart;
+          if (!chartArea) return null;
+          const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+          gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+          gradient.addColorStop(1, `${cor}22`);
+          return gradient;
+        },
+        tension: 0.4,
+        fill: true,
+        pointRadius: multi ? 0 : 2,
+        pointHoverRadius: 5,
+        borderWidth: 2.5,
         spanGaps: true,
       }
     })
@@ -422,10 +445,14 @@ function Dashboard() {
       }
     },
     scales: {
-      x: { display: false },
+      x: { 
+        display: true,
+        grid: { display: false },
+        ticks: { color: '#666', font: { size: 10 } }
+      },
       y: {
-        grid: { color: 'rgba(255,255,255,0.05)' },
-        ticks: { color: '#888' }
+        grid: { color: 'rgba(255,255,255,0.03)', borderDash: [5, 5] },
+        ticks: { color: '#888', font: { family: "'Share Tech Mono', monospace" } }
       }
     }
   }
@@ -512,7 +539,7 @@ function Dashboard() {
     // Filtro de data
     if (dataInicio || dataFim) {
       const dInicio = dataInicio ? new Date(dataInicio).getTime() : null
-      const dFim = dataFim ? new Date(`${dataFim}T23:59:59`).getTime() : null
+      const dFim = dataFim ? new Date(dataFim.includes('T') ? dataFim : `${dataFim}T23:59:59`).getTime() : null
 
       registros = registros.filter(r => {
         const time = new Date(r.horaReferencia ?? r.HoraReferencia ?? r.dataHora ?? r.DataHora).getTime()
@@ -591,17 +618,29 @@ function Dashboard() {
         <Box
           className="panel top-coins"
           sx={{
-            background: 'rgba(20, 20, 20, 0.6) !important',
-            backdropFilter: 'blur(15px) !important',
-            border: '1px solid rgba(255, 215, 0, 0.1) !important',
-            mb: 3
+            background: 'rgba(20, 20, 20, 0.4) !important',
+            backdropFilter: 'blur(20px) !important',
+            border: '1px solid rgba(255, 215, 0, 0.15) !important',
+            mb: 4,
+            position: 'relative',
+            overflow: 'hidden',
+            '&::after': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '2px',
+              background: 'linear-gradient(90deg, transparent, var(--color-primary), transparent)',
+              opacity: 0.5
+            }
           }}
         >
-          <h2><MdTrendingUp style={{ verticalAlign: 'middle', marginRight: '8px' }} /> {t('topCoins')}</h2>
+          <h2><MdTrendingUp style={{ verticalAlign: 'middle', marginRight: '10px' }} /> {t('topCoins')}</h2>
           <div className="top-list">
             {moedasCarousel.length === 0 ? (
-              <Box sx={{ p: 3, textAlign: 'center', opacity: 0.6 }}>
-                <Typography variant="body2">{t('loadingCoins')}...</Typography>
+              <Box sx={{ p: 4, textAlign: 'center', opacity: 0.6 }}>
+                <Typography variant="body2" sx={{ fontStyle: 'italic' }}>{t('loadingCoins')}...</Typography>
               </Box>
             ) : (
               moedasCarousel
@@ -611,10 +650,10 @@ function Dashboard() {
                 .map((m) => {
                   const up = m.variacao >= 0
                   return (
-                    <div key={m.simbolo} className="top-item">
+                    <div key={m.simbolo} className="top-item" style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
                       <CryptoIcon simbolo={m.simbolo} />
-                      <span className="top-name">{m.nome}</span>
-                      <span className={`top-var ${up ? 'positive' : 'negative'}`}>
+                      <span className="top-name" style={{ fontFamily: "'Outfit', sans-serif", letterSpacing: '0.5px' }}>{m.nome}</span>
+                      <span className={`top-var ${up ? 'positive' : 'negative'}`} style={{ fontSize: '1rem', fontWeight: 700 }}>
                         {up ? '+' : ''}{m.variacao.toFixed(2)}%
                       </span>
                     </div>
@@ -727,7 +766,10 @@ function Dashboard() {
                 label={t('startDate')}
                 type="date"
                 value={dataInicio}
-                onChange={(e) => setDataInicio(e.target.value)}
+                onChange={(e) => {
+                  setDataInicio(e.target.value)
+                  setPagina(1)
+                }}
                 InputLabelProps={{ shrink: true }}
                 size="small"
                 variant="outlined"
@@ -745,7 +787,10 @@ function Dashboard() {
                 label={t('endDate')}
                 type="date"
                 value={dataFim}
-                onChange={(e) => setDataFim(e.target.value)}
+                onChange={(e) => {
+                  setDataFim(e.target.value)
+                  setPagina(1)
+                }}
                 InputLabelProps={{ shrink: true }}
                 size="small"
                 variant="outlined"
@@ -800,13 +845,17 @@ function Dashboard() {
                         inicioDate = agora
                       }
                       
-                      const formattedInicio = format(inicioDate, 'yyyy-MM-dd')
-                      const formattedFim = format(agora, 'yyyy-MM-dd')
+                      const formattedInicio = inicioDate.toISOString()
+                      const formattedFim = agora.toISOString()
                       
                       setDataInicio(formattedInicio)
                       setDataFim(formattedFim)
                       setIntervalo(opt)
+                      
+                      // Reset da Hierarquia de Filtros (Nível 2 -> Todos os inferiores)
                       setPagina(1)
+                      setQuantidade(100)
+                      setResultadoFiltro('ALL')
                     }}
                     style={{ flex: 1, padding: '0 8px', fontSize: '0.8rem' }}
                   >
@@ -878,24 +927,31 @@ function Dashboard() {
 
         {moedasFiltro.length > 0 && historicoMoeda && (
           <Box className="panel history-panel" sx={{
-            marginTop: '20px',
-            background: 'rgba(20, 20, 20, 0.6) !important'
+            marginTop: '32px',
+            background: 'rgba(15, 15, 15, 0.5) !important',
+            border: '1px solid rgba(255,255,255,0.05) !important',
+            borderRadius: '24px !important',
+            overflow: 'hidden'
           }}>
-            <h2>{t('coinHistory')}: {moedasFiltro[0]}</h2>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <MdRefresh style={{ color: 'var(--color-primary)' }} /> {t('coinHistory')}: {moedasFiltro[0]}
+            </h2>
             <TableContainer component={Paper} sx={{ backgroundColor: 'transparent', boxShadow: 'none' }}>
               <Table size="small">
                 <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ color: '#aaa', fontWeight: 'bold' }}>{t('date')}</TableCell>
-                    <TableCell sx={{ color: '#aaa', fontWeight: 'bold' }}>{t('value')}</TableCell>
-                    <TableCell sx={{ color: '#aaa', fontWeight: 'bold' }}>{t('variation')}</TableCell>
+                  <TableRow sx={{ '& th': { borderBottom: '1px solid rgba(255,255,255,0.1)' } }}>
+                    <TableCell sx={{ color: '#888', fontWeight: '800', fontSize: '0.75rem', textTransform: 'uppercase' }}>{t('date')}</TableCell>
+                    <TableCell sx={{ color: '#888', fontWeight: '800', fontSize: '0.75rem', textTransform: 'uppercase' }}>{t('value')}</TableCell>
+                    <TableCell sx={{ color: '#888', fontWeight: '800', fontSize: '0.75rem', textTransform: 'uppercase' }}>{t('variation')}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {historicoFiltrado.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={3} align="center" sx={{ color: '#666', py: 4 }}>
-                        {t('noRecordsFound') || 'Nenhum registro encontrado para os filtros selecionados'}
+                      <TableCell colSpan={3} align="center" sx={{ color: '#666', py: 8 }}>
+                        <div style={{ opacity: 0.5, fontSize: '0.9rem' }}>
+                          {t('noRecordsFound') || 'Nenhum registro encontrado para os filtros selecionados'}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -904,15 +960,24 @@ function Dashboard() {
                       const dVar = r.precoPercentualVariacao ?? r.PrecoPercentualVariacao ?? r.variacaoPercentual ?? r.VariacaoPercentual ?? r.variacao ?? r.Variacao ?? 0
                       const isUp = dVar >= 0
                       return (
-                        <TableRow key={idx}>
-                          <TableCell sx={{ color: '#ccc' }}>
-                            {new Date(r.horaReferencia ?? r.HoraReferencia ?? r.dataHora ?? r.DataHora).toLocaleString()}
+                        <TableRow 
+                          key={idx}
+                          sx={{ 
+                            '&:hover': { background: 'rgba(255,255,255,0.02)' },
+                            '& td': { borderBottom: '1px solid rgba(255,255,255,0.03)', py: 1.5 }
+                          }}
+                        >
+                          <TableCell sx={{ color: '#aaa', fontFamily: "'Share Tech Mono', monospace" }}>
+                            {toLocal(r.horaReferencia ?? r.HoraReferencia ?? r.dataHora ?? r.DataHora)}
                           </TableCell>
-                          <TableCell sx={{ color: '#fff' }}>
+                          <TableCell sx={{ color: '#fff', fontWeight: 600 }}>
                             {val.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
                           </TableCell>
-                          <TableCell sx={{ color: isUp ? '#4caf50' : '#f44336' }}>
-                            {isUp ? '+' : ''}{Number(dVar).toFixed(2)}%
+                          <TableCell sx={{ color: isUp ? '#4caf50' : '#f44336', fontWeight: 700 }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              {isUp ? <MdTrendingUp /> : <MdTrendingDown />}
+                              {isUp ? '+' : ''}{Number(dVar).toFixed(2)}%
+                            </span>
                           </TableCell>
                         </TableRow>
                       )

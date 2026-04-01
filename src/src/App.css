@@ -454,20 +454,30 @@
 }
 
 .panel {
-  background: rgba(30, 30, 30, 0.6);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 16px;
-  padding: 24px;
-  margin-bottom: 24px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  background: rgba(20, 20, 20, 0.45);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 28px;
+  margin-bottom: 30px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease, border-color 0.3s ease;
 }
+
+.panel:hover {
+  border-color: rgba(255, 215, 0, 0.2);
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(255, 215, 0, 0.1);
+}
+
 .panel h2 {
   margin-top: 0;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
   color: var(--color-primary);
-  font-size: 1.1rem;
-  font-weight: 600;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
 }
 
 .chart-note {
@@ -490,29 +500,48 @@
   margin-bottom: 24px;
 }
 
-.interval-selector {
-  margin-bottom: 1rem;
+.interval-selector-mini {
   display: flex;
-  gap: 8px;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  padding: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  height: 48px;
+  box-sizing: border-box;
+  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.2);
 }
 
-.interval-btn {
-  padding: 4px 8px;
-  background: #333;
-  border: 1px solid #555;
-  color: #eee;
+.interval-btn-mini {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #888;
+  font-weight: 600;
+  font-size: 0.85rem;
+  border-radius: 8px;
   cursor: pointer;
-  border-radius: 4px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
 }
 
-.interval-btn.active {
+.interval-btn-mini:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.interval-btn-mini.active {
   background: var(--color-primary);
   color: #000;
-  border-color: var(--color-primary);
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
 }
 
 .dashboard-charts .chart-panel {
   margin-bottom: 0;
+  min-height: 400px;
 }
 
 .dashboard-actions {
