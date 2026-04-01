@@ -115,6 +115,18 @@ describe('utils/authentication › decodeAuthenticationToken', () => {
     })
   })
 
+  it('decodifica corretamente nomes com caracteres acentuados (UTF-8)', () => {
+    const payload = {
+      [AuthTokenClaim.NAME]: 'Helamã',
+      [AuthTokenClaim.EMAIL]: 'helamaborges@gmail.com',
+    }
+
+    expect(decodeAuthenticationToken(buildToken(payload))).toEqual({
+      nome: 'Helamã',
+      email: 'helamaborges@gmail.com',
+    })
+  })
+
   it('retorna strings vazias quando os claims não estão presentes no payload', () => {
     const payload = { role: 'admin', sub: '123' }
 

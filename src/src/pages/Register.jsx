@@ -30,7 +30,7 @@ import {
 import ErrorMessage from '../components/ErrorMessage'
 import logo from '../../logo-light.svg'
 import { apiRequest, HttpMethod, UserEndpoint, MarketEndpoint } from '../utils/apiClient'
-import { authenticate } from '../utils/authentication'
+import { authenticate, decodeAuthenticationToken } from '../utils/authentication'
 import { useAuth } from '../context/AuthContext'
 import useTranslation from '../hooks/useTranslation'
 import { 
@@ -86,14 +86,6 @@ function Register() {
     setPreferencias(prev => ({ ...prev, [field]: value }))
   }
 
-  const obterNome = (token) => {
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]))
-      return payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] || ''
-    } catch {
-      return ''
-    }
-  }
 
   const processarEnvio = async (e) => {
     e.preventDefault()
@@ -121,7 +113,7 @@ function Register() {
 
       const dadosLogin = await authenticate({ email, senha })
       await login(dadosLogin.tokenAutenticado)
-      const nomeUsuario = obterNome(dadosLogin.tokenAutenticado)
+      const nomeUsuario = decodeAuthenticationToken(dadosLogin.tokenAutenticado)?.nome || ''
       setMensagem(t('welcome', { name: nomeUsuario }))
       setTimeout(() => navegar('/dashboard'), 1000)
     } catch (err) {
