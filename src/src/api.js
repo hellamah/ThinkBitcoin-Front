@@ -11,7 +11,7 @@ const getLocation = () => {
 const PORTS = {
   DOTNET_API: {
     http: '13501',
-    https: '13502'
+    https: '443' // Porta padrão de HTTPS do Ingress
   },
   PYTHON_API: {
     http: '13600',
@@ -34,7 +34,14 @@ const protocol = 'https:'
 
 const getHostUrl = (portConfig) => {
   const port = protocol === 'https:' ? portConfig.https : portConfig.http
-  return `${protocol}//${location.hostname}:${port}`
+  // Se for HTTPS local, usamos o domínio do Ingress para o SSL funcionar
+  const hostname = (protocol === 'https:' && (location.hostname === 'localhost' || location.hostname === '127.0.0.1')) 
+    ? 'thinkbitcoin.local' 
+    : location.hostname
+  
+  return port === '443' || port === '80' 
+    ? `${protocol}//${hostname}` 
+    : `${protocol}//${hostname}:${port}`
 }
 
 const hostUrl = getHostUrl(PORTS.DOTNET_API)
