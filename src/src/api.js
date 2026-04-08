@@ -8,10 +8,36 @@ const getLocation = () => {
   return window.location
 }
 
+const PORTS = {
+  DOTNET_API: {
+    http: '13501',
+    https: '13502'
+  },
+  PYTHON_API: {
+    http: '13600',
+    https: '13603'
+  },
+  PYTHON_AGGREGATOR: {
+    http: '13602',
+    https: '13604'
+  },
+  OLLAMA: {
+    http: '11434',
+    https: '11435'
+  },
+  FRONTEND: '3000'
+}
+
 const location = getLocation()
-const protocol = location.protocol === 'https:' ? 'https:' : 'http:'
-const defaultPort = '13501'
-const hostUrl = `${protocol}//${location.hostname}:${defaultPort}`
+// Preferência sempre por HTTPS
+const protocol = 'https:' 
+
+const getHostUrl = (portConfig) => {
+  const port = protocol === 'https:' ? portConfig.https : portConfig.http
+  return `${protocol}//${location.hostname}:${port}`
+}
+
+const hostUrl = getHostUrl(PORTS.DOTNET_API)
 
 const resolveEnvUrl = () => {
   try {
@@ -30,5 +56,9 @@ const finalEnvUrl = useRuntime ? runtimeUrl : envUrl
 export const API_URL = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
   ? (useRuntime ? runtimeUrl : hostUrl)
   : (finalEnvUrl || (isDev ? '' : hostUrl))
+
+export const PYTHON_API_URL = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+  ? getHostUrl(PORTS.PYTHON_API)
+  : (useRuntime ? runtimeUrl : hostUrl) // Fallback
 
 
