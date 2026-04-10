@@ -11,7 +11,7 @@ const getLocation = () => {
 const PORTS = {
   DOTNET_API: {
     http: '13501',
-    https: '443' // Porta padrão de HTTPS do Ingress
+    https: '13502' // Porta de HTTPS exposta pelo LoadBalancer/NodePort
   },
   PYTHON_API: {
     http: '13600',

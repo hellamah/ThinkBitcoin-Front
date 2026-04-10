@@ -40,4 +40,4 @@ tolerations: []
 affinity: {}
 
 env:
-  viteApiUrl: "https://localhost:13502"
+  viteApiUrl: "http://localhost:13501"
