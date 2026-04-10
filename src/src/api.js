@@ -29,13 +29,18 @@ const PORTS = {
 }
 
 const location = getLocation()
-// Preferência sempre por HTTPS
-const protocol = 'https:' 
+// Preferência baseada no protocolo atual, mas permite o resto da lógica
+const protocol = (location.protocol === 'https:' || location.protocol === 'http:') 
+  ? location.protocol 
+  : 'http:'
 
 const getHostUrl = (portConfig) => {
-  const port = protocol === 'https:' ? portConfig.https : portConfig.http
+  const isHttps = protocol === 'https:'
+  const port = isHttps ? portConfig.https : portConfig.http
+  
   // Se for HTTPS local, usamos o domínio do Ingress para o SSL funcionar
-  const hostname = (protocol === 'https:' && (location.hostname === 'localhost' || location.hostname === '127.0.0.1')) 
+  // Se for HTTP local, mantemos localhost
+  const hostname = (isHttps && (location.hostname === 'localhost' || location.hostname === '127.0.0.1')) 
     ? 'thinkbitcoin.local' 
     : location.hostname
   

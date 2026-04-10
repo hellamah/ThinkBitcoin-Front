@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/ThinkBitcoin': {
-        target: 'https://localhost:13501',
+        target: 'http://localhost:13501',
         changeOrigin: true,
         secure: false,
       }
