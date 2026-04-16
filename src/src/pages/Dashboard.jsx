@@ -5,6 +5,7 @@ import * as mathUtils from '../utils/mathUtils'
 import useCoinPrices from '../hooks/useCoinPrices'
 import { useAuth } from '../context/AuthContext'
 import useTranslation from '../hooks/useTranslation'
+import useAgentHub from '../hooks/useAgentHub'
 import { toLocal, toLocalChartLabel, toUTCISO } from '../utils/dateUtils'
 import {
   Chart as ChartJS,
@@ -78,6 +79,7 @@ function Dashboard() {
   const { token, user: usuario, prefs } = useAuth()
   const moedasCarousel = useCoinPrices()
   const { t } = useTranslation()
+  const { activeDebates, inscreverDebate } = useAgentHub()
   const hasInitializedPref = useRef(false)
   const [dados, setDados] = useState([])
   const [erro, setErro] = useState('')
@@ -95,6 +97,7 @@ function Dashboard() {
   const [historicoMoeda, setHistoricoMoeda] = useState(null)
   const [showMonitor, setShowMonitor] = useState(false)
   const [moedaMonitor, setMoedaMonitor] = useState(null)
+  const [currentCorrelationId, setCurrentCorrelationId] = useState(null)
   const [historicosPorMoeda, setHistoricosPorMoeda] = useState({}) // { BTC: [{valor, dataHora}, ...] }
   const [normalizacao, setNormalizacao] = useState('base100') // 'bruto' | 'minmax' | 'base100' | 'zscore'
   const filterSummaryRef = useRef('') // Cache de string dos filtros globais (intervalo+datas)
@@ -262,11 +265,12 @@ function Dashboard() {
 
     setMoedaMonitor(sigla)
     setShowMonitor(true)
+    setCurrentCorrelationId(null)
 
     try {
       const idUsuarioTB = prefs?.idPreferenciasUsuarioTB
 
-      await apiRequest(MarketEndpoint.DEBATE, {
+      const res = await apiRequest(MarketEndpoint.DEBATE, {
         method: HttpMethod.POST,
         headers: { Authorization: `Bearer ${token}` },
         body: {
@@ -275,7 +279,14 @@ function Dashboard() {
           quantidadeRegistros: 5,
         },
       })
-      console.log(`Debate solicitado para ${sigla} via RabbitMQ`)
+      
+      const corrId = res?.resultado?.correlationId || res?.Resultado?.correlationId || res?.correlationId;
+      if (corrId) {
+        setCurrentCorrelationId(corrId);
+        inscreverDebate(corrId);
+      }
+
+      console.log(`Debate solicitado para ${sigla} via RabbitMQ / ID: ${corrId}`)
     } catch (err) {
       console.error('Erro ao iniciar debate:', err)
       setErro(t('errorTriggeringDebate') || 'Erro ao iniciar debate com a IA')
@@ -595,18 +606,41 @@ function Dashboard() {
                 </IconButton>
               </div>
               <div className="agent-chat-area">
-                <div className="agent-message">
-                  <span className="agent-prefix">&gt; [SYSTEM]</span>
-                  <span className="agent-msg-content">Initializing neural bridge to Ollama instance...</span>
-                </div>
-                <div className="agent-message">
-                  <span className="agent-prefix">&gt; [ATLAS]</span>
-                  <span className="agent-msg-content">Analyzing {moedaMonitor} market regime. Detecting bullish divergence patterns in M15.</span>
-                </div>
-                <div className="agent-message">
-                  <span className="agent-prefix">&gt; [ECHO]</span>
-                  <span className="agent-msg-content">Cross-referencing with sentiment-oscillator. Synergy score at 0.89.</span>
-                </div>
+                {!currentCorrelationId ? (
+                  <div className="agent-message">
+                    <span className="agent-prefix">&gt; [SYSTEM]</span>
+                    <span className="agent-msg-content" style={{ opacity: 0.5 }}>Conectando ao núcleo analítico via HTTP...</span>
+                  </div>
+                ) : !activeDebates[currentCorrelationId] ? (
+                  <>
+                    <div className="agent-message">
+                      <span className="agent-prefix">&gt; [SYSTEM]</span>
+                      <span className="agent-msg-content" style={{ color: 'var(--color-primary)' }}>Módulo SignalR ativado. Canal neural aberto. Aguardando.</span>
+                    </div>
+                    <div className="agent-message">
+                      <span className="agent-prefix">&gt; [AEGIS]</span>
+                      <span className="agent-msg-content" style={{ fontStyle: 'italic', opacity: 0.8 }}>Reunindo o conselho para análise de {moedaMonitor}... Aguarde o veredito.</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="agent-message">
+                      <span className="agent-prefix">&gt; [AEGIS]</span>
+                      <span className="agent-msg-content" style={{ color: 'var(--neon-green)', fontWeight: 'bold' }}>Veredito alcançado.</span>
+                    </div>
+                    <div className="agent-message" style={{ margin: '12px 0 12px 16px', padding: '12px', background: 'rgba(255,255,255,0.03)', borderLeft: '3px solid var(--neon-green)', borderRadius: '0 8px 8px 0' }}>
+                      <span className="agent-msg-content" style={{ display: 'block', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                        {activeDebates[currentCorrelationId]?.VereditoAegis || activeDebates[currentCorrelationId]?.vereditoAegis || 'Nenhum veredito encontrado no pacote.'}
+                      </span>
+                    </div>
+                    <div className="agent-message">
+                      <span className="agent-prefix">&gt; [SYSTEM]</span>
+                      <span className="agent-msg-content" style={{ opacity: 0.8 }}>
+                        Recomendação Base: <strong style={{ color: (activeDebates[currentCorrelationId]?.ScoreFinal || activeDebates[currentCorrelationId]?.scoreFinal) > 0 ? '#4caf50' : '#f44336' }}>{activeDebates[currentCorrelationId]?.Acao || activeDebates[currentCorrelationId]?.acao}</strong> (Score: {Number(activeDebates[currentCorrelationId]?.ScoreFinal || activeDebates[currentCorrelationId]?.scoreFinal || 0).toFixed(2)})
+                      </span>
+                    </div>
+                  </>
+                )}
                 <div className="decor-hex">
                   0x45 0x67 0x89 0xAB 0xCD 0xEF
                 </div>
