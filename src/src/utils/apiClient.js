@@ -64,6 +64,9 @@ export const apiRequest = async (
   )
 
   if (!response.ok) {
+    if (response.status === 401 && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('auth-expired'))
+    }
     const error = new Error('Falha na requisição à API')
     error.status = response.status
     throw error
