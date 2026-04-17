@@ -264,32 +264,24 @@ function Dashboard() {
   const handleDebateTrigger = async (sigla) => {
     if (!token) return
 
+    const corrId = crypto.randomUUID?.() || Math.random().toString(36).substring(2, 15)
+    
     setMoedaMonitor(sigla)
     setShowMonitor(true)
-    setCurrentCorrelationId(null)
+    setCurrentCorrelationId(corrId)
 
     try {
-      const idUsuarioTB = prefs?.idPreferenciasUsuarioTB
-
-      const res = await apiRequest(MarketEndpoint.DEBATE, {
-        method: HttpMethod.POST,
-        headers: { Authorization: `Bearer ${token}` },
-        body: {
-          siglaMoeda: sigla,
-          idUsuarioTB,
-          quantidadeRegistros: 5,
-        },
-      })
+      // O idUsuarioTB agora é resolvido via Token no Backend (SignalR Hub)
+      // por isso não precisamos mais enviá-lo pelo payload.
+      const success = await enviarComando('ANALISAR', sigla, corrId)
       
-      const corrId = res?.resultado?.correlationId || res?.Resultado?.correlationId || res?.correlationId;
-      if (corrId) {
-        setCurrentCorrelationId(corrId);
-        inscreverDebate(corrId);
+      if (success) {
+        console.log(`Debate solicitado para ${sigla} via Hub SignalR / ID: ${corrId}`)
+      } else {
+        throw new Error('Falha na comunicação com o Hub de Agentes')
       }
-
-      console.log(`Debate solicitado para ${sigla} via RabbitMQ / ID: ${corrId}`)
     } catch (err) {
-      console.error('Erro ao iniciar debate:', err)
+      console.error('Erro ao iniciar debate via Hub:', err)
       setErro(t('errorTriggeringDebate') || 'Erro ao iniciar debate com a IA')
     }
   }
