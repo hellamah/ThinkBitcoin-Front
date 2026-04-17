@@ -38,6 +38,7 @@ import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import Paper from '@mui/material/Paper'
 import ErrorMessage from '../components/ErrorMessage'
+import Terminal from '../components/Terminal'
 
 ChartJS.register(
   CategoryScale,
@@ -79,7 +80,7 @@ function Dashboard() {
   const { token, user: usuario, prefs } = useAuth()
   const moedasCarousel = useCoinPrices()
   const { t } = useTranslation()
-  const { activeDebates, inscreverDebate } = useAgentHub()
+  const { activeDebates, agentLogs, inscreverDebate, enviarComando, clearLogs } = useAgentHub()
   const hasInitializedPref = useRef(false)
   const [dados, setDados] = useState([])
   const [erro, setErro] = useState('')
@@ -291,6 +292,35 @@ function Dashboard() {
       console.error('Erro ao iniciar debate:', err)
       setErro(t('errorTriggeringDebate') || 'Erro ao iniciar debate com a IA')
     }
+  }
+
+  const handleTerminalCommand = async (fullCommand) => {
+    const [cmd, ...args] = fullCommand.trim().split(' ')
+    const normalizedCmd = cmd.toLowerCase()
+
+    if (normalizedCmd === '/clear') {
+      clearLogs()
+      return
+    }
+
+    if (normalizedCmd === '/help') {
+      // Mock local help log
+      enviarComando('HELP_LOCAL_UI', 'Comandos: /analisar [moeda], /clear, /help')
+      return
+    }
+
+    if (normalizedCmd === '/analisar') {
+      const sigla = args[0]?.toUpperCase()
+      if (!sigla) {
+        setErro('Especifique uma moeda. Ex: /analisar BTC')
+        return
+      }
+      handleDebateTrigger(sigla)
+      return
+    }
+
+    // Default: send to backend
+    await enviarComando(cmd, args.join(' '), currentCorrelationId)
   }
 
   const filtrarIntervalo = (lista) => {
@@ -593,60 +623,13 @@ function Dashboard() {
         <ErrorMessage message={erro} onClose={() => setErro('')} />
 
         {showMonitor && (
-          <section className="agent-monitor-container">
-            <div className="agent-monitor-panel">
-              <div className="scanline"></div>
-              <div className="agent-monitor-header">
-                <div className="agent-status-badge">
-                  <div className="status-dot-pulse"></div>
-                  CORE_AGENT_LINK::SIGNALR_ACTIVE_{moedaMonitor}
-                </div>
-                <IconButton onClick={() => setShowMonitor(false)} size="small" sx={{ color: 'var(--neon-green)' }}>
-                  <MdClose />
-                </IconButton>
-              </div>
-              <div className="agent-chat-area">
-                {!currentCorrelationId ? (
-                  <div className="agent-message">
-                    <span className="agent-prefix">&gt; [SYSTEM]</span>
-                    <span className="agent-msg-content" style={{ opacity: 0.5 }}>Conectando ao núcleo analítico via HTTP...</span>
-                  </div>
-                ) : !activeDebates[currentCorrelationId] ? (
-                  <>
-                    <div className="agent-message">
-                      <span className="agent-prefix">&gt; [SYSTEM]</span>
-                      <span className="agent-msg-content" style={{ color: 'var(--color-primary)' }}>Módulo SignalR ativado. Canal neural aberto. Aguardando.</span>
-                    </div>
-                    <div className="agent-message">
-                      <span className="agent-prefix">&gt; [AEGIS]</span>
-                      <span className="agent-msg-content" style={{ fontStyle: 'italic', opacity: 0.8 }}>Reunindo o conselho para análise de {moedaMonitor}... Aguarde o veredito.</span>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="agent-message">
-                      <span className="agent-prefix">&gt; [AEGIS]</span>
-                      <span className="agent-msg-content" style={{ color: 'var(--neon-green)', fontWeight: 'bold' }}>Veredito alcançado.</span>
-                    </div>
-                    <div className="agent-message" style={{ margin: '12px 0 12px 16px', padding: '12px', background: 'rgba(255,255,255,0.03)', borderLeft: '3px solid var(--neon-green)', borderRadius: '0 8px 8px 0' }}>
-                      <span className="agent-msg-content" style={{ display: 'block', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
-                        {activeDebates[currentCorrelationId]?.VereditoAegis || activeDebates[currentCorrelationId]?.vereditoAegis || 'Nenhum veredito encontrado no pacote.'}
-                      </span>
-                    </div>
-                    <div className="agent-message">
-                      <span className="agent-prefix">&gt; [SYSTEM]</span>
-                      <span className="agent-msg-content" style={{ opacity: 0.8 }}>
-                        Recomendação Base: <strong style={{ color: (activeDebates[currentCorrelationId]?.ScoreFinal || activeDebates[currentCorrelationId]?.scoreFinal) > 0 ? '#4caf50' : '#f44336' }}>{activeDebates[currentCorrelationId]?.Acao || activeDebates[currentCorrelationId]?.acao}</strong> (Score: {Number(activeDebates[currentCorrelationId]?.ScoreFinal || activeDebates[currentCorrelationId]?.scoreFinal || 0).toFixed(2)})
-                      </span>
-                    </div>
-                  </>
-                )}
-                <div className="decor-hex">
-                  0x45 0x67 0x89 0xAB 0xCD 0xEF
-                </div>
-              </div>
-            </div>
-          </section>
+          <Terminal 
+            logs={agentLogs}
+            onCommand={handleTerminalCommand}
+            onClose={() => setShowMonitor(false)}
+            status={isConnected ? 'CONNECTED' : 'OFFLINE'}
+            title={`AGENTE_CORE_${moedaMonitor || 'GLOBAL'}`}
+          />
         )}
 
         <Box className="panel top-coins">

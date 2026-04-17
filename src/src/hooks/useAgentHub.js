@@ -7,6 +7,7 @@ export default function useAgentHub() {
   const [hubConnection, setHubConnection] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const [activeDebates, setActiveDebates] = useState({}); // correlationId -> debateData
+  const [agentLogs, setAgentLogs] = useState([]); // Array de strings ou objetos de log
   const { token } = useAuth();
   
   const connectionRef = useRef(null);
@@ -46,6 +47,11 @@ export default function useAgentHub() {
           }));
         });
 
+        connection.on('ReceberLogAgente', (log) => {
+          console.log('[SignalR] Log orbital recebido:', log);
+          setAgentLogs(prev => [...prev.slice(-49), { id: Date.now(), text: log, timestamp: new Date() }]);
+        });
+
         await connection.start();
         setIsConnected(true);
         setHubConnection(connection);
@@ -80,5 +86,28 @@ export default function useAgentHub() {
     }
   }, [hubConnection, isConnected]);
 
-  return { hubConnection, isConnected, activeDebates, inscreverDebate };
+  const enviarComando = useCallback(async (comando, payload = '', correlationId = null) => {
+    if (hubConnection && isConnected) {
+      try {
+        const cmdMsg = {
+          CorrelationId: correlationId || '00000000-0000-0000-0000-000000000000',
+          Comando: comando,
+          Payload: payload,
+          Timestamp: new Date().toISOString()
+        };
+        await hubConnection.invoke('ProcessarComandoAgente', cmdMsg);
+        return true;
+      } catch (err) {
+        console.error(`[SignalR] Erro ao enviar comando ${comando}:`, err);
+        return false;
+      }
+    }
+    return false;
+  }, [hubConnection, isConnected]);
+
+  const clearLogs = useCallback(() => {
+    setAgentLogs([]);
+  }, []);
+
+  return { hubConnection, isConnected, activeDebates, agentLogs, inscreverDebate, enviarComando, clearLogs };
 }
