@@ -5,7 +5,7 @@ import * as mathUtils from '../utils/mathUtils'
 import useCoinPrices from '../hooks/useCoinPrices'
 import { useAuth } from '../context/AuthContext'
 import useTranslation from '../hooks/useTranslation'
-import useAgentHub from '../hooks/useAgentHub'
+import useChatHub from '../hooks/useChatHub'
 import { toLocal, toLocalChartLabel, toUTCISO } from '../utils/dateUtils'
 import {
   Chart as ChartJS,
@@ -80,7 +80,7 @@ function Dashboard() {
   const { token, user: usuario, prefs } = useAuth()
   const moedasCarousel = useCoinPrices()
   const { t } = useTranslation()
-  const { activeDebates, agentLogs, inscreverDebate, enviarComando, clearLogs } = useAgentHub()
+  const { messages, enviarMensagem, clearMessages, isConnected } = useChatHub()
   const hasInitializedPref = useRef(false)
   const [dados, setDados] = useState([])
   const [erro, setErro] = useState('')
@@ -96,8 +96,8 @@ function Dashboard() {
   const [quantidade, setQuantidade] = useState(20)
   const [totalPaginas, setTotalPaginas] = useState(1)
   const [historicoMoeda, setHistoricoMoeda] = useState(null)
-  const [showMonitor, setShowMonitor] = useState(false)
-  const [moedaMonitor, setMoedaMonitor] = useState(null)
+  const [showChat, setShowChat] = useState(false)
+  const [moedaChat, setMoedaChat] = useState(null)
   const [currentCorrelationId, setCurrentCorrelationId] = useState(null)
   const [historicosPorMoeda, setHistoricosPorMoeda] = useState({}) // { BTC: [{valor, dataHora}, ...] }
   const [normalizacao, setNormalizacao] = useState('base100') // 'bruto' | 'minmax' | 'base100' | 'zscore'
@@ -266,19 +266,19 @@ function Dashboard() {
 
     const corrId = crypto.randomUUID?.() || Math.random().toString(36).substring(2, 15)
     
-    setMoedaMonitor(sigla)
-    setShowMonitor(true)
+    setMoedaChat(sigla)
+    setShowChat(true)
     setCurrentCorrelationId(corrId)
 
     try {
       // O idUsuarioTB agora é resolvido via Token no Backend (SignalR Hub)
       // por isso não precisamos mais enviá-lo pelo payload.
-      const success = await enviarComando('ANALISAR', sigla, corrId)
+      const success = await enviarMensagem(sigla, '', corrId)
       
       if (success) {
-        console.log(`Debate solicitado para ${sigla} via Hub SignalR / ID: ${corrId}`)
+        console.log(`Chat iniciado para ${sigla} via Hub SignalR / ID: ${corrId}`)
       } else {
-        throw new Error('Falha na comunicação com o Hub de Agentes')
+        throw new Error('Falha na comunicação com o Hub de Chat')
       }
     } catch (err) {
       console.error('Erro ao iniciar debate via Hub:', err)
@@ -286,33 +286,23 @@ function Dashboard() {
     }
   }
 
-  const handleTerminalCommand = async (fullCommand) => {
+  const handleChatCommand = async (fullCommand) => {
     const [cmd, ...args] = fullCommand.trim().split(' ')
     const normalizedCmd = cmd.toLowerCase()
 
     if (normalizedCmd === '/clear') {
-      clearLogs()
+      clearMessages()
       return
     }
 
     if (normalizedCmd === '/help') {
-      // Mock local help log
-      enviarComando('HELP_LOCAL_UI', 'Comandos: /analisar [moeda], /clear, /help')
+      // Feedback local
+      console.log('Comando local: /clear, /help')
       return
     }
 
-    if (normalizedCmd === '/analisar') {
-      const sigla = args[0]?.toUpperCase()
-      if (!sigla) {
-        setErro('Especifique uma moeda. Ex: /analisar BTC')
-        return
-      }
-      handleDebateTrigger(sigla)
-      return
-    }
-
-    // Default: send to backend
-    await enviarComando(cmd, args.join(' '), currentCorrelationId)
+    // Default: enviar como mensagem de chat
+    await enviarMensagem(fullCommand, args.join(' '), currentCorrelationId)
   }
 
   const filtrarIntervalo = (lista) => {
@@ -614,13 +604,13 @@ function Dashboard() {
 
         <ErrorMessage message={erro} onClose={() => setErro('')} />
 
-        {showMonitor && (
+        {showChat && (
           <Terminal 
-            logs={agentLogs}
-            onCommand={handleTerminalCommand}
-            onClose={() => setShowMonitor(false)}
+            messages={messages}
+            onCommand={handleChatCommand}
+            onClose={() => setShowChat(false)}
             status={isConnected ? 'CONNECTED' : 'OFFLINE'}
-            title={`AGENTE_CORE_${moedaMonitor || 'GLOBAL'}`}
+            title={`CHATBOT_${moedaChat || 'GLOBAL'}`}
           />
         )}
 

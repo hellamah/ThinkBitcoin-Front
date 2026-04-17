@@ -23,7 +23,6 @@ describe('utils/apiClient › Enums & Endpoints', () => {
   it('deve construir endpoints estáticos seguindo o padrão da API ThinkBitcoin', () => {
     expect(ApiEndpoint.AUTHENTICATION.LOGIN).toBe('/ThinkBitcoin/gerarTokenBearer')
     expect(ApiEndpoint.MARKET.COIN_LIST).toBe('/ThinkBitcoin/moedas')
-    expect(ApiEndpoint.MARKET.DEBATE).toBe('/ThinkBitcoin/debate')
   })
 
   it('deve gerar endpoints dinâmicos (ID/Símbolo) corretamente', () => {

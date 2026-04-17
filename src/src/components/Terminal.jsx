@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { MdClose, MdTerminal, MdFiberManualRecord } from 'react-icons/md'
 import { IconButton } from '@mui/material'
 
-const Terminal = ({ logs = [], onCommand, onClose, status = 'ACTIVE', title = 'CORE_AGENT_LINK' }) => {
+const Terminal = ({ messages = [], onCommand, onClose, status = 'ACTIVE', title = 'CHATBOT_INTERFACE' }) => {
   const [input, setInput] = useState('')
   const [history, setHistory] = useState([])
   const [historyIndex, setHistoryIndex] = useState(-1)
@@ -13,7 +13,7 @@ const Terminal = ({ logs = [], onCommand, onClose, status = 'ACTIVE', title = 'C
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
-  }, [logs])
+  }, [messages])
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
@@ -48,12 +48,19 @@ const Terminal = ({ logs = [], onCommand, onClose, status = 'ACTIVE', title = 'C
     if (inputRef.current) inputRef.current.focus()
   }
 
-  const formatLog = (log) => {
-    const text = typeof log === 'string' ? log : log.text
+  const formatMessage = (msg) => {
+    const text = typeof msg === 'string' ? msg : msg.text
+    const sender = msg.sender || 'SYSTEM'
+
+    if (sender === 'USER') return <span className="msg-user">[VOCÊ] {text}</span>
+    if (sender === 'BOT') return <span className="msg-agent">[IATB] {text}</span>
+    
+    // Fallback para logs brutos ou mensagens do sistema
     if (text.startsWith('[USER]')) return <span className="msg-user">{text}</span>
     if (text.startsWith('[SYSTEM]')) return <span className="msg-system">{text}</span>
     if (text.startsWith('[ERROR]')) return <span className="msg-error">{text}</span>
     if (text.startsWith('[AEGIS]') || text.startsWith('[AGENT]')) return <span className="msg-agent">{text}</span>
+    
     return <span>{text}</span>
   }
 
@@ -64,7 +71,7 @@ const Terminal = ({ logs = [], onCommand, onClose, status = 'ACTIVE', title = 'C
           <div className="terminal-status">
             <MdTerminal size={18} />
             <span>{title}::{status}</span>
-            <div className={`status-indicator ${status === 'ACTIVE' ? 'pulse' : ''}`}></div>
+            <div className={`status-indicator ${status === 'CONNECTED' ? 'pulse' : ''}`}></div>
           </div>
           <IconButton onClick={onClose} size="small" sx={{ color: '#00ff41' }}>
             <MdClose />
@@ -74,19 +81,19 @@ const Terminal = ({ logs = [], onCommand, onClose, status = 'ACTIVE', title = 'C
         <div className="terminal-content" ref={scrollRef}>
           <div className="terminal-line">
             <span className="prefix">&gt;</span>
-            <span className="msg-system">SISTEMA INICIALIZADO. CANAL DE COMANDO SEGURO ESTABELECIDO.</span>
+            <span className="msg-system">CONEXÃO SEGURA ESTABELECIDA COM A REDE THINKBITCOIN.</span>
           </div>
           
-          {logs.map((log, i) => (
-            <div key={log.id || i} className="terminal-line">
+          {messages.map((msg, i) => (
+            <div key={msg.id || i} className="terminal-line">
               <span className="prefix">&gt;</span>
-              {formatLog(log)}
+              {formatMessage(msg)}
             </div>
           ))}
         </div>
 
         <div className="terminal-input-area">
-          <span className="terminal-prompt">AGENTE@THINKBITCOIN:~$</span>
+          <span className="terminal-prompt">USER@TB-CHAT:~$</span>
           <input
             ref={inputRef}
             className="terminal-input"
