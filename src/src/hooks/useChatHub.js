@@ -85,10 +85,20 @@ export default function useChatHub() {
           { id: Date.now() + 1, text: texto, sender: 'USER', timestamp: new Date() }
         ]);
 
+        // Lógica para separar comando e payload
+        let comandoFinal = 'CHAT';
+        let payloadFinal = texto;
+
+        if (texto.startsWith('/') || texto.toUpperCase().startsWith('ANALISAR')) {
+          const partes = texto.trim().split(' ');
+          comandoFinal = partes[0].replace('/', '').toUpperCase();
+          payloadFinal = partes.slice(1).join(' ');
+        }
+
         const cmdMsg = {
           correlationId: (correlationId && correlationId.length === 36) ? correlationId : '00000000-0000-0000-0000-000000000000',
-          comando: 'CHAT',
-          payload: texto,
+          comando: comandoFinal,
+          payload: payloadFinal,
           timestamp: new Date().toISOString(),
           usuario: user?.idUsuarioTB || user?.id || ''
         };
