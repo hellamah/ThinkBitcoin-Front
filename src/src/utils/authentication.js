@@ -1,6 +1,7 @@
 import { apiRequest, AuthenticationEndpoint, HttpMethod } from './apiClient'
 
 export const AuthTokenClaim = Object.freeze({
+  ID: 'idUsuarioTB',
   NAME: 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name',
   EMAIL: 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress',
 })
@@ -59,6 +60,7 @@ export const decodeAuthenticationToken = (token) => {
   const payload = decodeJwtPayload(token)
   if (!payload) return null
   return {
+    idUsuarioTB: payload[AuthTokenClaim.ID] ?? payload['sub'] ?? null,
     nome: payload[AuthTokenClaim.NAME] ?? '',
     email: payload[AuthTokenClaim.EMAIL] ?? '',
   }

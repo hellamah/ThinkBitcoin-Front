@@ -10,8 +10,8 @@ export default function useChatHub() {
   const [hubConnection, setHubConnection] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const [messages, setMessages] = useState([]); // Histórico de mensagens do chat
-  const { token } = useAuth();
-  
+  const { token, user } = useAuth();
+
   const connectionRef = useRef(null);
 
   useEffect(() => {
@@ -45,7 +45,7 @@ export default function useChatHub() {
         connection.on('ReceberLogAgente', (log) => {
           console.log('[ChatHub] Mensagem recebida:', log);
           setMessages(prev => [
-            ...prev.slice(-99), 
+            ...prev.slice(-99),
             { id: Date.now(), text: log, sender: 'BOT', timestamp: new Date() }
           ]);
         });
@@ -81,18 +81,18 @@ export default function useChatHub() {
       try {
         // Logamos a mensagem do usuário localmente para feedback imediato
         setMessages(prev => [
-          ...prev, 
+          ...prev,
           { id: Date.now() + 1, text: texto, sender: 'USER', timestamp: new Date() }
         ]);
 
         const cmdMsg = {
-          CorrelationId: correlationId || '00000000-0000-0000-0000-000000000000',
-          Comando: 'CHAT', // Novo comando padrão para chat
-          Payload: texto,
-          Timestamp: new Date().toISOString()
+          correlationId: correlationId && correlationId.length === 36 ? correlationId : '00000000-0000-0000-0000-000000000000',
+          comando: 'CHAT',
+          payload: texto,
+          timestamp: new Date().toISOString(),
+          usuario: user?.idUsuarioTB ?? ''
         };
 
-        // Mantemos o invoke antigo por compatibilidade se o backend não mudou
         await hubConnection.invoke('ProcessarComandoAgente', cmdMsg);
         return true;
       } catch (err) {
@@ -107,11 +107,11 @@ export default function useChatHub() {
     setMessages([]);
   }, []);
 
-  return { 
-    hubConnection, 
-    isConnected, 
-    messages, 
-    enviarMensagem, 
-    clearMessages 
+  return {
+    hubConnection,
+    isConnected,
+    messages,
+    enviarMensagem,
+    clearMessages
   };
 }
