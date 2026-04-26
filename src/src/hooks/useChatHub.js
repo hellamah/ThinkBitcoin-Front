@@ -86,12 +86,14 @@ export default function useChatHub() {
         ]);
 
         const cmdMsg = {
-          correlationId: correlationId && correlationId.length === 36 ? correlationId : '00000000-0000-0000-0000-000000000000',
+          correlationId: (correlationId && correlationId.length === 36) ? correlationId : '00000000-0000-0000-0000-000000000000',
           comando: 'CHAT',
           payload: texto,
           timestamp: new Date().toISOString(),
-          usuario: user?.idUsuarioTB ?? ''
+          usuario: user?.idUsuarioTB || user?.id || ''
         };
+
+        console.log('[ChatHub] Enviando:', cmdMsg);
 
         await hubConnection.invoke('ProcessarComandoAgente', cmdMsg);
         return true;
