@@ -60,18 +60,15 @@ export const decodeAuthenticationToken = (token) => {
   const payload = decodeJwtPayload(token)
   if (!payload) return null
 
-  // Busca o ID do usuário tentando várias chaves comuns em tokens .NET e JWT padrão
-  const id = payload['idUsuarioTB'] ?? 
-             payload['IdUsuarioTB'] ?? 
-             payload['sub'] ?? 
-             payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'] ??
-             payload['nameid'] ??
-             null
+  // Busca o ID de forma insensível a maiúsculas/minúsculas nas chaves do payload
+  const keys = Object.keys(payload)
+  const idKey = keys.find(k => k.toLowerCase() === 'idusuariotb')
+  const id = idKey ? payload[idKey] : (payload['sub'] || payload['nameid'] || null)
 
   return {
     idUsuarioTB: id,
-    nome: payload[AuthTokenClaim.NAME] ?? payload['unique_name'] ?? '',
-    email: payload[AuthTokenClaim.EMAIL] ?? '',
+    nome: payload[AuthTokenClaim.NAME] ?? payload['unique_name'] ?? payload['name'] ?? '',
+    email: payload[AuthTokenClaim.EMAIL] ?? payload['email'] ?? '',
   }
 }
 
