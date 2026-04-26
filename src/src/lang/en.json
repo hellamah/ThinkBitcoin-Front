@@ -93,5 +93,6 @@
   "exchange": "Exchange",
   "miner": "Miner (AI Access)",
   "consultant": "Consultant (Basic Access)",
-  "copyRight": "© 2025 ThinkBitcoin. All rights reserved."
+  "copyRight": "© 2025 ThinkBitcoin. All rights reserved.",
+  "chatWithAI": "Chat with AI about {{coin}}"
 }

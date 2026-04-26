@@ -672,40 +672,47 @@ function Dashboard() {
                     boxShadow: isSelected ? '0 0 15px rgba(255, 215, 0, 0.3) !important' : 'none'
                   }}
                 >
-                  <CardActionArea
-                    className={`carousel-card-inner ${isSelected ? 'selected' : ''}`}
-                    onClick={() => selecionarMoeda(m.simbolo)}
-                    sx={{
-                      padding: '24px 16px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 1.5,
-                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                      border: isSelected ? '1px solid var(--color-primary)' : '1px solid transparent',
-                      background: isSelected ? 'rgba(255, 215, 0, 0.05)' : 'transparent',
-                      '&:hover': {
-                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                        transform: 'translateY(-4px)'
-                      }
-                    }}
-                  >
-                    <div className={`coin-icon-wrapper ${isSelected ? 'pulse' : ''}`}>
-                      <CryptoIcon simbolo={m.simbolo} />
-                    </div>
-                    <div className="carousel-info">
-                      <span className="carousel-name" style={{ fontWeight: isSelected ? 700 : 400, color: isSelected ? 'var(--color-primary)' : 'inherit' }}>
-                        {m.simbolo}
-                      </span>
-                      <span className={`carousel-price ${isUp ? 'positive' : 'negative'}`} style={{ fontSize: '0.85rem' }}>
-                        {mathUtils.formatCurrency(m.valor)}
-                      </span>
-                      <div className={`carousel-mini-var ${isUp ? 'up' : 'down'}`}>
-                        {isUp ? <MdTrendingUp /> : <MdTrendingDown />}
-                        {mathUtils.formatPercent(m.variacao, 1)}
+                    <CardActionArea
+                      className={`carousel-card-inner ${isSelected ? 'selected' : ''}`}
+                      onClick={() => selecionarMoeda(m.simbolo)}
+                      sx={{
+                        padding: '24px 16px 52px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 1.5,
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                        border: isSelected ? '1px solid var(--color-primary)' : '1px solid transparent',
+                        background: isSelected ? 'rgba(255, 215, 0, 0.05)' : 'transparent',
+                        '&:hover': {
+                          backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                          transform: 'translateY(-4px)'
+                        }
+                      }}
+                    >
+                      <div className={`coin-icon-wrapper ${isSelected ? 'pulse' : ''}`}>
+                        <CryptoIcon simbolo={m.simbolo} />
                       </div>
-                    </div>
+                      <div className="carousel-info">
+                        <span className="carousel-name" style={{ fontWeight: isSelected ? 700 : 400, color: isSelected ? 'var(--color-primary)' : 'inherit' }}>
+                          {m.simbolo}
+                        </span>
+                        <span className={`carousel-price ${isUp ? 'positive' : 'negative'}`} style={{ fontSize: '0.85rem' }}>
+                          {mathUtils.formatCurrency(m.valor)}
+                        </span>
+                        <div className={`carousel-mini-var ${isUp ? 'up' : 'down'}`}>
+                          {isUp ? <MdTrendingUp /> : <MdTrendingDown />}
+                          {mathUtils.formatPercent(m.variacao, 1)}
+                        </div>
+                      </div>
+
+                      {isSelected && (
+                        <div className="selected-indicator">
+                          <div className="dot"></div>
+                        </div>
+                      )}
+                    </CardActionArea>
 
                     <IconButton
                       className="ai-chat-btn-overlay"
@@ -713,17 +720,10 @@ function Dashboard() {
                         e.stopPropagation();
                         handleDebateTrigger(m.simbolo);
                       }}
-                      title={`Conversar com IA sobre ${m.simbolo}`}
+                      title={t('chatWithAI', { coin: m.simbolo })}
                     >
                       <MdSmartToy />
                     </IconButton>
-
-                    {isSelected && (
-                      <div className="selected-indicator">
-                        <div className="dot"></div>
-                      </div>
-                    )}
-                  </CardActionArea>
                 </Card>
               )
             })
