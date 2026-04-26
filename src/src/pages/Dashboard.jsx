@@ -273,7 +273,7 @@ function Dashboard() {
     try {
       // O idUsuarioTB agora é resolvido via Token no Backend (SignalR Hub)
       // por isso não precisamos mais enviá-lo pelo payload.
-      const success = await enviarMensagem(sigla, '', corrId)
+      const success = await enviarMensagem(`Analisar ${sigla}`, '', corrId)
       
       if (success) {
         console.log(`Chat iniciado para ${sigla} via Hub SignalR / ID: ${corrId}`)
