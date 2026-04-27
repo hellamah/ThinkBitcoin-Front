@@ -99,6 +99,10 @@ export default function useChatHub() {
     };
   }, [token]);
 
+  const clearMessages = useCallback(() => {
+    setMessages([]);
+  }, []);
+
   const enviarMensagem = useCallback(async (texto, payload = '', correlationId = null) => {
     if (!hubConnection) {
       console.warn('[ChatHub] Tentativa de enviar mensagem sem conexão criada.');
@@ -165,10 +169,6 @@ export default function useChatHub() {
       return false;
     }
   }, [hubConnection, isConnected, user, clearMessages]);
-
-  const clearMessages = useCallback(() => {
-    setMessages([]);
-  }, []);
 
   return {
     hubConnection,
