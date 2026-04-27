@@ -100,63 +100,71 @@ export default function useChatHub() {
   }, [token]);
 
   const enviarMensagem = useCallback(async (texto, payload = '', correlationId = null) => {
-    if (hubConnection && isConnected) {
-      try {
-        // Logamos a mensagem do usuário localmente para feedback imediato
-        setMessages(prev => [
-          ...prev,
-          { id: Date.now() + 1, text: texto, sender: 'USER', timestamp: new Date() }
-        ]);
-
-        // Lógica de Parsing Robusta
-        const trimmedText = texto.trim();
-        let comandoFinal = 'CHAT';
-        let payloadFinal = trimmedText;
-
-        // Identifica se é um comando (começa com # ou /)
-        if (trimmedText.startsWith('#') || trimmedText.startsWith('/')) {
-          const partes = trimmedText.split(/\s+/); // Divide por qualquer espaço em branco
-          comandoFinal = partes[0].replace(/[#/]/g, '').toUpperCase();
-          payloadFinal = partes.slice(1).join(' ').trim();
-        } 
-        // Caso especial: ANALISAR sem prefixo (retrocompatibilidade)
-        else if (trimmedText.toUpperCase().startsWith('ANALISAR')) {
-          const partes = trimmedText.split(/\s+/);
-          comandoFinal = 'ANALISAR';
-          payloadFinal = partes.slice(1).join(' ').trim();
-        }
-
-        // Comandos locais que não precisam ir para o servidor
-        if (comandoFinal === 'LIMPAR' || comandoFinal === 'CLEAR') {
-          clearMessages();
-          return true;
-        }
-
-        const cmdMsg = {
-          correlationId: (correlationId && correlationId.length === 36) ? correlationId : '00000000-0000-0000-0000-000000000000',
-          comando: comandoFinal,
-          payload: payloadFinal,
-          timestamp: new Date().toISOString(),
-          usuario: user?.idUsuarioTB || user?.id || ''
-        };
-
-        console.log(`[ChatHub] [${comandoFinal}] -> Payload: "${payloadFinal}"`);
- 
-        try {
-          // Invocando o nome exato definido no HubMethodName do servidor
-          await hubConnection.invoke('ProcessarComandoAgente', cmdMsg);
-        } catch (invokeErr) {
-          console.error('[ChatHub] Erro na invocação:', invokeErr);
-          throw invokeErr;
-        }
-        return true;
-      } catch (err) {
-        console.error('[ChatHub] Erro ao enviar mensagem:', err);
-        return false;
-      }
+    if (!hubConnection) {
+      console.warn('[ChatHub] Tentativa de enviar mensagem sem conexão criada.');
+      return false;
     }
-    return false;
-  }, [hubConnection, isConnected]);
+
+    if (!isConnected) {
+      console.warn('[ChatHub] Tentativa de enviar mensagem enquanto desconectado. Aguardando conexão...');
+      // Poderíamos implementar uma fila de espera aqui se necessário
+      return false;
+    }
+
+    try {
+      // Logamos a mensagem do usuário localmente para feedback imediato
+      setMessages(prev => [
+        ...prev,
+        { id: Date.now() + 1, text: texto, sender: 'USER', timestamp: new Date() }
+      ]);
+
+      // Lógica de Parsing Robusta
+      const trimmedText = texto.trim();
+      let comandoFinal = 'CHAT';
+      let payloadFinal = trimmedText;
+
+      // Identifica se é um comando (começa com # ou /)
+      if (trimmedText.startsWith('#') || trimmedText.startsWith('/')) {
+        const partes = trimmedText.split(/\s+/); // Divide por qualquer espaço em branco
+        comandoFinal = partes[0].replace(/[#/]/g, '').toUpperCase();
+        payloadFinal = partes.slice(1).join(' ').trim();
+      } 
+      // Caso especial: ANALISAR sem prefixo (retrocompatibilidade)
+      else if (trimmedText.toUpperCase().startsWith('ANALISAR')) {
+        const partes = trimmedText.split(/\s+/);
+        comandoFinal = 'ANALISAR';
+        payloadFinal = partes.slice(1).join(' ').trim();
+      }
+
+      // Comandos locais que não precisam ir para o servidor
+      if (comandoFinal === 'LIMPAR' || comandoFinal === 'CLEAR') {
+        clearMessages();
+        return true;
+      }
+
+      const cmdMsg = {
+        correlationId: (correlationId && correlationId.length === 36) ? correlationId : '00000000-0000-0000-0000-000000000000',
+        comando: comandoFinal,
+        payload: payloadFinal,
+        timestamp: new Date().toISOString(),
+        usuario: user?.idUsuarioTB || user?.id || ''
+      };
+
+      console.log(`[ChatHub] [${comandoFinal}] -> Enviando para o Servidor...`);
+
+      try {
+        // Invocando o nome exato definido no HubMethodName do servidor
+        await hubConnection.invoke('ProcessarComandoAgente', cmdMsg);
+        return true;
+      } catch (invokeErr) {
+        console.error('[ChatHub] Erro na invocação do método no servidor:', invokeErr);
+        throw invokeErr;
+      }
+    } catch (err) {
+      console.error('[ChatHub] Erro crítico ao processar/enviar mensagem:', err);
+      return false;
+    }
+  }, [hubConnection, isConnected, user, clearMessages]);
 
   const clearMessages = useCallback(() => {
     setMessages([]);

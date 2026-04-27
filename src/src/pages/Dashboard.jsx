@@ -276,11 +276,15 @@ function Dashboard() {
       if (success) {
         console.log(`Chat iniciado para ${sigla} via Hub SignalR / ID: ${corrId}`)
       } else {
-        throw new Error('Falha na comunicação com o Hub de Chat')
+        const motivo = !isConnected ? 'Conexão com o servidor ainda não estabelecida.' : 'Falha ao processar comando no servidor.';
+        throw new Error(motivo)
       }
     } catch (err) {
       console.error('Erro ao iniciar debate via Hub:', err)
-      setErro(t('errorTriggeringDebate') || 'Erro ao iniciar debate com a IA')
+      const msgErro = isConnected 
+        ? (t('errorTriggeringDebate') || 'Erro ao iniciar debate com a IA')
+        : 'O chat está offline ou conectando. Por favor, aguarde um momento e tente novamente.';
+      setErro(msgErro)
     }
   }
 
