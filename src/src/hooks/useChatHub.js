@@ -52,7 +52,7 @@ export default function useChatHub() {
 
         connection.on('ReceberResultadoDebate', (resultado) => {
           console.log('[ChatHub] Resultado final recebido:', resultado);
-          
+
           const textoFormatado = `⚖️ VEREDITO FINAL: ${resultado.vereditoAegis}\n\n🎯 AÇÃO SUGERIDA: ${resultado.acao.toUpperCase()}\n📈 SCORE FINAL: ${resultado.scoreFinal}`;
 
           setMessages(prev => [
