@@ -112,9 +112,11 @@ export default function useChatHub() {
         let comandoFinal = 'CHAT';
         let payloadFinal = texto;
 
-        if (texto.startsWith('/') || texto.toUpperCase().startsWith('ANALISAR')) {
+        // Suporta prefixos #, / ou o comando ANALISAR diretamente
+        if (texto.startsWith('#') || texto.startsWith('/') || texto.toUpperCase().startsWith('ANALISAR')) {
           const partes = texto.trim().split(' ');
-          comandoFinal = partes[0].replace('/', '').toUpperCase();
+          // Remove o prefixo (# ou /) se existir e coloca em uppercase
+          comandoFinal = partes[0].replace(/[#/]/g, '').toUpperCase();
           payloadFinal = partes.slice(1).join(' ');
         }
 
@@ -126,9 +128,19 @@ export default function useChatHub() {
           Usuario: user?.idUsuarioTB || user?.id || ''
         };
 
-        console.log('[ChatHub] Enviando:', cmdMsg);
-
-        await hubConnection.invoke('ProcessarComandoAgente', cmdMsg);
+        console.log('[ChatHub] Enviando para o servidor:', cmdMsg);
+ 
+        try {
+          await hubConnection.invoke('ProcessarComandoAgente', cmdMsg);
+        } catch (invokeErr) {
+          console.error('[ChatHub] Erro específico no invoke:', invokeErr);
+          if (invokeErr.message?.includes('Method does not exist')) {
+            console.warn('[ChatHub] Tentando fallback para camelCase...');
+            await hubConnection.invoke('processarComandoAgente', cmdMsg);
+          } else {
+            throw invokeErr;
+          }
+        }
         return true;
       } catch (err) {
         console.error('[ChatHub] Erro ao enviar mensagem:', err);
