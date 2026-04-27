@@ -133,11 +133,11 @@ export default function useChatHub() {
         }
 
         const cmdMsg = {
-          CorrelationId: (correlationId && correlationId.length === 36) ? correlationId : '00000000-0000-0000-0000-000000000000',
-          Comando: comandoFinal,
-          Payload: payloadFinal,
-          Timestamp: new Date().toISOString(),
-          Usuario: user?.idUsuarioTB || user?.id || ''
+          correlationId: (correlationId && correlationId.length === 36) ? correlationId : '00000000-0000-0000-0000-000000000000',
+          comando: comandoFinal,
+          payload: payloadFinal,
+          timestamp: new Date().toISOString(),
+          usuario: user?.idUsuarioTB || user?.id || ''
         };
 
         console.log(`[ChatHub] [${comandoFinal}] -> Payload: "${payloadFinal}"`);
