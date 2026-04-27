@@ -44,9 +44,19 @@ export default function useChatHub() {
         // O backend ainda usa os nomes "Agente" e "Debate", mas tratamos como Chat aqui.
         connection.on('ReceberLogAgente', (log) => {
           console.log('[ChatHub] Mensagem recebida:', log);
+          
+          // Identifica se é uma mensagem de status/sistema (transiente)
+          const isStatus = log.includes('[SYSTEM]') || log.includes('Executando:');
+          
           setMessages(prev => [
             ...prev.slice(-99),
-            { id: Date.now(), text: log, sender: 'BOT', timestamp: new Date() }
+            { 
+              id: Date.now(), 
+              text: log, 
+              sender: 'BOT', 
+              timestamp: new Date(),
+              isStatus 
+            }
           ]);
         });
 
@@ -57,7 +67,14 @@ export default function useChatHub() {
 
           setMessages(prev => [
             ...prev,
-            { id: Date.now(), text: textoFormatado, sender: 'BOT', timestamp: new Date(), isResult: true }
+            { 
+              id: Date.now(), 
+              text: textoFormatado, 
+              sender: 'BOT', 
+              timestamp: new Date(), 
+              isResult: true,
+              rawResult: resultado // Guardamos o objeto original para formatação rica no Terminal
+            }
           ]);
         });
 

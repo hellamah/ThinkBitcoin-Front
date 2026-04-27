@@ -9,11 +9,14 @@ const Terminal = ({ messages = [], onCommand, onClose, status = 'ACTIVE', title 
   const scrollRef = useRef(null)
   const inputRef = useRef(null)
 
+  const chatHistory = messages.filter(msg => !msg.isStatus)
+  const currentStatus = messages.filter(msg => msg.isStatus).pop()
+
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
-  }, [messages])
+  }, [chatHistory])
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
@@ -51,15 +54,50 @@ const Terminal = ({ messages = [], onCommand, onClose, status = 'ACTIVE', title 
   const formatMessage = (msg) => {
     const text = typeof msg === 'string' ? msg : msg.text
     const sender = msg.sender || 'SYSTEM'
+    const isResult = msg.isResult
+
+    if (isResult && msg.rawResult) {
+      const res = msg.rawResult;
+      const acao = res.acao?.toUpperCase() || 'HOLD';
+      const colorClass = acao === 'BUY' ? 'positive' : acao === 'SELL' ? 'negative' : 'neutral';
+      
+      return (
+        <div className={`result-card ${colorClass}`}>
+          <div className="result-header">
+            <MdFiberManualRecord className="blink" />
+            <span>RELATÓRIO DE ANÁLISE CONCLUÍDO</span>
+          </div>
+          <div className="result-body">
+            <div className="result-row">
+              <span className="label">VEREDITO:</span>
+              <span className="value">{res.vereditoAegis}</span>
+            </div>
+            <div className="result-main">
+              <div className="action-box">
+                <span className="action-label">AÇÃO SUGERIDA</span>
+                <span className="action-value">{acao}</span>
+              </div>
+              <div className="score-box">
+                <span className="score-label">SCORE</span>
+                <span className="score-value">{res.scoreFinal}</span>
+              </div>
+            </div>
+          </div>
+          <div className="result-footer">
+            TIMESTAMP: {new Date(msg.timestamp).toLocaleTimeString()}
+          </div>
+        </div>
+      )
+    }
 
     if (sender === 'USER') return <span className="msg-user">[VOCÊ] {text}</span>
-    if (sender === 'BOT') return <span className="msg-agent">[IATB] {text}</span>
-    
-    // Fallback para logs brutos ou mensagens do sistema
-    if (text.startsWith('[USER]')) return <span className="msg-user">{text}</span>
-    if (text.startsWith('[SYSTEM]')) return <span className="msg-system">{text}</span>
-    if (text.startsWith('[ERROR]')) return <span className="msg-error">{text}</span>
-    if (text.startsWith('[AEGIS]') || text.startsWith('[AGENT]')) return <span className="msg-agent">{text}</span>
+    if (sender === 'BOT') {
+      let displayMsg = text;
+      if (text.startsWith('[USER] Executando:')) return <span className="msg-system-alt">{text}</span>
+      if (text.startsWith('[SYSTEM]')) return <span className="msg-system">{text}</span>
+      
+      return <span className="msg-agent">[IATB] {displayMsg}</span>
+    }
     
     return <span>{text}</span>
   }
@@ -84,12 +122,20 @@ const Terminal = ({ messages = [], onCommand, onClose, status = 'ACTIVE', title 
             <span className="msg-system">CONEXÃO SEGURA ESTABELECIDA COM A REDE THINKBITCOIN.</span>
           </div>
           
-          {messages.map((msg, i) => (
+          {chatHistory.map((msg, i) => (
             <div key={msg.id || i} className="terminal-line">
-              <span className="prefix">&gt;</span>
+              {msg.sender === 'USER' && <span className="prefix">&gt;</span>}
               {formatMessage(msg)}
             </div>
           ))}
+
+          {currentStatus && (
+            <div className="terminal-status-bar">
+              <span className="status-label">STATUS:</span>
+              <span className="status-text">{currentStatus.text.replace('[SYSTEM]', '').trim()}</span>
+              <span className="status-dots">...</span>
+            </div>
+          )}
         </div>
 
         <div className="terminal-input-area">
