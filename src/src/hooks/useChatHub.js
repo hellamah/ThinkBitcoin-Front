@@ -108,16 +108,28 @@ export default function useChatHub() {
           { id: Date.now() + 1, text: texto, sender: 'USER', timestamp: new Date() }
         ]);
 
-        // Lógica para separar comando e payload
+        // Lógica de Parsing Robusta
+        const trimmedText = texto.trim();
         let comandoFinal = 'CHAT';
-        let payloadFinal = texto;
+        let payloadFinal = trimmedText;
 
-        // Suporta prefixos #, / ou o comando ANALISAR diretamente
-        if (texto.startsWith('#') || texto.startsWith('/') || texto.toUpperCase().startsWith('ANALISAR')) {
-          const partes = texto.trim().split(' ');
-          // Remove o prefixo (# ou /) se existir e coloca em uppercase
+        // Identifica se é um comando (começa com # ou /)
+        if (trimmedText.startsWith('#') || trimmedText.startsWith('/')) {
+          const partes = trimmedText.split(/\s+/); // Divide por qualquer espaço em branco
           comandoFinal = partes[0].replace(/[#/]/g, '').toUpperCase();
-          payloadFinal = partes.slice(1).join(' ');
+          payloadFinal = partes.slice(1).join(' ').trim();
+        } 
+        // Caso especial: ANALISAR sem prefixo (retrocompatibilidade)
+        else if (trimmedText.toUpperCase().startsWith('ANALISAR')) {
+          const partes = trimmedText.split(/\s+/);
+          comandoFinal = 'ANALISAR';
+          payloadFinal = partes.slice(1).join(' ').trim();
+        }
+
+        // Comandos locais que não precisam ir para o servidor
+        if (comandoFinal === 'LIMPAR' || comandoFinal === 'CLEAR') {
+          clearMessages();
+          return true;
         }
 
         const cmdMsg = {
@@ -128,18 +140,14 @@ export default function useChatHub() {
           Usuario: user?.idUsuarioTB || user?.id || ''
         };
 
-        console.log('[ChatHub] Enviando para o servidor:', cmdMsg);
+        console.log(`[ChatHub] [${comandoFinal}] -> Payload: "${payloadFinal}"`);
  
         try {
+          // Invocando o nome exato definido no HubMethodName do servidor
           await hubConnection.invoke('ProcessarComandoAgente', cmdMsg);
         } catch (invokeErr) {
-          console.error('[ChatHub] Erro específico no invoke:', invokeErr);
-          if (invokeErr.message?.includes('Method does not exist')) {
-            console.warn('[ChatHub] Tentando fallback para camelCase...');
-            await hubConnection.invoke('processarComandoAgente', cmdMsg);
-          } else {
-            throw invokeErr;
-          }
+          console.error('[ChatHub] Erro na invocação:', invokeErr);
+          throw invokeErr;
         }
         return true;
       } catch (err) {

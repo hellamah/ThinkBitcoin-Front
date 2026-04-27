@@ -252,7 +252,7 @@ function Dashboard() {
         return [...prev, simbolo]
       }
     })
-    
+
     // Reset da Hierarquia de Filtros (Nível 1 -> Todos os inferiores)
     setPagina(1)
     setDataInicio('')
@@ -265,16 +265,14 @@ function Dashboard() {
     if (!token) return
 
     const corrId = crypto.randomUUID?.() || Math.random().toString(36).substring(2, 15)
-    
+
     setMoedaChat(sigla)
     setShowChat(true)
     setCurrentCorrelationId(corrId)
 
     try {
-      // O idUsuarioTB agora é resolvido via Token no Backend (SignalR Hub)
-      // por isso não precisamos mais enviá-lo pelo payload.
-      const success = await enviarMensagem(`Analisar ${sigla}`, '', corrId)
-      
+      const success = await enviarMensagem(`#analisar ${sigla}`, '', corrId)
+
       if (success) {
         console.log(`Chat iniciado para ${sigla} via Hub SignalR / ID: ${corrId}`)
       } else {
@@ -287,22 +285,8 @@ function Dashboard() {
   }
 
   const handleChatCommand = async (fullCommand) => {
-    const [cmd, ...args] = fullCommand.trim().split(' ')
-    const normalizedCmd = cmd.toLowerCase()
-
-    if (normalizedCmd === '/clear') {
-      clearMessages()
-      return
-    }
-
-    if (normalizedCmd === '/help') {
-      // Feedback local
-      console.log('Comando local: /clear, /help')
-      return
-    }
-
-    // Default: enviar como mensagem de chat
-    await enviarMensagem(fullCommand, args.join(' '), currentCorrelationId)
+    // Agora o useChatHub cuida de todo o parsing de comandos locais e remotos
+    await enviarMensagem(fullCommand, '', currentCorrelationId)
   }
 
   const filtrarIntervalo = (lista) => {
@@ -397,7 +381,7 @@ function Dashboard() {
         borderColor: cor,
         backgroundColor: (context) => {
           const chart = context.chart;
-          const {ctx, chartArea} = chart;
+          const { ctx, chartArea } = chart;
           if (!chartArea) return null;
           const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
           gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
@@ -431,7 +415,7 @@ function Dashboard() {
         borderColor: cor,
         backgroundColor: (context) => {
           const chart = context.chart;
-          const {ctx, chartArea} = chart;
+          const { ctx, chartArea } = chart;
           if (!chartArea) return null;
           const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
           gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
@@ -468,7 +452,7 @@ function Dashboard() {
       }
     },
     scales: {
-      x: { 
+      x: {
         display: true,
         grid: { display: false },
         ticks: { color: '#666', font: { size: 10 } }
@@ -605,7 +589,7 @@ function Dashboard() {
         <ErrorMessage message={erro} onClose={() => setErro('')} />
 
         {showChat && (
-          <Terminal 
+          <Terminal
             messages={messages}
             onCommand={handleChatCommand}
             onClose={() => setShowChat(false)}
@@ -672,58 +656,58 @@ function Dashboard() {
                     boxShadow: isSelected ? '0 0 15px rgba(255, 215, 0, 0.3) !important' : 'none'
                   }}
                 >
-                    <CardActionArea
-                      className={`carousel-card-inner ${isSelected ? 'selected' : ''}`}
-                      onClick={() => selecionarMoeda(m.simbolo)}
-                      sx={{
-                        padding: '24px 16px 52px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 1.5,
-                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                        border: isSelected ? '1px solid var(--color-primary)' : '1px solid transparent',
-                        background: isSelected ? 'rgba(255, 215, 0, 0.05)' : 'transparent',
-                        '&:hover': {
-                          backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                          transform: 'translateY(-4px)'
-                        }
-                      }}
-                    >
-                      <div className={`coin-icon-wrapper ${isSelected ? 'pulse' : ''}`}>
-                        <CryptoIcon simbolo={m.simbolo} />
+                  <CardActionArea
+                    className={`carousel-card-inner ${isSelected ? 'selected' : ''}`}
+                    onClick={() => selecionarMoeda(m.simbolo)}
+                    sx={{
+                      padding: '24px 16px 52px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 1.5,
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      border: isSelected ? '1px solid var(--color-primary)' : '1px solid transparent',
+                      background: isSelected ? 'rgba(255, 215, 0, 0.05)' : 'transparent',
+                      '&:hover': {
+                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                        transform: 'translateY(-4px)'
+                      }
+                    }}
+                  >
+                    <div className={`coin-icon-wrapper ${isSelected ? 'pulse' : ''}`}>
+                      <CryptoIcon simbolo={m.simbolo} />
+                    </div>
+                    <div className="carousel-info">
+                      <span className="carousel-name" style={{ fontWeight: isSelected ? 700 : 400, color: isSelected ? 'var(--color-primary)' : 'inherit' }}>
+                        {m.simbolo}
+                      </span>
+                      <span className={`carousel-price ${isUp ? 'positive' : 'negative'}`} style={{ fontSize: '0.85rem' }}>
+                        {mathUtils.formatCurrency(m.valor)}
+                      </span>
+                      <div className={`carousel-mini-var ${isUp ? 'up' : 'down'}`}>
+                        {isUp ? <MdTrendingUp /> : <MdTrendingDown />}
+                        {mathUtils.formatPercent(m.variacao, 1)}
                       </div>
-                      <div className="carousel-info">
-                        <span className="carousel-name" style={{ fontWeight: isSelected ? 700 : 400, color: isSelected ? 'var(--color-primary)' : 'inherit' }}>
-                          {m.simbolo}
-                        </span>
-                        <span className={`carousel-price ${isUp ? 'positive' : 'negative'}`} style={{ fontSize: '0.85rem' }}>
-                          {mathUtils.formatCurrency(m.valor)}
-                        </span>
-                        <div className={`carousel-mini-var ${isUp ? 'up' : 'down'}`}>
-                          {isUp ? <MdTrendingUp /> : <MdTrendingDown />}
-                          {mathUtils.formatPercent(m.variacao, 1)}
-                        </div>
+                    </div>
+
+                    {isSelected && (
+                      <div className="selected-indicator">
+                        <div className="dot"></div>
                       </div>
+                    )}
+                  </CardActionArea>
 
-                      {isSelected && (
-                        <div className="selected-indicator">
-                          <div className="dot"></div>
-                        </div>
-                      )}
-                    </CardActionArea>
-
-                    <IconButton
-                      className="ai-chat-btn-overlay"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDebateTrigger(m.simbolo);
-                      }}
-                      title={t('chatWithAI', { coin: m.simbolo })}
-                    >
-                      <MdSmartToy />
-                    </IconButton>
+                  <IconButton
+                    className="ai-chat-btn-overlay"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDebateTrigger(m.simbolo);
+                    }}
+                    title={t('chatWithAI', { coin: m.simbolo })}
+                  >
+                    <MdSmartToy />
+                  </IconButton>
                 </Card>
               )
             })
@@ -813,7 +797,7 @@ function Dashboard() {
                     onClick={() => {
                       const agora = new Date()
                       let inicioDate
-                      
+
                       if (opt === '24h') {
                         inicioDate = subDays(agora, 1)
                       } else if (opt === '7d') {
@@ -823,14 +807,14 @@ function Dashboard() {
                       } else {
                         inicioDate = agora
                       }
-                      
+
                       const formattedInicio = inicioDate.toISOString()
                       const formattedFim = agora.toISOString()
-                      
+
                       setDataInicio(formattedInicio)
                       setDataFim(formattedFim)
                       setIntervalo(opt)
-                      
+
                       // Reset da Hierarquia de Filtros (Nível 2 -> Todos os inferiores)
                       setPagina(1)
                       setQuantidade(100)
@@ -928,9 +912,9 @@ function Dashboard() {
                       const dVar = r.precoPercentualVariacao ?? r.PrecoPercentualVariacao ?? r.variacaoPercentual ?? r.VariacaoPercentual ?? r.variacao ?? r.Variacao ?? 0
                       const isUp = dVar >= 0
                       return (
-                        <TableRow 
+                        <TableRow
                           key={idx}
-                          sx={{ 
+                          sx={{
                             '&:hover': { background: 'rgba(255,255,255,0.02)' },
                             '& td': { borderBottom: '1px solid rgba(255,255,255,0.03)', py: 1.5 }
                           }}
