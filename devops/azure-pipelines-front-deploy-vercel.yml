@@ -2,6 +2,8 @@ trigger:
   - Desenv
   - Prod
 
+name: $(Build.BuildId)
+
 pr:
   - Desenv
   - Prod
