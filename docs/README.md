@@ -63,7 +63,7 @@ Se quiser customizar, crie um arquivo `.env` dentro da pasta `src/`.
 Exemplo:
 
 ```bash
-VITE_API_URL=http://localhost:13500
+VITE_API_URL=https://minerthinkbitcoin.com
 VITE_USE_MOCK=true
 ```
 
@@ -111,30 +111,29 @@ Foi adicionado o arquivo `src/.vscode/launch.json` com configurações prontas p
 > Dica: para essas configurações funcionarem sem ajustes, abra no VS Code a pasta `ThinkBitcoin-Front/src` (a que contém o `package.json`) e use a aba **Run and Debug** para selecionar uma configuração.
 
 ## DevOps
-A estrutura `devops/` segue o padrão do backend e está organizada com as mesmas camadas:
 
-- `devops/deploy`: automação de deploy local e Kubernetes.
-  - `docker-compose.yml`
-  - `docker_deploy.ps1`
-  - `helm_deploy.ps1`
-- `devops/helm`: chart Helm (`thinkbitcoin-front`) para Kubernetes.
-- `devops/infra`: scripts operacionais.
-  - `create_secret.ps1`
-  - `cleanup_old_logs.ps1`
+O projeto utiliza um fluxo de entrega contínua baseado em **Azure Pipelines** e **Vercel**.
 
-Também foram adicionados workflows no GitHub Actions seguindo o fluxo padrão de validação, entrega contínua e release:
+- **Hospedagem:** [Vercel](https://vercel.com) (Frontend).
+- **Pipeline de CI/CD:** [Azure Pipelines](https://azure.microsoft.com/en-us/products/devops/pipelines/) (localizado em `devops/azure-pipelines.yml`).
+- **Domínio:** `minerthinkbitcoin.com` (integrado à Vercel).
 
-- `.github/workflows/ci.yml`: valida integração contínua com `npm ci`, `npm test`, `npm run build` e `docker build` em `push` e `pull_request` para `main` e `develop`.
-- `.github/workflows/cd.yml`: publica a imagem Docker no GHCR em `push` para `main` (e também permite execução manual por `workflow_dispatch`).
-- `.github/workflows/release.yml`: em tags `v*.*.*` (ou manualmente), executa `npm ci`, `npm test`, `npm run build`, publica imagem Docker no GHCR com tags de release e cria a release no GitHub com notas automáticas.
+### Fluxo de Deploy
+1. Push para `develop` -> Deploy de Preview na Vercel.
+2. Merge para `main` -> Deploy de Produção em `minerthinkbitcoin.com`.
 
-Para build/push de imagem, o pipeline oficial está no Azure DevOps em `devops/azure-pipelines-front-build-image.yml`, com gatilhos em PR e também em merge (`push`) para `desenv` e `prod`.
+### Estrutura devops/
+Além do pipeline da Vercel, a pasta `devops/` contém recursos para deploy em containers:
+- `devops/deploy`: scripts para Docker e Kubernetes (Minikube).
+- `devops/helm`: charts para deploy no K8s local.
+- `devops/azure-pipelines-front-build-image.yml`: pipeline legado para build de imagens Docker.
 
-Esse pipeline publica o artefato `front-meta` (artefato oficial do frontend).
-
-### Variáveis e segredos esperados
-- `vars.VITE_API_URL`: URL da API usada no build da imagem.
-- `secrets.GITHUB_TOKEN`: token padrão do GitHub Actions para publicar no GHCR.
+### Variáveis (Variable Group: `thinkbitcoin-secrets`)
+Para o pipeline funcionar, as seguintes variáveis devem estar no Azure DevOps:
+- `VERCEL_TOKEN`: Token de acesso à API da Vercel.
+- `VERCEL_ORG_ID`: ID da Organização/Time na Vercel.
+- `VERCEL_PROJECT_ID`: ID do Projeto na Vercel.
+- `PROD_API_URL`: `https://minerthinkbitcoin.com` (URL do seu backend).
 
 ## Testes
 ```bash
@@ -144,4 +143,4 @@ npm test
 Os testes utilizam o Vitest e são executados em modo *headless*.
 
 ## Contribuição
-As diretrizes oficiais de contribuição (setup local, estratégia de branches, convenções e fluxo de PR) estão em [`../CONTRIBUTING.md`](../CONTRIBUTING.md).
+As diretrizes oficiais de contribuição estão em [`./CONTRIBUTING.md`](./CONTRIBUTING.md).

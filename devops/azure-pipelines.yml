@@ -1,0 +1,39 @@
+trigger:
+  - main
+  - develop
+
+variables:
+  # O grupo de variáveis 'vercel-credentials' deve ser criado no painel do Azure DevOps
+  # com as chaves: VERCEL_TOKEN, VERCEL_PROJECT_ID, VERCEL_ORG_ID
+  - group: thinkbitcoin-secrets
+
+jobs:
+- job: DeployVercel
+  displayName: 'Deploy to Vercel'
+  pool:
+    vmImage: 'ubuntu-latest'
+  
+  steps:
+  - task: NodeTool@0
+    inputs:
+      versionSpec: '18.x'
+    displayName: 'Install Node.js'
+
+  - script: npm install
+    workingDirectory: 'src'
+    displayName: 'Install Dependencies'
+
+  - script: |
+      npm install -g vercel
+      cd src
+      if [ "$(Build.SourceBranch)" == "refs/heads/main" ]; then
+        echo "Deploying to Production..."
+        vercel --token $(VERCEL_TOKEN) --prod --yes --env VITE_API_URL=$(PROD_API_URL)
+      else
+        echo "Deploying Preview..."
+        vercel --token $(VERCEL_TOKEN) --yes --env VITE_API_URL=$(DEV_API_URL)
+      fi
+    displayName: 'Vercel Deploy'
+    env:
+      VERCEL_ORG_ID: $(VERCEL_ORG_ID)
+      VERCEL_PROJECT_ID: $(VERCEL_PROJECT_ID)
