@@ -45,3 +45,14 @@ jobs:
     env:
       VERCEL_ORG_ID: $(VERCEL_ORG_ID)
       VERCEL_PROJECT_ID: $(VERCEL_PROJECT_ID)
+
+  - task: PowerShell@2
+    displayName: 'Sync No-IP DUC (Minikube)'
+    inputs:
+      targetType: 'inline'
+      script: |
+        Write-Host "Syncing No-IP Credentials..."
+        kubectl create secret opaque noip-credentials --from-literal=username=$(NOIP_EMAIL) --from-literal=password=$(NOIP_PASSWORD) -n thinkbitcoin --dry-run=client -o yaml | kubectl apply -f -
+        
+        Write-Host "Applying No-IP DUC Deployment..."
+        kubectl apply -f devops/deploy/noip-duc.yaml
