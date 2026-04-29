@@ -27,17 +27,21 @@ jobs:
     workingDirectory: 'src'
     displayName: 'Install Dependencies'
 
-  - script: |
-      npm install -g vercel
-      cd src
-      if [ "$(Build.SourceBranch)" == "refs/heads/Prod" ]; then
-        echo "Deploying to Production..."
-        vercel --token $(VERCEL_TOKEN) --prod --yes --env VITE_API_URL=$(PROD_API_URL)
-      else
-        echo "Deploying Preview..."
-        vercel --token $(VERCEL_TOKEN) --yes --env VITE_API_URL=$(DEV_API_URL)
-      fi
+  - task: PowerShell@2
     displayName: 'Vercel Deploy'
+    inputs:
+      targetType: 'inline'
+      script: |
+        npm install -g vercel
+        cd src
+        if ("$(Build.SourceBranch)" -eq "refs/heads/Prod") {
+            Write-Host "Deploying to Production..."
+            vercel --token $(VERCEL_TOKEN) --prod --yes --env VITE_API_URL=$(PROD_API_URL)
+        }
+        else {
+            Write-Host "Deploying Preview..."
+            vercel --token $(VERCEL_TOKEN) --yes --env VITE_API_URL=$(DEV_API_URL)
+        }
     env:
       VERCEL_ORG_ID: $(VERCEL_ORG_ID)
       VERCEL_PROJECT_ID: $(VERCEL_PROJECT_ID)
