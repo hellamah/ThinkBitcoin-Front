@@ -115,7 +115,7 @@ Foi adicionado o arquivo `src/.vscode/launch.json` com configurações prontas p
 O projeto utiliza um fluxo de entrega contínua baseado em **Azure Pipelines** e **Vercel**.
 
 - **Hospedagem:** [Vercel](https://vercel.com) (Frontend).
-- **Pipeline de CI/CD:** [Azure Pipelines](https://azure.microsoft.com/en-us/products/devops/pipelines/) (localizado em `devops/azure-pipelines.yml`).
+- **Pipeline de CI/CD:** [Azure Pipelines](https://azure.microsoft.com/en-us/products/devops/pipelines/) (localizado em `devops/azure-pipelines-front-deploy-vercel.yml`).
 - **Domínio:** `minerthinkbitcoin.com` (integrado à Vercel).
 
 ### Fluxo de Deploy

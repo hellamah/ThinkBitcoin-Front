@@ -55,7 +55,7 @@ Para que o tráfego externo chegue ao seu serviço dentro do Kubernetes local:
 
 ## 4. Pipeline de CI/CD (Azure DevOps)
 
-Localizado em `devops/azure-pipelines.yml`, o pipeline automatiza o deploy para a Vercel.
+Localizado em `devops/azure-pipelines-front-deploy-vercel.yml`, o pipeline automatiza o deploy para a Vercel.
 
 ### Variáveis Necessárias (Variable Group: `thinkbitcoin-secrets`)
 

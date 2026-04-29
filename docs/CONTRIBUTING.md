@@ -66,6 +66,6 @@ Somente promova `develop` para `main` após validações de release.
 ## 6) DevOps e Deploy
 
 O projeto utiliza **Azure Pipelines** para automação e **Vercel** para hospedagem.
-- O arquivo de configuração do pipeline está em `devops/azure-pipelines.yml`.
+- O arquivo de configuração do pipeline está em `devops/azure-pipelines-front-deploy-vercel.yml`.
 - Segredos e variáveis de ambiente são gerenciados no Variable Group `thinkbitcoin-secrets` no Azure DevOps.
 - Para detalhes técnicos de rede e DNS (No-IP/Minikube), consulte o [DEPLOYMENT.md](./DEPLOYMENT.md).
