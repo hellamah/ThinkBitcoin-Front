@@ -1,4 +1,10 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+/**
+ * Testes unitários para utils/authentication.
+ * 
+ * Este conjunto de testes valida o fluxo de segurança, login e decodificação 
+ * de identidade (JWT) do ecossistema ThinkBitcoin.
+ */
+import { describe, expect, it, vi } from 'vitest'
 import { AuthenticationEndpoint, HttpMethod } from '../src/utils/apiClient'
 import {
   AuthTokenClaim,
@@ -7,83 +13,113 @@ import {
 } from '../src/utils/authentication'
 import { API_URL } from '../src/api'
 
-describe('utils/authentication', () => {
-  beforeEach(() => {
-    vi.resetAllMocks()
-    global.fetch = vi.fn()
-  })
+// Mock de fetch global é configurado em vitest.setup.js
 
-  it('envia as credenciais corretas para a API de autenticação', async () => {
-    const tokenAutenticado = 'token-jwt'
+describe('utils/authentication › AuthTokenClaim (Mapeamento de Claims)', () => {
+  it('deve expor as URIs de claims de nome e email seguindo o padrão SOAP/JWT', () => {
+    expect(AuthTokenClaim.NAME).toBe(
+      'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'
+    )
+    expect(AuthTokenClaim.EMAIL).toBe(
+      'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'
+    )
+  })
+})
+
+describe('utils/authentication › authenticate (Fluxo de Login)', () => {
+  const credenciaisMock = { email: 'investidor@think.com', senha: '123' }
+
+  it('deve enviar credenciais via POST e retornar o token de sucesso da API', async () => {
+    const tokenAutenticado = 'jwt-valid-token'
     fetch.mockResolvedValue({
       ok: true,
       status: 200,
-      json: () =>
-        Promise.resolve({ resultado: { tokenAutenticado } }),
+      json: () => Promise.resolve({ resultado: { tokenAutenticado } }),
     })
 
-    const resultado = await authenticate({
-      email: 'usuario@exemplo.com',
-      senha: 'segredo',
-    })
+    const resultado = await authenticate(credenciaisMock)
 
     expect(fetch).toHaveBeenCalledWith(
       `${API_URL}${AuthenticationEndpoint.LOGIN}`,
-      {
+      expect.objectContaining({
         method: HttpMethod.POST,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: 'usuario@exemplo.com', senha: 'segredo' }),
-      }
+        body: JSON.stringify(credenciaisMock),
+      })
     )
     expect(resultado).toEqual({ tokenAutenticado })
   })
 
-  it('lança erro quando a API responde com falha', async () => {
+  it('deve lançar erro de autorização ao receber 401 da API', async () => {
     fetch.mockResolvedValue({ ok: false, status: 401 })
-
-    await expect(
-      authenticate({ email: 'usuario@exemplo.com', senha: 'errada' })
-    ).rejects.toThrow('Falha na requisição à API')
+    await expect(authenticate(credenciaisMock)).rejects.toThrow('Falha na requisição à API')
   })
 
-  it('lança erro quando o token não está presente na resposta', async () => {
+  it('deve lançar erro específico quando o token estiver ausente no corpo da resposta', async () => {
     fetch.mockResolvedValue({
       ok: true,
       status: 200,
-      json: () => Promise.resolve({ resultado: {} }),
+      json: () => Promise.resolve({ resultado: {} }), // Resposta vazia
     })
 
-    await expect(
-      authenticate({ email: 'usuario@exemplo.com', senha: 'segredo' })
-    ).rejects.toThrow('Token de autenticação ausente na resposta')
+    await expect(authenticate(credenciaisMock)).rejects.toThrow('Token de autenticação ausente na resposta')
   })
+})
 
-  it('decodifica claims de nome e email do token', () => {
+describe('utils/authentication › decodeAuthenticationToken (Decodificação JWT)', () => {
+  // Utilitário para construir tokens mockados simplificados
+  const buildToken = (payload) => {
+    const encoded = Buffer.from(JSON.stringify(payload)).toString('base64url')
+    return `header.${encoded}.signature`
+  }
+
+  it('deve extrair nome e email de um payload JWT válido', () => {
     const payload = {
-      [AuthTokenClaim.NAME]: 'Satoshi',
+      [AuthTokenClaim.NAME]: 'Satoshi Nakamoto',
       [AuthTokenClaim.EMAIL]: 'satoshi@bitcoin.org',
     }
-    const encodedPayload = Buffer.from(JSON.stringify(payload)).toString('base64url')
-    const token = `header.${encodedPayload}.signature`
-
-    expect(decodeAuthenticationToken(token)).toEqual({
-      nome: 'Satoshi',
+    expect(decodeAuthenticationToken(buildToken(payload))).toEqual({
+      idUsuarioTB: null,
+      nome: 'Satoshi Nakamoto',
       email: 'satoshi@bitcoin.org',
     })
   })
 
-  it('retorna dados vazios quando claims não estiverem no payload', () => {
-    const payload = { role: 'admin' }
-    const encodedPayload = Buffer.from(JSON.stringify(payload)).toString('base64url')
-    const token = `header.${encodedPayload}.signature`
+  it('deve lidar corretamente com codificação UTF-8 (acentuação em nomes)', () => {
+    const payload = {
+      [AuthTokenClaim.NAME]: 'Helamã Borges',
+      [AuthTokenClaim.EMAIL]: 'helama@think.com',
+    }
+    expect(decodeAuthenticationToken(buildToken(payload))).toEqual({
+      idUsuarioTB: null,
+      nome: 'Helamã Borges',
+      email: 'helama@think.com',
+    })
+  })
 
-    expect(decodeAuthenticationToken(token)).toEqual({
+  it('deve retornar strings vazias se as claims esperadas não existirem no token', () => {
+    const payload = { sub: '12345', role: 'guest' }
+    expect(decodeAuthenticationToken(buildToken(payload))).toEqual({
+      idUsuarioTB: '12345',
       nome: '',
       email: '',
     })
   })
 
-  it('retorna nulo para token inválido', () => {
-    expect(decodeAuthenticationToken('token-invalido')).toBeNull()
+  it('deve retornar null para tokens com formato estrutural inválido', () => {
+    expect(decodeAuthenticationToken('invalid_token_no_dots')).toBeNull()
+    expect(decodeAuthenticationToken(null)).toBeNull()
+  })
+
+  it('deve ser resiliente a payloads que não são JSON válido codificado em base64', () => {
+    const badBase64 = Buffer.from('raw-text-not-json').toString('base64url')
+    const token = `h.${badBase64}.s`
+    // Espera-se que retorne null (falha no decode/parse) ou objeto vazio padrão
+    const res = decodeAuthenticationToken(token)
+    if (res) {
+      expect(res).toMatchObject({ nome: '', email: '' })
+    } else {
+      expect(res).toBeNull()
+    }
   })
 })

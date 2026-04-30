@@ -1,4 +1,5 @@
 import { API_URL } from '../api'
+import { getMockResponse, USE_MOCK_API } from './mockApi'
 
 export const HttpMethod = Object.freeze({
   GET: 'GET',
@@ -9,11 +10,28 @@ export const HttpMethod = Object.freeze({
 
 export const ApiEndpoint = Object.freeze({
   AUTHENTICATION: Object.freeze({
-    LOGIN: '/ThinkBitcoin/gerarTokenBearer/',
+    LOGIN: '/ThinkBitcoin/gerarTokenBearer',
   }),
   USER: Object.freeze({
-    ME: '/ThinkBitcoin/me',
-    UPDATE_PREFERENCES: '/ThinkBitcoin/usuariosTB/atualizarPreferencias',
+    ME: (id) => `/ThinkBitcoin/usuariosTB/${id}`,
+    LIST: '/ThinkBitcoin/usuariosTB/',
+    CREATE: '/ThinkBitcoin/usuariosTB/',
+    DELETE: (id) => `/ThinkBitcoin/usuariosTB/${id}`,
+  }),
+  PREFERENCES: Object.freeze({
+    ALL: '/ThinkBitcoin/preferencias',
+    MINE: '/ThinkBitcoin/preferencias/minhas',
+    BY_ID: (id) => `/ThinkBitcoin/preferencias/${id}`,
+  }),
+  MARKET: Object.freeze({
+    COIN_LIST: '/ThinkBitcoin/moedas',
+    COIN_VALUE: (symbol) => `/ThinkBitcoin/moeda/${symbol}/valor`,
+    SCRIPT_COMMON: '/ThinkBitcoin/AtivadorScript/ScriptComum',
+    RETURN_SEQUENCE: (id = '') => `/ThinkBitcoin/sequenciasRetorno/${id}`,
+    EXCHANGES: '/ThinkBitcoin/exchanges',
+  }),
+  CARGO: Object.freeze({
+    UPDATE: '/ThinkBitcoin/CargoUsuarioTB/AlterarCargoUsuarioTB/',
   }),
 })
 
@@ -32,14 +50,22 @@ const createRequestInit = (method, headers, body) => {
 
 export const apiRequest = async (
   endpoint,
-  { method = HttpMethod.GET, headers = {}, body } = {}
+  { method = HttpMethod.GET, headers = {}, body, signal } = {}
 ) => {
+  if (USE_MOCK_API) {
+    const mockResponse = getMockResponse({ endpoint, method, body })
+    if (mockResponse) return mockResponse
+  }
+
   const response = await fetch(
     buildUrl(endpoint),
-    createRequestInit(method, headers, body)
+    { ...createRequestInit(method, headers, body), signal }
   )
 
   if (!response.ok) {
+    if (response.status === 401 && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('auth-expired'))
+    }
     const error = new Error('Falha na requisição à API')
     error.status = response.status
     throw error
@@ -52,3 +78,6 @@ export const apiRequest = async (
 
 export const AuthenticationEndpoint = ApiEndpoint.AUTHENTICATION
 export const UserEndpoint = ApiEndpoint.USER
+export const MarketEndpoint = ApiEndpoint.MARKET
+export const PreferencesEndpoint = ApiEndpoint.PREFERENCES
+export const CargoEndpoint = ApiEndpoint.CARGO

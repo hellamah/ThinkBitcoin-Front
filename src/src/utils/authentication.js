@@ -1,6 +1,7 @@
 import { apiRequest, AuthenticationEndpoint, HttpMethod } from './apiClient'
 
 export const AuthTokenClaim = Object.freeze({
+  ID: 'idUsuarioTB',
   NAME: 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name',
   EMAIL: 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress',
 })
@@ -14,19 +15,31 @@ const normalizeBase64 = (valor) => {
 
 const decodeBase64 = (valor) => {
   try {
-    if (typeof atob === 'function') {
-      return atob(valor)
+    // Ambiente Node.js (comum em testes vitest)
+    /* istanbul ignore next */
+    if (typeof Buffer !== 'undefined') {
+      return Buffer.from(valor, 'base64').toString('utf-8')
     }
-  } catch {
+
+    // Ambiente Browser
+    if (typeof atob === 'function') {
+      const binStr = atob(valor)
+      // Técnica moderna com TextDecoder
+      if (typeof TextDecoder !== 'undefined') {
+        const bytes = new Uint8Array(binStr.length)
+        for (let i = 0; i < binStr.length; i++) {
+          bytes[i] = binStr.charCodeAt(i)
+        }
+        return new TextDecoder().decode(bytes)
+      }
+      // Fallback para navegadores muito antigos (se existirem)
+      return decodeURIComponent(escape(binStr))
+    }
+  } catch (err) {
     /* istanbul ignore next */
   }
 
-  /* istanbul ignore next */
-  if (typeof Buffer !== 'undefined') {
-    return Buffer.from(valor, 'base64').toString('binary')
-  }
-
-  throw new Error('Nenhum decodificador base64 disponível')
+  throw new Error('Nenhum decodificador base64 disponível ou falha na decodificação')
 }
 
 const decodeJwtPayload = (token) => {
@@ -46,9 +59,16 @@ const decodeJwtPayload = (token) => {
 export const decodeAuthenticationToken = (token) => {
   const payload = decodeJwtPayload(token)
   if (!payload) return null
+
+  // Busca o ID de forma insensível a maiúsculas/minúsculas nas chaves do payload
+  const keys = Object.keys(payload)
+  const idKey = keys.find(k => k.toLowerCase() === 'idusuariotb')
+  const id = idKey ? payload[idKey] : (payload['sub'] || payload['nameid'] || null)
+
   return {
-    nome: payload[AuthTokenClaim.NAME] ?? '',
-    email: payload[AuthTokenClaim.EMAIL] ?? '',
+    idUsuarioTB: id,
+    nome: payload[AuthTokenClaim.NAME] ?? payload['unique_name'] ?? payload['name'] ?? '',
+    email: payload[AuthTokenClaim.EMAIL] ?? payload['email'] ?? '',
   }
 }
 

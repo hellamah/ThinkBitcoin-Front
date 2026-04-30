@@ -12,7 +12,7 @@ import {
   clearStoredToken,
 } from '../utils/preferences'
 import { decodeAuthenticationToken } from '../utils/authentication'
-import { apiRequest, HttpMethod, UserEndpoint } from '../utils/apiClient'
+import { apiRequest, HttpMethod, UserEndpoint, PreferencesEndpoint } from '../utils/apiClient'
 
 const AuthContext = createContext({
   token: null,
@@ -61,14 +61,29 @@ export function AuthProvider({ children }) {
     applyTheme(prefs.tema)
   }, [prefs.tema, applyTheme])
 
+  useEffect(() => {
+    const handleAuthExpired = () => {
+      logout()
+    }
+    if (typeof window !== 'undefined') {
+      window.addEventListener('auth-expired', handleAuthExpired)
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('auth-expired', handleAuthExpired)
+      }
+    }
+  }, [])
+
   const carregarPreferencias = async (t) => {
     try {
-      const json = await apiRequest(UserEndpoint.ME, {
+      const json = await apiRequest(PreferencesEndpoint.MINE, {
         headers: { Authorization: `Bearer ${t}` },
       })
-      if (json.resultado) {
+      const resData = json?.resultado || json?.Resultado || json
+      if (resData) {
         setPrefs((atual) =>
-          sanitizePreferences({ ...atual, ...json.resultado })
+          sanitizePreferences({ ...atual, ...resData })
         )
       }
     } catch {
@@ -102,8 +117,8 @@ export function AuthProvider({ children }) {
     applyTheme(atual.tema)
     if (!token) return
     try {
-      await apiRequest(UserEndpoint.UPDATE_PREFERENCES, {
-        method: HttpMethod.POST,
+      await apiRequest(PreferencesEndpoint.ALL, {
+        method: HttpMethod.PUT,
         headers: { Authorization: `Bearer ${token}` },
         body: atual,
       })

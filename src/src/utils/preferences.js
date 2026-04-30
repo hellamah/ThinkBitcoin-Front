@@ -27,11 +27,32 @@ export const AlgorithmStyle = Object.freeze({
   AGGRESSIVE: 'agressivo',
 })
 
+export const RiskProfile = Object.freeze({
+  CONSERVATIVE: 'conservador',
+  MODERATE: 'moderado',
+  AGGRESSIVE: 'agressivo',
+})
+
+export const ReviewFrequency = Object.freeze({
+  DAILY: 'diaria',
+  WEEKLY: 'semanal',
+  MONTHLY: 'mensal',
+})
+
 export const DEFAULT_PREFERENCES = Object.freeze({
   tema: Theme.DARK,
   idioma: Language.PT,
   notificacoes: false,
   estiloAlgoritmo: AlgorithmStyle.BALANCED,
+  investimentoInicial: 0,
+  riscoMaximoPerda: 2,
+  siglaMoedaPreferida: null,
+  siglaEmpresaExterna: null,
+  saldoSeguranca: 0,
+  siglaMoedaUltimaInteracaoIA: null,
+  dataUltimaInteracaoIA: null,
+  frequenciaReview: 'diaria',
+  perfilRisco: 'moderado',
 })
 
 const getStorage = () => {
@@ -88,11 +109,22 @@ export const sanitizePreferences = (prefs = {}) => {
   const notificacoes = normalizeBoolean(merged.notificacoes)
 
   return {
+    idPreferenciasUsuarioTB: merged.idPreferenciasUsuarioTB ?? merged.IdPreferenciasUsuarioTB ?? null,
+    nome: merged.nome ?? merged.Nome ?? null,
+    email: merged.email ?? merged.Email ?? null,
     tema: tema ?? DEFAULT_PREFERENCES.tema,
     idioma: idioma ?? DEFAULT_PREFERENCES.idioma,
     estiloAlgoritmo: estilo ?? DEFAULT_PREFERENCES.estiloAlgoritmo,
-    notificacoes:
-      notificacoes ?? DEFAULT_PREFERENCES.notificacoes,
+    notificacoes: notificacoes ?? DEFAULT_PREFERENCES.notificacoes,
+    investimentoInicial: merged.investimentoInicial ?? DEFAULT_PREFERENCES.investimentoInicial,
+    riscoMaximoPerda: merged.riscoMaximoPerda ?? DEFAULT_PREFERENCES.riscoMaximoPerda,
+    siglaMoedaPreferida: merged.siglaMoedaPreferida ?? merged.SiglaMoedaPreferida ?? merged.idMoedaPreferida ?? DEFAULT_PREFERENCES.siglaMoedaPreferida,
+    siglaEmpresaExterna: merged.siglaEmpresaExterna ?? merged.SiglaEmpresaExterna ?? merged.idEmpresaExterna ?? DEFAULT_PREFERENCES.siglaEmpresaExterna,
+    saldoSeguranca: merged.saldoSeguranca ?? DEFAULT_PREFERENCES.saldoSeguranca,
+    siglaMoedaUltimaInteracaoIA: merged.siglaMoedaUltimaInteracaoIA ?? merged.SiglaMoedaUltimaInteracaoIA ?? DEFAULT_PREFERENCES.siglaMoedaUltimaInteracaoIA,
+    dataUltimaInteracaoIA: merged.dataUltimaInteracaoIA ?? merged.DataUltimaInteracaoIA ?? DEFAULT_PREFERENCES.dataUltimaInteracaoIA,
+    frequenciaReview: merged.frequenciaReview ?? DEFAULT_PREFERENCES.frequenciaReview,
+    perfilRisco: merged.perfilRisco ?? DEFAULT_PREFERENCES.perfilRisco,
   }
 }
 

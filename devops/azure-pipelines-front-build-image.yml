@@ -1,26 +1,57 @@
 trigger:
   branches:
     include:
-      - desenv
+      - Desenv
+      - Prod
+
+name: $(Build.BuildId)
 
 pr:
   branches:
     include:
-      - desenv
-      - prod
+      - Desenv
+      - Prod
 
 pool:
-  vmImage: ubuntu-latest
+  name: 'ThinkBitcoinPool'
 
 variables:
   dockerRegistryServiceConnection: docker_hub
-  imageRepository: ghcr.io/thinkbitcoin/thinkbitcoin-front
+  imageRepositoryDev: hellamah/thinkbitcoin.dev.front
+  imageRepositoryProd: hellamah/thinkbitcoin.prod.front
   dockerfilePath: src/Dockerfile
   buildContext: src
   imageTagFile: $(Build.SourcesDirectory)/devops/deploy/image-tag
+  frontMetaArtifactName: front-meta
 
 steps:
   - checkout: self
+
+  - task: PowerShell@2
+    displayName: Resolve Docker image repository by branch
+    inputs:
+      targetType: inline
+      script: |
+        $prTargetBranch = $env:SYSTEM_PULLREQUEST_TARGETBRANCH
+        $sourceBranch = $env:BUILD_SOURCEBRANCH
+
+        $effectiveBranch = if (-not [string]::IsNullOrWhiteSpace($prTargetBranch)) { $prTargetBranch } else { $sourceBranch }
+        
+        if ($effectiveBranch -eq "refs/heads/Prod") {
+          $repository = "$(imageRepositoryProd)"
+          $environment = "prod"
+        }
+        elseif ($effectiveBranch -eq "refs/heads/Desenv") {
+          $repository = "$(imageRepositoryDev)"
+          $environment = "desenv"
+        }
+        else {
+          throw "Branch '$effectiveBranch' não suportada para publicação de imagem. Use Desenv ou Prod."
+        }
+
+        Write-Host "##vso[task.setvariable variable=imageRepository]$repository"
+        Write-Host "##vso[task.setvariable variable=deployEnvironment]$environment"
+        Write-Host "Build para ambiente '$environment' usando repositório '$repository'."
 
   - task: Docker@2
     displayName: buildAndPush docker
@@ -39,19 +70,20 @@ steps:
     inputs:
       targetType: inline
       script: |
-        # grava a tag do build em um arquivo que vai junto no artefato image-meta
         $tag  = "$(Build.BuildId)"
-        $path = "$(imageTagFile)"
+        $path = "$(Build.ArtifactStagingDirectory)/deploy/image-tag"
 
-        # Garante que a pasta existe
+        # Garante que a pasta existe (Force funciona no Linux/Windows)
         $dir = Split-Path -Parent $path
-        New-Item -ItemType Directory -Path $dir -Force | Out-Null
+        if (-not (Test-Path $dir)) { 
+            New-Item -ItemType Directory -Path $dir -Force | Out-Null 
+        }
 
-        # Grava a tag (UTF-8)
-        Set-Content -Path $path -Value $tag -Encoding utf8
-
-        # Usa ${path} para evitar erro com ':'
-        Write-Host "Tag escrita em ${path}: $tag"
+        # No Linux, Out-File é o mais seguro para garantir o conteúdo limpo
+        $tag | Out-File -FilePath $path -NoNewline -Encoding ascii
+        
+        # O pulo do gato: usar ${} para o PowerShell não se confundir com o ':'
+        Write-Host "Tag escrita em ${path}: ${tag}"
 
   - task: CopyFiles@2
     displayName: Copy Files ps1
@@ -63,8 +95,8 @@ steps:
       TargetFolder: $(Build.ArtifactStagingDirectory)
 
   - task: PublishBuildArtifacts@1
-    displayName: Publish Artifact: image-meta
+    displayName: Publish Artifact front-meta (artefato oficial do frontend)
     inputs:
       PathtoPublish: $(Build.ArtifactStagingDirectory)
-      ArtifactName: image-meta
+      ArtifactName: $(frontMetaArtifactName)
       publishLocation: Container

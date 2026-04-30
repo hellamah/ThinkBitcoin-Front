@@ -21,7 +21,7 @@ spec:
             pathType: {{ .pathType }}
             backend:
               service:
-                name: {{ include "thinkbitcoin-front.fullname" $ }}
+                name: {{ include "thinkbitcoin-front.serviceName" $ }}
                 port:
                   number: {{ $.Values.service.port }}
           {{- end }}

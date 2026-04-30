@@ -1,18 +1,31 @@
 import { NavLink, useLocation } from 'react-router-dom'
-import { MdHome, MdLogin, MdPersonAdd, MdDashboard, MdLogout, MdSettings } from 'react-icons/md'
+import { MdHome, MdLogin, MdDashboard, MdLogout, MdSettings } from 'react-icons/md'
 import AppBar from '@mui/material/AppBar'
 import Toolbar from '@mui/material/Toolbar'
 import IconButton from '@mui/material/IconButton'
+import Button from '@mui/material/Button'
 import Box from '@mui/material/Box'
+import Container from '@mui/material/Container'
 import logoLight from '../../logo-light.svg'
 import '../App.css'
 import { useAuth } from '../context/AuthContext'
 import useTranslation from '../hooks/useTranslation'
+import { useRef } from 'react'
 function Layout({ children }) {
   const { token, user, logout } = useAuth()
   const { t } = useTranslation()
   const location = useLocation()
-  const semNav = location.pathname === '/login' || location.pathname === '/register'
+  const containerRef = useRef(null)
+  
+  const handleMouseMove = (e) => {
+    if (!containerRef.current) return
+    const { left, top } = containerRef.current.getBoundingClientRect()
+    const x = e.clientX - left
+    const y = e.clientY - top
+    containerRef.current.style.setProperty('--mouse-x', `${x}px`)
+    containerRef.current.style.setProperty('--mouse-y', `${y}px`)
+  }
+  const semNav = false /* Padronizado para manter Header/Footer em todas as telas */
 
   const linkClass = ({ isActive }) => `nav-item${isActive ? ' active' : ''}`
 
@@ -63,16 +76,6 @@ function Layout({ children }) {
         <MdLogin />
         <span className="nav-label">{t('nav.login')}</span>
       </IconButton>
-      <IconButton
-        component={NavLink}
-        to="/register"
-        className={linkClass}
-        title={t('nav.register')}
-        aria-label={t('nav.register')}
-      >
-        <MdPersonAdd />
-        <span className="nav-label">{t('nav.register')}</span>
-      </IconButton>
     </>
   )
 
@@ -101,22 +104,79 @@ function Layout({ children }) {
   )
 
   return (
-    <div className={`portfolio-screen${semNav ? ' no-nav' : ''}`}>
-      <AppBar position="fixed" color="default" className="app-header">
-        <Toolbar sx={{ display: 'flex', alignItems: 'center' }}>
-          <img src={logoLight} alt="ThinkBitcoin" className="app-logo" />
-          {!semNav && (
-            <Box component="nav" className="top-nav">
-              {links}
-            </Box>
-          )}
-          <span className="user-greeting">
-            {token ? t('welcome', { name: user?.nome || '' }) : t('greetingGuest')}
-          </span>
-        </Toolbar>
+    <div 
+      className={`portfolio-screen${semNav ? ' no-nav' : ''}`}
+      ref={containerRef}
+      onMouseMove={handleMouseMove}
+    >
+      <div className="liquid-mesh-container">
+        <div className="blob blob-1"></div>
+        <div className="blob blob-2"></div>
+        <div className="blob blob-3"></div>
+        <div className="mouse-spotlight"></div>
+      </div>
+      <div className="ambient-glow-aura"></div>
+      <div className="grain-overlay-main"></div>
+
+      <AppBar position="fixed" className="app-header-floating" sx={{ width: '100%', left: 0 }}>
+        <Container maxWidth="xl">
+          <Toolbar className="header-toolbar" disableGutters>
+            <div className="header-left">
+              <NavLink to="/" className="logo-link">
+                <img src={logoLight} alt="ThinkBitcoin" className="app-logo" />
+              </NavLink>
+              {!semNav && (
+                <Box component="nav" className="desktop-nav">
+                  <IconButton
+                    component={NavLink}
+                    to="/dashboard"
+                    className={linkClass}
+                    title={t('nav.dashboard')}
+                  >
+                    <MdDashboard />
+                    <span className="nav-label">{t('nav.dashboard')}</span>
+                  </IconButton>
+                </Box>
+              )}
+            </div>
+
+            {!semNav && (
+              <div className="header-right">
+                <IconButton
+                  component={NavLink}
+                  to="/settings"
+                  className={linkClass}
+                  title={t('nav.settings')}
+                >
+                  <MdSettings />
+                </IconButton>
+                
+                <div className="user-info-pill">
+                  <span className="user-name">
+                    {token ? (user?.nome || t('activeUser')) : t('greetingGuest')}
+                  </span>
+                  {token ? (
+                    <IconButton onClick={logout} className="logout-btn" title={t('nav.logout')}>
+                      <MdLogout />
+                    </IconButton>
+                  ) : (
+                    <div className="guest-actions">
+                      <Button component={NavLink} to="/login" variant="text" size="small" sx={{ color: 'white' }}>
+                        {t('nav.login')}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </Toolbar>
+        </Container>
       </AppBar>
-      {children}
-      {!semNav && <nav className="bottom-nav">{links}</nav>}
+      
+      <main className="main-content-premium" key={location.pathname}>
+        {children}
+      </main>
+      <nav className="bottom-nav">{links}</nav>
       <footer className="app-footer">
         <p>{t('copyRight')}</p>
       </footer>

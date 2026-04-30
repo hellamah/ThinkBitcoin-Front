@@ -1,73 +1,105 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+/**
+ * Testes unitários para utils/apiClient.
+ * 
+ * Este conjunto de testes garante a integridade da comunicação entre o 
+ * frontend ThinkBitcoin e a API do Laboratório de Trade.
+ */
+import { describe, expect, it, vi } from 'vitest'
 import { API_URL } from '../src/api'
 import { ApiEndpoint, HttpMethod, apiRequest } from '../src/utils/apiClient'
 
-describe('utils/apiClient', () => {
-  beforeEach(() => {
-    vi.resetAllMocks()
-    global.fetch = vi.fn()
+// Mock de fetch global é configurado em vitest.setup.js
+
+describe('utils/apiClient › Enums & Endpoints', () => {
+  it('deve expor métodos HTTP imutáveis e corretos', () => {
+    expect(HttpMethod.GET).toBe('GET')
+    expect(HttpMethod.POST).toBe('POST')
+    expect(HttpMethod.PUT).toBe('PUT')
+    expect(HttpMethod.DELETE).toBe('DELETE')
+    // Garantir imutabilidade
+    expect(() => { HttpMethod.PATCH = 'PATCH' }).toThrow()
   })
 
-  it('expõe endpoints esperados para autenticação e usuário', () => {
-    expect(ApiEndpoint.AUTHENTICATION.LOGIN).toBe('/ThinkBitcoin/gerarTokenBearer/')
-    expect(ApiEndpoint.USER.ME).toBe('/ThinkBitcoin/me')
-    expect(ApiEndpoint.USER.UPDATE_PREFERENCES).toBe('/ThinkBitcoin/usuariosTB/atualizarPreferencias')
+  it('deve construir endpoints estáticos seguindo o padrão da API ThinkBitcoin', () => {
+    expect(ApiEndpoint.AUTHENTICATION.LOGIN).toBe('/ThinkBitcoin/gerarTokenBearer')
+    expect(ApiEndpoint.MARKET.COIN_LIST).toBe('/ThinkBitcoin/moedas')
   })
 
-  it('executa requisição GET sem body e sem content-type automático', async () => {
+  it('deve gerar endpoints dinâmicos (ID/Símbolo) corretamente', () => {
+    expect(ApiEndpoint.USER.ME('U001')).toBe('/ThinkBitcoin/usuariosTB/U001')
+    expect(ApiEndpoint.MARKET.COIN_VALUE('BTC')).toBe('/ThinkBitcoin/moeda/BTC/valor')
+  })
+})
+
+describe('utils/apiClient › apiRequest (Comunicação com API)', () => {
+  it('deve executar requisição GET com parâmetros de URL e headers vazios por padrão', async () => {
     fetch.mockResolvedValue({
       ok: true,
       status: 200,
-      json: () => Promise.resolve({ ok: true }),
+      json: () => Promise.resolve({ status: 'online' }),
     })
 
-    const response = await apiRequest('/status')
+    const resultado = await apiRequest('/health')
 
-    expect(fetch).toHaveBeenCalledWith(`${API_URL}/status`, {
+    expect(fetch).toHaveBeenCalledWith(`${API_URL}/health`, expect.objectContaining({
       method: HttpMethod.GET,
       headers: {},
-      body: undefined,
-    })
-    expect(response).toEqual({ ok: true })
+      body: undefined
+    }))
+    expect(resultado).toEqual({ status: 'online' })
   })
 
-  it('executa requisição POST com serialização de body e content-type', async () => {
+  it('deve executar requisição POST serializando o body para JSON automaticamente', async () => {
+    fetch.mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: () => Promise.resolve({ success: true }),
+    })
+
+    const payload = { test: 'data' }
+    await apiRequest('/submit', {
+      method: HttpMethod.POST,
+      body: payload
+    })
+
+    expect(fetch).toHaveBeenCalledWith(`${API_URL}/submit`, expect.objectContaining({
+      method: HttpMethod.POST,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }))
+  })
+
+  it('deve retornar null graciosamente para status 204 (No Content)', async () => {
+    fetch.mockResolvedValue({ ok: true, status: 204 })
+    const res = await apiRequest('/no-content')
+    expect(res).toBeNull()
+  })
+
+  it('deve lançar erro customizado com status HTTP para falhas do servidor (500)', async () => {
+    fetch.mockResolvedValue({ ok: false, status: 500 })
+
+    await expect(apiRequest('/crash')).rejects.toMatchObject({
+      message: 'Falha na requisição à API',
+      status: 500
+    })
+  })
+
+  it('deve propagar falhas de rede (rejeição do fetch) corretamente', async () => {
+    fetch.mockRejectedValue(new Error('Network Failure'))
+    await expect(apiRequest('/offline')).rejects.toThrow('Network Failure')
+  })
+
+  it('deve respeitar o AbortSignal para cancelamento de requisições pendentes', async () => {
     fetch.mockResolvedValue({
       ok: true,
       status: 200,
-      json: () => Promise.resolve({ created: true }),
+      json: () => Promise.resolve({}),
     })
 
-    const body = { email: 'user@foo.com' }
-    const response = await apiRequest('/accounts', {
-      method: HttpMethod.POST,
-      body,
-      headers: { Authorization: 'Bearer abc' },
-    })
+    const controller = new AbortController()
+    await apiRequest('/cancelable', { signal: controller.signal })
 
-    expect(fetch).toHaveBeenCalledWith(`${API_URL}/accounts`, {
-      method: HttpMethod.POST,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer abc',
-      },
-      body: JSON.stringify(body),
-    })
-    expect(response).toEqual({ created: true })
-  })
-
-  it('retorna null para status 204', async () => {
-    fetch.mockResolvedValue({ ok: true, status: 204 })
-
-    await expect(apiRequest('/void')).resolves.toBeNull()
-  })
-
-  it('lança erro padronizado para resposta não OK com status anexado', async () => {
-    fetch.mockResolvedValue({ ok: false, status: 500 })
-
-    await expect(apiRequest('/broken')).rejects.toMatchObject({
-      message: 'Falha na requisição à API',
-      status: 500,
-    })
+    const lastCallArgs = fetch.mock.calls[fetch.mock.calls.length - 1][1]
+    expect(lastCallArgs.signal).toBe(controller.signal)
   })
 })

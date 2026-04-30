@@ -1,0 +1,58 @@
+trigger:
+  - Desenv
+  - Prod
+
+name: $(Build.BuildId)
+
+pr:
+  - Desenv
+  - Prod
+
+variables:
+  - group: thinkbitcoin-secrets
+
+jobs:
+- job: DeployVercel
+  displayName: 'Deploy to Vercel'
+  pool:
+    name: 'ThinkBitcoinPool'
+  
+  steps:
+  - task: NodeTool@0
+    inputs:
+      versionSpec: '18.x'
+    displayName: 'Install Node.js'
+
+  - script: npm install
+    workingDirectory: 'src'
+    displayName: 'Install Dependencies'
+
+  - task: PowerShell@2
+    displayName: 'Vercel Deploy'
+    inputs:
+      targetType: 'inline'
+      script: |
+        npm install -g vercel
+        cd src
+        if ("$(Build.SourceBranch)" -eq "refs/heads/Prod") {
+            Write-Host "Deploying to Production..."
+            vercel --token $(VERCEL_TOKEN) --prod --yes
+        }
+        else {
+            Write-Host "Deploying Preview..."
+            vercel --token $(VERCEL_TOKEN) --yes
+        }
+    env:
+      VERCEL_ORG_ID: $(VERCEL_ORG_ID)
+      VERCEL_PROJECT_ID: $(VERCEL_PROJECT_ID)
+
+  - task: PowerShell@2
+    displayName: 'Sync Cloudflare Tunnel (Minikube)'
+    inputs:
+      targetType: 'inline'
+      script: |
+        Write-Host "Syncing Cloudflare Secrets..."
+        kubectl create secret generic cloudflare-secrets --from-literal=tunnel-token=$(CLOUDFLARE_TUNNEL_TOKEN) -n thinkbitcoin --dry-run=client -o yaml | kubectl apply -f -
+        
+        Write-Host "Applying Cloudflare Tunnel Deployment..."
+        kubectl apply -f devops/deploy/cloudflare-tunnel.yaml

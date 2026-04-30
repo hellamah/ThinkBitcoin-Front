@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-label="Decisão do bot ThinkBitcoin">
+  <rect width="1280" height="720" fill="#030712"/>
+  <rect x="300" y="120" width="680" height="480" rx="28" fill="#111827"/>
+  <text x="640" y="210" text-anchor="middle" font-size="34" font-family="Arial" fill="#fff">Decisão do Bot</text>
+  <rect x="390" y="260" width="500" height="90" rx="14" fill="#1f2937"/>
+  <text x="430" y="315" font-size="28" font-family="Arial" fill="#93c5fd">Ativo:</text>
+  <text x="620" y="315" font-size="28" font-family="Arial" fill="#fff">BTC</text>
+  <rect x="390" y="370" width="500" height="90" rx="14" fill="#1f2937"/>
+  <text x="430" y="425" font-size="28" font-family="Arial" fill="#86efac">Ação:</text>
+  <text x="620" y="425" font-size="28" font-family="Arial" fill="#22c55e">BUY</text>
+  <rect x="390" y="480" width="500" height="70" rx="14" fill="#1f2937"/>
+  <text x="430" y="525" font-size="24" font-family="Arial" fill="#cbd5e1">Confiança: 82%</text>
+</svg>
