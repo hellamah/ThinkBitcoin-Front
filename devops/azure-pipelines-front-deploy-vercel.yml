@@ -47,12 +47,12 @@ jobs:
       VERCEL_PROJECT_ID: $(VERCEL_PROJECT_ID)
 
   - task: PowerShell@2
-    displayName: 'Sync No-IP DUC (Minikube)'
+    displayName: 'Sync Cloudflare Tunnel (Minikube)'
     inputs:
       targetType: 'inline'
       script: |
-        Write-Host "Syncing No-IP Credentials..."
-        kubectl create secret opaque noip-credentials --from-literal=username=$(NOIP_EMAIL) --from-literal=password=$(NOIP_PASSWORD) -n thinkbitcoin --dry-run=client -o yaml | kubectl apply -f -
+        Write-Host "Syncing Cloudflare Secrets..."
+        kubectl create secret opaque cloudflare-secrets --from-literal=tunnel-token=$(CLOUDFLARE_TUNNEL_TOKEN) -n thinkbitcoin --dry-run=client -o yaml | kubectl apply -f -
         
-        Write-Host "Applying No-IP DUC Deployment..."
-        kubectl apply -f devops/deploy/noip-duc.yaml
+        Write-Host "Applying Cloudflare Tunnel Deployment..."
+        kubectl apply -f devops/deploy/cloudflare-tunnel.yaml
