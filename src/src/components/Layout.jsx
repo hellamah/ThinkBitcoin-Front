@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom'
-import { MdHome, MdLogin, MdPersonAdd, MdDashboard, MdLogout, MdSettings } from 'react-icons/md'
+import { MdHome, MdLogin, MdDashboard, MdLogout, MdSettings } from 'react-icons/md'
 import AppBar from '@mui/material/AppBar'
 import Toolbar from '@mui/material/Toolbar'
 import IconButton from '@mui/material/IconButton'
@@ -75,16 +75,6 @@ function Layout({ children }) {
       >
         <MdLogin />
         <span className="nav-label">{t('nav.login')}</span>
-      </IconButton>
-      <IconButton
-        component={NavLink}
-        to="/register"
-        className={linkClass}
-        title={t('nav.register')}
-        aria-label={t('nav.register')}
-      >
-        <MdPersonAdd />
-        <span className="nav-label">{t('nav.register')}</span>
       </IconButton>
     </>
   )

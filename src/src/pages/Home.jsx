@@ -53,12 +53,10 @@ function Home() {
         </p>
         
         <div className="cta-group">
-          <NavLink to="/register" className="btn-premium btn-primary-v3">
-            Começar Agora <MdArrowForward />
+          <NavLink to="/login" className="btn-premium btn-primary-v3">
+            Acessar Terminal <MdArrowForward />
           </NavLink>
-          <NavLink to="/login" className="btn-premium btn-secondary-v3">
-            Acessar Terminal
-          </NavLink>
+          <span className="exclusive-tag">⚡ Acesso exclusivo por convite</span>
         </div>
       </section>
 

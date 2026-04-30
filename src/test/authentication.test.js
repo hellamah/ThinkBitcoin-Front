@@ -79,6 +79,7 @@ describe('utils/authentication › decodeAuthenticationToken (Decodificação JW
       [AuthTokenClaim.EMAIL]: 'satoshi@bitcoin.org',
     }
     expect(decodeAuthenticationToken(buildToken(payload))).toEqual({
+      idUsuarioTB: null,
       nome: 'Satoshi Nakamoto',
       email: 'satoshi@bitcoin.org',
     })
@@ -90,6 +91,7 @@ describe('utils/authentication › decodeAuthenticationToken (Decodificação JW
       [AuthTokenClaim.EMAIL]: 'helama@think.com',
     }
     expect(decodeAuthenticationToken(buildToken(payload))).toEqual({
+      idUsuarioTB: null,
       nome: 'Helamã Borges',
       email: 'helama@think.com',
     })
@@ -98,6 +100,7 @@ describe('utils/authentication › decodeAuthenticationToken (Decodificação JW
   it('deve retornar strings vazias se as claims esperadas não existirem no token', () => {
     const payload = { sub: '12345', role: 'guest' }
     expect(decodeAuthenticationToken(buildToken(payload))).toEqual({
+      idUsuarioTB: '12345',
       nome: '',
       email: '',
     })
