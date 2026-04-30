@@ -61,6 +61,17 @@ cd devops/infra
 
 
 ## Pipeline Azure DevOps (YAML)
+
+### 1. Deploy para Vercel
+Arquivo: `devops/azure-pipelines-front-deploy-vercel.yml`
+
+Este é o pipeline principal para o frontend moderno. Ele automatiza o deploy para a Vercel, injetando a `VITE_API_URL` correta para o seu domínio `minerthinkbitcoin.com`.
+
+- **Gatilhos:** `main` e `develop`.
+- **Destino:** Produção (na `main`) e Preview (na `develop`).
+- **Variáveis:** Usa o grupo `thinkbitcoin-secrets`.
+
+### 2. Build de Imagem Docker (Legado)
 Arquivo: `devops/azure-pipelines-front-build-image.yml`
 
 Esse pipeline replica o fluxo do build da API (Docker build/push + metadados de imagem) adaptado para o frontend:

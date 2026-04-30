@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: noip-duc
+  namespace: thinkbitcoin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: noip-duc
+  template:
+    metadata:
+      labels:
+        app: noip-duc
+    spec:
+      containers:
+      - name: noip-duc
+        image: coppit/no-ip
+        env:
+        - name: USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: noip-credentials
+              key: username
+        - name: PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: noip-credentials
+              key: password
+        - name: HOSTNAMES
+          value: "thinkbitcoin-api.ddns.net"
+        - name: INTERVAL
+          value: "5"

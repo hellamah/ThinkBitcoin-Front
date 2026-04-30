@@ -61,6 +61,20 @@ export function AuthProvider({ children }) {
     applyTheme(prefs.tema)
   }, [prefs.tema, applyTheme])
 
+  useEffect(() => {
+    const handleAuthExpired = () => {
+      logout()
+    }
+    if (typeof window !== 'undefined') {
+      window.addEventListener('auth-expired', handleAuthExpired)
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('auth-expired', handleAuthExpired)
+      }
+    }
+  }, [])
+
   const carregarPreferencias = async (t) => {
     try {
       const json = await apiRequest(PreferencesEndpoint.MINE, {

@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom'
-import { MdHome, MdLogin, MdPersonAdd, MdDashboard, MdLogout, MdSettings } from 'react-icons/md'
+import { MdHome, MdLogin, MdDashboard, MdLogout, MdSettings } from 'react-icons/md'
 import AppBar from '@mui/material/AppBar'
 import Toolbar from '@mui/material/Toolbar'
 import IconButton from '@mui/material/IconButton'
@@ -10,10 +10,21 @@ import logoLight from '../../logo-light.svg'
 import '../App.css'
 import { useAuth } from '../context/AuthContext'
 import useTranslation from '../hooks/useTranslation'
+import { useRef } from 'react'
 function Layout({ children }) {
   const { token, user, logout } = useAuth()
   const { t } = useTranslation()
   const location = useLocation()
+  const containerRef = useRef(null)
+  
+  const handleMouseMove = (e) => {
+    if (!containerRef.current) return
+    const { left, top } = containerRef.current.getBoundingClientRect()
+    const x = e.clientX - left
+    const y = e.clientY - top
+    containerRef.current.style.setProperty('--mouse-x', `${x}px`)
+    containerRef.current.style.setProperty('--mouse-y', `${y}px`)
+  }
   const semNav = false /* Padronizado para manter Header/Footer em todas as telas */
 
   const linkClass = ({ isActive }) => `nav-item${isActive ? ' active' : ''}`
@@ -65,16 +76,6 @@ function Layout({ children }) {
         <MdLogin />
         <span className="nav-label">{t('nav.login')}</span>
       </IconButton>
-      <IconButton
-        component={NavLink}
-        to="/register"
-        className={linkClass}
-        title={t('nav.register')}
-        aria-label={t('nav.register')}
-      >
-        <MdPersonAdd />
-        <span className="nav-label">{t('nav.register')}</span>
-      </IconButton>
     </>
   )
 
@@ -103,7 +104,20 @@ function Layout({ children }) {
   )
 
   return (
-    <div className={`portfolio-screen${semNav ? ' no-nav' : ''}`}>
+    <div 
+      className={`portfolio-screen${semNav ? ' no-nav' : ''}`}
+      ref={containerRef}
+      onMouseMove={handleMouseMove}
+    >
+      <div className="liquid-mesh-container">
+        <div className="blob blob-1"></div>
+        <div className="blob blob-2"></div>
+        <div className="blob blob-3"></div>
+        <div className="mouse-spotlight"></div>
+      </div>
+      <div className="ambient-glow-aura"></div>
+      <div className="grain-overlay-main"></div>
+
       <AppBar position="fixed" className="app-header-floating" sx={{ width: '100%', left: 0 }}>
         <Container maxWidth="xl">
           <Toolbar className="header-toolbar" disableGutters>
@@ -158,11 +172,10 @@ function Layout({ children }) {
           </Toolbar>
         </Container>
       </AppBar>
-      <Box component="main" sx={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', width: '100%' }}>
-          <Container maxWidth="xl" sx={{ flex: 1, display: 'flex', flexDirection: 'column', py: 0 }}>
-            {children}
-          </Container>
-      </Box>
+      
+      <main className="main-content-premium" key={location.pathname}>
+        {children}
+      </main>
       <nav className="bottom-nav">{links}</nav>
       <footer className="app-footer">
         <p>{t('copyRight')}</p>

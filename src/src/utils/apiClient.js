@@ -29,7 +29,6 @@ export const ApiEndpoint = Object.freeze({
     SCRIPT_COMMON: '/ThinkBitcoin/AtivadorScript/ScriptComum',
     RETURN_SEQUENCE: (id = '') => `/ThinkBitcoin/sequenciasRetorno/${id}`,
     EXCHANGES: '/ThinkBitcoin/exchanges',
-    DEBATE: '/ThinkBitcoin/debate',
   }),
   CARGO: Object.freeze({
     UPDATE: '/ThinkBitcoin/CargoUsuarioTB/AlterarCargoUsuarioTB/',
@@ -64,6 +63,9 @@ export const apiRequest = async (
   )
 
   if (!response.ok) {
+    if (response.status === 401 && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('auth-expired'))
+    }
     const error = new Error('Falha na requisição à API')
     error.status = response.status
     throw error

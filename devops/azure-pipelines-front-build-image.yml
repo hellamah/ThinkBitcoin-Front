@@ -13,7 +13,7 @@ pr:
       - Prod
 
 pool:
-  vmImage: ubuntu-latest
+  name: 'ThinkBitcoinPool'
 
 variables:
   dockerRegistryServiceConnection: docker_hub

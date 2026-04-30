@@ -1,8 +1,12 @@
 import { useEffect, useState, useRef, useMemo } from 'react'
+import { format, subDays, subMonths } from 'date-fns'
 import { apiRequest, HttpMethod, MarketEndpoint } from '../utils/apiClient'
+import * as mathUtils from '../utils/mathUtils'
 import useCoinPrices from '../hooks/useCoinPrices'
 import { useAuth } from '../context/AuthContext'
 import useTranslation from '../hooks/useTranslation'
+import useChatHub from '../hooks/useChatHub'
+import { toLocal, toLocalChartLabel, toUTCISO } from '../utils/dateUtils'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -34,6 +38,7 @@ import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import Paper from '@mui/material/Paper'
 import ErrorMessage from '../components/ErrorMessage'
+import Terminal from '../components/Terminal'
 
 ChartJS.register(
   CategoryScale,
@@ -75,6 +80,7 @@ function Dashboard() {
   const { token, user: usuario, prefs } = useAuth()
   const moedasCarousel = useCoinPrices()
   const { t } = useTranslation()
+  const { messages, enviarMensagem, clearMessages, isConnected } = useChatHub()
   const hasInitializedPref = useRef(false)
   const [dados, setDados] = useState([])
   const [erro, setErro] = useState('')
@@ -90,8 +96,9 @@ function Dashboard() {
   const [quantidade, setQuantidade] = useState(20)
   const [totalPaginas, setTotalPaginas] = useState(1)
   const [historicoMoeda, setHistoricoMoeda] = useState(null)
-  const [showMonitor, setShowMonitor] = useState(false)
-  const [moedaMonitor, setMoedaMonitor] = useState(null)
+  const [showChat, setShowChat] = useState(false)
+  const [moedaChat, setMoedaChat] = useState(null)
+  const [currentCorrelationId, setCurrentCorrelationId] = useState(null)
   const [historicosPorMoeda, setHistoricosPorMoeda] = useState({}) // { BTC: [{valor, dataHora}, ...] }
   const [normalizacao, setNormalizacao] = useState('base100') // 'bruto' | 'minmax' | 'base100' | 'zscore'
   const filterSummaryRef = useRef('') // Cache de string dos filtros globais (intervalo+datas)
@@ -162,7 +169,7 @@ function Dashboard() {
     setDados(MOCK_DADOS)
 
     // 2. Busca histórico inteligente: Cache por intervalo + Streaming
-    const currentFilterKey = `${intervalo}-${dataInicio}-${dataFim}`
+    const currentFilterKey = `${intervalo}-${dataInicio}-${dataFim}-${pagina}-${quantidade}`
     const isSameFilter = filterSummaryRef.current === currentFilterKey
     filterSummaryRef.current = currentFilterKey
 
@@ -182,7 +189,17 @@ function Dashboard() {
 
       if (!sigla || sigla === 'Ativo') return
 
-      apiRequest(MarketEndpoint.COIN_VALUE(sigla.toLowerCase()), {
+      let url = MarketEndpoint.COIN_VALUE(sigla.toLowerCase())
+      const params = new URLSearchParams()
+      if (dataInicio) params.append('dataInicio', dataInicio.includes('T') ? dataInicio : toUTCISO(new Date(`${dataInicio}T00:00:00`)))
+      if (dataFim) params.append('dataFim', dataFim.includes('T') ? dataFim : toUTCISO(new Date(`${dataFim}T23:59:59`)))
+      if (intervalo) params.append('intervalo', intervalo)
+      if (pagina) params.append('pagina', pagina)
+      if (quantidade) params.append('quantidade', quantidade)
+      params.append('ordemAsc', 'false')
+      if (params.toString()) url += `?${params.toString()}`
+
+      apiRequest(url, {
         headers: { Authorization: `Bearer ${token}` },
         signal,
       })
@@ -190,8 +207,10 @@ function Dashboard() {
           if (signal?.aborted) return
           const res = json?.resultado ?? json?.Resultado ?? json
           const registros = res?.registros ?? res?.Registros ?? (Array.isArray(res) ? res : [])
+          const paginas = res?.totalPaginas ?? res?.TotalPaginas ?? 1
 
           setHistoricosPorMoeda(prev => ({ ...prev, [sigla]: registros }))
+          setTotalPaginas(paginas)
 
           // Sincroniza tabela com a primeira carregada
           if (sigla === moedasFiltro[0]) {
@@ -233,32 +252,45 @@ function Dashboard() {
         return [...prev, simbolo]
       }
     })
+
+    // Reset da Hierarquia de Filtros (Nível 1 -> Todos os inferiores)
     setPagina(1)
+    setDataInicio('')
+    setDataFim('')
+    setIntervalo('1m')
+    setResultadoFiltro('ALL')
   }
 
   const handleDebateTrigger = async (sigla) => {
     if (!token) return
 
-    setMoedaMonitor(sigla)
-    setShowMonitor(true)
+    const corrId = crypto.randomUUID?.() || Math.random().toString(36).substring(2, 15)
+
+    setMoedaChat(sigla)
+    setShowChat(true)
+    setCurrentCorrelationId(corrId)
 
     try {
-      const idUsuarioTB = prefs?.idPreferenciasUsuarioTB
+      const success = await enviarMensagem(`#analisar ${sigla}`, '', corrId)
 
-      await apiRequest(MarketEndpoint.DEBATE, {
-        method: HttpMethod.POST,
-        headers: { Authorization: `Bearer ${token}` },
-        body: {
-          siglaMoeda: sigla,
-          idUsuarioTB,
-          quantidadeRegistros: 5,
-        },
-      })
-      console.log(`Debate solicitado para ${sigla} via RabbitMQ`)
+      if (success) {
+        console.log(`Chat iniciado para ${sigla} via Hub SignalR / ID: ${corrId}`)
+      } else {
+        const motivo = !isConnected ? 'Conexão com o servidor ainda não estabelecida.' : 'Falha ao processar comando no servidor.';
+        throw new Error(motivo)
+      }
     } catch (err) {
-      console.error('Erro ao iniciar debate:', err)
-      setErro(t('errorTriggeringDebate') || 'Erro ao iniciar debate com a IA')
+      console.error('Erro ao iniciar debate via Hub:', err)
+      const msgErro = isConnected 
+        ? (t('errorTriggeringDebate') || 'Erro ao iniciar debate com a IA')
+        : 'O chat está offline ou conectando. Por favor, aguarde um momento e tente novamente.';
+      setErro(msgErro)
     }
+  }
+
+  const handleChatCommand = async (fullCommand) => {
+    // Agora o useChatHub cuida de todo o parsing de comandos locais e remotos
+    await enviarMensagem(fullCommand, '', currentCorrelationId)
   }
 
   const filtrarIntervalo = (lista) => {
@@ -288,16 +320,31 @@ function Dashboard() {
   const { dadosGraficoPreco, dadosGraficoVariacao, multiMoeda } = useMemo(() => {
     const CORES_SIMPLE = ['#FFD700', '#2196f3', '#4caf50', '#e91e63', '#9c27b0', '#ff9800', '#00bcd4']
 
-    // 1. Timestamps comuns
+    // 1. Timestamps comuns (após filtros globais)
     const allTimestampsSet = new Set()
+    const dInicio = dataInicio ? new Date(dataInicio).getTime() : null
+    const dFim = dataFim ? new Date(dataFim.includes('T') ? dataFim : `${dataFim}T23:59:59`).getTime() : null
+
     try {
       Object.values(historicosPorMoeda || {}).forEach(lista => {
         if (Array.isArray(lista)) {
           lista.forEach(r => {
-            if (r) {
-              const dh = r.dataHora ?? r.DataHora
-              if (dh) allTimestampsSet.add(dh)
+            if (!r) return
+            const dh = r.horaReferencia ?? r.HoraReferencia ?? r.dataHora ?? r.DataHora
+            if (!dh) return
+
+            const time = new Date(dh).getTime()
+            if (dInicio && time < dInicio) return
+            if (dFim && time > dFim) return
+
+            // Filtro de resultado (Opcional: aplicado ao gráfico também para consistência)
+            if (resultadoFiltro && resultadoFiltro !== 'ALL') {
+              const v = r.precoPercentualVariacao ?? r.PrecoPercentualVariacao ?? r.variacaoPercentual ?? r.VariacaoPercentual ?? 0
+              if (resultadoFiltro === 'WIN' && v <= 0) return
+              if (resultadoFiltro === 'LOSS' && v >= 0) return
             }
+
+            allTimestampsSet.add(dh)
           })
         }
       })
@@ -305,9 +352,7 @@ function Dashboard() {
       console.error('Erro ao processar timestamps:', err)
     }
     const timestampsUnicos = Array.from(allTimestampsSet).sort()
-    const labels = timestampsUnicos.map(t =>
-      new Date(t).toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })
-    )
+    const labels = timestampsUnicos.map(t => toLocalChartLabel(t))
 
     const moedasOrdenadas = Object.keys(historicosPorMoeda).filter(sig => historicosPorMoeda[sig]?.length > 0)
     const multi = moedasOrdenadas.length > 1
@@ -316,21 +361,42 @@ function Dashboard() {
       const cor = CORES_SIMPLE[idx % CORES_SIMPLE.length]
       const priceMap = new Map()
       const historico = historicosPorMoeda[sigla] || []
+
       historico.forEach(r => {
         if (!r) return
-        const val = r.valor ?? r.Valor ?? r.valorNegociado ?? r.ValorNegociado ?? 0
-        const dh = r.dataHora ?? r.DataHora
+        const val = r.precoFechamento ?? r.PrecoFechamento ?? r.valor ?? r.Valor ?? r.valorNegociado ?? r.ValorNegociado ?? 0
+        const dh = r.horaReferencia ?? r.HoraReferencia ?? r.dataHora ?? r.DataHora
         if (dh) priceMap.set(dh, val)
       })
+
+      let dataRaw = timestampsUnicos.map(ts => priceMap.get(ts) ?? null)
+
+      // Aplicar Normalização se multi-moeda
+      let dataFinal = dataRaw
+      if (multi) {
+        if (normalizacao === 'base100') dataFinal = mathUtils.normalizeToBase100(dataRaw)
+        else if (normalizacao === 'minmax') dataFinal = mathUtils.normalizeMinMax(dataRaw)
+        else if (normalizacao === 'zscore') dataFinal = mathUtils.normalizeZScore(dataRaw)
+      }
+
       return {
         label: sigla,
-        data: timestampsUnicos.map(ts => priceMap.get(ts) ?? null),
+        data: dataFinal,
         borderColor: cor,
-        backgroundColor: `${cor}18`,
-        tension: 0.3,
-        fill: !multi && idx === 0,
-        pointRadius: multi ? 0 : 3,
-        borderWidth: 2,
+        backgroundColor: (context) => {
+          const chart = context.chart;
+          const { ctx, chartArea } = chart;
+          if (!chartArea) return null;
+          const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+          gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+          gradient.addColorStop(1, `${cor}22`);
+          return gradient;
+        },
+        tension: 0.4,
+        fill: true,
+        pointRadius: multi ? 0 : 2,
+        pointHoverRadius: 5,
+        borderWidth: 2.5,
         spanGaps: true,
       }
     })
@@ -339,28 +405,32 @@ function Dashboard() {
       const cor = CORES_SIMPLE[idx % CORES_SIMPLE.length]
       const varMap = new Map()
       const hist = (historicosPorMoeda && sigla) ? (historicosPorMoeda[sigla] || []) : []
-      const dataInicioObj = new Date(dataInicio)
-      const dataFimObj = new Date(dataFim)
 
-      hist.filter(item => {
-        if (!item || !item.dataHora) return false
-        const itemDate = new Date(item.dataHora)
-        return itemDate >= dataInicioObj && itemDate <= dataFimObj
-      }).forEach(r => {
+      hist.forEach(r => {
         if (!r) return
-        const val = r.variacaoPercentual ?? r.VariacaoPercentual ?? r.variacao ?? r.Variacao ?? 0
-        const dh = r.dataHora ?? r.DataHora
-        if (dh) varMap.set(dh, val * 100) // Converte para % decimal se necessário
+        const val = r.precoPercentualVariacao ?? r.PrecoPercentualVariacao ?? r.variacaoPercentual ?? r.VariacaoPercentual ?? r.variacao ?? r.Variacao ?? 0
+        const dh = r.horaReferencia ?? r.HoraReferencia ?? r.dataHora ?? r.DataHora
+        if (dh) varMap.set(dh, val) // Converte para % decimal se necessário
       })
+
       return {
         label: sigla,
         data: timestampsUnicos.map(ts => varMap.get(ts) ?? null),
         borderColor: cor,
-        backgroundColor: `${cor}18`,
-        tension: 0.3,
-        fill: !multi && idx === 0,
-        pointRadius: multi ? 0 : 3,
-        borderWidth: 2,
+        backgroundColor: (context) => {
+          const chart = context.chart;
+          const { ctx, chartArea } = chart;
+          if (!chartArea) return null;
+          const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+          gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+          gradient.addColorStop(1, `${cor}22`);
+          return gradient;
+        },
+        tension: 0.4,
+        fill: true,
+        pointRadius: multi ? 0 : 2,
+        pointHoverRadius: 5,
+        borderWidth: 2.5,
         spanGaps: true,
       }
     })
@@ -370,7 +440,7 @@ function Dashboard() {
       dadosGraficoVariacao: { labels, datasets: datasetsVariacao },
       multiMoeda: multi
     }
-  }, [historicosPorMoeda])
+  }, [historicosPorMoeda, dataInicio, dataFim, resultadoFiltro, normalizacao])
 
   const baseOpcoes = {
     responsive: true,
@@ -386,10 +456,14 @@ function Dashboard() {
       }
     },
     scales: {
-      x: { display: false },
+      x: {
+        display: true,
+        grid: { display: false },
+        ticks: { color: '#666', font: { size: 10 } }
+      },
       y: {
-        grid: { color: 'rgba(255,255,255,0.05)' },
-        ticks: { color: '#888' }
+        grid: { color: 'rgba(255,255,255,0.03)', borderDash: [5, 5] },
+        ticks: { color: '#888', font: { family: "'Share Tech Mono', monospace" } }
       }
     }
   }
@@ -401,7 +475,13 @@ function Dashboard() {
       tooltip: {
         ...baseOpcoes.plugins.tooltip,
         callbacks: {
-          label: (ctx) => `${ctx.dataset.label}: $${Number(ctx.parsed.y).toLocaleString('en-US')}`
+          label: (ctx) => {
+            const val = Number(ctx.parsed.y)
+            if (multiMoeda && normalizacao === 'base100') return `${ctx.dataset.label}: ${val.toFixed(2)} (Base 100)`
+            if (multiMoeda && normalizacao === 'minmax') return `${ctx.dataset.label}: ${val.toFixed(4)} (Min-Max)`
+            if (multiMoeda && normalizacao === 'zscore') return `${ctx.dataset.label}: ${val.toFixed(4)} (Z-Score)`
+            return `${ctx.dataset.label}: $${val.toLocaleString('en-US')}`
+          }
         }
       }
     },
@@ -411,7 +491,10 @@ function Dashboard() {
         ...baseOpcoes.scales.y,
         ticks: {
           ...baseOpcoes.scales.y.ticks,
-          callback: (v) => `$${Number(v).toLocaleString('en-US')}`
+          callback: (v) => {
+            if (multiMoeda && normalizacao !== 'bruto') return v.toFixed(2)
+            return `$${Number(v).toLocaleString('en-US')}`
+          }
         }
       }
     }
@@ -448,8 +531,8 @@ function Dashboard() {
     const hist = (historicosPorMoeda && sigla) ? (historicosPorMoeda[sigla] || []) : []
     if (!hist.length) return '-'
     const last = hist[hist.length - 1]
-    const val = last?.valor ?? last?.Valor ?? last?.valorNegociado ?? last?.ValorNegociado ?? 0
-    return Number(val).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
+    const val = last?.precoFechamento ?? last?.PrecoFechamento ?? last?.valor ?? last?.Valor ?? last?.valorNegociado ?? last?.ValorNegociado ?? 0
+    return mathUtils.formatCurrency(val)
   }, [historicosPorMoeda, moedasFiltro])
 
   const ultimaVariacao = useMemo(() => {
@@ -457,9 +540,36 @@ function Dashboard() {
     const hist = (historicosPorMoeda && sigla) ? (historicosPorMoeda[sigla] || []) : []
     if (!hist.length) return '-'
     const last = hist[hist.length - 1]
-    const val = last?.variacaoPercentual ?? last?.VariacaoPercentual ?? last?.variacao ?? last?.Variacao ?? 0
-    return `${(Number(val) * 100).toFixed(2)}%`
+    const val = last?.precoPercentualVariacao ?? last?.PrecoPercentualVariacao ?? last?.variacaoPercentual ?? last?.VariacaoPercentual ?? last?.variacao ?? last?.Variacao ?? 0
+    return mathUtils.formatPercent(val)
   }, [historicosPorMoeda, moedasFiltro])
+
+  const historicoFiltrado = useMemo(() => {
+    let registros = historicoMoeda?.registros || []
+
+    // Filtro de data
+    if (dataInicio || dataFim) {
+      const dInicio = dataInicio ? new Date(dataInicio).getTime() : null
+      const dFim = dataFim ? new Date(dataFim.includes('T') ? dataFim : `${dataFim}T23:59:59`).getTime() : null
+
+      registros = registros.filter(r => {
+        const time = new Date(r.horaReferencia ?? r.HoraReferencia ?? r.dataHora ?? r.DataHora).getTime()
+        if (dInicio && time < dInicio) return false
+        if (dFim && time > dFim) return false
+        return true
+      })
+    }
+
+    // Filtro de resultado
+    if (resultadoFiltro && resultadoFiltro !== 'ALL') {
+      registros = registros.filter(r => {
+        const v = r.precoPercentualVariacao ?? r.PrecoPercentualVariacao ?? r.variacaoPercentual ?? r.VariacaoPercentual ?? 0
+        return resultadoFiltro === 'WIN' ? v > 0 : v < 0
+      })
+    }
+
+    return registros
+  }, [historicoMoeda, dataInicio, dataFim, resultadoFiltro])
 
   // Top level error boundary for the component render
   if (!token) return <Box sx={{ p: 5 }}>Redirecting to login...</Box>
@@ -482,54 +592,22 @@ function Dashboard() {
 
         <ErrorMessage message={erro} onClose={() => setErro('')} />
 
-        {showMonitor && (
-          <section className="agent-monitor-container">
-            <div className="agent-monitor-panel">
-              <div className="scanline"></div>
-              <div className="agent-monitor-header">
-                <div className="agent-status-badge">
-                  <div className="status-dot-pulse"></div>
-                  CORE_AGENT_LINK::SIGNALR_ACTIVE_{moedaMonitor}
-                </div>
-                <IconButton onClick={() => setShowMonitor(false)} size="small" sx={{ color: 'var(--neon-green)' }}>
-                  <MdClose />
-                </IconButton>
-              </div>
-              <div className="agent-chat-area">
-                <div className="agent-message">
-                  <span className="agent-prefix">&gt; [SYSTEM]</span>
-                  <span className="agent-msg-content">Initializing neural bridge to Ollama instance...</span>
-                </div>
-                <div className="agent-message">
-                  <span className="agent-prefix">&gt; [ATLAS]</span>
-                  <span className="agent-msg-content">Analyzing {moedaMonitor} market regime. Detecting bullish divergence patterns in M15.</span>
-                </div>
-                <div className="agent-message">
-                  <span className="agent-prefix">&gt; [ECHO]</span>
-                  <span className="agent-msg-content">Cross-referencing with sentiment-oscillator. Synergy score at 0.89.</span>
-                </div>
-                <div className="decor-hex">
-                  0x45 0x67 0x89 0xAB 0xCD 0xEF
-                </div>
-              </div>
-            </div>
-          </section>
+        {showChat && (
+          <Terminal
+            messages={messages}
+            onCommand={handleChatCommand}
+            onClose={() => setShowChat(false)}
+            status={isConnected ? 'CONNECTED' : 'OFFLINE'}
+            title={`CHATBOT_${moedaChat || 'GLOBAL'}`}
+          />
         )}
 
-        <Box
-          className="panel top-coins"
-          sx={{
-            background: 'rgba(20, 20, 20, 0.6) !important',
-            backdropFilter: 'blur(15px) !important',
-            border: '1px solid rgba(255, 215, 0, 0.1) !important',
-            mb: 3
-          }}
-        >
-          <h2><MdTrendingUp style={{ verticalAlign: 'middle', marginRight: '8px' }} /> {t('topCoins')}</h2>
+        <Box className="panel top-coins">
+          <h2><MdTrendingUp style={{ verticalAlign: 'middle', marginRight: '10px' }} /> {t('topCoins')}</h2>
           <div className="top-list">
             {moedasCarousel.length === 0 ? (
-              <Box sx={{ p: 3, textAlign: 'center', opacity: 0.6 }}>
-                <Typography variant="body2">{t('loadingCoins')}...</Typography>
+              <Box sx={{ p: 4, textAlign: 'center', opacity: 0.6 }}>
+                <Typography variant="body2" sx={{ fontStyle: 'italic' }}>{t('loadingCoins')}...</Typography>
               </Box>
             ) : (
               moedasCarousel
@@ -543,7 +621,7 @@ function Dashboard() {
                       <CryptoIcon simbolo={m.simbolo} />
                       <span className="top-name">{m.nome}</span>
                       <span className={`top-var ${up ? 'positive' : 'negative'}`}>
-                        {up ? '+' : ''}{m.variacao.toFixed(2)}%
+                        {mathUtils.formatPercent(m.variacao)}
                       </span>
                     </div>
                   )
@@ -586,7 +664,7 @@ function Dashboard() {
                     className={`carousel-card-inner ${isSelected ? 'selected' : ''}`}
                     onClick={() => selecionarMoeda(m.simbolo)}
                     sx={{
-                      padding: '24px 16px',
+                      padding: '24px 16px 52px',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
@@ -609,24 +687,13 @@ function Dashboard() {
                         {m.simbolo}
                       </span>
                       <span className={`carousel-price ${isUp ? 'positive' : 'negative'}`} style={{ fontSize: '0.85rem' }}>
-                        {m.valor.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                        {mathUtils.formatCurrency(m.valor)}
                       </span>
                       <div className={`carousel-mini-var ${isUp ? 'up' : 'down'}`}>
                         {isUp ? <MdTrendingUp /> : <MdTrendingDown />}
-                        {Math.abs(m.variacao).toFixed(1)}%
+                        {mathUtils.formatPercent(m.variacao, 1)}
                       </div>
                     </div>
-
-                    <IconButton
-                      className="ai-chat-btn-overlay"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDebateTrigger(m.simbolo);
-                      }}
-                      title={`Conversar com IA sobre ${m.simbolo}`}
-                    >
-                      <MdSmartToy />
-                    </IconButton>
 
                     {isSelected && (
                       <div className="selected-indicator">
@@ -634,13 +701,24 @@ function Dashboard() {
                       </div>
                     )}
                   </CardActionArea>
+
+                  <IconButton
+                    className="ai-chat-btn-overlay"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDebateTrigger(m.simbolo);
+                    }}
+                    title={t('chatWithAI', { coin: m.simbolo })}
+                  >
+                    <MdSmartToy />
+                  </IconButton>
                 </Card>
               )
             })
           )}
         </div>
 
-        <section className="panel filters-panel" style={{ marginBottom: '40px', padding: '20px' }}>
+        <section className="panel filters-panel">
           <Box sx={{
             display: 'flex',
             flexDirection: { xs: 'column', md: 'row' },
@@ -655,7 +733,10 @@ function Dashboard() {
                 label={t('startDate')}
                 type="date"
                 value={dataInicio}
-                onChange={(e) => setDataInicio(e.target.value)}
+                onChange={(e) => {
+                  setDataInicio(e.target.value)
+                  setPagina(1)
+                }}
                 InputLabelProps={{ shrink: true }}
                 size="small"
                 variant="outlined"
@@ -673,7 +754,10 @@ function Dashboard() {
                 label={t('endDate')}
                 type="date"
                 value={dataFim}
-                onChange={(e) => setDataFim(e.target.value)}
+                onChange={(e) => {
+                  setDataFim(e.target.value)
+                  setPagina(1)
+                }}
                 InputLabelProps={{ shrink: true }}
                 size="small"
                 variant="outlined"
@@ -715,8 +799,30 @@ function Dashboard() {
                     key={opt}
                     className={`interval-btn-mini ${intervalo === opt ? 'active' : ''}`}
                     onClick={() => {
+                      const agora = new Date()
+                      let inicioDate
+
+                      if (opt === '24h') {
+                        inicioDate = subDays(agora, 1)
+                      } else if (opt === '7d') {
+                        inicioDate = subDays(agora, 7)
+                      } else if (opt === '1m') {
+                        inicioDate = subMonths(agora, 1)
+                      } else {
+                        inicioDate = agora
+                      }
+
+                      const formattedInicio = inicioDate.toISOString()
+                      const formattedFim = agora.toISOString()
+
+                      setDataInicio(formattedInicio)
+                      setDataFim(formattedFim)
                       setIntervalo(opt)
-                      setPagina(1) // Opcional: resetar página se mudar o intervalo? Geralmente sim.
+
+                      // Reset da Hierarquia de Filtros (Nível 2 -> Todos os inferiores)
+                      setPagina(1)
+                      setQuantidade(100)
+                      setResultadoFiltro('ALL')
                     }}
                     style={{ flex: 1, padding: '0 8px', fontSize: '0.8rem' }}
                   >
@@ -762,22 +868,14 @@ function Dashboard() {
         </div>
 
         <div className="dashboard-charts">
-          <Box className="panel chart-panel" sx={{
-            background: 'rgba(20, 20, 20, 0.6) !important',
-            backdropFilter: 'blur(15px) !important',
-            border: '1px solid rgba(255, 255, 255, 0.05) !important'
-          }}>
+          <Box className="panel chart-panel">
             <h2>{t('tradedValue')}</h2>
             <div className="chart-note">{t('lastValue')}: {ultimoNegociado}</div>
             <div className="chart-container">
               <Line data={dadosNegociados} options={opcoesPreco} />
             </div>
           </Box>
-          <Box className="panel chart-panel" sx={{
-            background: 'rgba(20, 20, 20, 0.6) !important',
-            backdropFilter: 'blur(15px) !important',
-            border: '1px solid rgba(255, 255, 255, 0.05) !important'
-          }}>
+          <Box className="panel chart-panel">
             <h2>{t('percentVariation')}</h2>
             <div className="chart-note">{t('lastVariation')}: {ultimaVariacao}</div>
             <div className="chart-container">
@@ -788,31 +886,59 @@ function Dashboard() {
 
         {moedasFiltro.length > 0 && historicoMoeda && (
           <Box className="panel history-panel" sx={{
-            marginTop: '20px',
-            background: 'rgba(20, 20, 20, 0.6) !important'
+            marginTop: '32px',
+            overflow: 'hidden'
           }}>
-            <h2>{t('coinHistory')}: {moedasFiltro[0]}</h2>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <MdRefresh style={{ color: 'var(--color-primary)' }} /> {t('coinHistory')}: {moedasFiltro[0]}
+            </h2>
             <TableContainer component={Paper} sx={{ backgroundColor: 'transparent', boxShadow: 'none' }}>
               <Table size="small">
                 <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ color: '#aaa', fontWeight: 'bold' }}>{t('date')}</TableCell>
-                    <TableCell sx={{ color: '#aaa', fontWeight: 'bold' }}>{t('value')}</TableCell>
+                  <TableRow sx={{ '& th': { borderBottom: '1px solid rgba(255,255,255,0.1)' } }}>
+                    <TableCell sx={{ color: '#888', fontWeight: '800', fontSize: '0.75rem', textTransform: 'uppercase' }}>{t('date')}</TableCell>
+                    <TableCell sx={{ color: '#888', fontWeight: '800', fontSize: '0.75rem', textTransform: 'uppercase' }}>{t('value')}</TableCell>
+                    <TableCell sx={{ color: '#888', fontWeight: '800', fontSize: '0.75rem', textTransform: 'uppercase' }}>{t('variation')}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {(historicoMoeda?.registros || historicoMoeda?.Registros || []).map((item, idx) => {
-                    const dh = item?.dataHora ?? item?.DataHora
-                    const val = item?.valor ?? item?.Valor ?? item?.valorNegociado ?? item?.ValorNegociado ?? 0
-                    return (
-                      <TableRow key={idx}>
-                        <TableCell sx={{ color: '#eee' }}>{dh ? new Date(dh).toLocaleString('en-US') : '-'}</TableCell>
-                        <TableCell sx={{ color: '#eee' }}>
-                          {Number(val).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
+                  {historicoFiltrado.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={3} align="center" sx={{ color: '#666', py: 8 }}>
+                        <div style={{ opacity: 0.5, fontSize: '0.9rem' }}>
+                          {t('noRecordsFound') || 'Nenhum registro encontrado para os filtros selecionados'}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    historicoFiltrado.map((r, idx) => {
+                      const val = r.precoFechamento ?? r.PrecoFechamento ?? r.valor ?? r.Valor ?? r.valorNegociado ?? r.ValorNegociado ?? 0
+                      const dVar = r.precoPercentualVariacao ?? r.PrecoPercentualVariacao ?? r.variacaoPercentual ?? r.VariacaoPercentual ?? r.variacao ?? r.Variacao ?? 0
+                      const isUp = dVar >= 0
+                      return (
+                        <TableRow
+                          key={idx}
+                          sx={{
+                            '&:hover': { background: 'rgba(255,255,255,0.02)' },
+                            '& td': { borderBottom: '1px solid rgba(255,255,255,0.03)', py: 1.5 }
+                          }}
+                        >
+                          <TableCell sx={{ color: '#aaa', fontFamily: "'Share Tech Mono', monospace" }}>
+                            {toLocal(r.horaReferencia ?? r.HoraReferencia ?? r.dataHora ?? r.DataHora)}
+                          </TableCell>
+                          <TableCell sx={{ color: '#fff', fontWeight: 600 }}>
+                            {mathUtils.formatCurrency(val)}
+                          </TableCell>
+                          <TableCell sx={{ color: isUp ? '#4caf50' : '#f44336', fontWeight: 700 }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              {isUp ? <MdTrendingUp /> : <MdTrendingDown />}
+                              {mathUtils.formatPercent(dVar)}
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })
+                  )}
                 </TableBody>
               </Table>
             </TableContainer>

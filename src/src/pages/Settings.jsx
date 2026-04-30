@@ -120,21 +120,9 @@ function Settings() {
 
   const renderPanel = (icon, title, children) => (
     <Box className="panel settings-panel" sx={{ 
-        padding: '32px', 
-        marginBottom: '32px',
-        background: 'rgba(20, 20, 20, 0.8)',
-        backdropFilter: 'blur(20px)',
-        border: '1px solid rgba(255, 215, 0, 0.12)',
-        borderRadius: '24px',
-        transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)',
-        '&:hover': {
-            borderColor: 'rgba(255, 215, 0, 0.3)',
-            transform: 'translateY(-4px)'
-        }
     }}>
       <header style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
         <div style={{ 

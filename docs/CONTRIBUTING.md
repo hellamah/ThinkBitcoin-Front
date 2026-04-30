@@ -42,22 +42,30 @@ Para manter o padrão do projeto:
 - Use enums e constantes existentes quando aplicável, evitando valores mágicos espalhados.
 - Preserve o padrão de componentes e hooks já adotado no projeto.
 - Atualize documentação e traduções (`src/src/lang/pt.json` e `src/src/lang/en.json`) quando houver impacto de interface.
+- Documente mudanças de infraestrutura no arquivo [DEPLOYMENT.md](./DEPLOYMENT.md).
 - Evite mudanças não relacionadas no mesmo PR.
 
 ## 4) Estratégia de branches
 
 Fluxo padrão recomendado:
 
-- `main`: branch estável de produção.
-- `dev`: branch de integração das funcionalidades.
-- `feature/<nome-curto>`: novas funcionalidades (origem em `dev`, destino em `dev`).
-- `fix/<nome-curto>`: correções pontuais (origem em `dev`, destino em `dev`).
+- `main`: branch estável de produção. O deploy automático ocorre para a Vercel via Azure Pipelines.
+- `develop`: branch de integração das funcionalidades. Gera builds de preview.
+- `feature/<nome-curto>`: novas funcionalidades (origem em `develop`, destino em `develop`).
+- `fix/<nome-curto>`: correções pontuais (origem em `develop`, destino em `develop`).
 
-Somente promova `dev` para `main` após validações de release.
+Somente promova `develop` para `main` após validações de release.
 
 ## 5) Checklist antes de enviar
 
 - [ ] Rodei `npm test` em `src/`.
 - [ ] Reutilizei camada de utils/enums quando aplicável.
-- [ ] Atualizei documentação relevante.
+- [ ] Atualizei documentação relevante em [README.md](./README.md) ou [ROADMAP.md](./ROADMAP.md).
 - [ ] Meu PR está pequeno, objetivo e com descrição clara.
+
+## 6) DevOps e Deploy
+
+O projeto utiliza **Azure Pipelines** para automação e **Vercel** para hospedagem.
+- O arquivo de configuração do pipeline está em `devops/azure-pipelines-front-deploy-vercel.yml`.
+- Segredos e variáveis de ambiente são gerenciados no Variable Group `thinkbitcoin-secrets` no Azure DevOps.
+- Para detalhes técnicos de rede e DNS (No-IP/Minikube), consulte o [DEPLOYMENT.md](./DEPLOYMENT.md).

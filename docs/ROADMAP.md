@@ -2,32 +2,33 @@
 
 Este roadmap organiza a evolução do frontend do ThinkBitcoin em quatro fases, com foco em entrega contínua, operação do robô trader e evolução para uma plataforma quantitativa completa.
 
-## Fase 1 — Base do Projeto
+## Fase 1 — Base do Projeto ✅
 
 **Objetivo:** deixar o frontend estruturado e publicável.
 
 ### Infraestrutura (DevOps)
-- Criar e manter repositório público do frontend.
-- Organizar estrutura do projeto.
-- Criar e manter README do projeto.
-- Definir padrão de versionamento.
-- Configurar ESLint e Prettier.
-- Configurar variáveis de ambiente.
-- Preparar build de produção.
+- [x] Criar e manter repositório público do frontend.
+- [x] Organizar estrutura do projeto.
+- [x] Criar e manter README do projeto.
+- [x] Definir padrão de versionamento.
+- [x] Configurar ESLint e Prettier.
+- [x] Configurar variáveis de ambiente.
+- [x] Preparar build de produção.
 
 ### Build Pipeline
-- Pipeline de build automático.
-- Instalação de dependências.
-- Execução de lint.
-- Execução de testes.
-- Geração do build (`dist`).
+- [x] Pipeline de build automático (Vercel + Azure).
+- [x] Instalação de dependências.
+- [x] Execução de lint.
+- [x] Execução de testes.
+- [x] Geração do build (`dist`).
 
 ### Release Pipeline
-- Criação de imagem Docker.
-- Publicação em registry.
-- Deploy automático.
+- [x] Integração com Vercel.
+- [ ] Criação de imagem Docker (Legado).
+- [ ] Publicação em registry.
+- [x] Deploy automático.
 
-**Entregável final:** frontend buildável e deployável automaticamente.
+**Entregável final:** frontend buildável e deployável automaticamente via Vercel.
 
 ---
 

@@ -15,6 +15,14 @@
 {{- end -}}
 {{- end -}}
 
+{{- define "thinkbitcoin-front.serviceName" -}}
+{{- if .Values.service.nameOverride -}}
+{{- .Values.service.nameOverride | trunc 63 | trimSuffix "-" -}}
+{{- else -}}
+{{- printf "%s-service" (include "thinkbitcoin-front.fullname" .) | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+{{- end -}}
+
 {{- define "thinkbitcoin-front.labels" -}}
 helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
 app.kubernetes.io/name: {{ include "thinkbitcoin-front.name" . }}

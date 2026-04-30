@@ -10,6 +10,7 @@
   "password": "Senha",
   "signIn": "Entrar",
   "registerPrompt": "N\u00e3o possui conta? Cadastre-se",
+  "exclusiveAccess": "Plataforma exclusiva — acesso por convite",
   "register": "Registrar",
   "name": "Nome",
   "signUp": "Registrar",
@@ -93,5 +94,6 @@
   "exchange": "Exchange",
   "miner": "Minerador (Acesso a IA)",
   "consultant": "Consultor (Acesso Básico)",
-  "copyRight": "© 2025 ThinkBitcoin. Todos os direitos reservados."
+  "copyRight": "© 2025 ThinkBitcoin. Todos os direitos reservados.",
+  "chatWithAI": "Conversar com IA sobre {{coin}}"
 }

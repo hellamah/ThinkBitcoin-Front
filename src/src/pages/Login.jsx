@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { TextField, Button, Box, Paper, Typography } from '@mui/material'
 import { MdEmail, MdLock } from 'react-icons/md'
 import ErrorMessage from '../components/ErrorMessage'
@@ -143,9 +143,9 @@ function Login() {
             </Button>
 
             <Box sx={{ mt: 3, textAlign: 'center' }}>
-               <Link to="/register" style={{ color: 'rgba(255,255,255,0.6)', textDecoration: 'none', fontSize: '0.9rem', borderBottom: '1px solid transparent', transition: 'all 0.2s' }}>
-                   {t('registerPrompt')}
-               </Link>
+               <Typography sx={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.8rem', fontStyle: 'italic' }}>
+                   {t('exclusiveAccess')}
+               </Typography>
             </Box>
           </Box>
         </form>
