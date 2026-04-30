@@ -60,10 +60,9 @@ const resolveEnvUrl = () => {
 }
 const envUrl = import.meta.env?.VITE_API_URL
 
-export const API_URL = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
-  ? hostUrl
-  : (envUrl || hostUrl)
+// Em produção (Vercel + Cloudflare), usamos a envUrl pura (ex: https://api.minerthinkbitcoin.com)
+// Em desenvolvimento local, usamos a lógica de portas do Minikube/Localhost
+const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1'
 
-export const PYTHON_API_URL = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
-  ? getHostUrl(PORTS.PYTHON_API)
-  : (envUrl || hostUrl)
+export const API_URL = isLocal ? hostUrl : (envUrl || hostUrl)
+export const PYTHON_API_URL = isLocal ? getHostUrl(PORTS.PYTHON_API) : (envUrl || hostUrl)

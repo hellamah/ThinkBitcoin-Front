@@ -8,7 +8,7 @@ param (
 
 Write-Host "Criando/Atualizando segredo cloudflare-secrets no namespace thinkbitcoin..." -ForegroundColor Cyan
 
-kubectl create secret opaque cloudflare-secrets --from-literal=tunnel-token=$Token -n thinkbitcoin --dry-run=client -o yaml | kubectl apply -f -
+kubectl create secret generic cloudflare-secrets --from-literal=tunnel-token=$Token -n thinkbitcoin --dry-run=client -o yaml | kubectl apply -f -
 
 Write-Host "Reiniciando o pod do Cloudflare para aplicar a mudança..." -ForegroundColor Yellow
 kubectl rollout restart deployment cloudflared -n thinkbitcoin
