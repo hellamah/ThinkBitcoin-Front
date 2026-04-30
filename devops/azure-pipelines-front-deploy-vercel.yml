@@ -36,11 +36,11 @@ jobs:
         cd src
         if ("$(Build.SourceBranch)" -eq "refs/heads/Prod") {
             Write-Host "Deploying to Production..."
-            vercel --token $(VERCEL_TOKEN) --prod --yes --env VITE_API_URL=$(PROD_API_URL)
+            vercel --token $(VERCEL_TOKEN) --prod --yes
         }
         else {
             Write-Host "Deploying Preview..."
-            vercel --token $(VERCEL_TOKEN) --yes --env VITE_API_URL=$(DEV_API_URL)
+            vercel --token $(VERCEL_TOKEN) --yes
         }
     env:
       VERCEL_ORG_ID: $(VERCEL_ORG_ID)

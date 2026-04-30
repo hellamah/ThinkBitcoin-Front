@@ -58,19 +58,12 @@ const resolveEnvUrl = () => {
     return undefined
   }
 }
-const envUrl = resolveEnvUrl()
-const isDev = import.meta.env?.DEV
-
-const runtimeUrl = typeof window !== 'undefined' ? window?._env_?.VITE_API_URL : undefined
-const useRuntime = runtimeUrl && !runtimeUrl.startsWith('${')
-const finalEnvUrl = useRuntime ? runtimeUrl : envUrl
+const envUrl = import.meta.env?.VITE_API_URL
 
 export const API_URL = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
-  ? (useRuntime ? runtimeUrl : hostUrl)
-  : (finalEnvUrl || (isDev ? '' : hostUrl))
+  ? hostUrl
+  : (envUrl || hostUrl)
 
 export const PYTHON_API_URL = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
   ? getHostUrl(PORTS.PYTHON_API)
-  : (useRuntime ? runtimeUrl : hostUrl) // Fallback
-
-
+  : (envUrl || hostUrl)
