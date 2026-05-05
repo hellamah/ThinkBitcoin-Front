@@ -1,4 +1,4 @@
-# Roadmap ThinkBitcoin Frontend
+# Roadmap ThinkBitcoin-Front
 
 Este roadmap organiza a evolução do frontend do ThinkBitcoin em quatro fases, com foco em entrega contínua, operação do robô trader e evolução para uma plataforma quantitativa completa.
 

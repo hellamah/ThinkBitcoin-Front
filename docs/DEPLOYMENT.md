@@ -1,6 +1,6 @@
 # Guia de Deployment e Infraestrutura
 
-Este documento detalha a arquitetura de hospedagem e o fluxo de rede do ThinkBitcoin Frontend, integrando serviços em nuvem (Vercel) com serviços locais (Minikube).
+Este documento detalha a arquitetura de hospedagem e o fluxo de rede do ThinkBitcoin-Front, integrando serviços em nuvem (Vercel) com serviços locais (Minikube).
 
 ## 1. Visão Geral da Arquitetura
 

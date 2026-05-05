@@ -1,4 +1,4 @@
-# ThinkBitcoin Frontend
+# ThinkBitcoin-Front
 
 Aplicação web construída com React e Vite para acompanhar cotações de criptoativos, realizar autenticação e gerenciar preferências do usuário.
 
@@ -15,19 +15,19 @@ A API e o motor de decisão do ThinkBitcoin são privados e não fazem parte des
 Mesmo com backend privado, a experiência visual do produto pode ser avaliada por aqui:
 
 ### Login
-![Tela de login do ThinkBitcoin](./public/screenshots/login.svg)
+![Tela de login do ThinkBitcoin](../src/public/screenshots/login.svg)
 
 ### Dashboard
-![Visão de dashboard do ThinkBitcoin](./public/screenshots/dashboard.svg)
+![Visão de dashboard do ThinkBitcoin](../src/public/screenshots/dashboard.svg)
 
 ### Gráfico
-![Visualização de gráfico de mercado no ThinkBitcoin](./public/screenshots/grafico.svg)
+![Visualização de gráfico de mercado no ThinkBitcoin](../src/public/screenshots/grafico.svg)
 
 ### Decisão do bot
-![Card de decisão do bot no ThinkBitcoin](./public/screenshots/decisao-bot.svg)
+![Card de decisão do bot no ThinkBitcoin](../src/public/screenshots/decisao-bot.svg)
 
 ## Para quem está chegando agora
-- **O que é o ThinkBitcoin em 1 frase:** ThinkBitcoin é um sistema experimental de trading com aprendizado por reforço, com uma interface web para acompanhar mercado, autenticação e configurações operacionais.
+- **O que é o ThinkBitcoin-Front em 1 frase:** ThinkBitcoin-Front é um sistema experimental de trading com aprendizado por reforço, com uma interface web para acompanhar mercado, autenticação e configurações operacionais.
 - **Por que esse projeto existe:** o projeto existe para transformar pesquisa e operação de estratégias em um fluxo mais claro, com dados visuais, automação e evolução contínua documentada.
 - **Quem deveria usar isso:** pessoas desenvolvedoras, analistas e entusiastas de cripto que queiram testar, acompanhar e evoluir estratégias de forma estruturada.
 
@@ -49,7 +49,7 @@ Mesmo com backend privado, a experiência visual do produto pode ser avaliada po
 - Node.js 18 ou superior.
 - npm 10 ou superior.
 
-## Instalação
+## Instalação (A partir da raiz do projeto)
 ```bash
 cd src
 npm install
@@ -72,7 +72,7 @@ VITE_USE_MOCK=true
 - `VITE_USE_MOCK=false`: força chamadas reais para a API (desativa o modo demo local).
 - Se `VITE_USE_MOCK` estiver ausente, o app usa mock automaticamente em desenvolvimento (`npm run dev`) e usa API real em produção (`npm run build`/deploy).
 
-## Scripts Disponíveis
+## Scripts Disponíveis (Executar dentro de /src)
 | Comando        | Descrição                                     |
 |----------------|-----------------------------------------------|
 | `npm run dev`  | Inicia o servidor de desenvolvimento do Vite. |
@@ -95,18 +95,18 @@ src/
 ```
 
 ## Padrões e Boas Práticas
-- Utilize os utilitários presentes em `src/utils` para trabalhar com enums, autenticação (`authentication.js`), camada de API (`apiClient.js`), workflows de interface (`workflow.js`) e armazenamento de preferências.
+- Utilize os utilitários presentes em `src/src/utils` para trabalhar com enums, autenticação (`authentication.js`), camada de API (`apiClient.js`), workflows de interface (`workflow.js`) e armazenamento de preferências.
 - Sempre execute `npm test` antes de abrir um pull request.
-- Novas traduções devem ser adicionadas em `src/lang/en.json` e `src/lang/pt.json`.
+- Novas traduções devem ser adicionadas em `src/src/lang/en.json` e `src/src/lang/pt.json`.
 
 
 
 ## Depuração no VS Code
 Foi adicionado o arquivo `src/.vscode/launch.json` com configurações prontas para depuração local:
 
-- **ThinkBitcoin Front: Vite (dev)**: inicia o servidor de desenvolvimento via `npm run dev`.
-- **ThinkBitcoin Front: Abrir no Chrome**: abre o app em `http://localhost:5173` com suporte a *breakpoints* no código React.
-- **ThinkBitcoin Front: Testes (Vitest)**: executa os testes (`npm test`) com depuração no terminal integrado.
+- **ThinkBitcoin-Front: Vite (dev)**: inicia o servidor de desenvolvimento via `npm run dev`.
+- **ThinkBitcoin-Front: Abrir no Chrome**: abre o app em `http://localhost:5173` com suporte a *breakpoints* no código React.
+- **ThinkBitcoin-Front: Testes (Vitest)**: executa os testes (`npm test`) com depuração no terminal integrado.
 
 > Dica: para essas configurações funcionarem sem ajustes, abra no VS Code a pasta `ThinkBitcoin-Front/src` (a que contém o `package.json`) e use a aba **Run and Debug** para selecionar uma configuração.
 
@@ -135,9 +135,8 @@ Para o pipeline funcionar, as seguintes variáveis devem estar no Azure DevOps:
 - `VERCEL_PROJECT_ID`: ID do Projeto na Vercel.
 - `PROD_API_URL`: `https://minerthinkbitcoin.com` (URL do seu backend).
 
-## Testes
+## Testes (Executar dentro de /src)
 ```bash
-cd src
 npm test
 ```
 Os testes utilizam o Vitest e são executados em modo *headless*.
