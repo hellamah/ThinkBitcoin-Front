@@ -61,6 +61,11 @@ export const apiRequest = async (
     if (mockResponse) return mockResponse
   }
 
+  // Intercepta endpoints em desenvolvimento para evitar poluição de erros 404 no console
+  if (endpoint.includes('fear-greed') || endpoint.includes('trend')) {
+    return Promise.reject(new Error('Backend endpoint not implemented yet - Intercepted to prevent 404 log'))
+  }
+
   const response = await fetch(
     buildUrl(endpoint),
     { ...createRequestInit(method, headers, body), signal }
