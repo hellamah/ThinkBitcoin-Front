@@ -97,5 +97,15 @@
   "chatWithAI": "Conversar com IA sobre {{coin}}",
   "registerVisualTitle": "Transformando riqueza com IA.",
   "registerVisualSubtitle": "Junte-se ao círculo de elite de mineradores e investidores de Bitcoin impulsionados por inteligência de nível profissional.",
-  "alreadyHaveAccount": "Já possui uma conta?"
+  "alreadyHaveAccount": "Já possui uma conta?",
+  "marketSentiment": "Sentimento de Mercado",
+  "fearGreedIndex": "Índice Fear & Greed",
+  "marketTrend": "Tendência de Mercado",
+  "extremeFear": "Medo Extremo",
+  "fear": "Medo",
+  "neutral": "Neutro",
+  "greed": "Ganância",
+  "extremeGreed": "Ganância Extrema",
+  "bullish": "Otimista (Bullish)",
+  "bearish": "Pessimista (Bearish)"
 }

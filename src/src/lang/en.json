@@ -97,5 +97,15 @@
   "chatWithAI": "Chat with AI about {{coin}}",
   "registerVisualTitle": "Transforming wealth with AI.",
   "registerVisualSubtitle": "Join the elite circle of Bitcoin miners and investors powered by professional grade intelligence.",
-  "alreadyHaveAccount": "Already have an account?"
+  "alreadyHaveAccount": "Already have an account?",
+  "marketSentiment": "Market Sentiment",
+  "fearGreedIndex": "Fear & Greed Index",
+  "marketTrend": "Market Trend",
+  "extremeFear": "Extreme Fear",
+  "fear": "Fear",
+  "neutral": "Neutral",
+  "greed": "Greed",
+  "extremeGreed": "Extreme Greed",
+  "bullish": "Bullish",
+  "bearish": "Bearish"
 }

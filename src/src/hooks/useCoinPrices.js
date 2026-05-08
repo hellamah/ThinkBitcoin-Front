@@ -58,20 +58,24 @@ export default function useCoinPrices() {
         listaParaProcessar.map(async (m) => {
           try {
             // Usa o símbolo (sigla) para buscar o valor. Convertemos para lowercase conforme o exemplo do usuário.
-            const json = await apiRequest(MarketEndpoint.COIN_VALUE(m.simbolo.toLowerCase()))
+            const [resPreco, resFear, resTrend] = await Promise.all([
+              apiRequest(MarketEndpoint.COIN_VALUE(m.simbolo.toLowerCase())),
+              apiRequest(`/ThinkBitcoin/variavel-externa/fear-greed?idMoeda=${m.id}&quantidade=1&ordemAsc=false`),
+              apiRequest(`/ThinkBitcoin/variavel-externa/trend?idMoeda=${m.id}&quantidade=1&ordemAsc=false`)
+            ])
             
-            // Tenta extrair o valor de várias formas possíveis (suporte a real API e Paginação)
+            // Tenta extrair o valor do preço
             let valor = 0
-            const res = json?.resultado ?? json?.Resultado ?? json
-            const registro = res?.registros?.[0] ?? res?.Registros?.[0] ?? (Array.isArray(res) ? res[0] : res)
+            const pRes = resPreco?.resultado ?? resPreco?.Resultado ?? resPreco
+            const registro = pRes?.registros?.[0] ?? pRes?.Registros?.[0] ?? (Array.isArray(pRes) ? pRes[0] : pRes)
             
-            if (typeof json === 'number') {
-              valor = json
+            if (typeof resPreco === 'number') {
+              valor = resPreco
             } else if (registro) {
               valor = registro.precoFechamento ?? registro.PrecoFechamento ?? 
                       registro.valorNegociado ?? registro.ValorNegociado ?? 
                       registro.valor ?? registro.Valor ?? 
-                      res?.valor ?? res?.Valor ?? 0
+                      pRes?.valor ?? pRes?.Valor ?? 0
             }
             
             const apiVariacao = registro?.precoPercentualVariacao ?? registro?.PrecoPercentualVariacao ?? 
@@ -81,7 +85,14 @@ export default function useCoinPrices() {
             const anterior = m.dados[m.dados.length - 1] ?? valor
             const variacao = apiVariacao !== null ? apiVariacao : (anterior !== 0 ? ((valor - anterior) / anterior) * 100 : 0)
             
-            return { ...m, valor, dados: historico, variacao }
+            // Extrai dados de sentimento
+            const fgRes = resFear?.resultado ?? resFear?.Resultado ?? resFear
+            const fear = fgRes?.registros?.[0] ?? fgRes?.Registros?.[0] ?? (Array.isArray(fgRes) ? fgRes[0] : null)
+            
+            const trRes = resTrend?.resultado ?? resTrend?.Resultado ?? resTrend
+            const trend = trRes?.registros?.[0] ?? trRes?.Registros?.[0] ?? (Array.isArray(trRes) ? trRes[0] : null)
+
+            return { ...m, valor, dados: historico, variacao, fear, trend }
           } catch (err) {
             console.error(`Erro ao buscar valor para ${m.simbolo}:`, err)
             return m
@@ -93,11 +104,8 @@ export default function useCoinPrices() {
 
     inicializarMoedas()
     
-    const id = setInterval(() => obterValores(), 30000)
-    
     return () => {
       ativo = false
-      clearInterval(id)
     }
   }, [])
 

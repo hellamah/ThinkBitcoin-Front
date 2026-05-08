@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from 'react'
 import { format, subDays, subMonths } from 'date-fns'
-import { apiRequest, HttpMethod, MarketEndpoint } from '../utils/apiClient'
+import { apiRequest, HttpMethod, MarketEndpoint, VariavelExternaEndpoint } from '../utils/apiClient'
 import * as mathUtils from '../utils/mathUtils'
 import useCoinPrices from '../hooks/useCoinPrices'
 import { useAuth } from '../context/AuthContext'
@@ -102,6 +102,9 @@ function Dashboard() {
   const [historicosPorMoeda, setHistoricosPorMoeda] = useState({}) // { BTC: [{valor, dataHora}, ...] }
   const [normalizacao, setNormalizacao] = useState('base100') // 'bruto' | 'minmax' | 'base100' | 'zscore'
   const [expandedChart, setExpandedChart] = useState(null) // 'tradedValue' | 'percentVariation' | null
+  const [fearGreedPorMoeda, setFearGreedPorMoeda] = useState({})
+  const [trendPorMoeda, setTrendPorMoeda] = useState({})
+  const [loadingSentiment, setLoadingSentiment] = useState(false)
   const filterSummaryRef = useRef('') // Cache de string dos filtros globais (intervalo+datas)
 
   // Fechar modal com a tecla Esc
@@ -178,6 +181,25 @@ function Dashboard() {
     // 1. Busca Sequências (Gráficos) - REMOVIDO TEMPORARIAMENTE (BACKEND EM DESENVOLVIMENTO)
     setDados(MOCK_DADOS)
 
+    // 1.5. Busca Sentimento de Mercado (Sincronizado)
+    setLoadingSentiment(true)
+    const commonParams = new URLSearchParams()
+    if (dataInicio) commonParams.append('dataInicio', dataInicio.includes('T') ? dataInicio : toUTCISO(new Date(`${dataInicio}T00:00:00`)))
+    if (dataFim) commonParams.append('dataFim', dataFim.includes('T') ? dataFim : toUTCISO(new Date(`${dataFim}T23:59:59`)))
+    if (intervalo) commonParams.append('intervalo', intervalo)
+    if (pagina) commonParams.append('pagina', pagina)
+    if (quantidade) commonParams.append('quantidade', quantidade)
+    commonParams.append('ordemAsc', 'false')
+    const queryString = commonParams.toString() ? `?${commonParams.toString()}` : ''
+
+    // Mapeamento de Sigla para ID (para buscar variáveis externas)
+    const siglaParaIdMap = new Map()
+    moedasCarousel.forEach(m => {
+      const sig = (m.simbolo || '').toLowerCase()
+      const id = m.id
+      if (sig && id) siglaParaIdMap.set(sig, id)
+    })
+
     // 2. Busca histórico inteligente: Cache por intervalo + Streaming
     const currentFilterKey = `${intervalo}-${dataInicio}-${dataFim}-${pagina}-${quantidade}`
     const isSameFilter = filterSummaryRef.current === currentFilterKey
@@ -188,70 +210,76 @@ function Dashboard() {
       setHistoricosPorMoeda({})
     }
 
-    moedasFiltro.forEach(sigla => {
-      // Sincroniza tabela com a primeira da lista (mesmo se vier do cache)
-      if (sigla === moedasFiltro[0] && historicosPorMoeda[sigla]) {
-        setHistoricoMoeda({ registros: historicosPorMoeda[sigla] })
-      }
+    // 2. Busca histórico sincronizada por moeda
+    const promessasMoedas = moedasFiltro.map(async (sigla) => {
+      if (!sigla || sigla === 'Ativo') return null
 
-      // Se já temos e o filtro é o mesmo, não fazemos nada (pula fetch)
-      if (isSameFilter && historicosPorMoeda[sigla]) return
+      const idMoeda = siglaParaIdMap.get(sigla.toLowerCase())
+      const urlPreco = `${MarketEndpoint.COIN_VALUE(sigla.toLowerCase())}${queryString}`
+      
+      // Criamos as promessas para os 3 tipos de dados
+      const pPreco = apiRequest(urlPreco, { headers: { Authorization: `Bearer ${token}` }, signal })
+      const pFear = idMoeda 
+        ? apiRequest(`${VariavelExternaEndpoint.FEAR_GREED}${queryString}${queryString ? '&' : '?'}idMoeda=${idMoeda}`, { headers: { Authorization: `Bearer ${token}` }, signal })
+        : Promise.resolve(null)
+      const pTrend = idMoeda 
+        ? apiRequest(`${VariavelExternaEndpoint.TREND}${queryString}${queryString ? '&' : '?'}idMoeda=${idMoeda}`, { headers: { Authorization: `Bearer ${token}` }, signal })
+        : Promise.resolve(null)
 
-      if (!sigla || sigla === 'Ativo') return
-
-      let url = MarketEndpoint.COIN_VALUE(sigla.toLowerCase())
-      const params = new URLSearchParams()
-      if (dataInicio) params.append('dataInicio', dataInicio.includes('T') ? dataInicio : toUTCISO(new Date(`${dataInicio}T00:00:00`)))
-      if (dataFim) params.append('dataFim', dataFim.includes('T') ? dataFim : toUTCISO(new Date(`${dataFim}T23:59:59`)))
-      if (intervalo) params.append('intervalo', intervalo)
-      if (pagina) params.append('pagina', pagina)
-      if (quantidade) params.append('quantidade', quantidade)
-      params.append('ordemAsc', 'false')
-      if (params.toString()) url += `?${params.toString()}`
-
-      apiRequest(url, {
-        headers: { Authorization: `Bearer ${token}` },
-        signal,
-      })
-        .then(json => {
-          if (signal?.aborted) return
-          const res = json?.resultado ?? json?.Resultado ?? json
-          const registros = res?.registros ?? res?.Registros ?? (Array.isArray(res) ? res : [])
-          const paginas = res?.totalPaginas ?? res?.TotalPaginas ?? 1
-
-          setHistoricosPorMoeda(prev => ({ ...prev, [sigla]: registros }))
-          setTotalPaginas(paginas)
-
-          // Sincroniza tabela com a primeira carregada
-          if (sigla === moedasFiltro[0]) {
-            setHistoricoMoeda({ registros })
-          }
-        })
-        .catch(err => {
-          if (err.name === 'AbortError') return
-          setHistoricosPorMoeda(prev => ({ ...prev, [sigla]: [] }))
-        })
-    })
-
-    // Limpa moedas que foram removidas do filtro mas permaneciam no cache
-    setHistoricosPorMoeda(prev => {
-      const novoMap = { ...prev }
-      let changed = false
-      Object.keys(novoMap).forEach(key => {
-        if (!moedasFiltro.includes(key)) {
-          delete novoMap[key]
-          changed = true
+      try {
+        const [resPreco, resFear, resTrend] = await Promise.all([pPreco, pFear, pTrend])
+        
+        return {
+          sigla,
+          preco: resPreco?.resultado ?? resPreco?.Resultado ?? resPreco,
+          fear: resFear?.resultado ?? resFear?.Resultado ?? resFear,
+          trend: resTrend?.resultado ?? resTrend?.Resultado ?? resTrend
         }
-      })
-      return changed ? novoMap : prev
+      } catch (err) {
+        if (err.name === 'AbortError') return null
+        console.error(`Erro ao carregar dados para ${sigla}:`, err)
+        return { sigla, error: true }
+      }
     })
+
+    const resultados = await Promise.all(promessasMoedas)
+    
+    // Atualizamos os estados uma única vez após todas as promessas serem resolvidas
+    const novoHistoricoPreco = {}
+    const novoFearGreed = {}
+    const novoTrend = {}
+
+    resultados.forEach(res => {
+      if (!res || res.error) return
+      const { sigla, preco, fear, trend } = res
+      
+      const regsPreco = preco?.registros ?? preco?.Registros ?? (Array.isArray(preco) ? preco : [])
+      const regsFear = fear?.registros ?? fear?.Registros ?? (Array.isArray(fear) ? fear : [])
+      const regsTrend = trend?.registros ?? trend?.Registros ?? (Array.isArray(trend) ? trend : [])
+      
+      novoHistoricoPreco[sigla] = regsPreco
+      novoFearGreed[sigla] = regsFear
+      novoTrend[sigla] = regsTrend
+
+      // Sincroniza a tabela com o primeiro item da lista
+      if (sigla === moedasFiltro[0]) {
+        const paginasTotal = preco?.totalPaginas ?? preco?.TotalPaginas ?? 1
+        setTotalPaginas(paginasTotal)
+        setHistoricoMoeda({ registros: regsPreco, totalPaginas: paginasTotal })
+      }
+    })
+
+    setHistoricosPorMoeda(novoHistoricoPreco)
+    setFearGreedPorMoeda(novoFearGreed)
+    setTrendPorMoeda(novoTrend)
+    setLoadingSentiment(false)
   }
 
   useEffect(() => {
     const controller = new AbortController()
     carregarDashboardData(controller)
     return () => controller.abort()
-  }, [token, pagina, quantidade, moedasFiltro, dataInicio, dataFim, resultadoFiltro, intervalo])
+  }, [token, pagina, quantidade, moedasFiltro, dataInicio, dataFim, resultadoFiltro, intervalo, moedasCarousel])
 
   const selecionarMoeda = (simbolo) => {
     setMoedasFiltro(prev => {
@@ -327,7 +355,7 @@ function Dashboard() {
 
 
   // --- MEMOIZAÇÃO DOS DADOS DO GRÁFICO (Performance Máxima) ---
-  const { dadosGraficoPreco, dadosGraficoVariacao, multiMoeda } = useMemo(() => {
+  const { dadosGraficoPreco, dadosGraficoVariacao, multiMoeda, sentimentMap } = useMemo(() => {
     const CORES_SIMPLE = ['#FFD700', '#2196f3', '#4caf50', '#e91e63', '#9c27b0', '#ff9800', '#00bcd4']
 
     // 1. Timestamps comuns (após filtros globais)
@@ -445,12 +473,67 @@ function Dashboard() {
       }
     })
 
+    // 3. Mapeamento de Sentimento para Tooltips (Por Moeda)
+    const sentimentMap = new Map()
+    
+    // Fear & Greed
+    Object.keys(fearGreedPorMoeda).forEach(sigla => {
+      const regs = fearGreedPorMoeda[sigla] || []
+      regs.forEach(fg => {
+        const dh = fg.horaReferencia || fg.HoraReferencia || fg.dataHora || fg.DataHora
+        if (dh) {
+          const label = toLocalChartLabel(dh)
+          if (!sentimentMap.has(label)) sentimentMap.set(label, new Map())
+          const coinMap = sentimentMap.get(label)
+          if (!coinMap.has(sigla)) coinMap.set(sigla, {})
+          coinMap.get(sigla).fg = fg
+        }
+      })
+    })
+
+    // Trend
+    Object.keys(trendPorMoeda).forEach(sigla => {
+      const regs = trendPorMoeda[sigla] || []
+      regs.forEach(tr => {
+        const dh = tr.horaReferencia || tr.HoraReferencia || tr.dataHora || tr.DataHora
+        if (dh) {
+          const label = toLocalChartLabel(dh)
+          if (!sentimentMap.has(label)) sentimentMap.set(label, new Map())
+          const coinMap = sentimentMap.get(label)
+          if (!coinMap.has(sigla)) coinMap.set(sigla, {})
+          coinMap.get(sigla).tr = tr
+        }
+      })
+    })
+
     return {
       dadosGraficoPreco: { labels, datasets: datasetsPreco },
       dadosGraficoVariacao: { labels, datasets: datasetsVariacao },
-      multiMoeda: multi
+      multiMoeda: multi,
+      sentimentMap
     }
-  }, [historicosPorMoeda, dataInicio, dataFim, resultadoFiltro, normalizacao])
+  }, [historicosPorMoeda, dataInicio, dataFim, resultadoFiltro, normalizacao, fearGreedPorMoeda, trendPorMoeda])
+
+  const sentimentFooter = (context) => {
+    const label = context[0].label;
+    const coinMap = sentimentMap.get(label);
+    if (coinMap) {
+      const lines = [];
+      coinMap.forEach((data, sigla) => {
+        if (data.fg) {
+          const fgVal = data.fg.valor ?? data.fg.Valor ?? 0
+          const fgClass = data.fg.classificacao ?? data.fg.Classificacao ?? ''
+          lines.push(`${sigla} Fear: ${fgVal} (${fgClass})`);
+        }
+        if (data.tr) {
+          const trVal = data.tr.tendencia ?? data.tr.Tendencia ?? data.tr.valorAtual ?? data.tr.ValorAtual ?? ''
+          lines.push(`${sigla} Trend: ${trVal}`);
+        }
+      });
+      return lines.join('\n');
+    }
+    return null;
+  };
 
   const baseOpcoes = {
     responsive: true,
@@ -491,7 +574,8 @@ function Dashboard() {
             if (multiMoeda && normalizacao === 'minmax') return `${ctx.dataset.label}: ${val.toFixed(4)} (Min-Max)`
             if (multiMoeda && normalizacao === 'zscore') return `${ctx.dataset.label}: ${val.toFixed(4)} (Z-Score)`
             return `${ctx.dataset.label}: $${val.toLocaleString('en-US')}`
-          }
+          },
+          footer: sentimentFooter
         }
       }
     },
@@ -517,7 +601,8 @@ function Dashboard() {
       tooltip: {
         ...baseOpcoes.plugins.tooltip,
         callbacks: {
-          label: (ctx) => `${ctx.dataset.label}: ${Number(ctx.parsed.y).toFixed(2)}%`
+          label: (ctx) => `${ctx.dataset.label}: ${Number(ctx.parsed.y).toFixed(2)}%`,
+          footer: sentimentFooter
         }
       }
     },

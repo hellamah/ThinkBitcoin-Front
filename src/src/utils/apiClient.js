@@ -33,6 +33,10 @@ export const ApiEndpoint = Object.freeze({
   CARGO: Object.freeze({
     UPDATE: '/ThinkBitcoin/CargoUsuarioTB/AlterarCargoUsuarioTB/',
   }),
+  VARIAVEL_EXTERNA: Object.freeze({
+    FEAR_GREED: '/ThinkBitcoin/variavel-externa/fear-greed',
+    TREND: '/ThinkBitcoin/variavel-externa/trend',
+  }),
 })
 
 const JSON_HEADERS = Object.freeze({ 'Content-Type': 'application/json' })
@@ -81,3 +85,4 @@ export const UserEndpoint = ApiEndpoint.USER
 export const MarketEndpoint = ApiEndpoint.MARKET
 export const PreferencesEndpoint = ApiEndpoint.PREFERENCES
 export const CargoEndpoint = ApiEndpoint.CARGO
+export const VariavelExternaEndpoint = ApiEndpoint.VARIAVEL_EXTERNA
