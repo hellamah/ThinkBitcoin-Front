@@ -2645,3 +2645,105 @@
     box-shadow: 0 0 20px rgba(255, 215, 0, 0.15);
   }
 }
+/* --- MARKET INTELLIGENCE PANEL --- */
+.intelligence-panel {
+  margin-top: 32px;
+  animation: fadeIn 0.8s ease-out;
+}
+
+.intelligence-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.intel-card {
+  background: rgba(30, 30, 30, 0.4);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  position: relative;
+  overflow: hidden;
+}
+
+.intel-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at center, rgba(255, 215, 0, 0.05) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.intel-card:hover {
+  background: rgba(40, 40, 40, 0.6);
+  border-color: rgba(255, 215, 0, 0.3);
+  transform: translateY(-8px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+}
+
+.intel-card:hover::after {
+  opacity: 1;
+}
+
+.intel-icon {
+  font-size: 2.2rem;
+  color: var(--color-primary);
+  margin-bottom: 12px;
+  filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.2));
+}
+
+.intel-label {
+  font-size: 0.7rem;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.intel-value {
+  font-family: "Share Tech Mono", monospace;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.2;
+}
+
+.intel-subvalue {
+  font-size: 0.8rem;
+  margin-top: 6px;
+  font-weight: 500;
+}
+
+.intel-subvalue.up { color: #4caf50; }
+.intel-subvalue.down { color: #f44336; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 600px) {
+  .intelligence-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .intel-card {
+    padding: 16px 8px;
+  }
+  .intel-value {
+    font-size: 1.3rem;
+  }
+}

@@ -107,5 +107,15 @@
   "greed": "Ganância",
   "extremeGreed": "Ganância Extrema",
   "bullish": "Otimista (Bullish)",
-  "bearish": "Pessimista (Bearish)"
+  "bearish": "Pessimista (Bearish)",
+  "marketIntelligence": "Inteligência de Mercado",
+  "movingAverages": "Médias Móveis",
+  "trendVolatility": "Volatilidade da Tendência",
+  "timeSincePeak": "Tempo desde o Pico",
+  "globalHotspot": "Hotspot Global",
+  "trendRank": "Ranking de Interesse",
+  "minutesShort": "{{count}}m",
+  "bullishTrend": "Tendência de Alta",
+  "bearishTrend": "Tendência de Baixa",
+  "momentum": "Momentum (Delta)"
 }

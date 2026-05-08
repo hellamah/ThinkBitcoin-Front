@@ -107,5 +107,15 @@
   "greed": "Greed",
   "extremeGreed": "Extreme Greed",
   "bullish": "Bullish",
-  "bearish": "Bearish"
+  "bearish": "Bearish",
+  "marketIntelligence": "Market Intelligence",
+  "movingAverages": "Moving Averages",
+  "trendVolatility": "Trend Volatility",
+  "timeSincePeak": "Time since Peak",
+  "globalHotspot": "Global Hotspot",
+  "trendRank": "Interest Rank",
+  "minutesShort": "{{count}}m",
+  "bullishTrend": "Bullish Trend",
+  "bearishTrend": "Bearish Trend",
+  "momentum": "Momentum (Delta)"
 }

@@ -260,6 +260,52 @@ const mockHandlers = [
       };
     },
   },
+  {
+    method: 'GET',
+    match: (endpoint) => !!endpoint.match(/^\/ThinkBitcoin\/variavel-externa\/fear-greed(\?.*)?$/i),
+    response: () => ({
+      mensagem: 'Fear & Greed Index mock retornado com sucesso',
+      resultado: {
+        totalRegistros: 1,
+        totalPaginas: 1,
+        paginaAtual: 1,
+        registros: [
+          {
+            valor: 75,
+            classificacao: 'Greed',
+            horaReferencia: new Date().toISOString(),
+          }
+        ]
+      }
+    }),
+  },
+  {
+    method: 'GET',
+    match: (endpoint) => !!endpoint.match(/^\/ThinkBitcoin\/variavel-externa\/trend(\?.*)?$/i),
+    response: () => ({
+      mensagem: 'Trend mock retornado com sucesso',
+      resultado: {
+        totalRegistros: 1,
+        totalPaginas: 1,
+        paginaAtual: 1,
+        registros: [
+          {
+            valorAtual: 130,
+            mA5: 120,
+            mA15: 121,
+            delta5: 19,
+            delta15: 33,
+            volatilidade15: 30.45,
+            minutosDesdePico: 115,
+            rankNoMinuto: 6,
+            geoTop1Code: 'CH',
+            geoTop1Value: 100,
+            horaReferencia: new Date().toISOString(),
+          }
+        ]
+      }
+    }),
+  },
 ]
 
 export const getMockResponse = ({ endpoint, method, body }) => {
