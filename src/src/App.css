@@ -343,30 +343,33 @@
 .crypto-carousel {
   display: flex;
   overflow-x: auto;
-  gap: 20px;
-  padding: 20px 32px 28px;
-  margin-top: 32px;
-  margin-bottom: 40px;
-  scroll-snap-type: x mandatory;
+  overflow-y: visible;
+  gap: 24px;
+  padding: 40px 60px 48px; /* Mais espaço para evitar cortes em qualquer direção */
+  margin-top: 16px;
+  margin-bottom: 24px;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
+  scrollbar-width: thin;
   justify-content: flex-start;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 1024px) {
   .crypto-carousel {
-    justify-content: center;
+    padding: 30px 40px 38px;
   }
 }
 
 .dashboard-container {
-  max-width: 1400px;
+  max-width: 1560px; /* Aumentado para dar mais espaço */
   margin: 0 auto;
   width: 100%;
+  overflow: visible; /* Garantir que o carrossel não seja cortado por este container */
 }
 
 .crypto-carousel::-webkit-scrollbar {
-  height: 6px;
+  height: 8px; /* Um pouco mais grosso para ser fácil de usar */
 }
 
 .crypto-carousel::-webkit-scrollbar-track {
@@ -387,7 +390,6 @@
   flex: 0 0 auto;
   min-width: 150px;
   min-height: 180px;
-  /* Garante altura consistente */
   display: flex;
   flex-direction: column;
   background: rgba(40, 40, 40, 0.4) !important;
@@ -395,13 +397,10 @@
   border: 1px solid rgba(255, 255, 255, 0.05) !important;
   border-radius: 12px;
   padding: 0 !important;
-  /* Removido para o CardActionArea ocupar tudo */
-  scroll-snap-align: start;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2) !important;
   position: relative;
-  overflow: hidden;
-  /* Evita que o hover vaze */
+  overflow: visible !important; /* Permitir que o brilho e zoom saiam do card sem cortar */
 }
 
 .ai-chat-btn-overlay {

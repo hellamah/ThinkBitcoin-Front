@@ -37,6 +37,7 @@ import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import Paper from '@mui/material/Paper'
+import useMediaQuery from '@mui/material/useMediaQuery'
 import ErrorMessage from '../components/ErrorMessage'
 import Terminal from '../components/Terminal'
 
@@ -101,6 +102,7 @@ function Dashboard() {
   const [currentCorrelationId, setCurrentCorrelationId] = useState(null)
   const [historicosPorMoeda, setHistoricosPorMoeda] = useState({}) // { BTC: [{valor, dataHora}, ...] }
   const [normalizacao, setNormalizacao] = useState('base100') // 'bruto' | 'minmax' | 'base100' | 'zscore'
+  const isMobile = useMediaQuery('(max-width:600px)')
   const [expandedChart, setExpandedChart] = useState(null) // 'tradedValue' | 'percentVariation' | null
   const [fearGreedPorMoeda, setFearGreedPorMoeda] = useState({})
   const [trendPorMoeda, setTrendPorMoeda] = useState({})
@@ -216,19 +218,19 @@ function Dashboard() {
 
       const idMoeda = siglaParaIdMap.get(sigla.toLowerCase())
       const urlPreco = `${MarketEndpoint.COIN_VALUE(sigla.toLowerCase())}${queryString}`
-      
+
       // Criamos as promessas para os 3 tipos de dados
       const pPreco = apiRequest(urlPreco, { headers: { Authorization: `Bearer ${token}` }, signal })
-      const pFear = idMoeda 
+      const pFear = idMoeda
         ? apiRequest(`${VariavelExternaEndpoint.FEAR_GREED}${queryString}${queryString ? '&' : '?'}idMoeda=${idMoeda}`, { headers: { Authorization: `Bearer ${token}` }, signal })
         : Promise.resolve(null)
-      const pTrend = idMoeda 
+      const pTrend = idMoeda
         ? apiRequest(`${VariavelExternaEndpoint.TREND}${queryString}${queryString ? '&' : '?'}idMoeda=${idMoeda}`, { headers: { Authorization: `Bearer ${token}` }, signal })
         : Promise.resolve(null)
 
       try {
         const [resPreco, resFear, resTrend] = await Promise.all([pPreco, pFear, pTrend])
-        
+
         return {
           sigla,
           preco: resPreco?.resultado ?? resPreco?.Resultado ?? resPreco,
@@ -243,7 +245,7 @@ function Dashboard() {
     })
 
     const resultados = await Promise.all(promessasMoedas)
-    
+
     // Atualizamos os estados uma única vez após todas as promessas serem resolvidas
     const novoHistoricoPreco = {}
     const novoFearGreed = {}
@@ -252,11 +254,11 @@ function Dashboard() {
     resultados.forEach(res => {
       if (!res || res.error) return
       const { sigla, preco, fear, trend } = res
-      
+
       const regsPreco = preco?.registros ?? preco?.Registros ?? (Array.isArray(preco) ? preco : [])
       const regsFear = fear?.registros ?? fear?.Registros ?? (Array.isArray(fear) ? fear : [])
       const regsTrend = trend?.registros ?? trend?.Registros ?? (Array.isArray(trend) ? trend : [])
-      
+
       novoHistoricoPreco[sigla] = regsPreco
       novoFearGreed[sigla] = regsFear
       novoTrend[sigla] = regsTrend
@@ -319,7 +321,7 @@ function Dashboard() {
       }
     } catch (err) {
       console.error('Erro ao iniciar debate via Hub:', err)
-      const msgErro = isConnected 
+      const msgErro = isConnected
         ? (t('errorTriggeringDebate') || 'Erro ao iniciar debate com a IA')
         : 'O chat está offline ou conectando. Por favor, aguarde um momento e tente novamente.';
       setErro(msgErro)
@@ -475,7 +477,7 @@ function Dashboard() {
 
     // 3. Mapeamento de Sentimento para Tooltips (Por Moeda)
     const sentimentMap = new Map()
-    
+
     // Fear & Greed
     Object.keys(fearGreedPorMoeda).forEach(sigla => {
       const regs = fearGreedPorMoeda[sigla] || []
@@ -749,7 +751,7 @@ function Dashboard() {
                   key={m.simbolo}
                   className={`carousel-item ${isSelected ? 'selected' : ''}`}
                   sx={{
-                    minWidth: 120,
+                    minWidth: { xs: 100, sm: 120 },
                     border: isSelected ? '2px solid var(--color-primary) !important' : '1px solid rgba(255,255,255,0.05) !important',
                     transform: isSelected ? 'scale(1.05)' : 'none',
                     boxShadow: isSelected ? '0 0 15px rgba(255, 215, 0, 0.3) !important' : 'none'
@@ -759,12 +761,12 @@ function Dashboard() {
                     className={`carousel-card-inner ${isSelected ? 'selected' : ''}`}
                     onClick={() => selecionarMoeda(m.simbolo)}
                     sx={{
-                      padding: '24px 16px 64px', /* Aumentado de 52px para 64px para dar folga ao botão de 42px */
+                      padding: { xs: '16px 8px 48px', sm: '24px 16px 64px' },
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: 2, /* Aumentado ligeiramente */
+                      gap: { xs: 1, sm: 2 },
                       width: '100%',
                       height: '100%',
                       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -777,7 +779,7 @@ function Dashboard() {
                     }}
                   >
                     <div className={`coin-icon-wrapper ${isSelected ? 'pulse' : ''}`}>
-                      <CryptoIcon simbolo={m.simbolo} />
+                      <CryptoIcon simbolo={m.simbolo} size={isMobile ? 32 : 40} />
                     </div>
                     <div className="carousel-info">
                       <span className="carousel-name" style={{ fontWeight: isSelected ? 700 : 400, color: isSelected ? 'var(--color-primary)' : 'inherit' }}>
@@ -813,6 +815,8 @@ function Dashboard() {
               )
             })
           )}
+          {/* Spacer to ensure padding-right is respected and last items are fully reachable */}
+          <Box sx={{ minWidth: { xs: '32px', sm: '48px' }, flex: '0 0 auto', height: '1px' }} />
         </div>
 
         <section className="panel filters-panel">
@@ -965,8 +969,8 @@ function Dashboard() {
         </div>
 
         <div className="dashboard-charts">
-          <Box 
-            className="panel chart-panel chart-panel-clickable" 
+          <Box
+            className="panel chart-panel chart-panel-clickable"
             onClick={() => setExpandedChart('tradedValue')}
           >
             <div className="chart-expand-icon"><MdFullscreen /></div>
@@ -976,7 +980,7 @@ function Dashboard() {
               <Line data={dadosNegociados} options={opcoesPreco} />
             </div>
           </Box>
-          <Box 
+          <Box
             className="panel chart-panel chart-panel-clickable"
             onClick={() => setExpandedChart('percentVariation')}
           >
@@ -998,13 +1002,13 @@ function Dashboard() {
               </button>
               <h2>{expandedChart === 'tradedValue' ? t('tradedValue') : t('percentVariation')}</h2>
               <div className="chart-container">
-                <Line 
-                  data={expandedChart === 'tradedValue' ? dadosNegociados : dadosVariacao} 
+                <Line
+                  data={expandedChart === 'tradedValue' ? dadosNegociados : dadosVariacao}
                   options={{
                     ...(expandedChart === 'tradedValue' ? opcoesPreco : opcoesVariacao),
                     maintainAspectRatio: false,
                     responsive: true,
-                  }} 
+                  }}
                 />
               </div>
             </div>
