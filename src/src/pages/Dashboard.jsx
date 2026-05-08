@@ -19,7 +19,7 @@ import {
 } from 'chart.js'
 import { Line } from 'react-chartjs-2'
 import CryptoIcon from '../components/CryptoIcon'
-import { MdTrendingUp, MdTrendingDown, MdRefresh, MdSmartToy, MdClose } from 'react-icons/md'
+import { MdTrendingUp, MdTrendingDown, MdRefresh, MdSmartToy, MdClose, MdFullscreen } from 'react-icons/md'
 import Card from '@mui/material/Card'
 import CardActionArea from '@mui/material/CardActionArea'
 import Button from '@mui/material/Button'
@@ -101,7 +101,17 @@ function Dashboard() {
   const [currentCorrelationId, setCurrentCorrelationId] = useState(null)
   const [historicosPorMoeda, setHistoricosPorMoeda] = useState({}) // { BTC: [{valor, dataHora}, ...] }
   const [normalizacao, setNormalizacao] = useState('base100') // 'bruto' | 'minmax' | 'base100' | 'zscore'
+  const [expandedChart, setExpandedChart] = useState(null) // 'tradedValue' | 'percentVariation' | null
   const filterSummaryRef = useRef('') // Cache de string dos filtros globais (intervalo+datas)
+
+  // Fechar modal com a tecla Esc
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') setExpandedChart(null)
+    }
+    window.addEventListener('keydown', handleEsc)
+    return () => window.removeEventListener('keydown', handleEsc)
+  }, [])
 
 
   // Limpa erro automaticamente após 10 segundos
@@ -870,14 +880,22 @@ function Dashboard() {
         </div>
 
         <div className="dashboard-charts">
-          <Box className="panel chart-panel">
+          <Box 
+            className="panel chart-panel chart-panel-clickable" 
+            onClick={() => setExpandedChart('tradedValue')}
+          >
+            <div className="chart-expand-icon"><MdFullscreen /></div>
             <h2>{t('tradedValue')}</h2>
             <div className="chart-note">{t('lastValue')}: {ultimoNegociado}</div>
             <div className="chart-container">
               <Line data={dadosNegociados} options={opcoesPreco} />
             </div>
           </Box>
-          <Box className="panel chart-panel">
+          <Box 
+            className="panel chart-panel chart-panel-clickable"
+            onClick={() => setExpandedChart('percentVariation')}
+          >
+            <div className="chart-expand-icon"><MdFullscreen /></div>
             <h2>{t('percentVariation')}</h2>
             <div className="chart-note">{t('lastVariation')}: {ultimaVariacao}</div>
             <div className="chart-container">
@@ -885,6 +903,28 @@ function Dashboard() {
             </div>
           </Box>
         </div>
+
+        {/* Modal de Gráfico Expandido */}
+        {expandedChart && (
+          <div className="expanded-chart-overlay" onClick={() => setExpandedChart(null)}>
+            <div className="expanded-chart-content" onClick={(e) => e.stopPropagation()}>
+              <button className="close-expanded-chart" onClick={() => setExpandedChart(null)}>
+                <MdClose size={32} />
+              </button>
+              <h2>{expandedChart === 'tradedValue' ? t('tradedValue') : t('percentVariation')}</h2>
+              <div className="chart-container">
+                <Line 
+                  data={expandedChart === 'tradedValue' ? dadosNegociados : dadosVariacao} 
+                  options={{
+                    ...(expandedChart === 'tradedValue' ? opcoesPreco : opcoesVariacao),
+                    maintainAspectRatio: false,
+                    responsive: true,
+                  }} 
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         {moedasFiltro.length > 0 && historicoMoeda && (
           <Box className="panel history-panel" sx={{
