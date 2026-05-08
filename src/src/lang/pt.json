@@ -25,7 +25,6 @@
     "dashboard": "Painel",
     "settings": "Configura\u00e7\u00f5es",
     "login": "Entrar",
-    "register": "Registrar",
     "logout": "Sair"
   },
   "dashboard": "Dashboard",
@@ -95,5 +94,8 @@
   "miner": "Minerador (Acesso a IA)",
   "consultant": "Consultor (Acesso Básico)",
   "copyRight": "© 2025 ThinkBitcoin. Todos os direitos reservados.",
-  "chatWithAI": "Conversar com IA sobre {{coin}}"
+  "chatWithAI": "Conversar com IA sobre {{coin}}",
+  "registerVisualTitle": "Transformando riqueza com IA.",
+  "registerVisualSubtitle": "Junte-se ao círculo de elite de mineradores e investidores de Bitcoin impulsionados por inteligência de nível profissional.",
+  "alreadyHaveAccount": "Já possui uma conta?"
 }

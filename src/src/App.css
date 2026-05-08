@@ -2067,4 +2067,224 @@
   border-color: rgba(0, 255, 65, 0.4);
   box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9), 0 0 30px rgba(0, 255, 65, 0.1);
 }
+
+/* ==========================================================================
+   CADASTRO CONVITE OVERLAY
+   Split-screen modal: ai-showcase-v3 (esquerda) + formulário (direita)
+   ========================================================================== */
+
+.convite-overlay-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.32s ease;
+}
+
+.convite-overlay-backdrop.convite-overlay-visible {
+  opacity: 1;
+}
+
+.convite-overlay-paper {
+  position: relative;
+  width: 100%;
+  max-width: 1150px;
+  height: clamp(560px, 85vh, 860px);
+  display: flex;
+  border-radius: 40px;
+  overflow: hidden;
+  background: #121212;
+  border: 1px solid rgba(255, 215, 0, 0.1);
+  box-shadow:
+    0 60px 120px -20px rgba(0, 0, 0, 0.9),
+    0 0 80px -20px rgba(255, 215, 0, 0.08);
+  transform: scale(0.95) translateY(20px);
+  transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.32s ease;
+  opacity: 0;
+  margin: auto;
+}
+
+.convite-overlay-visible .convite-overlay-paper {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+}
+
+/* ── Botão fechar ─────────────────────────────────────────────────────────── */
+.convite-overlay-close {
+  position: absolute !important;
+  top: 20px;
+  right: 20px;
+  z-index: 10;
+  color: rgba(255, 255, 255, 0.5) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  width: 36px;
+  height: 36px;
+  transition: all 0.2s ease !important;
+}
+
+.convite-overlay-close:hover {
+  color: #fff !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  transform: rotate(90deg);
+}
+
+/* ── Lado visual (esquerdo) ───────────────────────────────────────────────── */
+.convite-overlay-visual {
+  flex: 1;
+  display: none;
+  position: relative;
+  background: linear-gradient(160deg, #0d0d0d 0%, #111 50%, rgba(255,215,0,0.04) 100%);
+  border-right: 1px solid rgba(255, 215, 0, 0.07);
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 56px 48px;
+  overflow: hidden;
+}
+
+@media (min-width: 900px) {
+  .convite-overlay-visual {
+    display: flex;
+  }
+}
+
+.convite-overlay-visual-content {
+  position: relative;
+  z-index: 5;
+}
+
+.convite-overlay-headline {
+  font-weight: 900 !important;
+  color: #fff !important;
+  line-height: 1.05 !important;
+  letter-spacing: -2px !important;
+  margin-bottom: 16px !important;
+}
+
+.convite-overlay-subheadline {
+  color: rgba(255, 255, 255, 0.5) !important;
+  font-size: 1rem !important;
+  max-width: 340px !important;
+  line-height: 1.6 !important;
+}
+
+/* Showcase orbital adaptado */
+.convite-showcase {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.convite-core {
+  width: 140px !important;
+  height: 140px !important;
+  opacity: 0.35 !important;
+}
+
+.convite-system-label {
+  position: absolute;
+  bottom: 48px;
+  left: 48px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--color-primary);
+  opacity: 0.35;
+  letter-spacing: 2px;
+  z-index: 5;
+}
+
+/* ── Lado formulário (direito) ────────────────────────────────────────────── */
+.convite-overlay-form {
+  flex: 1.1;
+  padding: 56px 48px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 215, 0, 0.15) transparent;
+}
+
+.convite-overlay-form::-webkit-scrollbar {
+  width: 5px;
+}
+
+.convite-overlay-form::-webkit-scrollbar-thumb {
+  background: rgba(255, 215, 0, 0.15);
+  border-radius: 10px;
+}
+
+@media (max-width: 600px) {
+  .convite-overlay-paper {
+    border-radius: 0;
+    height: 100vh;
+    max-width: 100%;
+  }
+
+  .convite-overlay-form {
+    padding: 48px 28px;
+  }
+}
+
+/* ── Estado de sucesso ────────────────────────────────────────────────────── */
+.convite-sucesso {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.convite-sucesso-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(255, 215, 0, 0.1);
+  border: 2px solid var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  color: var(--color-primary);
+  margin-bottom: 8px;
+  animation: successPop 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes successPop {
+  from { transform: scale(0.5); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+/* ── exclusive-tag clicável para usuários logados ─────────────────────────── */
+.exclusive-tag-logado {
+  cursor: pointer;
+  animation: exclusivePulse 3s ease-in-out infinite alternate,
+             exclusiveGlow 4s ease-in-out infinite alternate;
+  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.exclusive-tag-logado:hover {
+  color: rgba(255, 215, 0, 0.9) !important;
+  border-color: rgba(255, 215, 0, 0.5) !important;
+  background: rgba(255, 215, 0, 0.08) !important;
+  transform: scale(1.04);
+}
+
+@keyframes exclusiveGlow {
+  0%   { box-shadow: none; }
+  100% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.15); }
+}
 

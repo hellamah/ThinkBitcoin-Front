@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import { NavLink } from 'react-router-dom'
 import { MdArrowForward, MdBolt, MdAutoGraph, MdShield } from 'react-icons/md'
 import useTranslation from '../hooks/useTranslation'
+import { useAuth } from '../context/AuthContext'
+import CadastroConviteOverlay from '../components/CadastroConviteOverlay'
 import '../App.css'
 
 // Componente para contagem animada de números
@@ -37,6 +39,22 @@ const AnimatedNumber = ({ end, duration = 2000, suffix = '', decimals = 0 }) => 
 
 function Home() {
   const { t } = useTranslation()
+  const { token } = useAuth()
+  const [overlayAberto, setOverlayAberto] = useState(false)
+
+  // Trava o scroll do body quando o overlay está aberto
+  useEffect(() => {
+    if (overlayAberto) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => { document.body.style.overflow = '' }
+  }, [overlayAberto])
+
+  const abrirOverlay = () => {
+    if (token) setOverlayAberto(true)
+  }
 
   return (
     <div className="home-page-v3">
@@ -56,7 +74,16 @@ function Home() {
           <NavLink to="/login" className="btn-premium btn-primary-v3">
             Acessar Terminal <MdArrowForward />
           </NavLink>
-          <span className="exclusive-tag">⚡ Acesso exclusivo por convite</span>
+          <span
+            className={`exclusive-tag${token ? ' exclusive-tag-logado' : ''}`}
+            onClick={abrirOverlay}
+            title={token ? 'Cadastrar novo usuário por convite' : undefined}
+            role={token ? 'button' : undefined}
+            tabIndex={token ? 0 : undefined}
+            onKeyDown={token ? (e) => e.key === 'Enter' && abrirOverlay() : undefined}
+          >
+            ⚡ Acesso exclusivo por convite
+          </span>
         </div>
       </section>
 
@@ -121,6 +148,11 @@ function Home() {
 
       {/* Spacing for layout */}
       <div style={{ height: '100px' }}></div>
+
+      {/* Overlay de cadastro por convite */}
+      {overlayAberto && (
+        <CadastroConviteOverlay onFechar={() => setOverlayAberto(false)} />
+      )}
     </div>
   )
 }
