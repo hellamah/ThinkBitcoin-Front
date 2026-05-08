@@ -664,12 +664,14 @@ function Dashboard() {
                     className={`carousel-card-inner ${isSelected ? 'selected' : ''}`}
                     onClick={() => selecionarMoeda(m.simbolo)}
                     sx={{
-                      padding: '24px 16px 52px',
+                      padding: '24px 16px 64px', /* Aumentado de 52px para 64px para dar folga ao botão de 42px */
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: 1.5,
+                      gap: 2, /* Aumentado ligeiramente */
+                      width: '100%',
+                      height: '100%',
                       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                       border: isSelected ? '1px solid var(--color-primary)' : '1px solid transparent',
                       background: isSelected ? 'rgba(255, 215, 0, 0.05)' : 'transparent',

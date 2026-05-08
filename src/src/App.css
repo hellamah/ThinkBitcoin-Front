@@ -356,18 +356,19 @@
 .carousel-item {
   flex: 0 0 auto;
   min-width: 150px;
+  min-height: 180px; /* Garante altura consistente */
   display: flex;
   flex-direction: column;
-  align-items: center;
   background: rgba(40, 40, 40, 0.4) !important;
   backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.05) !important;
   border-radius: 12px;
-  padding: 16px;
+  padding: 0 !important; /* Removido para o CardActionArea ocupar tudo */
   scroll-snap-align: start;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2) !important;
-  position: relative; /* Necessário para o overlay do botão IA */
+  position: relative;
+  overflow: hidden; /* Evita que o hover vaze */
 }
 
 .ai-chat-btn-overlay {
@@ -378,16 +379,19 @@
   top: auto !important;
   right: auto !important;
   color: var(--color-primary) !important;
-  background: rgba(20, 20, 20, 0.9) !important;
+  background: rgba(10, 10, 10, 0.95) !important;
   backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 215, 0, 0.3) !important;
-  opacity: 0.9;
+  border: 1.5px solid var(--color-primary) !important; /* Borda mais visível */
+  opacity: 1; /* Sempre visível para facilitar o uso */
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   z-index: 100 !important;
-  width: 38px !important;
-  height: 38px !important;
+  width: 42px !important; /* Ligeiramente maior para melhor toque */
+  height: 42px !important;
   padding: 0 !important;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5) !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 .ai-chat-btn-overlay:hover {
