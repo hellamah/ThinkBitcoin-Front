@@ -1,8 +1,8 @@
 # Guia de Contribuição
 
-Obrigado por querer contribuir com o ThinkBitcoin Front. Este documento define o fluxo mínimo para manter qualidade, previsibilidade e consistência no projeto.
+Obrigado por querer contribuir com o ThinkBitcoin-Front. Este documento define o fluxo mínimo para manter qualidade, previsibilidade e consistência no projeto.
 
-## 1) Como rodar localmente
+## 1) Como rodar localmente (A partir da raiz do projeto)
 
 ### Pré-requisitos
 - Node.js 18+

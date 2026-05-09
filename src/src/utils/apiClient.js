@@ -33,6 +33,10 @@ export const ApiEndpoint = Object.freeze({
   CARGO: Object.freeze({
     UPDATE: '/ThinkBitcoin/CargoUsuarioTB/AlterarCargoUsuarioTB/',
   }),
+  VARIAVEL_EXTERNA: Object.freeze({
+    FEAR_GREED: '/ThinkBitcoin/variavel-externa/fear-greed',
+    TREND: '/ThinkBitcoin/variavel-externa/trend',
+  }),
 })
 
 const JSON_HEADERS = Object.freeze({ 'Content-Type': 'application/json' })
@@ -55,6 +59,11 @@ export const apiRequest = async (
   if (USE_MOCK_API) {
     const mockResponse = getMockResponse({ endpoint, method, body })
     if (mockResponse) return mockResponse
+  }
+
+  // Intercepta endpoints em desenvolvimento para evitar poluição de erros 404 no console
+  if (endpoint.includes('fear-greed') || endpoint.includes('trend')) {
+    return Promise.reject(new Error('Backend endpoint not implemented yet - Intercepted to prevent 404 log'))
   }
 
   const response = await fetch(
@@ -81,3 +90,4 @@ export const UserEndpoint = ApiEndpoint.USER
 export const MarketEndpoint = ApiEndpoint.MARKET
 export const PreferencesEndpoint = ApiEndpoint.PREFERENCES
 export const CargoEndpoint = ApiEndpoint.CARGO
+export const VariavelExternaEndpoint = ApiEndpoint.VARIAVEL_EXTERNA
