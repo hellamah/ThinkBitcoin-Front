@@ -1,13 +1,28 @@
 import React from 'react'
 import Box from '@mui/material/Box'
 import { Line } from 'react-chartjs-2'
-import { MdFullscreen, MdClose, MdAnalytics, MdTimeline, MdSpeed, MdUpdate, MdPublic } from 'react-icons/md'
+import { MdFullscreen } from 'react-icons/md'
+import { ChartType } from '../../utils/enums'
+import ExpandedChartModal from './ExpandedChartModal'
 
 /**
  * Exibe os gráficos do dashboard. Ao expandir um gráfico (modal),
- * o painel de inteligência de mercado (trendAtual) é renderizado
- * abaixo do gráfico dentro do modal expanded-chart-content.
- * @param {object} trendAtual - Dados de tendência atual da moeda selecionada.
+ * utiliza o componente ExpandedChartModal.
+ * 
+ * @param {object} props
+ * @param {boolean} props.multiMoeda - Indica se há múltiplas moedas selecionadas.
+ * @param {string} props.normalizacao - Tipo de normalização ativa.
+ * @param {Function} props.setNormalizacao - Função para alterar a normalização.
+ * @param {string|null} props.expandedChart - Tipo de gráfico expandido.
+ * @param {Function} props.setExpandedChart - Função para expandir/fechar gráfico.
+ * @param {object} props.dadosNegociados - Dados para o gráfico de valor negociado.
+ * @param {object} props.dadosVariacao - Dados para o gráfico de variação percentual.
+ * @param {object} props.opcoesPreco - Opções para o gráfico de preço.
+ * @param {object} props.opcoesVariacao - Opções para o gráfico de variação.
+ * @param {string} props.ultimoNegociado - Último valor negociado formatado.
+ * @param {string} props.ultimaVariacao - Última variação formatada.
+ * @param {object} props.trendAtual - Dados de tendência atual.
+ * @param {Function} props.t - Função de tradução.
  */
 export default function DashboardCharts({ 
   multiMoeda, 
@@ -62,7 +77,7 @@ export default function DashboardCharts({
       <div className="dashboard-charts">
         <Box
           className="panel chart-panel chart-panel-clickable"
-          onClick={() => setExpandedChart('tradedValue')}
+          onClick={() => setExpandedChart(ChartType.TRADED_VALUE)}
         >
           <div className="chart-expand-icon"><MdFullscreen /></div>
           <h2>{t('tradedValue')}</h2>
@@ -73,7 +88,7 @@ export default function DashboardCharts({
         </Box>
         <Box
           className="panel chart-panel chart-panel-clickable"
-          onClick={() => setExpandedChart('percentVariation')}
+          onClick={() => setExpandedChart(ChartType.PERCENT_VARIATION)}
         >
           <div className="chart-expand-icon"><MdFullscreen /></div>
           <h2>{t('percentVariation')}</h2>
@@ -85,88 +100,17 @@ export default function DashboardCharts({
       </div>
 
       {/* Modal de Gráfico Expandido */}
-      {expandedChart && (
-        <div className="expanded-chart-overlay" onClick={() => setExpandedChart(null)}>
-          <div className="expanded-chart-content" onClick={(e) => e.stopPropagation()}>
-            <button className="close-expanded-chart" onClick={() => setExpandedChart(null)}>
-              <MdClose size={32} />
-            </button>
-            <h2>{expandedChart === 'tradedValue' ? t('tradedValue') : t('percentVariation')}</h2>
-            <div className="chart-container">
-              <Line
-                data={expandedChart === 'tradedValue' ? dadosNegociados : dadosVariacao}
-                options={{
-                  ...(expandedChart === 'tradedValue' ? opcoesPreco : opcoesVariacao),
-                  maintainAspectRatio: false,
-                  responsive: true,
-                }}
-              />
-            </div>
-
-            {/* Painel de Inteligência de Mercado dentro do modal */}
-            {trendAtual && (
-              <div className="chart-intel-tooltip">
-                <div className="chart-intel-tooltip-header">
-                  <MdAnalytics />
-                  <span>{t('marketIntelligence')}</span>
-                </div>
-                <div className="chart-intel-tooltip-grid">
-                  <div className="chart-intel-tooltip-item">
-                    <MdTimeline className="chart-intel-tip-icon" />
-                    <div>
-                      <div className="chart-intel-tip-label">{t('movingAverages')}</div>
-                      <div className={`chart-intel-tip-value ${
-                        (trendAtual.mA5 || trendAtual.MA5) >= (trendAtual.mA15 || trendAtual.MA15) ? 'up' : 'down'
-                      }`}>
-                        {(trendAtual.mA5 || trendAtual.MA5) >= (trendAtual.mA15 || trendAtual.MA15)
-                          ? t('bullishTrend')
-                          : t('bearishTrend')}
-                      </div>
-                      <div className="chart-intel-tip-sub">MA5 vs MA15</div>
-                    </div>
-                  </div>
-                  <div className="chart-intel-tooltip-item">
-                    <MdSpeed className="chart-intel-tip-icon" />
-                    <div>
-                      <div className="chart-intel-tip-label">{t('momentum')}</div>
-                      <div className={`chart-intel-tip-value ${
-                        (trendAtual.delta5 || trendAtual.Delta5) >= 0 ? 'up' : 'down'
-                      }`}>
-                        Δ5: {trendAtual.delta5 || trendAtual.Delta5 || 0}
-                      </div>
-                      <div className="chart-intel-tip-sub">Δ15: {trendAtual.delta15 || trendAtual.Delta15 || 0}</div>
-                    </div>
-                  </div>
-                  <div className="chart-intel-tooltip-item">
-                    <MdUpdate className="chart-intel-tip-icon" />
-                    <div>
-                      <div className="chart-intel-tip-label">{t('trendVolatility')}</div>
-                      <div className="chart-intel-tip-value">
-                        {(trendAtual.volatilidade15 || trendAtual.Volatilidade15 || 0).toFixed(2)}
-                      </div>
-                      <div className="chart-intel-tip-sub">
-                        {t('timeSincePeak')}: {trendAtual.minutosDesdePico || trendAtual.MinutosDesdePico || 0}min
-                      </div>
-                    </div>
-                  </div>
-                  <div className="chart-intel-tooltip-item">
-                    <MdPublic className="chart-intel-tip-icon" />
-                    <div>
-                      <div className="chart-intel-tip-label">{t('globalHotspot')}</div>
-                      <div className="chart-intel-tip-value">
-                        {trendAtual.geoTop1Code || trendAtual.GeoTop1Code || 'N/A'}
-                      </div>
-                      <div className="chart-intel-tip-sub">
-                        {t('trendRank')}: #{trendAtual.rankNoMinuto || trendAtual.RankNoMinuto || '-'}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      <ExpandedChartModal 
+        expandedChart={expandedChart}
+        setExpandedChart={setExpandedChart}
+        dadosNegociados={dadosNegociados}
+        dadosVariacao={dadosVariacao}
+        opcoesPreco={opcoesPreco}
+        opcoesVariacao={opcoesVariacao}
+        trendAtual={trendAtual}
+        t={t}
+      />
     </>
   )
 }
+
