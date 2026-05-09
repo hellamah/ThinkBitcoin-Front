@@ -33,12 +33,34 @@ export default function CoinCarousel({
               .map((m) => {
                 const up = m.variacao >= 0
                 return (
-                  <div key={m.simbolo} className="top-item">
-                    <CryptoIcon simbolo={m.simbolo} />
-                    <span className="top-name">{m.nome}</span>
-                    <span className={`top-var ${up ? 'positive' : 'negative'}`}>
-                      {mathUtils.formatPercent(m.variacao)}
-                    </span>
+                  <div key={m.simbolo} className="top-item-card">
+                    <div className="top-item-main">
+                      <div className="top-item-icon-wrapper">
+                        <CryptoIcon simbolo={m.simbolo} size={28} />
+                      </div>
+                      <div className="top-item-info">
+                        <div className="top-item-header-row">
+                          <span className="top-name">{m.nome}</span>
+                          <span className={`top-var-badge ${up ? 'up' : 'down'}`}>
+                            {up ? '▲' : '▼'} {mathUtils.formatPercent(m.variacao).replace('+', '').replace('-', '')}
+                          </span>
+                        </div>
+                    <div className="top-item-stats-stage">
+                      <div className="price-view">
+                        <span className="top-price">{mathUtils.formatCurrency(m.valor)}</span>
+                      </div>
+                      <div className="details-view">
+                        <div className="reveal-stat">
+                          <span className="label">MCAP</span>
+                          <span className="value">{mathUtils.formatCurrency(m.marketCap).split('.')[0]}</span>
+                        </div>
+                        <div className="reveal-stat">
+                          <span className="label">VOL</span>
+                          <span className="value">{mathUtils.formatCurrency(m.volume).split('.')[0]}</span>
+                        </div>
+                      </div>
+                    </div>
+                    </div>
                   </div>
                 )
               })

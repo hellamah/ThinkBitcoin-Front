@@ -99,7 +99,11 @@ export default function useCoinPrices() {
             const trRes = resTrend?.resultado ?? resTrend?.Resultado ?? resTrend
             const trend = trRes?.registros?.[0] ?? trRes?.Registros?.[0] ?? (Array.isArray(trRes) ? trRes[0] : null)
 
-            return { ...m, valor, dados: historico, variacao, fear, trend }
+            // Mock de marketCap e volume para exibição no panel top-coins
+            const marketCap = m.simbolo === 'BTC' ? 1200000000000 : (m.simbolo === 'ETH' ? 400000000000 : 15000000000 + Math.random() * 5000000000)
+            const volume = marketCap * (0.02 + Math.random() * 0.05)
+
+            return { ...m, valor, dados: historico, variacao, fear, trend, marketCap, volume }
           } catch (err) {
             console.error(`Erro ao buscar valor para ${m.simbolo}:`, err)
             return m
