@@ -874,7 +874,8 @@
 .expanded-chart-content {
   width: 95%;
   max-width: 1400px;
-  height: 85vh;
+  max-height: 90vh;
+  overflow-y: auto;
   background: rgba(20, 20, 20, 0.8);
   backdrop-filter: blur(30px);
   -webkit-backdrop-filter: blur(30px);
@@ -894,8 +895,8 @@
 }
 
 .expanded-chart-content .chart-container {
-  flex: 1;
-  height: 100% !important;
+  height: 55vh;
+  min-height: 300px;
 }
 
 .close-expanded-chart {
@@ -2747,3 +2748,109 @@
     font-size: 1.3rem;
   }
 }
+
+/* --- CHART INTELLIGENCE HOVER TOOLTIP --- */
+.dashboard-charts {
+  position: relative;
+}
+
+.chart-intel-tooltip {
+  margin-top: 24px;
+  width: 100%;
+  background: rgba(10, 10, 10, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 16px;
+  padding: 18px 20px;
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  animation: tooltipIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes tooltipIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.chart-intel-tooltip-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--color-primary);
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.12);
+}
+
+.chart-intel-tooltip-header svg {
+  font-size: 1rem;
+}
+
+.chart-intel-tooltip-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.chart-intel-tooltip-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.chart-intel-tip-icon {
+  font-size: 1.1rem;
+  color: var(--color-primary);
+  margin-top: 2px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.3));
+}
+
+.chart-intel-tip-label {
+  font-size: 0.62rem;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+  margin-bottom: 3px;
+}
+
+.chart-intel-tip-value {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.2;
+}
+
+.chart-intel-tip-value.up {
+  color: #81c784;
+}
+
+.chart-intel-tip-value.down {
+  color: #e57373;
+}
+
+.chart-intel-tip-sub {
+  font-size: 0.65rem;
+  color: var(--color-text-secondary);
+  margin-top: 2px;
+  opacity: 0.7;
+}
+

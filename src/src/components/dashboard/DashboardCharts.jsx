@@ -1,8 +1,14 @@
 import React from 'react'
 import Box from '@mui/material/Box'
 import { Line } from 'react-chartjs-2'
-import { MdFullscreen, MdClose } from 'react-icons/md'
+import { MdFullscreen, MdClose, MdAnalytics, MdTimeline, MdSpeed, MdUpdate, MdPublic } from 'react-icons/md'
 
+/**
+ * Exibe os gráficos do dashboard. Ao expandir um gráfico (modal),
+ * o painel de inteligência de mercado (trendAtual) é renderizado
+ * abaixo do gráfico dentro do modal expanded-chart-content.
+ * @param {object} trendAtual - Dados de tendência atual da moeda selecionada.
+ */
 export default function DashboardCharts({ 
   multiMoeda, 
   normalizacao, 
@@ -15,6 +21,7 @@ export default function DashboardCharts({
   opcoesVariacao, 
   ultimoNegociado, 
   ultimaVariacao, 
+  trendAtual,
   t 
 }) {
   return (
@@ -95,6 +102,68 @@ export default function DashboardCharts({
                 }}
               />
             </div>
+
+            {/* Painel de Inteligência de Mercado dentro do modal */}
+            {trendAtual && (
+              <div className="chart-intel-tooltip">
+                <div className="chart-intel-tooltip-header">
+                  <MdAnalytics />
+                  <span>{t('marketIntelligence')}</span>
+                </div>
+                <div className="chart-intel-tooltip-grid">
+                  <div className="chart-intel-tooltip-item">
+                    <MdTimeline className="chart-intel-tip-icon" />
+                    <div>
+                      <div className="chart-intel-tip-label">{t('movingAverages')}</div>
+                      <div className={`chart-intel-tip-value ${
+                        (trendAtual.mA5 || trendAtual.MA5) >= (trendAtual.mA15 || trendAtual.MA15) ? 'up' : 'down'
+                      }`}>
+                        {(trendAtual.mA5 || trendAtual.MA5) >= (trendAtual.mA15 || trendAtual.MA15)
+                          ? t('bullishTrend')
+                          : t('bearishTrend')}
+                      </div>
+                      <div className="chart-intel-tip-sub">MA5 vs MA15</div>
+                    </div>
+                  </div>
+                  <div className="chart-intel-tooltip-item">
+                    <MdSpeed className="chart-intel-tip-icon" />
+                    <div>
+                      <div className="chart-intel-tip-label">{t('momentum')}</div>
+                      <div className={`chart-intel-tip-value ${
+                        (trendAtual.delta5 || trendAtual.Delta5) >= 0 ? 'up' : 'down'
+                      }`}>
+                        Δ5: {trendAtual.delta5 || trendAtual.Delta5 || 0}
+                      </div>
+                      <div className="chart-intel-tip-sub">Δ15: {trendAtual.delta15 || trendAtual.Delta15 || 0}</div>
+                    </div>
+                  </div>
+                  <div className="chart-intel-tooltip-item">
+                    <MdUpdate className="chart-intel-tip-icon" />
+                    <div>
+                      <div className="chart-intel-tip-label">{t('trendVolatility')}</div>
+                      <div className="chart-intel-tip-value">
+                        {(trendAtual.volatilidade15 || trendAtual.Volatilidade15 || 0).toFixed(2)}
+                      </div>
+                      <div className="chart-intel-tip-sub">
+                        {t('timeSincePeak')}: {trendAtual.minutosDesdePico || trendAtual.MinutosDesdePico || 0}min
+                      </div>
+                    </div>
+                  </div>
+                  <div className="chart-intel-tooltip-item">
+                    <MdPublic className="chart-intel-tip-icon" />
+                    <div>
+                      <div className="chart-intel-tip-label">{t('globalHotspot')}</div>
+                      <div className="chart-intel-tip-value">
+                        {trendAtual.geoTop1Code || trendAtual.GeoTop1Code || 'N/A'}
+                      </div>
+                      <div className="chart-intel-tip-sub">
+                        {t('trendRank')}: #{trendAtual.rankNoMinuto || trendAtual.RankNoMinuto || '-'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

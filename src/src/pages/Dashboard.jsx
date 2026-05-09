@@ -278,6 +278,7 @@ export default function Dashboard() {
           opcoesVariacao={chartConfig.opcoesVariacao}
           ultimoNegociado={ultimoNegociado}
           ultimaVariacao={ultimaVariacao}
+          trendAtual={trendAtual}
           t={t}
         />
 
