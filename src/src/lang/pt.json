@@ -117,5 +117,18 @@
   "minutesShort": "{{count}}m",
   "bullishTrend": "Tendência de Alta",
   "bearishTrend": "Tendência de Baixa",
-  "momentum": "Momentum (Delta)"
+  "momentum": "Momentum (Delta)",
+  "security": "Segurança",
+  "changePasswordDescription": "Mantenha sua conta segura alterando sua senha periodicamente.",
+  "currentPassword": "Senha Atual",
+  "newPassword": "Nova Senha",
+  "confirmNewPassword": "Confirmar Nova Senha",
+  "updatePassword": "Atualizar Senha",
+  "passwordChangedSuccess": "Senha alterada com sucesso!",
+  "invalidCurrentPassword": "Senha atual incorreta",
+  "errorChangingPassword": "Erro ao alterar senha",
+  "fillAllFields": "Preencha todos os campos",
+  "passwordsDontMatch": "As senhas não coincidem",
+  "passwordTooShort": "A senha deve ter no mínimo 6 caracteres",
+  "saving": "Salvando..."
 }

@@ -17,6 +17,7 @@ export const ApiEndpoint = Object.freeze({
     LIST: '/ThinkBitcoin/usuariosTB/',
     CREATE: '/ThinkBitcoin/usuariosTB/',
     DELETE: (id) => `/ThinkBitcoin/usuariosTB/${id}`,
+    CHANGE_PASSWORD: '/ThinkBitcoin/usuariosTB/AlterarSenha',
   }),
   PREFERENCES: Object.freeze({
     ALL: '/ThinkBitcoin/preferencias',

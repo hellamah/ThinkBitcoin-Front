@@ -117,5 +117,18 @@
   "minutesShort": "{{count}}m",
   "bullishTrend": "Bullish Trend",
   "bearishTrend": "Bearish Trend",
-  "momentum": "Momentum (Delta)"
+  "momentum": "Momentum (Delta)",
+  "security": "Security",
+  "changePasswordDescription": "Keep your account secure by changing your password periodically.",
+  "currentPassword": "Current Password",
+  "newPassword": "New Password",
+  "confirmNewPassword": "Confirm New Password",
+  "updatePassword": "Update Password",
+  "passwordChangedSuccess": "Password changed successfully!",
+  "invalidCurrentPassword": "Invalid current password",
+  "errorChangingPassword": "Error changing password",
+  "fillAllFields": "Fill all fields",
+  "passwordsDontMatch": "Passwords don't match",
+  "passwordTooShort": "Password must be at least 6 characters",
+  "saving": "Saving..."
 }

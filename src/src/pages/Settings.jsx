@@ -11,6 +11,7 @@ import {
   MdSecurity,
   MdHistory,
   MdAssessment,
+  MdLock,
 } from 'react-icons/md'
 import Button from '@mui/material/Button'
 import Switch from '@mui/material/Switch'
@@ -30,7 +31,7 @@ import TableRow from '@mui/material/TableRow'
 import '../App.css'
 import { useAuth } from '../context/AuthContext'
 import useTranslation from '../hooks/useTranslation'
-import { apiRequest, MarketEndpoint } from '../utils/apiClient'
+import { apiRequest, MarketEndpoint, UserEndpoint, HttpMethod } from '../utils/apiClient'
 import { API_URL } from '../api'
 import {
   AlgorithmStyle,
@@ -44,11 +45,13 @@ import { executeNotificationWorkflow } from '../utils/workflow'
 
 function Settings() {
   const { t } = useTranslation()
-  const { token, prefs, updatePreferences } = useAuth()
+  const { token, user, prefs, updatePreferences } = useAuth()
   const [localPrefs, setLocalPrefs] = useState(prefs)
   const [toast, setToast] = useState('')
   const [moedas, setMoedas] = useState([])
   const [exchanges, setExchanges] = useState([])
+  const [senha, setSenha] = useState({ atual: '', nova: '', confirma: '' })
+  const [loadingSenha, setLoadingSenha] = useState(false)
 
   useEffect(() => {
     const carregarDados = async () => {
@@ -117,6 +120,47 @@ function Settings() {
     updatePreferences({ estiloAlgoritmo: val })
     confirm()
   }
+
+  const handleTrocarSenha = async (e) => {
+    e.preventDefault()
+    if (!senha.atual || !senha.nova || !senha.confirma) {
+      setToast(t('fillAllFields') || 'Preencha todos os campos')
+      setTimeout(() => setToast(''), 3000)
+      return
+    }
+    if (senha.nova !== senha.confirma) {
+      setToast(t('passwordsDontMatch') || 'As senhas não coincidem')
+      setTimeout(() => setToast(''), 3000)
+      return
+    }
+    if (senha.nova.length < 6) {
+      setToast(t('passwordTooShort') || 'A senha deve ter no mínimo 6 caracteres')
+      setTimeout(() => setToast(''), 3000)
+      return
+    }
+
+    setLoadingSenha(true)
+    try {
+      await apiRequest(UserEndpoint.CHANGE_PASSWORD, {
+        method: HttpMethod.POST,
+        headers: { Authorization: `Bearer ${token}` },
+        body: {
+          idUsuarioTB: user?.idUsuarioTB,
+          senhaAtual: senha.atual,
+          novaSenha: senha.nova
+        }
+      })
+      setToast(t('passwordChangedSuccess') || 'Senha alterada com sucesso!')
+      setSenha({ atual: '', nova: '', confirma: '' })
+    } catch (err) {
+      const msg = err.status === 400 ? (t('invalidCurrentPassword') || 'Senha atual incorreta') : (t('errorChangingPassword') || 'Erro ao alterar senha')
+      setToast(msg)
+    } finally {
+      setLoadingSenha(false)
+      setTimeout(() => setToast(''), 3000)
+    }
+  }
+
   const renderPanel = (icon, title, children) => (
     <Box className="panel settings-panel" sx={{
       height: '100%',
@@ -447,6 +491,75 @@ function Settings() {
                 </Box>
               </Grid>
             </Grid>
+          ))}
+        </div>
+
+        <div style={{ gridColumn: '1 / -1' }}>
+          {renderPanel(<MdLock />, t('security') || 'SEGURANÇA', (
+            <Box component="form" onSubmit={handleTrocarSenha} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)', mb: 1 }}>
+                {t('changePasswordDescription') || 'Mantenha sua conta segura alterando sua senha periodicamente.'}
+              </Typography>
+              <Grid container spacing={3}>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label={t('currentPassword') || 'Senha Atual'}
+                    type="password"
+                    value={senha.atual}
+                    onChange={(e) => setSenha(p => ({ ...p, atual: e.target.value }))}
+                    sx={inputSx}
+                    InputLabelProps={{ sx: { color: 'rgba(255,255,255,0.5)' } }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label={t('newPassword') || 'Nova Senha'}
+                    type="password"
+                    value={senha.nova}
+                    onChange={(e) => setSenha(p => ({ ...p, nova: e.target.value }))}
+                    sx={inputSx}
+                    InputLabelProps={{ sx: { color: 'rgba(255,255,255,0.5)' } }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label={t('confirmNewPassword') || 'Confirmar Nova Senha'}
+                    type="password"
+                    value={senha.confirma}
+                    onChange={(e) => setSenha(p => ({ ...p, confirma: e.target.value }))}
+                    sx={inputSx}
+                    InputLabelProps={{ sx: { color: 'rgba(255,255,255,0.5)' } }}
+                  />
+                </Grid>
+              </Grid>
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  disabled={loadingSenha}
+                  sx={{
+                    bgcolor: 'var(--color-primary)',
+                    color: '#000',
+                    fontWeight: 800,
+                    px: 4,
+                    py: 1.2,
+                    borderRadius: '10px',
+                    '&:hover': {
+                      bgcolor: '#e6c200',
+                      boxShadow: '0 0 20px rgba(255, 215, 0, 0.4)'
+                    },
+                    '&.Mui-disabled': {
+                      bgcolor: 'rgba(255, 215, 0, 0.3)',
+                    }
+                  }}
+                >
+                  {loadingSenha ? (t('saving') || 'SALVANDO...') : (t('updatePassword') || 'ATUALIZAR SENHA')}
+                </Button>
+              </Box>
+            </Box>
           ))}
         </div>
       </div>
