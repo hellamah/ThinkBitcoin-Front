@@ -345,7 +345,8 @@
   overflow-x: auto;
   overflow-y: visible;
   gap: 24px;
-  padding: 40px 60px 48px; /* Mais espaço para evitar cortes em qualquer direção */
+  padding: 40px 60px 48px;
+  /* Mais espaço para evitar cortes em qualquer direção */
   margin-top: 16px;
   margin-bottom: 24px;
   -webkit-overflow-scrolling: touch;
@@ -362,14 +363,17 @@
 }
 
 .dashboard-container {
-  max-width: 1560px; /* Aumentado para dar mais espaço */
+  max-width: 1560px;
+  /* Aumentado para dar mais espaço */
   margin: 0 auto;
   width: 100%;
-  overflow: visible; /* Garantir que o carrossel não seja cortado por este container */
+  overflow: visible;
+  /* Garantir que o carrossel não seja cortado por este container */
 }
 
 .crypto-carousel::-webkit-scrollbar {
-  height: 8px; /* Um pouco mais grosso para ser fácil de usar */
+  height: 8px;
+  /* Um pouco mais grosso para ser fácil de usar */
 }
 
 .crypto-carousel::-webkit-scrollbar-track {
@@ -400,7 +404,8 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2) !important;
   position: relative;
-  overflow: visible !important; /* Permitir que o brilho e zoom saiam do card sem cortar */
+  overflow: visible !important;
+  /* Permitir que o brilho e zoom saiam do card sem cortar */
 }
 
 .ai-chat-btn-overlay {
@@ -899,7 +904,7 @@
   min-height: 300px;
 }
 
-.close-expanded-chart {
+.btn-close-premium {
   position: absolute;
   top: 24px;
   right: 24px;
@@ -915,13 +920,25 @@
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 10;
+  padding: 0;
 }
 
-.close-expanded-chart:hover {
+.btn-close-premium:hover {
   background: rgba(255, 111, 97, 0.2);
   border-color: var(--color-error);
   color: var(--color-error);
   transform: rotate(90deg) scale(1.1);
+}
+
+.btn-close-premium.small {
+  width: 32px;
+  height: 32px;
+  top: 10px;
+  right: 12px;
+}
+
+.btn-close-premium.small svg {
+  font-size: 1.2rem;
 }
 
 @keyframes fadeIn {
@@ -1008,7 +1025,7 @@
   height: 2px;
   background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
   opacity: 0.3;
-} 
+}
 
 /* Enhanced Top‑Coins Panel */
 .top-list {
@@ -1092,8 +1109,15 @@
   border-radius: 4px;
 }
 
-.top-var-badge.up { color: #4caf50; background: rgba(76, 175, 80, 0.1); }
-.top-var-badge.down { color: #f44336; background: rgba(244, 67, 54, 0.1); }
+.top-var-badge.up {
+  color: #4caf50;
+  background: rgba(76, 175, 80, 0.1);
+}
+
+.top-var-badge.down {
+  color: #f44336;
+  background: rgba(244, 67, 54, 0.1);
+}
 
 .top-item-stats-stage {
   position: relative;
@@ -1102,7 +1126,8 @@
   overflow: hidden;
 }
 
-.price-view, .details-view {
+.price-view,
+.details-view {
   position: absolute;
   top: 0;
   left: 0;
@@ -1151,13 +1176,21 @@
   line-height: 1.4;
 }
 
-.reveal-stat .label { color: var(--color-primary); opacity: 0.7; font-weight: 700; }
-.reveal-stat .value { color: rgba(255, 255, 255, 0.8); }
+.reveal-stat .label {
+  color: var(--color-primary);
+  opacity: 0.7;
+  font-weight: 700;
+}
+
+.reveal-stat .value {
+  color: rgba(255, 255, 255, 0.8);
+}
 
 @media (max-width: 1200px) {
   .top-list {
     flex-wrap: wrap !important;
   }
+
   .top-item-card {
     flex: 0 0 calc(33.33% - 8px);
   }
@@ -2811,6 +2844,7 @@
     box-shadow: 0 0 20px rgba(255, 215, 0, 0.15);
   }
 }
+
 /* --- MARKET INTELLIGENCE PANEL --- */
 .intelligence-panel {
   margin-top: 32px;
@@ -2893,12 +2927,24 @@
   font-weight: 500;
 }
 
-.intel-subvalue.up { color: #4caf50; }
-.intel-subvalue.down { color: #f44336; }
+.intel-subvalue.up {
+  color: #4caf50;
+}
+
+.intel-subvalue.down {
+  color: #f44336;
+}
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (max-width: 600px) {
@@ -2906,9 +2952,11 @@
     grid-template-columns: 1fr 1fr;
     gap: 12px;
   }
+
   .intel-card {
     padding: 16px 8px;
   }
+
   .intel-value {
     font-size: 1.3rem;
   }
@@ -2939,11 +2987,13 @@
     opacity: 0;
     transform: translateY(-6px) scale(0.97);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
 }
+
 
 .chart-intel-tooltip-header {
   display: flex;
@@ -3019,3 +3069,85 @@
   opacity: 0.7;
 }
 
+/* Settings Page Premium Styles */
+.settings-page {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 40px;
+  box-sizing: border-box;
+  animation: pageEntranceReveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+  gap: 32px;
+  width: 100%;
+  margin-top: 40px;
+}
+
+@media (max-width: 1100px) {
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.settings-panel {
+  background: rgba(15, 15, 15, 0.4) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 0 !important;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+
+.settings-panel:hover {
+  border-color: rgba(255, 215, 0, 0.2) !important;
+  background: rgba(20, 20, 20, 0.6) !important;
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255, 215, 0, 0.05) !important;
+}
+
+.settings-panel::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
+  opacity: 0.15;
+}
+
+.settings-panel-icon-wrapper {
+  color: var(--color-primary);
+  font-size: 1.5rem;
+  display: flex;
+  background: rgba(255, 215, 0, 0.05);
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 215, 0, 0.1);
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.settings-panel:hover .settings-panel-icon-wrapper {
+  transform: scale(1.1) rotate(5deg);
+  background: rgba(255, 215, 0, 0.1);
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+}
+
+.settings-field-label {
+  color: rgba(255, 255, 255, 0.4) !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1.5px !important;
+  font-family: 'Share Tech Mono', monospace !important;
+}

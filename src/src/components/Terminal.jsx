@@ -111,9 +111,9 @@ const Terminal = ({ messages = [], onCommand, onClose, status = 'ACTIVE', title 
             <span>{title}::{status}</span>
             <div className={`status-indicator ${status === 'CONNECTED' ? 'pulse' : ''}`}></div>
           </div>
-          <IconButton onClick={onClose} size="small" sx={{ color: '#00ff41' }}>
+          <button className="btn-close-premium small" onClick={onClose}>
             <MdClose />
-          </IconButton>
+          </button>
         </div>
 
         <div className="terminal-content" ref={scrollRef}>

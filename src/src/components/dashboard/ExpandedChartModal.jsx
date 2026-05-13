@@ -133,7 +133,7 @@ const ExpandedChartModal = ({
   return (
     <div className="expanded-chart-overlay" onClick={handleClose}>
       <div className="expanded-chart-content" onClick={(e) => e.stopPropagation()}>
-        <button className="close-expanded-chart" onClick={handleClose} aria-label={t('close')}>
+        <button className="btn-close-premium" onClick={handleClose} aria-label={t('close')}>
           <MdClose size={32} />
         </button>
         <h2>{isTraded ? t('tradedValue') : t('percentVariation')}</h2>
