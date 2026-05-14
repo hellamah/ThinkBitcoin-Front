@@ -296,7 +296,7 @@ function CadastroConviteOverlay({ onFechar }) {
                         />
                       </Grid>
                       <Grid item xs={12} sm={6}>
-                        <FormControl fullWidth variant="filled" sx={inputSx}>
+                        <FormControl fullWidth variant="filled" sx={{ ...inputSx, minWidth: 200 }}>
                           <InputLabel>{t('cargo')}</InputLabel>
                           <Select value={cargo} onChange={(e) => setCargo(e.target.value)} disableUnderline>
                             <MenuItem value={0}>{t('miner')}</MenuItem>
@@ -305,7 +305,7 @@ function CadastroConviteOverlay({ onFechar }) {
                         </FormControl>
                       </Grid>
                       <Grid item xs={12} sm={6}>
-                        <FormControl fullWidth variant="filled" sx={inputSx}>
+                        <FormControl fullWidth variant="filled" sx={{ ...inputSx, minWidth: 160 }}>
                           <InputLabel>{t('language')}</InputLabel>
                           <Select
                             value={preferencias.idioma}
@@ -347,7 +347,7 @@ function CadastroConviteOverlay({ onFechar }) {
                         />
                       </Grid>
                       <Grid item xs={12} sm={6}>
-                        <FormControl fullWidth variant="filled" sx={inputSx}>
+                        <FormControl fullWidth variant="filled" sx={{ ...inputSx, minWidth: 160 }}>
                           <InputLabel>{t('preferredCoin')}</InputLabel>
                           <Select
                             value={preferencias.siglaMoedaPreferida || ''}
@@ -362,7 +362,7 @@ function CadastroConviteOverlay({ onFechar }) {
                         </FormControl>
                       </Grid>
                       <Grid item xs={12} sm={6}>
-                        <FormControl fullWidth variant="filled" sx={inputSx}>
+                        <FormControl fullWidth variant="filled" sx={{ ...inputSx, minWidth: 200 }}>
                           <InputLabel>{t('riskProfile')}</InputLabel>
                           <Select
                             value={preferencias.perfilRisco}
@@ -376,7 +376,7 @@ function CadastroConviteOverlay({ onFechar }) {
                         </FormControl>
                       </Grid>
                       <Grid item xs={12} sm={6}>
-                        <FormControl fullWidth variant="filled" sx={inputSx}>
+                        <FormControl fullWidth variant="filled" sx={{ ...inputSx, minWidth: 200 }}>
                           <InputLabel>{t('algorithmStyle')}</InputLabel>
                           <Select
                             value={preferencias.estiloAlgoritmo}
@@ -390,7 +390,7 @@ function CadastroConviteOverlay({ onFechar }) {
                         </FormControl>
                       </Grid>
                       <Grid item xs={12} sm={6}>
-                        <FormControl fullWidth variant="filled" sx={inputSx}>
+                        <FormControl fullWidth variant="filled" sx={{ ...inputSx, minWidth: 200 }}>
                           <InputLabel>{t('exchange')}</InputLabel>
                           <Select
                             value={preferencias.siglaEmpresaExterna || ''}
@@ -403,7 +403,7 @@ function CadastroConviteOverlay({ onFechar }) {
                         </FormControl>
                       </Grid>
                       <Grid item xs={12} sm={6}>
-                        <FormControl fullWidth variant="filled" sx={inputSx}>
+                        <FormControl fullWidth variant="filled" sx={{ ...inputSx, minWidth: 200 }}>
                           <InputLabel>{t('reviewFrequency')}</InputLabel>
                           <Select
                             value={preferencias.frequenciaReview}
@@ -420,7 +420,7 @@ function CadastroConviteOverlay({ onFechar }) {
                   </Box>
                 </Box>
 
-                <Box sx={{ mt: 5, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Box sx={{ mt: 5, pb: 8, display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <ErrorMessage message={erro} onClose={() => setErro('')} />
                   <Button
                     variant="contained"
