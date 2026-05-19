@@ -37,6 +37,7 @@ export const ApiEndpoint = Object.freeze({
   VARIAVEL_EXTERNA: Object.freeze({
     FEAR_GREED: '/ThinkBitcoin/variavel-externa/fear-greed',
     TREND: '/ThinkBitcoin/variavel-externa/trend',
+    TREND_HEATMAP: '/ThinkBitcoin/variavel-externa/trend/heatmap',
   }),
 })
 
@@ -62,10 +63,7 @@ export const apiRequest = async (
     if (mockResponse) return mockResponse
   }
 
-  // Intercepta endpoints em desenvolvimento para evitar poluição de erros 404 no console
-  if (endpoint.includes('fear-greed') || endpoint.includes('trend')) {
-    return Promise.reject(new Error('Backend endpoint not implemented yet - Intercepted to prevent 404 log'))
-  }
+
 
   const response = await fetch(
     buildUrl(endpoint),

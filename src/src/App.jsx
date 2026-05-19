@@ -4,6 +4,7 @@ import Home from './pages/Home.jsx'
 import Login from './pages/Login.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import Settings from './pages/Settings.jsx'
+import GeoHeatmapView from './pages/GeoHeatmapView.jsx'
 import Layout from './components/Layout.jsx'
 
 function App() {
@@ -26,6 +27,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Settings />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/heatmap"
+          element={
+            <ProtectedRoute>
+              <GeoHeatmapView />
             </ProtectedRoute>
           }
         />
