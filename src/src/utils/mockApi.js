@@ -30,7 +30,10 @@ const resolveIsTestMode = () => {
 
 const resolvedUseMockEnv = resolveUseMockEnv()
 
-export const USE_MOCK_API = false
+export const USE_MOCK_API =
+  !resolveIsTestMode() &&
+  (parseUseMockFlag(resolvedUseMockEnv) ||
+   (resolvedUseMockEnv === undefined && resolveIsDevMode()))
 
 const buildMockToken = () => {
   const header = { alg: 'HS256', typ: 'JWT' }
@@ -302,6 +305,25 @@ const mockHandlers = [
             geoTop1Value: 100,
             horaReferencia: new Date().toISOString(),
           }
+        ]
+      }
+    }),
+  },
+  {
+    method: 'GET',
+    match: (endpoint) => !!endpoint.match(/^\/ThinkBitcoin\/variavel-externa\/trend\/heatmap(\?.*)?$/i),
+    response: () => ({
+      mensagem: 'Heatmap mock retornado com sucesso',
+      resultado: {
+        totalRegistros: 5,
+        totalPaginas: 1,
+        paginaAtual: 1,
+        registros: [
+          { geoTop1Code: 'US', frequenciaLideranca: 85 },
+          { geoTop1Code: 'BR', frequenciaLideranca: 70 },
+          { geoTop1Code: 'CH', frequenciaLideranca: 95 },
+          { geoTop1Code: 'DE', frequenciaLideranca: 60 },
+          { geoTop1Code: 'JP', frequenciaLideranca: 75 }
         ]
       }
     }),

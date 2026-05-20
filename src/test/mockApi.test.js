@@ -233,6 +233,80 @@ describe('utils/mockApi › getMockResponse', () => {
     })
   })
 
+  describe('Variáveis Externas (Fear & Greed, Trend e Heatmap)', () => {
+    it('retorna mock de Fear & Greed para GET /variavel-externa/fear-greed', () => {
+      const resp = getMockResponse({
+        endpoint: '/ThinkBitcoin/variavel-externa/fear-greed',
+        method: 'GET',
+      })
+
+      expect(resp).toMatchObject({
+        mensagem: expect.any(String),
+        resultado: {
+          registros: [
+            {
+              valor: expect.any(Number),
+              classificacao: expect.any(String),
+            }
+          ]
+        }
+      })
+    })
+
+    it('retorna mock de Trend para GET /variavel-externa/trend', () => {
+      const resp = getMockResponse({
+        endpoint: '/ThinkBitcoin/variavel-externa/trend',
+        method: 'GET',
+      })
+
+      expect(resp).toMatchObject({
+        mensagem: expect.any(String),
+        resultado: {
+          registros: [
+            {
+              valorAtual: expect.any(Number),
+              geoTop1Code: expect.any(String),
+            }
+          ]
+        }
+      })
+    })
+
+    it('retorna mock de Heatmap para GET /variavel-externa/trend/heatmap', () => {
+      const resp = getMockResponse({
+        endpoint: '/ThinkBitcoin/variavel-externa/trend/heatmap',
+        method: 'GET',
+      })
+
+      expect(resp).toMatchObject({
+        mensagem: expect.any(String),
+        resultado: {
+          registros: expect.any(Array)
+        }
+      })
+      expect(resp.resultado.registros.length).toBeGreaterThan(0)
+      expect(resp.resultado.registros[0]).toMatchObject({
+        geoTop1Code: expect.any(String),
+        frequenciaLideranca: expect.any(Number)
+      })
+    })
+
+    it('retorna mock de Heatmap para GET /variavel-externa/trend/heatmap com query string (idMoeda)', () => {
+      const resp = getMockResponse({
+        endpoint: '/ThinkBitcoin/variavel-externa/trend/heatmap?idMoeda=924a77fc-31d8-4246-b07c-59729ffac63b',
+        method: 'GET',
+      })
+
+      expect(resp).toMatchObject({
+        mensagem: expect.any(String),
+        resultado: {
+          registros: expect.any(Array)
+        }
+      })
+      expect(resp.resultado.registros.length).toBeGreaterThan(0)
+    })
+  })
+
   describe('Endpoint não mapeado', () => {
     it('retorna null para endpoint sem handler registrado', () => {
       const resp = getMockResponse({

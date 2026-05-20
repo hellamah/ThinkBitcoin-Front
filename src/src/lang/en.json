@@ -25,7 +25,8 @@
     "dashboard": "Dashboard",
     "settings": "Settings",
     "login": "Login",
-    "logout": "Logout"
+    "logout": "Logout",
+    "heatmap": "Geopolitics"
   },
   "dashboard": "Dashboard",
   "sequence": "Return Sequence",
