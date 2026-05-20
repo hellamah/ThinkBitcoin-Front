@@ -98,6 +98,7 @@ src/
 - Utilize os utilitários presentes em `src/src/utils` para trabalhar com enums, autenticação (`authentication.js`), camada de API (`apiClient.js`), workflows de interface (`workflow.js`) e armazenamento de preferências.
 - Sempre execute `npm test` antes de abrir um pull request.
 - Novas traduções devem ser adicionadas em `src/src/lang/en.json` e `src/src/lang/pt.json`.
+- Ao estender componentes que necessitam de internacionalização e apresentação de dados localizados (como a visualização geopolítica `GeoHeatmapView.jsx` ou o `CoinCarousel.jsx`), sempre mapeie as chaves correspondentes nos dicionários de idiomas e utilize as funções utilitárias do projeto (como o dicionário de mapeamento geográfico) para garantir a consistência técnica e polimento da interface.
 
 
 

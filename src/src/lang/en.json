@@ -131,5 +131,6 @@
   "fillAllFields": "Fill all fields",
   "passwordsDontMatch": "Passwords don't match",
   "passwordTooShort": "Password must be at least 6 characters",
-  "saving": "Saving..."
+  "saving": "Saving...",
+  "marketInterest": "Global Interest"
 }

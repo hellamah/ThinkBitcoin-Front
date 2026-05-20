@@ -131,5 +131,6 @@
   "fillAllFields": "Preencha todos os campos",
   "passwordsDontMatch": "As senhas não coincidem",
   "passwordTooShort": "A senha deve ter no mínimo 6 caracteres",
-  "saving": "Salvando..."
+  "saving": "Salvando...",
+  "marketInterest": "Interesse Global"
 }
