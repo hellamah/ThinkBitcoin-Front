@@ -24,6 +24,7 @@ import * as mathUtils from '../utils/mathUtils'
 
 // Sub-componentes Refatorados
 import DashboardHeader from '../components/dashboard/DashboardHeader'
+import PatrimonioCard from '../components/dashboard/PatrimonioCard'
 import CoinCarousel from '../components/dashboard/CoinCarousel'
 import DashboardFilters from '../components/dashboard/DashboardFilters'
 import IntelligencePanel from '../components/dashboard/IntelligencePanel'
@@ -235,6 +236,8 @@ export default function Dashboard() {
     return (
       <div className="dashboard-container">
         <DashboardHeader t={t} prefs={prefs} usuario={usuario} />
+
+        <PatrimonioCard token={token} user={usuario} />
 
         <ErrorMessage message={erro} onClose={() => setErro('')} />
 

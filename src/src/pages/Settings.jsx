@@ -12,6 +12,7 @@ import {
   MdHistory,
   MdAssessment,
   MdLock,
+  MdPayment,
 } from 'react-icons/md'
 import Button from '@mui/material/Button'
 import Switch from '@mui/material/Switch'
@@ -28,10 +29,11 @@ import TableCell from '@mui/material/TableCell'
 import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
+import CircularProgress from '@mui/material/CircularProgress'
 import '../App.css'
 import { useAuth } from '../context/AuthContext'
 import useTranslation from '../hooks/useTranslation'
-import { apiRequest, MarketEndpoint, UserEndpoint, HttpMethod } from '../utils/apiClient'
+import { apiRequest, MarketEndpoint, UserEndpoint, PlanosPagamentoEndpoint, HttpMethod } from '../utils/apiClient'
 import { API_URL } from '../api'
 import {
   AlgorithmStyle,
@@ -42,6 +44,7 @@ import {
 } from '../utils/preferences'
 import { isNotificationSupported } from '../utils/browser'
 import { executeNotificationWorkflow } from '../utils/workflow'
+import PlanosPagamentoModal from '../components/PlanosPagamentoModal'
 
 function Settings() {
   const { t } = useTranslation()
@@ -52,8 +55,29 @@ function Settings() {
   const [exchanges, setExchanges] = useState([])
   const [senha, setSenha] = useState({ atual: '', nova: '', confirma: '' })
   const [loadingSenha, setLoadingSenha] = useState(false)
+  const [planoAtivo, setPlanoAtivo] = useState(null)
+  const [loadingPlano, setLoadingPlano] = useState(true)
+  const [modalPlanosOpen, setModalPlanosOpen] = useState(false)
+
+  const carregarPlanoAtivo = async () => {
+    if (!token) return
+    setLoadingPlano(true)
+    try {
+      const res = await apiRequest(PlanosPagamentoEndpoint.LIST, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const lista = res?.resultado?.planos || res?.Resultado?.planos || []
+      const ativo = lista.find(p => p.ativo) || lista[0]
+      setPlanoAtivo(ativo)
+    } catch (err) {
+      console.error('Erro ao buscar plano ativo:', err)
+    } finally {
+      setLoadingPlano(false)
+    }
+  }
 
   useEffect(() => {
+    carregarPlanoAtivo()
     const carregarDados = async () => {
       try {
         const [resM, resE] = await Promise.all([
@@ -355,6 +379,40 @@ function Settings() {
           ))
         ))}
 
+        {renderPanel(<MdPayment />, t('planos.title'), (
+          <>
+            {renderField(t('planos.currentPlan'), (
+              <Typography variant="body1" sx={{ color: 'var(--color-primary)', fontWeight: 800, fontFamily: "'Share Tech Mono', monospace" }}>
+                {loadingPlano ? (
+                  <CircularProgress size={16} sx={{ color: 'var(--color-primary)' }} />
+                ) : (
+                  planoAtivo?.nome || 'Consultor (Básico)'
+                )}
+              </Typography>
+            ))}
+            <Button
+              variant="outlined"
+              onClick={() => setModalPlanosOpen(true)}
+              fullWidth
+              sx={{
+                borderColor: 'rgba(255,255,255,0.1)',
+                color: '#fff',
+                py: 1.2,
+                borderRadius: '12px',
+                background: 'rgba(255,255,255,0.03)',
+                fontFamily: "'Share Tech Mono', monospace",
+                fontWeight: 700,
+                '&:hover': {
+                  borderColor: 'var(--color-primary)',
+                  background: 'rgba(255,215,0,0.05)'
+                }
+              }}
+            >
+              {t('planos.viewPlans').toUpperCase()}
+            </Button>
+          </>
+        ))}
+
         {renderPanel(<MdAccountBalanceWallet />, t('traderLabTitle'), (
           <>
             {renderField(t('initialInvestment'), (
@@ -574,6 +632,14 @@ function Settings() {
       }}>
         {toast}
       </Box>
+
+      <PlanosPagamentoModal
+        visible={modalPlanosOpen}
+        onClose={() => setModalPlanosOpen(false)}
+        token={token}
+        user={user}
+        onRefresh={carregarPlanoAtivo}
+      />
     </Box>
   )
 }

@@ -39,6 +39,14 @@ export const ApiEndpoint = Object.freeze({
     TREND: '/ThinkBitcoin/variavel-externa/trend',
     TREND_HEATMAP: '/ThinkBitcoin/variavel-externa/trend/heatmap',
   }),
+  PATRIMONIO: Object.freeze({
+    BY_USER: (id) => `/ThinkBitcoin/patrimonio/${id}`,
+    CREATE: '/ThinkBitcoin/patrimonio',
+  }),
+  PLANOS_PAGAMENTO: Object.freeze({
+    LIST: '/ThinkBitcoin/planos-pagamento',
+    MIGRATE: '/ThinkBitcoin/planos-pagamento/migrar',
+  }),
 })
 
 const JSON_HEADERS = Object.freeze({ 'Content-Type': 'application/json' })
@@ -90,3 +98,5 @@ export const MarketEndpoint = ApiEndpoint.MARKET
 export const PreferencesEndpoint = ApiEndpoint.PREFERENCES
 export const CargoEndpoint = ApiEndpoint.CARGO
 export const VariavelExternaEndpoint = ApiEndpoint.VARIAVEL_EXTERNA
+export const PatrimonioEndpoint = ApiEndpoint.PATRIMONIO
+export const PlanosPagamentoEndpoint = ApiEndpoint.PLANOS_PAGAMENTO

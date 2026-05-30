@@ -149,6 +149,35 @@ const buildSequenceResponse = () => {
   }
 }
 
+let mockPatrimonio = {
+  saldoTotalBRL: 154320.00,
+  saldoTotalUSD: 29670.00,
+  registros: [
+    {
+      idPatrimonioTB: "11111111-2222-3333-4444-555555555555",
+      idUsuarioTB: "b282e124-4dd8-4ccd-a9c6-5b6b0c324a50",
+      valorBRL: 120000.00,
+      valorUSD: 23070.00,
+      cotacaoUtilizada: 5.20,
+      tipoMovimentacao: "Aporte Inicial",
+      dataHora: "2026-05-10T12:00:00.000Z",
+      observacao: "Transferência inicial de capital."
+    },
+    {
+      idPatrimonioTB: "22222222-3333-4444-5555-666666666666",
+      idUsuarioTB: "b282e124-4dd8-4ccd-a9c6-5b6b0c324a50",
+      valorBRL: 34320.00,
+      valorUSD: 6600.00,
+      cotacaoUtilizada: 5.20,
+      tipoMovimentacao: "Aporte",
+      dataHora: "2026-05-25T14:30:00.000Z",
+      observacao: "Compra de BTC no dip."
+    }
+  ]
+}
+
+let mockPlanoAtivoId = 1 // Minerador (Acesso a IA) por padrão
+
 const mockHandlers = [
   {
     method: 'POST',
@@ -328,6 +357,143 @@ const mockHandlers = [
       }
     }),
   },
+  {
+    method: 'GET',
+    match: (endpoint) => !!endpoint.match(/^\/ThinkBitcoin\/patrimonio\/[^/]+(\?.*)?$/i),
+    response: () => ({
+      mensagem: 'Patrimônio mock retornado com sucesso',
+      resultado: {
+        totalRegistros: mockPatrimonio.registros.length,
+        totalPaginas: 1,
+        paginaAtual: 1,
+        saldoTotalBRL: mockPatrimonio.saldoTotalBRL,
+        saldoTotalUSD: mockPatrimonio.saldoTotalUSD,
+        registros: [...mockPatrimonio.registros].reverse()
+      }
+    }),
+  },
+  {
+    method: 'POST',
+    match: (endpoint) => endpoint === '/ThinkBitcoin/patrimonio',
+    response: (endpoint, body) => {
+      console.log('Mock POST Patrimonio:', body)
+      const valorBRL = parseFloat(body?.valorBRL || 0)
+      const observacao = body?.observacao || 'Aporte manual'
+      const cotacao = 5.20
+      const valorUSD = parseFloat((valorBRL / cotacao).toFixed(2))
+
+      const novo = {
+        idPatrimonioTB: crypto.randomUUID?.() || Math.random().toString(36).substring(2, 15),
+        idUsuarioTB: body?.idUsuarioTB || 'b282e124-4dd8-4ccd-a9c6-5b6b0c324a50',
+        valorBRL,
+        valorUSD,
+        cotacaoUtilizada: cotacao,
+        tipoMovimentacao: 'Aporte',
+        dataHora: new Date().toISOString(),
+        observacao
+      }
+
+      mockPatrimonio.registros.push(novo)
+      mockPatrimonio.saldoTotalBRL = parseFloat((mockPatrimonio.saldoTotalBRL + valorBRL).toFixed(2))
+      mockPatrimonio.saldoTotalUSD = parseFloat((mockPatrimonio.saldoTotalUSD + valorUSD).toFixed(2))
+
+      return {
+        mensagem: 'Patrimônio cadastrado com sucesso!',
+        resultado: novo
+      }
+    }
+  },
+  {
+    method: 'GET',
+    match: (endpoint) => endpoint === '/ThinkBitcoin/planos-pagamento',
+    response: () => {
+      const planos = [
+        {
+          idPlanoPagamento: 0,
+          nome: 'Consultor (Acesso Básico)',
+          valor: 0,
+          descricao: 'Acesso às moedas e gráficos básicos de mercado para análise elementar de portfólio.',
+          duracaoDias: 30,
+          carencia: 0,
+          liquidacao: 1,
+          tipoPrazoLiquidacao: 0,
+          prazoCotizacao: 0,
+          horarioLimiteSolicitacao: { ticks: 576000000000 },
+          taxaSaqueAntecipado: 1.5,
+          taxaResgate: 0.5,
+          valorMinimoResgate: 100,
+          saldoMinimoPermanencia: 50,
+          limiteDiarioResgate: 5000,
+          tipoPlano: 0,
+          ativo: mockPlanoAtivoId === 0,
+          statusPlano: 1,
+          permiteResgateParcial: true,
+          idUsuarioTB: 'b282e124-4dd8-4ccd-a9c6-5b6b0c324a50'
+        },
+        {
+          idPlanoPagamento: 1,
+          nome: 'Minerador (Acesso Completo + IA)',
+          valor: 199.90,
+          descricao: 'Acesso completo ao robô de trade de alta performance com recomendações guiadas por inteligência artificial.',
+          duracaoDias: 30,
+          carencia: 0,
+          liquidacao: 0,
+          tipoPrazoLiquidacao: 0,
+          prazoCotizacao: 0,
+          horarioLimiteSolicitacao: { ticks: 648000000000 },
+          taxaSaqueAntecipado: 0.5,
+          taxaResgate: 0.0,
+          valorMinimoResgate: 50,
+          saldoMinimoPermanencia: 10,
+          limiteDiarioResgate: 50000,
+          tipoPlano: 1,
+          ativo: mockPlanoAtivoId === 1,
+          statusPlano: 1,
+          permiteResgateParcial: true,
+          idUsuarioTB: 'b282e124-4dd8-4ccd-a9c6-5b6b0c324a50'
+        },
+        {
+          idPlanoPagamento: 2,
+          nome: 'ThinkElite (Profissional)',
+          valor: 499.90,
+          descricao: 'Acesso ilimitado e prioritário a todas as ferramentas com atendimento private broker e taxas zero de saque.',
+          duracaoDias: 365,
+          carencia: 0,
+          liquidacao: 0,
+          tipoPrazoLiquidacao: 0,
+          prazoCotizacao: 0,
+          horarioLimiteSolicitacao: { ticks: 720000000000 },
+          taxaSaqueAntecipado: 0.0,
+          taxaResgate: 0.0,
+          valorMinimoResgate: 0,
+          saldoMinimoPermanencia: 0,
+          limiteDiarioResgate: 1000000,
+          tipoPlano: 2,
+          ativo: mockPlanoAtivoId === 2,
+          statusPlano: 1,
+          permiteResgateParcial: true,
+          idUsuarioTB: 'b282e124-4dd8-4ccd-a9c6-5b6b0c324a50'
+        }
+      ]
+      return {
+        mensagem: 'Planos de pagamento retornados com sucesso',
+        resultado: { planos }
+      }
+    }
+  },
+  {
+    method: 'POST',
+    match: (endpoint) => endpoint === '/ThinkBitcoin/planos-pagamento/migrar',
+    response: (endpoint, body) => {
+      console.log('Mock POST Migrar Plano:', body)
+      const novoId = parseInt(body?.tipoPlano ?? 0)
+      mockPlanoAtivoId = novoId
+      return {
+        mensagem: 'Migração de plano concluída com sucesso!',
+        resultado: true
+      }
+    }
+  }
 ]
 
 export const getMockResponse = ({ endpoint, method, body }) => {
