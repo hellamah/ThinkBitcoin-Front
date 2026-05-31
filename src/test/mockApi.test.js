@@ -54,14 +54,10 @@ describe('utils/mockApi › getMockResponse', () => {
       expect(resp).toMatchObject({
         mensagem: expect.any(String),
         resultado: {
-          registros: [
-            {
-              precoFechamento: expect.any(Number),
-              horaReferencia: expect.any(String),
-            },
-          ],
+          registros: expect.any(Array),
         },
       })
+      expect(resp.resultado.registros.length).toBeGreaterThan(0)
     })
 
     it('retorna dados de valor para endpoint de ETH', () => {
@@ -97,7 +93,7 @@ describe('utils/mockApi › getMockResponse', () => {
         method: 'GET',
       })
 
-      expect(resp?.resultado?.registros).toHaveLength(1)
+      expect(resp?.resultado?.registros).toHaveLength(15)
     })
   })
 

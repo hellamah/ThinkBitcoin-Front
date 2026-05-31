@@ -82,43 +82,56 @@ const buildCoinValueResponse = (symbol) => {
   const normalized = symbol.toUpperCase()
   const baseValue = MOCK_COIN_BASE_VALUE[normalized] ?? 100
   const variationFactor = ((hashSymbol(normalized) % 17) - 8) * 0.0025
-  const value = Number((baseValue * (1 + variationFactor)).toFixed(2))
+
+  const registros = []
+  const totalPontos = 15
+  const agora = Date.now()
+
+  for (let i = 0; i < totalPontos; i++) {
+    // Gera uma oscilação determinística e bonita
+    const oscilacao = Math.sin(i + hashSymbol(normalized)) * 0.015 + (variationFactor * (i / totalPontos))
+    const precoPonto = Number((baseValue * (1 + oscilacao)).toFixed(2))
+    const horaPonto = new Date(agora - (totalPontos - 1 - i) * 60 * 1000).toISOString()
+
+    registros.push({
+      precoFechamento: precoPonto,
+      horaReferencia: horaPonto,
+      precoMaior: precoPonto * 1.01,
+      precoMedio: precoPonto * 0.995,
+      precoMenor: precoPonto * 0.98,
+      precoAbertura: precoPonto * 0.99,
+      precoAmplitude: precoPonto * 0.03,
+      precoPercentualVariacao: Number((oscilacao * 100).toFixed(2)),
+      precoRatioCompraVenda: 1.5,
+      precoTotalNegociada: precoPonto * 1000,
+      precoVolume: 150.5,
+      precoDeltaUltimoAbertura: precoPonto * 0.01,
+      precoVariacaoAbsoluta: precoPonto * 0.01,
+      precoCorpoCandle: precoPonto * 0.01,
+      precoSombraSuperior: precoPonto * 0.005,
+      precoSombraInferior: precoPonto * 0.005,
+      precoDirecao: oscilacao >= 0 ? 1 : -1,
+      precoVolatilidadePercentual: 0.5,
+      precoFinanceiroPorTrade: 450.0,
+      quantidadeNegociada: 150.5,
+      volumeComprado: 90.3,
+      volumeVendido: 60.2,
+      dominanciaCompradoraPercentual: 60.0,
+      dominanciaVendedoraPercentual: 40.0,
+      volumeDelta: 30.1,
+    })
+  }
+
+  // Inverte para retornar em ordem decrescente conforme o padrão da API real
+  registros.reverse()
 
   return {
     mensagem: 'Operação realizada com sucesso',
     resultado: {
-      totalRegistros: 1,
+      totalRegistros: totalPontos,
       totalPaginas: 1,
       paginaAtual: 1,
-      registros: [
-        {
-          precoFechamento: value,
-          horaReferencia: new Date().toISOString(),
-          precoMaior: value * 1.01,
-          precoMedio: value * 0.995,
-          precoMenor: value * 0.98,
-          precoAbertura: value * 0.99,
-          precoAmplitude: value * 0.03,
-          precoPercentualVariacao: variationFactor * 100,
-          precoRatioCompraVenda: 1.5,
-          precoTotalNegociada: value * 1000,
-          precoVolume: 150.5,
-          precoDeltaUltimoAbertura: value * 0.01,
-          precoVariacaoAbsoluta: value * 0.01,
-          precoCorpoCandle: value * 0.01,
-          precoSombraSuperior: value * 0.005,
-          precoSombraInferior: value * 0.005,
-          precoDirecao: variationFactor >= 0 ? 1 : -1,
-          precoVolatilidadePercentual: 0.5,
-          precoFinanceiroPorTrade: 450.0,
-          quantidadeNegociada: 150.5,
-          volumeComprado: 90.3,
-          volumeVendido: 60.2,
-          dominanciaCompradoraPercentual: 60.0,
-          dominanciaVendedoraPercentual: 40.0,
-          volumeDelta: 30.1,
-        }
-      ],
+      registros,
     },
   }
 }
