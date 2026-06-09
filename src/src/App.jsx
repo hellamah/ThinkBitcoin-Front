@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard.jsx'
 import Settings from './pages/Settings.jsx'
 import GeoHeatmapView from './pages/GeoHeatmapView.jsx'
 import Layout from './components/Layout.jsx'
+import { DashboardProvider } from './context/DashboardContext.jsx'
 
 function App() {
 
@@ -18,7 +19,9 @@ function App() {
           path="/dashboard"
           element={
             <ProtectedRoute>
-              <Dashboard />
+              <DashboardProvider>
+                <Dashboard />
+              </DashboardProvider>
             </ProtectedRoute>
           }
         />

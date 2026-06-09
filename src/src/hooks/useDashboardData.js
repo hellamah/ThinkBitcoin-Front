@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { apiRequest, MarketEndpoint, VariavelExternaEndpoint } from '../utils/apiClient'
 import { toUTCISO } from '../utils/dateUtils'
+import { useDashboard } from '../context/DashboardContext'
 
 const MOCK_DADOS = [
   { dataHora: new Date().toISOString(), valorNegociado: 1000, variacaoPercentual: 0.1 },
@@ -20,6 +21,7 @@ export default function useDashboardData({
   quantidade,
   resultadoFiltro
 }) {
+  const { refreshTrigger } = useDashboard()
   const [historicosPorMoeda, setHistoricosPorMoeda] = useState({})
   const [fearGreedPorMoeda, setFearGreedPorMoeda] = useState({})
   const [trendPorMoeda, setTrendPorMoeda] = useState({})
@@ -176,7 +178,7 @@ export default function useDashboardData({
     return () => {
       controller.abort()
     }
-  }, [moedasFiltro, dataInicio, dataFim, resultadoFiltro, pagina, quantidade, intervalo, token, moedasCarousel])
+  }, [moedasFiltro, dataInicio, dataFim, resultadoFiltro, pagina, quantidade, intervalo, token, moedasCarousel, refreshTrigger])
 
   return {
     historicosPorMoeda,

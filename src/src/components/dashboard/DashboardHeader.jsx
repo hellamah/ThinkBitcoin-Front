@@ -1,6 +1,10 @@
 import React from 'react'
+import { MdRefresh } from 'react-icons/md'
+import { useDashboard } from '../../context/DashboardContext'
 
 export default function DashboardHeader({ t, prefs, usuario }) {
+  const { forceRefresh } = useDashboard()
+
   return (
     <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
       <div>
@@ -11,7 +15,13 @@ export default function DashboardHeader({ t, prefs, usuario }) {
       </div>
 
       <div className="dashboard-actions-top">
-        {/* Botão de atualização de sinal reservado */}
+        <button 
+          className="btn-primary" 
+          onClick={forceRefresh}
+          style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+        >
+          <MdRefresh /> Atualizar Dados
+        </button>
       </div>
     </header>
   )

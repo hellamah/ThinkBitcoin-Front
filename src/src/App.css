@@ -350,7 +350,8 @@
   margin-top: 16px;
   margin-bottom: 24px;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
   justify-content: flex-start;
   width: 100%;
   box-sizing: border-box;
@@ -372,8 +373,7 @@
 }
 
 .crypto-carousel::-webkit-scrollbar {
-  height: 8px;
-  /* Um pouco mais grosso para ser fácil de usar */
+  display: none; /* Chrome, Safari, Opera */
 }
 
 .crypto-carousel::-webkit-scrollbar-track {

@@ -78,48 +78,68 @@ const hashSymbol = (symbol) =>
     .split('')
     .reduce((acc, char) => acc + char.charCodeAt(0), 0)
 
-const buildCoinValueResponse = (symbol) => {
+const buildCoinValueResponse = (symbol, urlParams) => {
   const normalized = symbol.toUpperCase()
   const baseValue = MOCK_COIN_BASE_VALUE[normalized] ?? 100
   const variationFactor = ((hashSymbol(normalized) % 17) - 8) * 0.0025
 
-  const registros = []
-  const totalPontos = 15
-  const agora = Date.now()
+  let registros = []
+  const agora = new Date()
 
-  for (let i = 0; i < totalPontos; i++) {
-    // Gera uma oscilação determinística e bonita
-    const oscilacao = Math.sin(i + hashSymbol(normalized)) * 0.015 + (variationFactor * (i / totalPontos))
-    const precoPonto = Number((baseValue * (1 + oscilacao)).toFixed(2))
-    const horaPonto = new Date(agora - (totalPontos - 1 - i) * 60 * 1000).toISOString()
+  // Gera 1 ano de mock com 3 itens por dia (para o gráfico não ficar vazio nos filtros de 7 dias)
+  for (let d = 365; d >= 0; d--) {
+    for (let i = 0; i < 3; i++) {
+      const msOffset = d * 24 * 60 * 60 * 1000 - i * 8 * 60 * 60 * 1000
+      const dataPonto = new Date(agora.getTime() - msOffset)
+      
+      const globalIndex = d * 3 + i
+      const oscilacao = Math.sin(globalIndex + hashSymbol(normalized)) * 0.05 + variationFactor
+      const precoPonto = Number((baseValue * (1 + oscilacao)).toFixed(2))
+      const dVar = oscilacao * 100
 
-    registros.push({
-      precoFechamento: precoPonto,
-      horaReferencia: horaPonto,
-      precoMaior: precoPonto * 1.01,
-      precoMedio: precoPonto * 0.995,
-      precoMenor: precoPonto * 0.98,
-      precoAbertura: precoPonto * 0.99,
-      precoAmplitude: precoPonto * 0.03,
-      precoPercentualVariacao: Number((oscilacao * 100).toFixed(2)),
-      precoRatioCompraVenda: 1.5,
-      precoTotalNegociada: precoPonto * 1000,
-      precoVolume: 150.5,
-      precoDeltaUltimoAbertura: precoPonto * 0.01,
-      precoVariacaoAbsoluta: precoPonto * 0.01,
-      precoCorpoCandle: precoPonto * 0.01,
-      precoSombraSuperior: precoPonto * 0.005,
-      precoSombraInferior: precoPonto * 0.005,
-      precoDirecao: oscilacao >= 0 ? 1 : -1,
-      precoVolatilidadePercentual: 0.5,
-      precoFinanceiroPorTrade: 450.0,
-      quantidadeNegociada: 150.5,
-      volumeComprado: 90.3,
-      volumeVendido: 60.2,
-      dominanciaCompradoraPercentual: 60.0,
-      dominanciaVendedoraPercentual: 40.0,
-      volumeDelta: 30.1,
-    })
+      registros.push({
+        precoFechamento: precoPonto,
+        horaReferencia: dataPonto.toISOString(),
+        precoMaior: precoPonto * 1.01,
+        precoMedio: precoPonto * 0.995,
+        precoMenor: precoPonto * 0.98,
+        precoAbertura: precoPonto * 0.99,
+        precoAmplitude: precoPonto * 0.03,
+        precoPercentualVariacao: Number(dVar.toFixed(2)),
+        precoRatioCompraVenda: 1.5,
+        precoTotalNegociada: precoPonto * 1000,
+        precoVolume: 150.5,
+        precoDeltaUltimoAbertura: precoPonto * 0.01,
+        precoVariacaoAbsoluta: precoPonto * 0.01,
+        precoCorpoCandle: precoPonto * 0.01,
+        precoSombraSuperior: precoPonto * 0.005,
+        precoSombraInferior: precoPonto * 0.005,
+        precoDirecao: dVar >= 0 ? 1 : -1,
+        precoVolatilidadePercentual: 0.5,
+        precoFinanceiroPorTrade: 450.0,
+        quantidadeNegociada: 150.5,
+        volumeComprado: 90.3,
+        volumeVendido: 60.2,
+        dominanciaCompradoraPercentual: 60.0,
+        dominanciaVendedoraPercentual: 40.0,
+        volumeDelta: 30.1,
+      })
+    }
+  }
+
+  // Filtragem
+  if (urlParams) {
+    const dataInicio = urlParams.get('dataInicio')
+    const dataFim = urlParams.get('dataFim')
+    
+    if (dataInicio) {
+      const inicio = new Date(dataInicio).getTime()
+      registros = registros.filter(r => new Date(r.horaReferencia).getTime() >= inicio)
+    }
+    if (dataFim) {
+      const fim = new Date(dataFim).getTime()
+      registros = registros.filter(r => new Date(r.horaReferencia).getTime() <= fim)
+    }
   }
 
   // Inverte para retornar em ordem decrescente conforme o padrão da API real
@@ -128,7 +148,7 @@ const buildCoinValueResponse = (symbol) => {
   return {
     mensagem: 'Operação realizada com sucesso',
     resultado: {
-      totalRegistros: totalPontos,
+      totalRegistros: registros.length,
       totalPaginas: 1,
       paginaAtual: 1,
       registros,
@@ -137,13 +157,27 @@ const buildCoinValueResponse = (symbol) => {
 }
 
 const buildSequenceResponse = () => {
-  const now = Date.now()
-  const points = [
-    { hour: 0, price: 68000, change: 0.008, type: 1 },
-    { hour: 1, price: 67650, change: -0.005, type: 2 },
-    { hour: 2, price: 68220, change: 0.0084, type: 1 },
-    { hour: 3, price: 68080, change: -0.0021, type: 0 },
-  ]
+  const points = []
+  const agora = new Date()
+
+  // Gera 1 ano de mock com 3 itens por dia
+  for (let d = 365; d >= 0; d--) {
+    for (let i = 0; i < 3; i++) {
+      const msOffset = d * 24 * 60 * 60 * 1000 - i * 8 * 60 * 60 * 1000
+      const dataPonto = new Date(agora.getTime() - msOffset)
+      const isWin = Math.random() > 0.5
+      
+      points.push({
+        idSequenciaRetorno: `00000000-0000-4000-a000-${Math.random().toString().substring(2,14)}`,
+        dataHora: dataPonto.toISOString(),
+        valorNegociado: 60000 + Math.random() * 10000,
+        variacaoPercentual: (Math.random() * 0.02) * (isWin ? 1 : -1),
+        tipo: isWin ? 1 : 2,
+      })
+    }
+  }
+
+  points.reverse()
 
   return {
     mensagem: 'Mock de sequência retornado com sucesso',
@@ -151,43 +185,51 @@ const buildSequenceResponse = () => {
       totalRegistros: points.length,
       totalPaginas: 1,
       paginaAtual: 1,
-      listaSequenciaRetorno: points.map((point, index) => ({
-        idSequenciaRetorno: `00000000-0000-4000-a000-00000000000${index + 1}`,
-        dataHora: new Date(now - point.hour * 60 * 60 * 1000).toISOString(),
-        valorNegociado: point.price,
-        variacaoPercentual: point.change,
-        tipo: point.type,
-      })),
+      listaSequenciaRetorno: points,
     },
   }
 }
 
-let mockPatrimonio = {
-  saldoTotalBRL: 154320.00,
-  saldoTotalUSD: 29670.00,
-  registros: [
-    {
-      idPatrimonioTB: "11111111-2222-3333-4444-555555555555",
-      idUsuarioTB: "b282e124-4dd8-4ccd-a9c6-5b6b0c324a50",
-      valorBRL: 120000.00,
-      valorUSD: 23070.00,
-      cotacaoUtilizada: 5.20,
-      tipoMovimentacao: "Aporte Inicial",
-      dataHora: "2026-05-10T12:00:00.000Z",
-      observacao: "Transferência inicial de capital."
-    },
-    {
-      idPatrimonioTB: "22222222-3333-4444-5555-666666666666",
-      idUsuarioTB: "b282e124-4dd8-4ccd-a9c6-5b6b0c324a50",
-      valorBRL: 34320.00,
-      valorUSD: 6600.00,
-      cotacaoUtilizada: 5.20,
-      tipoMovimentacao: "Aporte",
-      dataHora: "2026-05-25T14:30:00.000Z",
-      observacao: "Compra de BTC no dip."
+const generateMockPatrimonio = () => {
+  const registros = []
+  let saldoTotalBRL = 0
+  let saldoTotalUSD = 0
+  const agora = new Date()
+
+  for (let mesOffset = 11; mesOffset >= 0; mesOffset--) {
+    const numPontosMes = 2 + Math.floor(Math.random() * 2)
+    const dataMes = new Date(agora.getFullYear(), agora.getMonth() - mesOffset, 1)
+    
+    for (let i = 0; i < numPontosMes; i++) {
+      const dataPonto = new Date(dataMes.getFullYear(), dataMes.getMonth(), 5 + i * 10, 10 + i, 0, 0)
+      const valorBRL = 2000 + Math.random() * 8000
+      const cotacao = 5.0 + Math.random() * 0.5
+      const valorUSD = valorBRL / cotacao
+      
+      saldoTotalBRL += valorBRL
+      saldoTotalUSD += valorUSD
+      
+      registros.push({
+        idPatrimonioTB: crypto.randomUUID?.() || Math.random().toString(36).substring(2, 15),
+        idUsuarioTB: "b282e124-4dd8-4ccd-a9c6-5b6b0c324a50",
+        valorBRL: Number(valorBRL.toFixed(2)),
+        valorUSD: Number(valorUSD.toFixed(2)),
+        cotacaoUtilizada: Number(cotacao.toFixed(2)),
+        tipoMovimentacao: (mesOffset === 11 && i === 0) ? "Aporte Inicial" : "Aporte",
+        dataHora: dataPonto.toISOString(),
+        observacao: `Aporte automático mockado - Mês ${dataPonto.getMonth() + 1}/${dataPonto.getFullYear()}`
+      })
     }
-  ]
+  }
+
+  return {
+    saldoTotalBRL: Number(saldoTotalBRL.toFixed(2)),
+    saldoTotalUSD: Number(saldoTotalUSD.toFixed(2)),
+    registros: registros.reverse()
+  }
 }
+
+let mockPatrimonio = generateMockPatrimonio()
 
 let mockPlanoAtivoId = 1 // Minerador (Acesso a IA) por padrão
 
@@ -279,7 +321,8 @@ const mockHandlers = [
     response: (endpoint) => {
       const match = endpoint.match(/\/moeda\/([^/]+)\/valor/i)
       const symbol = match ? match[1] : 'BTC'
-      return buildCoinValueResponse(symbol)
+      const urlQuery = endpoint.includes('?') ? new URLSearchParams(endpoint.split('?')[1]) : null
+      return buildCoinValueResponse(symbol, urlQuery)
     },
   },
   {

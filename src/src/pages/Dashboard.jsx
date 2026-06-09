@@ -15,6 +15,7 @@ import Button from '@mui/material/Button'
 import useMediaQuery from '@mui/material/useMediaQuery'
 
 import { useAuth } from '../context/AuthContext'
+import { useDashboard } from '../context/DashboardContext'
 import useTranslation from '../hooks/useTranslation'
 import useChatHub from '../hooks/useChatHub'
 import useCoinPrices from '../hooks/useCoinPrices'
@@ -53,14 +54,17 @@ export default function Dashboard() {
   const { messages, enviarMensagem, clearMessages, isConnected } = useChatHub()
   const isMobile = useMediaQuery('(max-width:600px)')
 
-  // Filtros Globais da Tela
-  const [dataInicio, setDataInicio] = useState('')
-  const [dataFim, setDataFim] = useState('')
+  const {
+    dataInicio, setDataInicio,
+    dataFim, setDataFim,
+    resultadoFiltro, setResultadoFiltro,
+    intervalo, setIntervalo,
+    pagina, setPagina,
+    quantidade, setQuantidade,
+    moedaSelecionada, setMoedaSelecionada
+  } = useDashboard()
+
   const [moedasFiltro, setMoedasFiltro] = useState([]) 
-  const [resultadoFiltro, setResultadoFiltro] = useState('ALL')
-  const [intervalo, setIntervalo] = useState('1m')
-  const [pagina, setPagina] = useState(1)
-  const [quantidade, setQuantidade] = useState(20)
 
   // Estados Visuais Locais
   const [normalizacao, setNormalizacao] = useState('base100')
@@ -101,6 +105,7 @@ export default function Dashboard() {
         )
         if (match) {
           setMoedasFiltro([match.simbolo])
+          setMoedaSelecionada(match.simbolo)
           initialized = true
         }
       }
@@ -109,6 +114,7 @@ export default function Dashboard() {
         const btc = moedasCarousel.find(m => m.simbolo === 'BTC') || moedasCarousel[0]
         if (btc) {
           setMoedasFiltro([btc.simbolo])
+          setMoedaSelecionada(btc.simbolo)
           initialized = true
         }
       }
@@ -117,7 +123,7 @@ export default function Dashboard() {
     } catch (err) {
       console.error('Erro na inicialização:', err)
     }
-  }, [prefs, token, moedasCarousel])
+  }, [prefs, token, moedasCarousel, setMoedaSelecionada])
 
   // Hook customizado para carregar os dados
   const {
@@ -163,17 +169,33 @@ export default function Dashboard() {
   }
 
   const selecionarMoeda = (simbolo) => {
-    setMoedasFiltro(prev => prev.includes(simbolo) ? prev.filter(s => s !== simbolo) : [...prev, simbolo])
+    const isSelecionada = moedasFiltro.includes(simbolo)
+    const novasMoedas = isSelecionada ? moedasFiltro.filter(s => s !== simbolo) : [...moedasFiltro, simbolo]
+    setMoedasFiltro(novasMoedas)
+    setMoedaSelecionada(novasMoedas.length === 1 ? novasMoedas[0] : null)
     setPagina(1)
-    setDataInicio('')
-    setDataFim('')
-    setIntervalo('1m')
-    setResultadoFiltro('ALL')
   }
 
   // Filtragem local
   const historicoFiltrado = useMemo(() => {
-    let registros = historicoMoeda?.registros || []
+    let registros = []
+
+    if (moedasFiltro.length === 1) {
+      registros = (historicoMoeda?.registros || []).map(r => ({ ...r, sigla: moedasFiltro[0] }))
+    } else if (moedasFiltro.length > 1) {
+      moedasFiltro.forEach(sigla => {
+        const hist = historicosPorMoeda[sigla] || []
+        hist.forEach(r => {
+          registros.push({ ...r, sigla })
+        })
+      })
+      registros.sort((a, b) => {
+        const tA = new Date(a.horaReferencia ?? a.HoraReferencia ?? a.dataHora ?? a.DataHora).getTime()
+        const tB = new Date(b.horaReferencia ?? b.HoraReferencia ?? b.dataHora ?? b.DataHora).getTime()
+        return tB - tA
+      })
+    }
+
     if (dataInicio || dataFim) {
       const dInicio = dataInicio ? new Date(dataInicio).getTime() : null
       const dFim = dataFim ? new Date(dataFim.includes('T') ? dataFim : `${dataFim}T23:59:59`).getTime() : null
@@ -191,7 +213,7 @@ export default function Dashboard() {
       })
     }
     return registros
-  }, [historicoMoeda, dataInicio, dataFim, resultadoFiltro])
+  }, [historicoMoeda, historicosPorMoeda, moedasFiltro, dataInicio, dataFim, resultadoFiltro])
 
   const trendAtual = useMemo(() => {
     const sigla = moedasFiltro[0]
@@ -260,14 +282,7 @@ export default function Dashboard() {
           isMobile={isMobile}
         />
 
-        <DashboardFilters 
-          dataInicio={dataInicio} setDataInicio={setDataInicio}
-          dataFim={dataFim} setDataFim={setDataFim}
-          resultadoFiltro={resultadoFiltro} setResultadoFiltro={setResultadoFiltro}
-          intervalo={intervalo} setIntervalo={setIntervalo}
-          setPagina={setPagina} setQuantidade={setQuantidade}
-          t={t}
-        />
+        <DashboardFilters t={t} />
 
         <DashboardCharts 
           multiMoeda={chartConfig.multiMoeda}
