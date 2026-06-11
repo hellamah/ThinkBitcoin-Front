@@ -18,3 +18,13 @@ export const FilterInterval = Object.freeze({
   M1: '1m',
   CUSTOM: 'custom',
 });
+
+export const MapRegion = Object.freeze({
+  WORLD: 'world',
+  AMERICAS: '019',
+  EUROPE: '150',
+  ASIA: '142',
+  AFRICA: '002',
+  OCEANIA: '009',
+});
+
