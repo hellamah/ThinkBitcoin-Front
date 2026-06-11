@@ -430,21 +430,32 @@ const mockHandlers = [
   {
     method: 'GET',
     match: (endpoint) => !!endpoint.match(/^\/ThinkBitcoin\/variavel-externa\/trend\/heatmap(\?.*)?$/i),
-    response: () => ({
-      mensagem: 'Heatmap mock retornado com sucesso',
-      resultado: {
-        totalRegistros: 5,
-        totalPaginas: 1,
-        paginaAtual: 1,
-        registros: [
-          { geoTop1Code: 'US', frequenciaLideranca: 85 },
-          { geoTop1Code: 'BR', frequenciaLideranca: 70 },
-          { geoTop1Code: 'CH', frequenciaLideranca: 95 },
-          { geoTop1Code: 'DE', frequenciaLideranca: 60 },
-          { geoTop1Code: 'JP', frequenciaLideranca: 75 }
-        ]
+    response: (endpoint) => {
+      const urlQuery = endpoint.includes('?') ? new URLSearchParams(endpoint.split('?')[1]) : null
+      const idMoedaStr = urlQuery?.get('idMoeda') || '1'
+      let idNum = parseInt(idMoedaStr)
+      if (isNaN(idNum)) {
+        idNum = idMoedaStr.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
       }
-    }),
+      
+      const factor = (idNum * 17) % 30
+
+      return {
+        mensagem: 'Heatmap mock retornado com sucesso',
+        resultado: {
+          totalRegistros: 5,
+          totalPaginas: 1,
+          paginaAtual: 1,
+          registros: [
+            { geoTop1Code: 'US', frequenciaLideranca: Math.max(30, 85 - factor) },
+            { geoTop1Code: 'BR', frequenciaLideranca: Math.max(30, (70 + factor) % 100) },
+            { geoTop1Code: 'CH', frequenciaLideranca: Math.max(30, (95 - factor * 2 + 100) % 100) },
+            { geoTop1Code: 'DE', frequenciaLideranca: Math.max(30, 60 + factor) },
+            { geoTop1Code: 'JP', frequenciaLideranca: Math.max(30, (75 + factor * 3) % 100) }
+          ]
+        }
+      }
+    },
   },
   {
     method: 'GET',

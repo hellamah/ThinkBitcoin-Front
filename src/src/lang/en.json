@@ -1,6 +1,7 @@
 {
   "homeTitle": "My Portfolio",
   "topCoins": "Top 5 coins of the moment",
+  "selectAssetHeatmap": "Select Asset for Geopolitical Analysis",
   "tradedValue": "Traded Value",
   "lastValue": "Last value",
   "percentVariation": "Percent Variation",

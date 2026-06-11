@@ -42,14 +42,18 @@ const getCountryName = (code) => {
 
 export default function GeoHeatmapView() {
   const { token, user: usuario, prefs } = useAuth()
-  const { refreshTrigger } = useDashboard()
+  const { refreshTrigger, moedaSelecionada, setMoedaSelecionada } = useDashboard()
   const { t } = useTranslation()
   const moedasCarousel = useCoinPrices()
-  const [moedasFiltro, setMoedasFiltro] = useState([])
   
   const [heatmapData, setHeatmapData] = useState(null)
   const [loading, setLoading] = useState(false)
   const [erro, setErro] = useState('')
+
+  // moedasFiltro derivada do estado global moedaSelecionada
+  const moedasFiltro = useMemo(() => {
+    return moedaSelecionada ? [moedaSelecionada] : []
+  }, [moedaSelecionada])
 
   const topRegioes = useMemo(() => {
     if (!heatmapData || heatmapData.length <= 1) return []
@@ -60,7 +64,7 @@ export default function GeoHeatmapView() {
   }, [heatmapData])
 
   useEffect(() => {
-    if (!token || !moedasCarousel?.length || moedasFiltro.length > 0) return
+    if (!token || !moedasCarousel?.length || moedaSelecionada) return
 
     const moedaProp = prefs?.siglaMoedaPreferida || prefs?.moedaPreferida
     let initialized = false
@@ -69,25 +73,24 @@ export default function GeoHeatmapView() {
         (m.simbolo && String(m.simbolo).toUpperCase() === String(moedaProp).toUpperCase().trim())
       )
       if (match) {
-        setMoedasFiltro([match.simbolo])
+        setMoedaSelecionada(match.simbolo)
         initialized = true
       }
     }
 
     if (!initialized) {
       const btc = moedasCarousel.find(m => m.simbolo === 'BTC') || moedasCarousel[0]
-      if (btc) setMoedasFiltro([btc.simbolo])
+      if (btc) setMoedaSelecionada(btc.simbolo)
     }
-  }, [prefs, token, moedasCarousel, moedasFiltro])
+  }, [prefs, token, moedasCarousel, moedaSelecionada, setMoedaSelecionada])
 
   const carregarHeatmap = async () => {
-    if (!token || moedasFiltro.length === 0) return
+    if (!token || !moedaSelecionada) return
 
     setLoading(true)
     setErro('')
     try {
-      const sigla = moedasFiltro[0]
-      const moeda = moedasCarousel.find(m => m.simbolo === sigla)
+      const moeda = moedasCarousel.find(m => m.simbolo === moedaSelecionada)
       const idMoedaParam = moeda && moeda.id ? `?idMoeda=${moeda.id}` : ''
 
       const url = `${VariavelExternaEndpoint.TREND_HEATMAP}${idMoedaParam}`
@@ -122,18 +125,17 @@ export default function GeoHeatmapView() {
 
   useEffect(() => {
     carregarHeatmap()
-  }, [moedasFiltro, token, refreshTrigger])
+  }, [moedaSelecionada, token, refreshTrigger])
 
   const selecionarMoeda = (simbolo) => {
-    // Permite apenas uma moeda selecionada para o mapa
-    setMoedasFiltro([simbolo])
+    setMoedaSelecionada(simbolo)
   }
 
   if (!token) return <Box sx={{ p: 5 }}>Redirecting to login...</Box>
 
   return (
     <div className="dashboard-container">
-      <DashboardHeader t={t} prefs={prefs} usuario={usuario} />
+      <DashboardHeader t={t} prefs={prefs} usuario={usuario} title={t('nav.heatmap') || 'Geopolítica'} />
 
       <ErrorMessage message={erro} onClose={() => setErro('')} />
 
@@ -144,6 +146,7 @@ export default function GeoHeatmapView() {
         handleDebateTrigger={() => {}}
         t={t}
         isMobile={false}
+        isHeatmap={true}
       />
 
       <section className="panel" style={{ marginTop: '20px', minHeight: '500px', backdropFilter: 'blur(16px)', background: 'rgba(20, 20, 20, 0.45)' }}>
