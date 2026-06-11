@@ -11,6 +11,7 @@ import DashboardHeader from '../components/dashboard/DashboardHeader'
 import ErrorMessage from '../components/ErrorMessage'
 import CoinCarousel from '../components/dashboard/CoinCarousel'
 import { useAuth } from '../context/AuthContext'
+import { useDashboard } from '../context/DashboardContext'
 import useTranslation from '../hooks/useTranslation'
 import useCoinPrices from '../hooks/useCoinPrices'
 import { apiRequest, VariavelExternaEndpoint } from '../utils/apiClient'
@@ -41,6 +42,7 @@ const getCountryName = (code) => {
 
 export default function GeoHeatmapView() {
   const { token, user: usuario, prefs } = useAuth()
+  const { refreshTrigger } = useDashboard()
   const { t } = useTranslation()
   const moedasCarousel = useCoinPrices()
   const [moedasFiltro, setMoedasFiltro] = useState([])
@@ -104,7 +106,7 @@ export default function GeoHeatmapView() {
         rawData.forEach(item => {
            const countryCode = item.geoTop1Code || item.GeoTop1Code
            chartData.push([
-             getCountryName(countryCode),
+             String(countryCode).toUpperCase(),
              item.frequenciaLideranca || item.FrequenciaLideranca || item.mediaIntensidade || item.MediaIntensidade || 0
            ])
         })
@@ -120,7 +122,7 @@ export default function GeoHeatmapView() {
 
   useEffect(() => {
     carregarHeatmap()
-  }, [moedasFiltro, token])
+  }, [moedasFiltro, token, refreshTrigger])
 
   const selecionarMoeda = (simbolo) => {
     // Permite apenas uma moeda selecionada para o mapa

@@ -145,6 +145,39 @@ const buildCoinValueResponse = (symbol, urlParams) => {
   // Inverte para retornar em ordem decrescente conforme o padrão da API real
   registros.reverse()
 
+  let page = 1
+  let size = 15
+  let paginar = false
+
+  if (urlParams) {
+    if (urlParams.has('page') || urlParams.has('pagina')) {
+      const p = parseInt(urlParams.get('page') || urlParams.get('pagina'))
+      if (!isNaN(p) && p > 0) page = p
+      paginar = true
+    }
+    if (urlParams.has('size') || urlParams.has('quantidade')) {
+      const s = parseInt(urlParams.get('size') || urlParams.get('quantidade'))
+      if (!isNaN(s) && s > 0) size = s
+      paginar = true
+    }
+  }
+
+  if (paginar) {
+    const start = (page - 1) * size
+    const end = start + size
+    const totalRegistros = registros.length
+    const paginados = registros.slice(start, end)
+    return {
+      mensagem: 'Operação realizada com sucesso',
+      resultado: {
+        totalRegistros,
+        totalPaginas: Math.ceil(totalRegistros / size),
+        paginaAtual: page,
+        registros: paginados,
+      },
+    }
+  }
+
   return {
     mensagem: 'Operação realizada com sucesso',
     resultado: {

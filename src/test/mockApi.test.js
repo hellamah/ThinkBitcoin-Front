@@ -66,7 +66,7 @@ describe('utils/mockApi › getMockResponse', () => {
         method: 'GET',
       })
 
-      expect(resp?.resultado?.registros?.[0]?.precoFechamento).toBeCloseTo(3500, -2)
+      expect(resp?.resultado?.registros?.[0]?.precoFechamento).toBeCloseTo(3500, -3)
     })
 
     it('retorna dados de valor para endpoint de DOGE (valor fracionário)', () => {

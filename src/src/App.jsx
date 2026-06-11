@@ -37,7 +37,9 @@ function App() {
           path="/heatmap"
           element={
             <ProtectedRoute>
-              <GeoHeatmapView />
+              <DashboardProvider>
+                <GeoHeatmapView />
+              </DashboardProvider>
             </ProtectedRoute>
           }
         />
