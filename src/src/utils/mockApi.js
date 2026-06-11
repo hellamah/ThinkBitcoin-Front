@@ -421,11 +421,10 @@ const mockHandlers = [
             rankNoMinuto: 6,
             geoTop1Code: 'CH',
             geoTop1Value: 100,
-            horaReferencia: new Date().toISOString(),
           }
         ]
       }
-    }),
+    })
   },
   {
     method: 'GET',
@@ -433,29 +432,98 @@ const mockHandlers = [
     response: (endpoint) => {
       const urlQuery = endpoint.includes('?') ? new URLSearchParams(endpoint.split('?')[1]) : null
       const idMoedaStr = urlQuery?.get('idMoeda') || '1'
+      const intervalo = urlQuery?.get('intervalo') || '24h'
       let idNum = parseInt(idMoedaStr)
       if (isNaN(idNum)) {
         idNum = idMoedaStr.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
       }
       
       const factor = (idNum * 17) % 30
+      
+      let registros = []
+
+      if (intervalo === '1h') {
+        // 1H: Concentração na Europa, Ásia, Oceania (Sem África, Sem Canadá/Brasil, apenas US para Américas)
+        // Isso vai desabilitar a África, mas manter as outras regiões ativas no zoom geográfico
+        registros = [
+          { geoTop1Code: 'CH', frequenciaLideranca: Math.round(90 - (factor % 5)) },
+          { geoTop1Code: 'DE', frequenciaLideranca: Math.round(85 - (factor % 3)) },
+          { geoTop1Code: 'JP', frequenciaLideranca: Math.round(80 - (factor % 4)) },
+          { geoTop1Code: 'US', frequenciaLideranca: Math.round(75 - (factor % 3)) },
+          { geoTop1Code: 'GB', frequenciaLideranca: Math.round(70 - (factor % 2)) },
+          { geoTop1Code: 'AU', frequenciaLideranca: Math.round(65 - (factor % 3)) },
+          { geoTop1Code: 'CN', frequenciaLideranca: Math.round(60 - (factor % 2)) },
+          { geoTop1Code: 'FR', frequenciaLideranca: Math.round(55 - (factor % 4)) },
+          { geoTop1Code: 'IT', frequenciaLideranca: Math.round(50 - (factor % 3)) },
+          { geoTop1Code: 'ES', frequenciaLideranca: Math.round(45 - (factor % 2)) },
+          { geoTop1Code: 'NL', frequenciaLideranca: Math.round(40 - (factor % 3)) },
+          { geoTop1Code: 'KR', frequenciaLideranca: Math.round(35 - (factor % 4)) },
+          { geoTop1Code: 'CA', frequenciaLideranca: Math.round(30 - (factor % 3)) },
+          { geoTop1Code: 'SG', frequenciaLideranca: Math.round(25 - (factor % 2)) },
+          { geoTop1Code: 'IN', frequenciaLideranca: Math.round(20 - (factor % 5)) }
+        ]
+      } else if (intervalo === '1m') {
+        // 1M: Longo prazo com amostragem ampla, ativando todas as regiões
+        registros = [
+          { geoTop1Code: 'US', frequenciaLideranca: Math.round(98 - (factor % 3)) },
+          { geoTop1Code: 'BR', frequenciaLideranca: Math.round(94 - (factor % 4)) },
+          { geoTop1Code: 'CA', frequenciaLideranca: Math.round(90 - (factor % 5)) },
+          { geoTop1Code: 'CH', frequenciaLideranca: Math.round(86 - (factor % 5)) },
+          { geoTop1Code: 'DE', frequenciaLideranca: Math.round(82 - (factor % 3)) },
+          { geoTop1Code: 'GB', frequenciaLideranca: Math.round(78 - (factor % 4)) },
+          { geoTop1Code: 'FR', frequenciaLideranca: Math.round(74 - (factor % 2)) },
+          { geoTop1Code: 'JP', frequenciaLideranca: Math.round(70 - (factor % 4)) },
+          { geoTop1Code: 'CN', frequenciaLideranca: Math.round(66 - (factor % 2)) },
+          { geoTop1Code: 'AU', frequenciaLideranca: Math.round(62 - (factor % 3)) },
+          { geoTop1Code: 'ZA', frequenciaLideranca: Math.round(58 - (factor % 2)) },
+          { geoTop1Code: 'MX', frequenciaLideranca: Math.round(54 - (factor % 4)) },
+          { geoTop1Code: 'AR', frequenciaLideranca: Math.round(50 - (factor % 3)) },
+          { geoTop1Code: 'CO', frequenciaLideranca: Math.round(46 - (factor % 2)) },
+          { geoTop1Code: 'IT', frequenciaLideranca: Math.round(42 - (factor % 5)) },
+          { geoTop1Code: 'ES', frequenciaLideranca: Math.round(38 - (factor % 3)) },
+          { geoTop1Code: 'RU', frequenciaLideranca: Math.round(34 - (factor % 4)) },
+          { geoTop1Code: 'IN', frequenciaLideranca: Math.round(30 - (factor % 3)) },
+          { geoTop1Code: 'KR', frequenciaLideranca: Math.round(26 - (factor % 2)) },
+          { geoTop1Code: 'SG', frequenciaLideranca: Math.round(22 - (factor % 4)) },
+          { geoTop1Code: 'NZ', frequenciaLideranca: Math.round(18 - (factor % 3)) },
+          { geoTop1Code: 'NG', frequenciaLideranca: Math.round(14 - (factor % 2)) },
+          { geoTop1Code: 'EG', frequenciaLideranca: Math.round(10 - (factor % 4)) },
+          { geoTop1Code: 'MA', frequenciaLideranca: Math.round(8 - (factor % 3)) },
+          { geoTop1Code: 'KE', frequenciaLideranca: Math.round(5 - (factor % 2)) }
+        ]
+      } else {
+        // 24H (1D): Médio prazo com amostragem balanceada, cobrindo todas as regiões
+        registros = [
+          { geoTop1Code: 'US', frequenciaLideranca: Math.round(88 - (factor % 5)) },
+          { geoTop1Code: 'BR', frequenciaLideranca: Math.round(82 - ((factor + 3) % 7)) },
+          { geoTop1Code: 'CH', frequenciaLideranca: Math.round(76 - ((factor + 1) % 6)) },
+          { geoTop1Code: 'DE', frequenciaLideranca: Math.round(70 - (factor % 4)) },
+          { geoTop1Code: 'JP', frequenciaLideranca: Math.round(64 - ((factor + 4) % 5)) },
+          { geoTop1Code: 'AU', frequenciaLideranca: Math.round(58 - (factor % 3)) },
+          { geoTop1Code: 'ZA', frequenciaLideranca: Math.round(52 - (factor % 2)) },
+          { geoTop1Code: 'CA', frequenciaLideranca: Math.round(46 - (factor % 4)) },
+          { geoTop1Code: 'GB', frequenciaLideranca: Math.round(40 - (factor % 3)) },
+          { geoTop1Code: 'AR', frequenciaLideranca: Math.round(35 - (factor % 2)) },
+          { geoTop1Code: 'FR', frequenciaLideranca: Math.round(30 - (factor % 4)) },
+          { geoTop1Code: 'IT', frequenciaLideranca: Math.round(25 - (factor % 3)) },
+          { geoTop1Code: 'IN', frequenciaLideranca: Math.round(20 - (factor % 2)) },
+          { geoTop1Code: 'NG', frequenciaLideranca: Math.round(16 - (factor % 3)) },
+          { geoTop1Code: 'EG', frequenciaLideranca: Math.round(12 - (factor % 2)) },
+          { geoTop1Code: 'NZ', frequenciaLideranca: Math.round(8 - (factor % 3)) },
+          { geoTop1Code: 'KR', frequenciaLideranca: Math.round(5 - (factor % 2)) }
+        ]
+      }
 
       return {
         mensagem: 'Heatmap mock retornado com sucesso',
         resultado: {
-          totalRegistros: 5,
+          totalRegistros: registros.length,
           totalPaginas: 1,
           paginaAtual: 1,
-          registros: [
-            { geoTop1Code: 'US', frequenciaLideranca: Math.max(30, 85 - factor) },
-            { geoTop1Code: 'BR', frequenciaLideranca: Math.max(30, (70 + factor) % 100) },
-            { geoTop1Code: 'CH', frequenciaLideranca: Math.max(30, (95 - factor * 2 + 100) % 100) },
-            { geoTop1Code: 'DE', frequenciaLideranca: Math.max(30, 60 + factor) },
-            { geoTop1Code: 'JP', frequenciaLideranca: Math.max(30, (75 + factor * 3) % 100) }
-          ]
+          registros
         }
       }
-    },
+    }
   },
   {
     method: 'GET',

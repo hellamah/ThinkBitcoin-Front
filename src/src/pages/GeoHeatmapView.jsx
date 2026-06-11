@@ -40,6 +40,17 @@ const getCountryName = (code) => {
     SG: 'Singapura',
     IT: 'Itália',
     ES: 'Espanha',
+    ZA: 'África do Sul',
+    NG: 'Nigéria',
+    EG: 'Egito',
+    KE: 'Quênia',
+    GH: 'Gana',
+    MA: 'Marrocos',
+    NZ: 'Nova Zelândia',
+    KR: 'Coreia do Sul',
+    MX: 'México',
+    AR: 'Argentina',
+    CO: 'Colômbia',
   }
   return countries[String(code).toUpperCase()] || code
 }
@@ -57,6 +68,8 @@ export default function GeoHeatmapView() {
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200)
   const [paisSelecionado, setPaisSelecionado] = useState(null)
   const [regionSelecionada, setRegionSelecionada] = useState(MapRegion.WORLD)
+  const [intervaloMapa, setIntervaloMapa] = useState('24h')
+
 
   // Otimizado: Resize handler com debounce de 150ms para evitar gargalos com renderização do SVG
   useEffect(() => {
@@ -88,13 +101,31 @@ export default function GeoHeatmapView() {
   const topRegioes = useMemo(() => {
     if (!heatmapData || heatmapData.length <= 1) return []
     // Ignora o cabeçalho do chartData e mapeia, desempacotando objeto do país se houver
-    return heatmapData.slice(1)
+    const items = heatmapData.slice(1)
       .map(([countryCell, val]) => {
         const country = typeof countryCell === 'object' ? countryCell.v : countryCell
         return { country, val: Number(val) }
       })
       .sort((a, b) => b.val - a.val)
       .slice(0, 5)
+
+    const totalSum = items.reduce((acc, curr) => acc + curr.val, 0)
+    if (totalSum === 0) return items.map(item => ({ ...item, displayVal: 0 }))
+
+    // Calcula a participação relativa de cada país para que a soma feche em 100% no painel
+    let calculatedItems = items.map(item => ({
+      ...item,
+      displayVal: Math.round((item.val / totalSum) * 100)
+    }))
+
+    // Corrige pequenas variações de arredondamento matemático para somar exatamente 100%
+    const currentSum = calculatedItems.reduce((acc, curr) => acc + curr.displayVal, 0)
+    const diff = 100 - currentSum
+    if (diff !== 0 && calculatedItems.length > 0) {
+      calculatedItems[0].displayVal += diff
+    }
+
+    return calculatedItems
   }, [heatmapData])
 
   // Filtra as moedas do carrossel baseado no país selecionado
@@ -109,6 +140,21 @@ export default function GeoHeatmapView() {
     }
     return filtered
   }, [paisSelecionado, moedasCarousel, moedaSelecionada])
+
+  // Identifica dinamicamente quais regiões têm dados presentes para habilitar/desabilitar botões de zoom
+  const activeRegions = useMemo(() => {
+    const active = new Set([MapRegion.WORLD]) // Mundo está sempre disponível
+    if (heatmapData && heatmapData.length > 1) {
+      heatmapData.slice(1).forEach(([countryCell]) => {
+        const countryCode = typeof countryCell === 'object' ? countryCell.v : countryCell
+        const region = getRegionForCountry(countryCode)
+        if (region) {
+          active.add(region)
+        }
+      })
+    }
+    return active
+  }, [heatmapData])
 
   useEffect(() => {
     if (!token || !moedasCarousel?.length || moedaSelecionada) return
@@ -139,8 +185,8 @@ export default function GeoHeatmapView() {
     try {
       const moeda = moedasCarousel.find(m => m.simbolo === moedaSelecionada)
       const idMoedaParam = moeda && moeda.id ? `?idMoeda=${moeda.id}` : ''
-
-      const url = `${VariavelExternaEndpoint.TREND_HEATMAP}${idMoedaParam}`
+      const sep = idMoedaParam ? '&' : '?'
+      const url = `${VariavelExternaEndpoint.TREND_HEATMAP}${idMoedaParam}${sep}intervalo=${intervaloMapa}`
       const response = await apiRequest(url, { headers: { Authorization: `Bearer ${token}` } })
 
       let rawData = []
@@ -150,7 +196,29 @@ export default function GeoHeatmapView() {
         rawData = response
       }
 
-      // Converte para o formato do Google Charts com suporte a HTML Tooltips
+      // Calcula as participações relativas proporcionais das top 5 regiões para o Tooltip
+      const top5List = rawData.map(item => {
+        const countryCode = String(item.geoTop1Code || item.GeoTop1Code).toUpperCase()
+        const val = Number(item.frequenciaLideranca || item.FrequenciaLideranca || item.mediaIntensidade || item.MediaIntensidade || 0)
+        return { countryCode, val }
+      }).sort((a, b) => b.val - a.val).slice(0, 5)
+
+      const totalSum = top5List.reduce((acc, curr) => acc + curr.val, 0)
+      const sharesMap = {}
+      if (totalSum > 0) {
+        let sumShares = 0
+        top5List.forEach(item => {
+          const share = Math.round((item.val / totalSum) * 100)
+          sharesMap[item.countryCode] = share
+          sumShares += share
+        })
+        const diff = 100 - sumShares
+        if (diff !== 0 && top5List.length > 0) {
+          sharesMap[top5List[0].countryCode] += diff
+        }
+      }
+
+      // Converte para o formato do Google Charts com suporte a HTML Tooltips contendo as porcentagens normalizadas
       const chartData = [
         [
           "Country", 
@@ -162,10 +230,12 @@ export default function GeoHeatmapView() {
         rawData.forEach(item => {
            const countryCode = String(item.geoTop1Code || item.GeoTop1Code).toUpperCase()
            const val = item.frequenciaLideranca || item.FrequenciaLideranca || item.mediaIntensidade || item.MediaIntensidade || 0
-           const tooltipHtml = formatTooltipData(getCountryName(countryCode), moedaSelecionada, val)
+           const normalizedPercent = sharesMap[countryCode] || 0
+           
+           const tooltipHtml = formatTooltipData(getCountryName(countryCode), moedaSelecionada, normalizedPercent)
            chartData.push([
              { v: countryCode, f: '' }, // Habilita o valor formatado vazio para omitir o cabeçalho padrão (ex: "US")
-             val,
+             val, // Mantém valor bruto para escala de coloração coroplética no mapa
              tooltipHtml
            ])
         })
@@ -181,7 +251,7 @@ export default function GeoHeatmapView() {
 
   useEffect(() => {
     carregarHeatmap()
-  }, [moedaSelecionada, token, refreshTrigger])
+  }, [moedaSelecionada, token, refreshTrigger, intervaloMapa])
 
   const selecionarMoeda = (simbolo) => {
     setMoedaSelecionada(simbolo)
@@ -261,13 +331,33 @@ export default function GeoHeatmapView() {
       />
 
       <section className="panel" style={{ marginTop: '20px', minHeight: '550px', backdropFilter: 'blur(16px)', background: 'rgba(20, 20, 20, 0.45)' }}>
-        <Typography variant="h4" sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1.5, fontFamily: 'Outfit, sans-serif', fontWeight: 800, color: 'var(--color-primary)' }}>
-          <MdPublic /> {t('globalHotspot') || 'Geopolítica de Mercado'}
-        </Typography>
-        
-        <Typography variant="body1" sx={{ opacity: 0.7, mb: 4, fontSize: '0.95rem' }}>
-          Mapeamento global do interesse de busca pelo ativo, destacando as regiões que atualmente lideram a narrativa de mercado.
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 4 }}>
+          <Box>
+            <Typography variant="h4" sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1.5, fontFamily: 'Outfit, sans-serif', fontWeight: 800, color: 'var(--color-primary)' }}>
+              <MdPublic /> {t('globalHotspot') || 'Geopolítica de Mercado'}
+            </Typography>
+            <Typography variant="body1" sx={{ opacity: 0.7, fontSize: '0.95rem' }}>
+              Mapeamento global do interesse de busca pelo ativo, destacando as regiões que atualmente lideram a narrativa de mercado.
+            </Typography>
+          </Box>
+          <Box sx={{ flexShrink: 0 }}>
+            <div className="interval-selector-mini">
+              {[
+                { label: '1H', value: '1h' },
+                { label: '1D', value: '24h' },
+                { label: '1M', value: '1m' }
+              ].map((opt) => (
+                <button
+                  key={opt.value}
+                  className={`interval-btn-mini ${intervaloMapa === opt.value ? 'active' : ''}`}
+                  onClick={() => setIntervaloMapa(opt.value)}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </Box>
+        </Box>
 
         {/* Banner Informativo de Filtro por País */}
         {paisSelecionado && (
@@ -316,6 +406,7 @@ export default function GeoHeatmapView() {
           </Typography>
           {Object.entries(MapRegion).map(([key, value]) => {
             const isSelected = regionSelecionada === value
+            const isActive = activeRegions.has(value)
             const label = {
               WORLD: 'Mundo',
               AMERICAS: 'Américas',
@@ -329,6 +420,7 @@ export default function GeoHeatmapView() {
               <Box
                 key={key}
                 onClick={() => {
+                  if (!isActive) return
                   setRegionSelecionada(value)
                   // Se mudarmos a região manualmente, limpa o filtro de país caso ele não pertença à nova região
                   if (paisSelecionado) {
@@ -344,19 +436,20 @@ export default function GeoHeatmapView() {
                   borderRadius: '20px',
                   fontSize: '0.78rem',
                   fontWeight: 600,
-                  cursor: 'pointer',
+                  cursor: isActive ? 'pointer' : 'not-allowed',
                   fontFamily: 'Outfit, sans-serif',
                   background: isSelected ? 'var(--color-primary)' : 'rgba(255, 255, 255, 0.04)',
-                  color: isSelected ? '#000' : 'rgba(255, 255, 255, 0.7)',
+                  color: isSelected ? '#000' : (isActive ? 'rgba(255, 255, 255, 0.7)' : 'rgba(255, 255, 255, 0.2)'),
                   border: '1px solid',
-                  borderColor: isSelected ? 'var(--color-primary)' : 'rgba(255, 255, 255, 0.08)',
+                  borderColor: isSelected ? 'var(--color-primary)' : (isActive ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.02)'),
+                  opacity: isActive ? 1 : 0.45,
                   boxShadow: isSelected ? '0 0 12px rgba(255, 215, 0, 0.25)' : 'none',
                   transition: 'all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1)',
-                  '&:hover': {
+                  '&:hover': isActive ? {
                     background: isSelected ? 'var(--color-primary)' : 'rgba(255, 255, 255, 0.08)',
                     borderColor: isSelected ? 'var(--color-primary)' : 'rgba(255, 215, 0, 0.3)',
                     color: isSelected ? '#000' : '#fff'
-                  }
+                  } : {}
                 }}
               >
                 {label}
@@ -395,7 +488,7 @@ export default function GeoHeatmapView() {
                 }}>
                   <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: chartHeight }}>
                     <Chart
-                      key={`${windowWidth}-${regionSelecionada}`}
+                      key={`${windowWidth}-${regionSelecionada}-${moedaSelecionada}-${intervaloMapa}`}
                       chartType="GeoChart"
                       width="100%"
                       height={chartHeight}
@@ -480,12 +573,12 @@ export default function GeoHeatmapView() {
                               </Typography>
                             </Box>
                             <Typography variant="body2" sx={{ fontWeight: 700, color: 'var(--color-primary)', fontSize: '0.88rem', fontFamily: 'Share Tech Mono, monospace' }}>
-                              {reg.val}%
+                              {reg.displayVal}%
                             </Typography>
                           </Box>
                           <LinearProgress 
                             variant="determinate" 
-                            value={Math.min(reg.val, 100)} 
+                            value={reg.displayVal} 
                             sx={{ 
                               height: '5px', 
                               borderRadius: '3px',
