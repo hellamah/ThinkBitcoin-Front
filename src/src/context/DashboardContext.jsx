@@ -16,7 +16,11 @@ export function DashboardProvider({ children }) {
   const [quantidade, setQuantidade] = useState(100);
 
   // Seleção de Moeda para o Carrossel e Expandir Gráfico
-  const [moedaSelecionada, setMoedaSelecionada] = useState(null); // null = global, string = simbolo
+  const [moedaSelecionada, setMoedaSelecionada] = useState(() => {
+    if (typeof window === 'undefined') return null
+    const params = new URLSearchParams(window.location.search)
+    return params.get('moeda') || null
+  })
 
   // Trigger para forçar atualização (Refresh global)
   const [refreshTrigger, setRefreshTrigger] = useState(0);

@@ -1,5 +1,6 @@
 import { API_URL } from '../api'
 import { getMockResponse, USE_MOCK_API } from './mockApi'
+import { getCache, setCache } from './cache'
 
 export const HttpMethod = Object.freeze({
   GET: 'GET',
@@ -64,14 +65,36 @@ const createRequestInit = (method, headers, body) => {
 
 export const apiRequest = async (
   endpoint,
-  { method = HttpMethod.GET, headers = {}, body, signal } = {}
+  {
+    method = HttpMethod.GET,
+    headers = {},
+    body,
+    signal,
+    useCache = false,
+    ttl,
+    cacheKey,
+    forceRefresh = false
+  } = {}
 ) => {
-  if (USE_MOCK_API) {
-    const mockResponse = getMockResponse({ endpoint, method, body })
-    if (mockResponse) return mockResponse
+  const isGet = method === HttpMethod.GET
+  const key = cacheKey || `api_cache_${endpoint}`
+
+  if (useCache && isGet && !forceRefresh) {
+    const cachedData = getCache(key)
+    if (cachedData !== null) {
+      return cachedData
+    }
   }
 
-
+  if (USE_MOCK_API) {
+    const mockResponse = getMockResponse({ endpoint, method, body })
+    if (mockResponse) {
+      if (useCache && isGet) {
+        setCache(key, mockResponse, ttl)
+      }
+      return mockResponse
+    }
+  }
 
   const response = await fetch(
     buildUrl(endpoint),
@@ -89,7 +112,12 @@ export const apiRequest = async (
 
   if (response.status === 204) return null
 
-  return response.json()
+  const data = await response.json()
+  if (useCache && isGet) {
+    setCache(key, data, ttl)
+  }
+
+  return data
 }
 
 export const AuthenticationEndpoint = ApiEndpoint.AUTHENTICATION

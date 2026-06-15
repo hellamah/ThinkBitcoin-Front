@@ -5,7 +5,12 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App.jsx'
 import { AuthProvider } from './context/AuthContext'
 
-const savedTheme = localStorage.getItem('theme')
+let savedTheme = null
+try {
+  savedTheme = localStorage.getItem('theme')
+} catch (e) {
+  console.warn('[Main] localStorage não disponível para leitura de tema:', e)
+}
 if (savedTheme === 'light') {
   document.body.classList.add('light')
 }

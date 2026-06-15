@@ -153,3 +153,26 @@ export const clearStoredToken = () => {
 
 export const getInitialPreferences = () =>
   sanitizePreferences({ tema: getStoredTheme() })
+
+// ---------------------------------------------------------------------------
+// Tour do Heatmap
+// ---------------------------------------------------------------------------
+const CHAVE_TOUR_HEATMAP = 'tb_heatmap_tour_visto'
+
+/**
+ * Retorna true se o usuário já concluiu (ou pulou) o tour de apresentação do Heatmap.
+ */
+export const getTourHeatmapVisto = () => {
+  const storage = getStorage()
+  if (!storage) return false
+  return storage.getItem(CHAVE_TOUR_HEATMAP) === '1'
+}
+
+/**
+ * Marca o tour do Heatmap como visto para não exibi-lo novamente.
+ */
+export const setTourHeatmapVisto = () => {
+  const storage = getStorage()
+  if (!storage) return
+  storage.setItem(CHAVE_TOUR_HEATMAP, '1')
+}

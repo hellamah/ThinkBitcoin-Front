@@ -28,3 +28,21 @@ export const MapRegion = Object.freeze({
   OCEANIA: '009',
 });
 
+/**
+ * Variante de tema visual da plataforma.
+ * DEFAULT – tema escuro padrão.
+ * HIGH_CONTRAST – alto contraste para acessibilidade.
+ */
+export const ThemeVariant = Object.freeze({
+  DEFAULT: 'default',
+  HIGH_CONTRAST: 'high-contrast',
+});
+
+/**
+ * Formatos de exportação de dados do Heatmap.
+ */
+export const ExportFormat = Object.freeze({
+  CSV: 'csv',
+  JSON: 'json',
+});
+

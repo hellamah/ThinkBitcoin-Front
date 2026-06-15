@@ -11,40 +11,38 @@ import { DashboardProvider } from './context/DashboardContext.jsx'
 function App() {
 
   return (
-    <Layout>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <DashboardProvider>
+    <DashboardProvider>
+      <Layout>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
                 <Dashboard />
-              </DashboardProvider>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/settings"
-          element={
-            <ProtectedRoute>
-              <Settings />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/heatmap"
-          element={
-            <ProtectedRoute>
-              <DashboardProvider>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <Settings />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/heatmap"
+            element={
+              <ProtectedRoute>
                 <GeoHeatmapView />
-              </DashboardProvider>
-            </ProtectedRoute>
-          }
-        />
-      </Routes>
-    </Layout>
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </Layout>
+    </DashboardProvider>
   )
 }
 
