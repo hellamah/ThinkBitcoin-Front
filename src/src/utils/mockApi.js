@@ -30,7 +30,10 @@ const resolveIsTestMode = () => {
 
 const resolvedUseMockEnv = resolveUseMockEnv()
 
-export const USE_MOCK_API = false
+export const USE_MOCK_API =
+  !resolveIsTestMode() &&
+  (parseUseMockFlag(resolvedUseMockEnv) ||
+   (resolvedUseMockEnv === undefined && resolveIsDevMode()))
 
 const buildMockToken = () => {
   const header = { alg: 'HS256', typ: 'JWT' }
@@ -75,59 +78,139 @@ const hashSymbol = (symbol) =>
     .split('')
     .reduce((acc, char) => acc + char.charCodeAt(0), 0)
 
-const buildCoinValueResponse = (symbol) => {
+const buildCoinValueResponse = (symbol, urlParams) => {
   const normalized = symbol.toUpperCase()
   const baseValue = MOCK_COIN_BASE_VALUE[normalized] ?? 100
   const variationFactor = ((hashSymbol(normalized) % 17) - 8) * 0.0025
-  const value = Number((baseValue * (1 + variationFactor)).toFixed(2))
+
+  let registros = []
+  const agora = new Date()
+
+  // Gera 1 ano de mock com 3 itens por dia (para o gráfico não ficar vazio nos filtros de 7 dias)
+  for (let d = 365; d >= 0; d--) {
+    for (let i = 0; i < 3; i++) {
+      const msOffset = d * 24 * 60 * 60 * 1000 - i * 8 * 60 * 60 * 1000
+      const dataPonto = new Date(agora.getTime() - msOffset)
+      
+      const globalIndex = d * 3 + i
+      const oscilacao = Math.sin(globalIndex + hashSymbol(normalized)) * 0.05 + variationFactor
+      const precoPonto = Number((baseValue * (1 + oscilacao)).toFixed(2))
+      const dVar = oscilacao * 100
+
+      registros.push({
+        precoFechamento: precoPonto,
+        horaReferencia: dataPonto.toISOString(),
+        precoMaior: precoPonto * 1.01,
+        precoMedio: precoPonto * 0.995,
+        precoMenor: precoPonto * 0.98,
+        precoAbertura: precoPonto * 0.99,
+        precoAmplitude: precoPonto * 0.03,
+        precoPercentualVariacao: Number(dVar.toFixed(2)),
+        precoRatioCompraVenda: 1.5,
+        precoTotalNegociada: precoPonto * 1000,
+        precoVolume: 150.5,
+        precoDeltaUltimoAbertura: precoPonto * 0.01,
+        precoVariacaoAbsoluta: precoPonto * 0.01,
+        precoCorpoCandle: precoPonto * 0.01,
+        precoSombraSuperior: precoPonto * 0.005,
+        precoSombraInferior: precoPonto * 0.005,
+        precoDirecao: dVar >= 0 ? 1 : -1,
+        precoVolatilidadePercentual: 0.5,
+        precoFinanceiroPorTrade: 450.0,
+        quantidadeNegociada: 150.5,
+        volumeComprado: 90.3,
+        volumeVendido: 60.2,
+        dominanciaCompradoraPercentual: 60.0,
+        dominanciaVendedoraPercentual: 40.0,
+        volumeDelta: 30.1,
+      })
+    }
+  }
+
+  // Filtragem
+  if (urlParams) {
+    const dataInicio = urlParams.get('dataInicio')
+    const dataFim = urlParams.get('dataFim')
+    
+    if (dataInicio) {
+      const inicio = new Date(dataInicio).getTime()
+      registros = registros.filter(r => new Date(r.horaReferencia).getTime() >= inicio)
+    }
+    if (dataFim) {
+      const fim = new Date(dataFim).getTime()
+      registros = registros.filter(r => new Date(r.horaReferencia).getTime() <= fim)
+    }
+  }
+
+  // Inverte para retornar em ordem decrescente conforme o padrão da API real
+  registros.reverse()
+
+  let page = 1
+  let size = 15
+  let paginar = false
+
+  if (urlParams) {
+    if (urlParams.has('page') || urlParams.has('pagina')) {
+      const p = parseInt(urlParams.get('page') || urlParams.get('pagina'))
+      if (!isNaN(p) && p > 0) page = p
+      paginar = true
+    }
+    if (urlParams.has('size') || urlParams.has('quantidade')) {
+      const s = parseInt(urlParams.get('size') || urlParams.get('quantidade'))
+      if (!isNaN(s) && s > 0) size = s
+      paginar = true
+    }
+  }
+
+  if (paginar) {
+    const start = (page - 1) * size
+    const end = start + size
+    const totalRegistros = registros.length
+    const paginados = registros.slice(start, end)
+    return {
+      mensagem: 'Operação realizada com sucesso',
+      resultado: {
+        totalRegistros,
+        totalPaginas: Math.ceil(totalRegistros / size),
+        paginaAtual: page,
+        registros: paginados,
+      },
+    }
+  }
 
   return {
     mensagem: 'Operação realizada com sucesso',
     resultado: {
-      totalRegistros: 1,
+      totalRegistros: registros.length,
       totalPaginas: 1,
       paginaAtual: 1,
-      registros: [
-        {
-          precoFechamento: value,
-          horaReferencia: new Date().toISOString(),
-          precoMaior: value * 1.01,
-          precoMedio: value * 0.995,
-          precoMenor: value * 0.98,
-          precoAbertura: value * 0.99,
-          precoAmplitude: value * 0.03,
-          precoPercentualVariacao: variationFactor * 100,
-          precoRatioCompraVenda: 1.5,
-          precoTotalNegociada: value * 1000,
-          precoVolume: 150.5,
-          precoDeltaUltimoAbertura: value * 0.01,
-          precoVariacaoAbsoluta: value * 0.01,
-          precoCorpoCandle: value * 0.01,
-          precoSombraSuperior: value * 0.005,
-          precoSombraInferior: value * 0.005,
-          precoDirecao: variationFactor >= 0 ? 1 : -1,
-          precoVolatilidadePercentual: 0.5,
-          precoFinanceiroPorTrade: 450.0,
-          quantidadeNegociada: 150.5,
-          volumeComprado: 90.3,
-          volumeVendido: 60.2,
-          dominanciaCompradoraPercentual: 60.0,
-          dominanciaVendedoraPercentual: 40.0,
-          volumeDelta: 30.1,
-        }
-      ],
+      registros,
     },
   }
 }
 
 const buildSequenceResponse = () => {
-  const now = Date.now()
-  const points = [
-    { hour: 0, price: 68000, change: 0.008, type: 1 },
-    { hour: 1, price: 67650, change: -0.005, type: 2 },
-    { hour: 2, price: 68220, change: 0.0084, type: 1 },
-    { hour: 3, price: 68080, change: -0.0021, type: 0 },
-  ]
+  const points = []
+  const agora = new Date()
+
+  // Gera 1 ano de mock com 3 itens por dia
+  for (let d = 365; d >= 0; d--) {
+    for (let i = 0; i < 3; i++) {
+      const msOffset = d * 24 * 60 * 60 * 1000 - i * 8 * 60 * 60 * 1000
+      const dataPonto = new Date(agora.getTime() - msOffset)
+      const isWin = Math.random() > 0.5
+      
+      points.push({
+        idSequenciaRetorno: `00000000-0000-4000-a000-${Math.random().toString().substring(2,14)}`,
+        dataHora: dataPonto.toISOString(),
+        valorNegociado: 60000 + Math.random() * 10000,
+        variacaoPercentual: (Math.random() * 0.02) * (isWin ? 1 : -1),
+        tipo: isWin ? 1 : 2,
+      })
+    }
+  }
+
+  points.reverse()
 
   return {
     mensagem: 'Mock de sequência retornado com sucesso',
@@ -135,16 +218,53 @@ const buildSequenceResponse = () => {
       totalRegistros: points.length,
       totalPaginas: 1,
       paginaAtual: 1,
-      listaSequenciaRetorno: points.map((point, index) => ({
-        idSequenciaRetorno: `00000000-0000-4000-a000-00000000000${index + 1}`,
-        dataHora: new Date(now - point.hour * 60 * 60 * 1000).toISOString(),
-        valorNegociado: point.price,
-        variacaoPercentual: point.change,
-        tipo: point.type,
-      })),
+      listaSequenciaRetorno: points,
     },
   }
 }
+
+const generateMockPatrimonio = () => {
+  const registros = []
+  let saldoTotalBRL = 0
+  let saldoTotalUSD = 0
+  const agora = new Date()
+
+  for (let mesOffset = 11; mesOffset >= 0; mesOffset--) {
+    const numPontosMes = 2 + Math.floor(Math.random() * 2)
+    const dataMes = new Date(agora.getFullYear(), agora.getMonth() - mesOffset, 1)
+    
+    for (let i = 0; i < numPontosMes; i++) {
+      const dataPonto = new Date(dataMes.getFullYear(), dataMes.getMonth(), 5 + i * 10, 10 + i, 0, 0)
+      const valorBRL = 2000 + Math.random() * 8000
+      const cotacao = 5.0 + Math.random() * 0.5
+      const valorUSD = valorBRL / cotacao
+      
+      saldoTotalBRL += valorBRL
+      saldoTotalUSD += valorUSD
+      
+      registros.push({
+        idPatrimonioTB: crypto.randomUUID?.() || Math.random().toString(36).substring(2, 15),
+        idUsuarioTB: "b282e124-4dd8-4ccd-a9c6-5b6b0c324a50",
+        valorBRL: Number(valorBRL.toFixed(2)),
+        valorUSD: Number(valorUSD.toFixed(2)),
+        cotacaoUtilizada: Number(cotacao.toFixed(2)),
+        tipoMovimentacao: (mesOffset === 11 && i === 0) ? "Aporte Inicial" : "Aporte",
+        dataHora: dataPonto.toISOString(),
+        observacao: `Aporte automático mockado - Mês ${dataPonto.getMonth() + 1}/${dataPonto.getFullYear()}`
+      })
+    }
+  }
+
+  return {
+    saldoTotalBRL: Number(saldoTotalBRL.toFixed(2)),
+    saldoTotalUSD: Number(saldoTotalUSD.toFixed(2)),
+    registros: registros.reverse()
+  }
+}
+
+let mockPatrimonio = generateMockPatrimonio()
+
+let mockPlanoAtivoId = 1 // Minerador (Acesso a IA) por padrão
 
 const mockHandlers = [
   {
@@ -234,7 +354,8 @@ const mockHandlers = [
     response: (endpoint) => {
       const match = endpoint.match(/\/moeda\/([^/]+)\/valor/i)
       const symbol = match ? match[1] : 'BTC'
-      return buildCoinValueResponse(symbol)
+      const urlQuery = endpoint.includes('?') ? new URLSearchParams(endpoint.split('?')[1]) : null
+      return buildCoinValueResponse(symbol, urlQuery)
     },
   },
   {
@@ -300,12 +421,247 @@ const mockHandlers = [
             rankNoMinuto: 6,
             geoTop1Code: 'CH',
             geoTop1Value: 100,
-            horaReferencia: new Date().toISOString(),
           }
         ]
       }
+    })
+  },
+  {
+    method: 'GET',
+    match: (endpoint) => !!endpoint.match(/^\/ThinkBitcoin\/variavel-externa\/trend\/heatmap(\?.*)?$/i),
+    response: (endpoint) => {
+      const urlQuery = endpoint.includes('?') ? new URLSearchParams(endpoint.split('?')[1]) : null
+      const idMoedaStr = urlQuery?.get('idMoeda') || '1'
+      const intervalo = urlQuery?.get('intervalo') || '24h'
+      let idNum = parseInt(idMoedaStr)
+      if (isNaN(idNum)) {
+        idNum = idMoedaStr.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+      }
+      
+      const factor = (idNum * 17) % 30
+      
+      let registros = []
+
+      if (intervalo === '1h') {
+        // 1H: Concentração na Europa, Ásia, Oceania (Sem África, Sem Canadá/Brasil, apenas US para Américas)
+        // Isso vai desabilitar a África, mas manter as outras regiões ativas no zoom geográfico
+        registros = [
+          { geoTop1Code: 'CH', frequenciaLideranca: Math.round(90 - (factor % 5)) },
+          { geoTop1Code: 'DE', frequenciaLideranca: Math.round(85 - (factor % 3)) },
+          { geoTop1Code: 'JP', frequenciaLideranca: Math.round(80 - (factor % 4)) },
+          { geoTop1Code: 'US', frequenciaLideranca: Math.round(75 - (factor % 3)) },
+          { geoTop1Code: 'GB', frequenciaLideranca: Math.round(70 - (factor % 2)) },
+          { geoTop1Code: 'AU', frequenciaLideranca: Math.round(65 - (factor % 3)) },
+          { geoTop1Code: 'CN', frequenciaLideranca: Math.round(60 - (factor % 2)) },
+          { geoTop1Code: 'FR', frequenciaLideranca: Math.round(55 - (factor % 4)) },
+          { geoTop1Code: 'IT', frequenciaLideranca: Math.round(50 - (factor % 3)) },
+          { geoTop1Code: 'ES', frequenciaLideranca: Math.round(45 - (factor % 2)) },
+          { geoTop1Code: 'NL', frequenciaLideranca: Math.round(40 - (factor % 3)) },
+          { geoTop1Code: 'KR', frequenciaLideranca: Math.round(35 - (factor % 4)) },
+          { geoTop1Code: 'CA', frequenciaLideranca: Math.round(30 - (factor % 3)) },
+          { geoTop1Code: 'SG', frequenciaLideranca: Math.round(25 - (factor % 2)) },
+          { geoTop1Code: 'IN', frequenciaLideranca: Math.round(20 - (factor % 5)) }
+        ]
+      } else if (intervalo === '1m') {
+        // 1M: Longo prazo com amostragem ampla, ativando todas as regiões
+        registros = [
+          { geoTop1Code: 'US', frequenciaLideranca: Math.round(98 - (factor % 3)) },
+          { geoTop1Code: 'BR', frequenciaLideranca: Math.round(94 - (factor % 4)) },
+          { geoTop1Code: 'CA', frequenciaLideranca: Math.round(90 - (factor % 5)) },
+          { geoTop1Code: 'CH', frequenciaLideranca: Math.round(86 - (factor % 5)) },
+          { geoTop1Code: 'DE', frequenciaLideranca: Math.round(82 - (factor % 3)) },
+          { geoTop1Code: 'GB', frequenciaLideranca: Math.round(78 - (factor % 4)) },
+          { geoTop1Code: 'FR', frequenciaLideranca: Math.round(74 - (factor % 2)) },
+          { geoTop1Code: 'JP', frequenciaLideranca: Math.round(70 - (factor % 4)) },
+          { geoTop1Code: 'CN', frequenciaLideranca: Math.round(66 - (factor % 2)) },
+          { geoTop1Code: 'AU', frequenciaLideranca: Math.round(62 - (factor % 3)) },
+          { geoTop1Code: 'ZA', frequenciaLideranca: Math.round(58 - (factor % 2)) },
+          { geoTop1Code: 'MX', frequenciaLideranca: Math.round(54 - (factor % 4)) },
+          { geoTop1Code: 'AR', frequenciaLideranca: Math.round(50 - (factor % 3)) },
+          { geoTop1Code: 'CO', frequenciaLideranca: Math.round(46 - (factor % 2)) },
+          { geoTop1Code: 'IT', frequenciaLideranca: Math.round(42 - (factor % 5)) },
+          { geoTop1Code: 'ES', frequenciaLideranca: Math.round(38 - (factor % 3)) },
+          { geoTop1Code: 'RU', frequenciaLideranca: Math.round(34 - (factor % 4)) },
+          { geoTop1Code: 'IN', frequenciaLideranca: Math.round(30 - (factor % 3)) },
+          { geoTop1Code: 'KR', frequenciaLideranca: Math.round(26 - (factor % 2)) },
+          { geoTop1Code: 'SG', frequenciaLideranca: Math.round(22 - (factor % 4)) },
+          { geoTop1Code: 'NZ', frequenciaLideranca: Math.round(18 - (factor % 3)) },
+          { geoTop1Code: 'NG', frequenciaLideranca: Math.round(14 - (factor % 2)) },
+          { geoTop1Code: 'EG', frequenciaLideranca: Math.round(10 - (factor % 4)) },
+          { geoTop1Code: 'MA', frequenciaLideranca: Math.round(8 - (factor % 3)) },
+          { geoTop1Code: 'KE', frequenciaLideranca: Math.round(5 - (factor % 2)) }
+        ]
+      } else {
+        // 24H (1D): Médio prazo com amostragem balanceada, cobrindo todas as regiões
+        registros = [
+          { geoTop1Code: 'US', frequenciaLideranca: Math.round(88 - (factor % 5)) },
+          { geoTop1Code: 'BR', frequenciaLideranca: Math.round(82 - ((factor + 3) % 7)) },
+          { geoTop1Code: 'CH', frequenciaLideranca: Math.round(76 - ((factor + 1) % 6)) },
+          { geoTop1Code: 'DE', frequenciaLideranca: Math.round(70 - (factor % 4)) },
+          { geoTop1Code: 'JP', frequenciaLideranca: Math.round(64 - ((factor + 4) % 5)) },
+          { geoTop1Code: 'AU', frequenciaLideranca: Math.round(58 - (factor % 3)) },
+          { geoTop1Code: 'ZA', frequenciaLideranca: Math.round(52 - (factor % 2)) },
+          { geoTop1Code: 'CA', frequenciaLideranca: Math.round(46 - (factor % 4)) },
+          { geoTop1Code: 'GB', frequenciaLideranca: Math.round(40 - (factor % 3)) },
+          { geoTop1Code: 'AR', frequenciaLideranca: Math.round(35 - (factor % 2)) },
+          { geoTop1Code: 'FR', frequenciaLideranca: Math.round(30 - (factor % 4)) },
+          { geoTop1Code: 'IT', frequenciaLideranca: Math.round(25 - (factor % 3)) },
+          { geoTop1Code: 'IN', frequenciaLideranca: Math.round(20 - (factor % 2)) },
+          { geoTop1Code: 'NG', frequenciaLideranca: Math.round(16 - (factor % 3)) },
+          { geoTop1Code: 'EG', frequenciaLideranca: Math.round(12 - (factor % 2)) },
+          { geoTop1Code: 'NZ', frequenciaLideranca: Math.round(8 - (factor % 3)) },
+          { geoTop1Code: 'KR', frequenciaLideranca: Math.round(5 - (factor % 2)) }
+        ]
+      }
+
+      return {
+        mensagem: 'Heatmap mock retornado com sucesso',
+        resultado: {
+          totalRegistros: registros.length,
+          totalPaginas: 1,
+          paginaAtual: 1,
+          registros
+        }
+      }
+    }
+  },
+  {
+    method: 'GET',
+    match: (endpoint) => !!endpoint.match(/^\/ThinkBitcoin\/patrimonio\/[^/]+(\?.*)?$/i),
+    response: () => ({
+      mensagem: 'Patrimônio mock retornado com sucesso',
+      resultado: {
+        totalRegistros: mockPatrimonio.registros.length,
+        totalPaginas: 1,
+        paginaAtual: 1,
+        saldoTotalBRL: mockPatrimonio.saldoTotalBRL,
+        saldoTotalUSD: mockPatrimonio.saldoTotalUSD,
+        registros: [...mockPatrimonio.registros].reverse()
+      }
     }),
   },
+  {
+    method: 'POST',
+    match: (endpoint) => endpoint === '/ThinkBitcoin/patrimonio',
+    response: (endpoint, body) => {
+      console.log('Mock POST Patrimonio:', body)
+      const valorBRL = parseFloat(body?.valorBRL || 0)
+      const observacao = body?.observacao || 'Aporte manual'
+      const cotacao = 5.20
+      const valorUSD = parseFloat((valorBRL / cotacao).toFixed(2))
+
+      const novo = {
+        idPatrimonioTB: crypto.randomUUID?.() || Math.random().toString(36).substring(2, 15),
+        idUsuarioTB: body?.idUsuarioTB || 'b282e124-4dd8-4ccd-a9c6-5b6b0c324a50',
+        valorBRL,
+        valorUSD,
+        cotacaoUtilizada: cotacao,
+        tipoMovimentacao: 'Aporte',
+        dataHora: new Date().toISOString(),
+        observacao
+      }
+
+      mockPatrimonio.registros.push(novo)
+      mockPatrimonio.saldoTotalBRL = parseFloat((mockPatrimonio.saldoTotalBRL + valorBRL).toFixed(2))
+      mockPatrimonio.saldoTotalUSD = parseFloat((mockPatrimonio.saldoTotalUSD + valorUSD).toFixed(2))
+
+      return {
+        mensagem: 'Patrimônio cadastrado com sucesso!',
+        resultado: novo
+      }
+    }
+  },
+  {
+    method: 'GET',
+    match: (endpoint) => endpoint === '/ThinkBitcoin/planos-pagamento',
+    response: () => {
+      const planos = [
+        {
+          idPlanoPagamento: 0,
+          nome: 'Consultor (Acesso Básico)',
+          valor: 0,
+          descricao: 'Acesso às moedas e gráficos básicos de mercado para análise elementar de portfólio.',
+          duracaoDias: 30,
+          carencia: 0,
+          liquidacao: 1,
+          tipoPrazoLiquidacao: 0,
+          prazoCotizacao: 0,
+          horarioLimiteSolicitacao: { ticks: 576000000000 },
+          taxaSaqueAntecipado: 1.5,
+          taxaResgate: 0.5,
+          valorMinimoResgate: 100,
+          saldoMinimoPermanencia: 50,
+          limiteDiarioResgate: 5000,
+          tipoPlano: 0,
+          ativo: mockPlanoAtivoId === 0,
+          statusPlano: 1,
+          permiteResgateParcial: true,
+          idUsuarioTB: 'b282e124-4dd8-4ccd-a9c6-5b6b0c324a50'
+        },
+        {
+          idPlanoPagamento: 1,
+          nome: 'Minerador (Acesso Completo + IA)',
+          valor: 199.90,
+          descricao: 'Acesso completo ao robô de trade de alta performance com recomendações guiadas por inteligência artificial.',
+          duracaoDias: 30,
+          carencia: 0,
+          liquidacao: 0,
+          tipoPrazoLiquidacao: 0,
+          prazoCotizacao: 0,
+          horarioLimiteSolicitacao: { ticks: 648000000000 },
+          taxaSaqueAntecipado: 0.5,
+          taxaResgate: 0.0,
+          valorMinimoResgate: 50,
+          saldoMinimoPermanencia: 10,
+          limiteDiarioResgate: 50000,
+          tipoPlano: 1,
+          ativo: mockPlanoAtivoId === 1,
+          statusPlano: 1,
+          permiteResgateParcial: true,
+          idUsuarioTB: 'b282e124-4dd8-4ccd-a9c6-5b6b0c324a50'
+        },
+        {
+          idPlanoPagamento: 2,
+          nome: 'ThinkElite (Profissional)',
+          valor: 499.90,
+          descricao: 'Acesso ilimitado e prioritário a todas as ferramentas com atendimento private broker e taxas zero de saque.',
+          duracaoDias: 365,
+          carencia: 0,
+          liquidacao: 0,
+          tipoPrazoLiquidacao: 0,
+          prazoCotizacao: 0,
+          horarioLimiteSolicitacao: { ticks: 720000000000 },
+          taxaSaqueAntecipado: 0.0,
+          taxaResgate: 0.0,
+          valorMinimoResgate: 0,
+          saldoMinimoPermanencia: 0,
+          limiteDiarioResgate: 1000000,
+          tipoPlano: 2,
+          ativo: mockPlanoAtivoId === 2,
+          statusPlano: 1,
+          permiteResgateParcial: true,
+          idUsuarioTB: 'b282e124-4dd8-4ccd-a9c6-5b6b0c324a50'
+        }
+      ]
+      return {
+        mensagem: 'Planos de pagamento retornados com sucesso',
+        resultado: { planos }
+      }
+    }
+  },
+  {
+    method: 'POST',
+    match: (endpoint) => endpoint === '/ThinkBitcoin/planos-pagamento/migrar',
+    response: (endpoint, body) => {
+      console.log('Mock POST Migrar Plano:', body)
+      const novoId = parseInt(body?.tipoPlano ?? 0)
+      mockPlanoAtivoId = novoId
+      return {
+        mensagem: 'Migração de plano concluída com sucesso!',
+        resultado: true
+      }
+    }
+  }
 ]
 
 export const getMockResponse = ({ endpoint, method, body }) => {

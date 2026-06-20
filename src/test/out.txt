@@ -1,0 +1,121 @@
+﻿
+ RUN  v3.2.4 E:/Development/ThinkBitcoin-main/ThinkBitcoin-Front/src/test
+
+ ÔØ» mathUtils.test.js (35 tests | 2 failed) 44ms
+   Ô£ô utils/mathUtils ÔÇ║ normalizeToBase100 > retorna o pr├│prio valor para array vazio 3ms
+   Ô£ô utils/mathUtils ÔÇ║ normalizeToBase100 > retorna o pr├│prio valor para entrada que n├úo ├® array 0ms
+   Ô£ô utils/mathUtils ÔÇ║ normalizeToBase100 > retorna o pr├│prio array quando todos os valores s├úo nulos ou zero 0ms
+   Ô£ô utils/mathUtils ÔÇ║ normalizeToBase100 > normaliza um ├║nico elemento para 100 0ms
+   Ô£ô utils/mathUtils ÔÇ║ normalizeToBase100 > normaliza corretamente uma s├®rie simples relativa ao primeiro valor 0ms
+   Ô£ô utils/mathUtils ÔÇ║ normalizeToBase100 > usa o primeiro valor v├ílido (n├úo nulo e n├úo zero) como base 0ms
+   Ô£ô utils/mathUtils ÔÇ║ normalizeToBase100 > preserva os nulos no meio da s├®rie 0ms
+   Ô£ô utils/mathUtils ÔÇ║ normalizeToBase100 > normaliza corretamente valores de BTC 0ms
+   Ô£ô utils/mathUtils ÔÇ║ normalizeMinMax > retorna o pr├│prio valor para array vazio 0ms
+   Ô£ô utils/mathUtils ÔÇ║ normalizeMinMax > retorna o pr├│prio valor para entrada que n├úo ├® array 0ms
+   Ô£ô utils/mathUtils ÔÇ║ normalizeMinMax > retorna o pr├│prio array quando n├úo h├í valores v├ílidos (todos nulos) 0ms
+   Ô£ô utils/mathUtils ÔÇ║ normalizeMinMax > retorna 1 para todos os elementos quando o range ├® zero (todos valores iguais) 0ms
+   Ô£ô utils/mathUtils ÔÇ║ normalizeMinMax > normaliza um ├║nico valor n├úo nulo para 1 (range zero) 0ms
+   Ô£ô utils/mathUtils ÔÇ║ normalizeMinMax > normaliza s├®rie simples entre 0 e 1 0ms
+   Ô£ô utils/mathUtils ÔÇ║ normalizeMinMax > normaliza s├®rie com valores negativos corretamente 0ms
+   Ô£ô utils/mathUtils ÔÇ║ normalizeMinMax > preserva os nulos e normaliza os demais 0ms
+   Ô£ô utils/mathUtils ÔÇ║ normalizeMinMax > garante que todo resultado est├í entre 0 e 1 1ms
+   Ô£ô utils/mathUtils ÔÇ║ normalizeZScore > retorna o pr├│prio valor para array vazio 0ms
+   Ô£ô utils/mathUtils ÔÇ║ normalizeZScore > retorna o pr├│prio valor para entrada que n├úo ├® array 0ms
+   Ô£ô utils/mathUtils ÔÇ║ normalizeZScore > retorna o pr├│prio array quando n├úo h├í valores v├ílidos (todos nulos) 0ms
+   Ô£ô utils/mathUtils ÔÇ║ normalizeZScore > retorna 0 para todos os elementos quando o desvio padr├úo ├® zero (valores id├¬nticos) 0ms
+   Ô£ô utils/mathUtils ÔÇ║ normalizeZScore > normaliza um ├║nico valor para 0 (desvio padr├úo = 0) 0ms
+   Ô£ô utils/mathUtils ÔÇ║ normalizeZScore > normaliza s├®rie simples com m├®dia zero e desvio 1 0ms
+   Ô£ô utils/mathUtils ÔÇ║ normalizeZScore > o valor da m├®dia retorna Z-score pr├│ximo a 0 0ms
+   Ô£ô utils/mathUtils ÔÇ║ normalizeZScore > preserva os nulos e normaliza os demais 0ms
+   Ô£ô utils/mathUtils ÔÇ║ normalizeZScore > a soma dos Z-scores de uma s├®rie sem nulos deve ser pr├│xima de zero 0ms
+   Ô£ô utils/mathUtils ÔÇ║ formatCurrency > formata valor simples em USD por padr├úo 20ms
+   Ô£ô utils/mathUtils ÔÇ║ formatCurrency > formata zero corretamente 0ms
+   ├ù utils/mathUtils ÔÇ║ formatCurrency > retorna "-" para valores inv├ílidos 10ms
+     ÔåÆ expected '$0.00' to be '-' // Object.is equality
+   ├ù utils/mathUtils ÔÇ║ formatCurrency > suporta outras moedas 2ms
+     ÔåÆ expected 'R$100.00' to contain 'BRL'
+   Ô£ô utils/mathUtils ÔÇ║ formatPercent > adiciona sinal de + para positivos 1ms
+   Ô£ô utils/mathUtils ÔÇ║ formatPercent > mant├®m sinal de - para negativos 0ms
+   Ô£ô utils/mathUtils ÔÇ║ formatPercent > formata zero com + por padr├úo 0ms
+   Ô£ô utils/mathUtils ÔÇ║ formatPercent > respeita a precis├úo informada 0ms
+   Ô£ô utils/mathUtils ÔÇ║ formatPercent > retorna "-" para valores inv├ílidos 0ms
+node.exe : 
+No C:\Program 
+Files\nodejs\npx.ps1:29 
+caractere:3
++   & $NODE_EXE $NPX_CLI_JS 
+$args
++   
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo           
+   : NotSpecified: (:String  
+  ) [], RemoteException
+    + FullyQualifiedErrorId  
+   : NativeCommandError
+ 
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ» Failed 
+Tests 2 ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+
+ FAIL  mathUtils.test.js > 
+utils/mathUtils ÔÇ║ 
+formatCurrency > retorna "-" 
+para valores inv├ílidos
+AssertionError: expected 
+'$0.00' to be '-' // 
+Object.is equality
+
+Expected: [32m"-"[39m
+Received: [31m"$0.00"[39m
+
+ ÔØ» mathUtils.test.js:202:34
+    200|   it('retorna "-" 
+para valores inv├ílidos', () 
+=> {
+    201|     expect(formatCur
+rency('abc')).toBe('-')
+    202|     expect(formatCur
+rency(null)).toBe('-')
+       |                     
+             ^
+    203|   })
+    204| 
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»Ô
+Ä»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[1/2]ÔÄ»
+
+ FAIL  mathUtils.test.js > 
+utils/mathUtils ÔÇ║ 
+formatCurrency > suporta 
+outras moedas
+AssertionError: expected 
+'R$100.00' to contain 'BRL'
+
+Expected: [32m"BRL"[39m
+Received: 
+[31m"R$100.00"[39m
+
+ ÔØ» mathUtils.test.js:207:40
+    205|   it('suporta 
+outras moedas', () => {
+    206|     // Nota: 
+toLocaleString com en-US e 
+BRL gera R$
+    207|     
+expect(formatCurrency(100, 
+'BRL')).toContain('BRL')
+       |                     
+                   ^
+    208|   })
+    209| })
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»Ô
+Ä»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[2/2]ÔÄ»
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 33 passed (35)
+   Start at  08:02:29
+   Duration  3.39s (transform 39ms, setup 16ms, collect 131ms, tests 44ms, environment 0ms, prepare 125ms)
+

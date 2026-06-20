@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { MdCurrencyBitcoin } from 'react-icons/md'
 import {
   TextField,
   Button,
@@ -13,7 +14,7 @@ import {
   IconButton,
 } from '@mui/material'
 import Container from '@mui/material/Container'
-import { MdClose, MdBolt, MdAutoGraph, MdShield, MdTranslate } from 'react-icons/md'
+import { MdClose, MdBolt, MdAutoGraph, MdShield, MdTranslate, MdPerson, MdSettings } from 'react-icons/md'
 import ErrorMessage from './ErrorMessage'
 import { apiRequest, HttpMethod, UserEndpoint, MarketEndpoint } from '../utils/apiClient'
 import { authenticate } from '../utils/authentication'
@@ -32,7 +33,21 @@ import {
  *
  * @param {{ onFechar: () => void }} props
  */
-function CadastroConviteOverlay({ onFechar }) {
+const CadastroConviteOverlay = ({ onFechar }) => {
+
+  // Component reutilizável para exibir opção de moeda com ícone
+  const CoinOption = ({ sigla, nome, icone }) => (
+    <MenuItem value={sigla}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        {icone ? <img src={icone} alt={nome || sigla} style={{ width: 22, height: 22 }} /> : <MdCurrencyBitcoin size={22} />}
+        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+          <Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: '#fff', lineHeight: 1.2 }}>{nome || sigla}</Typography>
+          <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)' }}>{sigla}</Typography>
+        </Box>
+      </Box>
+    </MenuItem>
+  );
+
   const { t } = useTranslation()
 
   const [nome, setNome] = useState('')
@@ -132,32 +147,85 @@ function CadastroConviteOverlay({ onFechar }) {
   const inputSx = {
     mb: 2.5,
     '& .MuiFilledInput-root': {
-      backgroundColor: 'rgba(255, 255, 255, 0.04)',
+      backgroundColor: 'rgba(255, 255, 255, 0.03)',
       borderRadius: '16px',
-      border: '1px solid rgba(255, 255, 255, 0.1)',
-      transition: 'all 0.3s ease',
+      border: '1px solid rgba(255, 255, 255, 0.08)',
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      '&:before, &:after': {
+        display: 'none',
+      },
       '&:hover': {
-        backgroundColor: 'rgba(255, 255, 255, 0.07)',
-        borderColor: 'var(--color-primary)',
+        backgroundColor: 'rgba(255, 255, 255, 0.06)',
+        borderColor: 'rgba(255, 215, 0, 0.3)',
       },
       '&.Mui-focused': {
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        backgroundColor: 'rgba(255, 255, 255, 0.08)',
         borderColor: 'var(--color-primary)',
+        boxShadow: '0 0 0 3px rgba(255, 215, 0, 0.1)',
       },
     },
     '& .MuiInputLabel-root': {
-      color: 'rgba(255, 255, 255, 0.5)',
-      fontSize: '0.9rem',
+      color: 'rgba(255, 255, 255, 0.4)',
+      fontSize: '0.85rem',
+      '&.Mui-focused': {
+        color: 'var(--color-primary)',
+      },
+    },
+    '& .MuiSelect-select': {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 1.5,
+      py: 1.5,
     },
   }
 
   const sectionTitleSx = {
     mb: 2.5,
-    color: 'rgba(255, 255, 255, 0.4)',
-    fontWeight: 700,
-    fontSize: '0.75rem',
+    color: 'rgba(255, 255, 255, 0.5)',
+    fontWeight: 800,
+    fontSize: '0.7rem',
     textTransform: 'uppercase',
     letterSpacing: '2px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 1.5,
+    '& svg': {
+        color: 'var(--color-primary)',
+        fontSize: '0.9rem',
+    },
+    '&::after': {
+      content: '""',
+      height: '1px',
+      flex: 1,
+      background: 'linear-gradient(90deg, var(--color-primary), transparent)',
+      opacity: 0.2,
+    }
+  }
+
+  const menuProps = {
+    PaperProps: {
+      sx: {
+        bgcolor: 'rgba(15, 15, 15, 0.98)',
+        backdropFilter: 'blur(20px)',
+        border: '1px solid rgba(255, 255, 255, 0.12)',
+        borderRadius: '16px',
+        mt: 1,
+        boxShadow: '0 25px 60px rgba(0,0,0,0.8)',
+        '& .MuiMenuItem-root': {
+          fontSize: '0.9rem',
+          py: 1.2,
+          px: 2,
+          '&:hover': {
+            bgcolor: 'rgba(255, 215, 0, 0.1)',
+          },
+          '&.Mui-selected': {
+            bgcolor: 'rgba(255, 215, 0, 0.2)',
+            color: 'var(--color-primary)',
+            fontWeight: 800,
+          },
+        },
+      },
+    },
   }
 
   return (
@@ -198,7 +266,7 @@ function CadastroConviteOverlay({ onFechar }) {
               </Typography>
             </div>
 
-            {/* Orbital reutilizado do ai-showcase-v3 */}
+            {/* Orbital Original */}
             <div className="convite-showcase">
               <div className="ai-core-v3 convite-core"></div>
 
@@ -244,8 +312,8 @@ function CadastroConviteOverlay({ onFechar }) {
 
           {/* ── Lado direito — formulário ─────────────────────────── */}
           <div className="convite-overlay-form">
-            <Box sx={{ mb: 5 }}>
-              <Typography variant="h4" sx={{ fontWeight: 900, color: '#fff', mb: 1, letterSpacing: '-1.5px' }}>
+            <Box sx={{ mb: 4, maxWidth: 640, mx: 'auto', width: '100%', textAlign: 'center' }}>
+              <Typography variant="h4" sx={{ fontWeight: 900, color: '#fff', mb: 1, letterSpacing: '-1.5px', fontSize: '2.2rem' }}>
                 Convidar Pessoa
               </Typography>
               <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.9rem' }}>
@@ -264,13 +332,15 @@ function CadastroConviteOverlay({ onFechar }) {
                 </Typography>
               </div>
             ) : (
-              <form onSubmit={processarEnvio}>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <form onSubmit={processarEnvio} style={{ width: '100%' }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0, maxWidth: 640, mx: 'auto', width: '100%' }}>
 
                   {/* Dados pessoais */}
-                  <Box>
-                    <Typography sx={sectionTitleSx}>{t('personalInfo')}</Typography>
-                    <Grid container spacing={2}>
+                  <Box sx={{ mb: 3 }}>
+                    <Typography sx={sectionTitleSx}>
+                        <MdPerson /> {t('personalInfo')}
+                    </Typography>
+                    <Grid container spacing={2} justifyContent="center">
                       <Grid item xs={12} sm={6}>
                         <TextField
                           fullWidth label={t('name')} value={nome}
@@ -296,21 +366,27 @@ function CadastroConviteOverlay({ onFechar }) {
                         />
                       </Grid>
                       <Grid item xs={12} sm={6}>
-                        <FormControl fullWidth variant="filled" sx={inputSx}>
+                        <FormControl fullWidth variant="filled" sx={{ ...inputSx, minWidth: 200 }}>
                           <InputLabel>{t('cargo')}</InputLabel>
-                          <Select value={cargo} onChange={(e) => setCargo(e.target.value)} disableUnderline>
+                          <Select 
+                            value={cargo} 
+                            onChange={(e) => setCargo(e.target.value)} 
+                            disableUnderline
+                            MenuProps={menuProps}
+                          >
                             <MenuItem value={0}>{t('miner')}</MenuItem>
                             <MenuItem value={1}>{t('consultant')}</MenuItem>
                           </Select>
                         </FormControl>
                       </Grid>
                       <Grid item xs={12} sm={6}>
-                        <FormControl fullWidth variant="filled" sx={inputSx}>
+                        <FormControl fullWidth variant="filled" sx={{ ...inputSx, minWidth: 160 }}>
                           <InputLabel>{t('language')}</InputLabel>
                           <Select
                             value={preferencias.idioma}
                             onChange={(e) => handlePrefChange('idioma', e.target.value)}
                             disableUnderline
+                            MenuProps={menuProps}
                             startAdornment={
                               <InputAdornment position="start">
                                 <MdTranslate style={{ color: 'var(--color-primary)', marginRight: 8 }} />
@@ -327,8 +403,10 @@ function CadastroConviteOverlay({ onFechar }) {
 
                   {/* Algoritmo */}
                   <Box>
-                    <Typography sx={sectionTitleSx}>{t('algorithmStyle')}</Typography>
-                    <Grid container spacing={2}>
+                    <Typography sx={sectionTitleSx}>
+                        <MdSettings /> {t('algorithmStyle')}
+                    </Typography>
+                    <Grid container spacing={2} justifyContent="center">
                       <Grid item xs={12} sm={6}>
                         <TextField
                           fullWidth label={t('initialInvestment')} type="number"
@@ -347,27 +425,39 @@ function CadastroConviteOverlay({ onFechar }) {
                         />
                       </Grid>
                       <Grid item xs={12} sm={6}>
-                        <FormControl fullWidth variant="filled" sx={inputSx}>
+                        <FormControl fullWidth variant="filled" sx={{ ...inputSx, minWidth: 160 }}>
                           <InputLabel>{t('preferredCoin')}</InputLabel>
                           <Select
                             value={preferencias.siglaMoedaPreferida || ''}
                             onChange={(e) => handlePrefChange('siglaMoedaPreferida', e.target.value)}
                             disableUnderline
+                            MenuProps={menuProps}
+                            renderValue={(selected) => {
+                              if (!selected) return <em>--</em>;
+                              const coin = moedas.find(m => m.sigla === selected);
+                              return (
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  {coin?.icone ? <img src={coin.icone} alt={coin.nome} style={{ width: 18, height: 18 }} /> : <MdCurrencyBitcoin size={18} />}
+                                  <span style={{ fontSize: '0.9rem' }}>{coin?.nome || selected}</span>
+                                </Box>
+                              );
+                            }}
                           >
                             <MenuItem value=""><em>--</em></MenuItem>
                             {moedas.map((m) => (
-                              <MenuItem key={m.sigla} value={m.sigla}>{m.sigla}</MenuItem>
+                              <CoinOption key={m.sigla} sigla={m.sigla} nome={m.nome} icone={m.icone} />
                             ))}
                           </Select>
                         </FormControl>
                       </Grid>
                       <Grid item xs={12} sm={6}>
-                        <FormControl fullWidth variant="filled" sx={inputSx}>
+                        <FormControl fullWidth variant="filled" sx={{ ...inputSx }}>
                           <InputLabel>{t('riskProfile')}</InputLabel>
                           <Select
                             value={preferencias.perfilRisco}
                             onChange={(e) => handlePrefChange('perfilRisco', e.target.value)}
                             disableUnderline
+                            MenuProps={menuProps}
                           >
                             <MenuItem value={RiskProfile.CONSERVATIVE}>{t('conservative')}</MenuItem>
                             <MenuItem value={RiskProfile.MODERATE}>{t('moderate')}</MenuItem>
@@ -376,12 +466,13 @@ function CadastroConviteOverlay({ onFechar }) {
                         </FormControl>
                       </Grid>
                       <Grid item xs={12} sm={6}>
-                        <FormControl fullWidth variant="filled" sx={inputSx}>
+                        <FormControl fullWidth variant="filled" sx={{ ...inputSx }}>
                           <InputLabel>{t('algorithmStyle')}</InputLabel>
                           <Select
                             value={preferencias.estiloAlgoritmo}
                             onChange={(e) => handlePrefChange('estiloAlgoritmo', e.target.value)}
                             disableUnderline
+                            MenuProps={menuProps}
                           >
                             <MenuItem value={AlgorithmStyle.CONSERVATIVE}>{t('conservative')}</MenuItem>
                             <MenuItem value={AlgorithmStyle.BALANCED}>{t('balanced')}</MenuItem>
@@ -389,38 +480,11 @@ function CadastroConviteOverlay({ onFechar }) {
                           </Select>
                         </FormControl>
                       </Grid>
-                      <Grid item xs={12} sm={6}>
-                        <FormControl fullWidth variant="filled" sx={inputSx}>
-                          <InputLabel>{t('exchange')}</InputLabel>
-                          <Select
-                            value={preferencias.siglaEmpresaExterna || ''}
-                            disableUnderline disabled
-                          >
-                            {exchanges.map((ex) => (
-                              <MenuItem key={ex.sigla} value={ex.sigla}>{ex.nome}</MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                      </Grid>
-                      <Grid item xs={12} sm={6}>
-                        <FormControl fullWidth variant="filled" sx={inputSx}>
-                          <InputLabel>{t('reviewFrequency')}</InputLabel>
-                          <Select
-                            value={preferencias.frequenciaReview}
-                            onChange={(e) => handlePrefChange('frequenciaReview', e.target.value)}
-                            disableUnderline
-                          >
-                            <MenuItem value={ReviewFrequency.DAILY}>{t('daily')}</MenuItem>
-                            <MenuItem value={ReviewFrequency.WEEKLY}>{t('weekly')}</MenuItem>
-                            <MenuItem value={ReviewFrequency.MONTHLY}>{t('monthly')}</MenuItem>
-                          </Select>
-                        </FormControl>
-                      </Grid>
                     </Grid>
                   </Box>
                 </Box>
 
-                <Box sx={{ mt: 5, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Box sx={{ mt: 5, pb: 4, display: 'flex', flexDirection: 'column', gap: 2, maxWidth: 640, mx: 'auto', width: '100%' }}>
                   <ErrorMessage message={erro} onClose={() => setErro('')} />
                   <Button
                     variant="contained"
@@ -430,21 +494,23 @@ function CadastroConviteOverlay({ onFechar }) {
                     size="large"
                     sx={{
                       py: 2.2,
-                      borderRadius: '18px',
+                      borderRadius: '16px',
                       fontSize: '1.1rem',
                       fontWeight: 900,
                       bgcolor: 'var(--color-primary)',
                       color: '#000',
-                      textTransform: 'none',
+                      textTransform: 'uppercase',
+                      letterSpacing: '1px',
+                      boxShadow: '0 8px 30px -8px rgba(255, 215, 0, 0.3)',
                       '&:hover': {
-                        bgcolor: '#e0c200',
+                        bgcolor: '#f5cc00',
                         transform: 'translateY(-3px)',
-                        boxShadow: '0 15px 30px -10px rgba(255, 215, 0, 0.5)',
+                        boxShadow: '0 15px 40px -10px rgba(255, 215, 0, 0.5)',
                       },
-                      transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                      transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
                     }}
                   >
-                    {carregando ? 'PROCESSANDO...' : 'Cadastrar Convidado'}
+                    {carregando ? 'PROCESSANDO...' : 'Cadastrar'}
                   </Button>
                 </Box>
               </form>

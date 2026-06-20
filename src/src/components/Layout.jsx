@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom'
-import { MdHome, MdLogin, MdDashboard, MdLogout, MdSettings } from 'react-icons/md'
+import { MdHome, MdLogin, MdDashboard, MdLogout, MdSettings, MdPublic } from 'react-icons/md'
 import AppBar from '@mui/material/AppBar'
 import Toolbar from '@mui/material/Toolbar'
 import IconButton from '@mui/material/IconButton'
@@ -60,6 +60,16 @@ function Layout({ children }) {
       >
         <MdSettings />
         <span className="nav-label">{t('nav.settings')}</span>
+      </IconButton>
+      <IconButton
+        component={NavLink}
+        to="/heatmap"
+        className={linkClass}
+        title={t('nav.heatmap') || 'Geopolítica'}
+        aria-label={t('nav.heatmap') || 'Geopolítica'}
+      >
+        <MdPublic />
+        <span className="nav-label">{t('nav.heatmap') || 'Geopolítica'}</span>
       </IconButton>
     </>
   )
@@ -135,6 +145,15 @@ function Layout({ children }) {
                   >
                     <MdDashboard />
                     <span className="nav-label">{t('nav.dashboard')}</span>
+                  </IconButton>
+                  <IconButton
+                    component={NavLink}
+                    to="/heatmap"
+                    className={linkClass}
+                    title={t('nav.heatmap') || 'Geopolítica'}
+                  >
+                    <MdPublic />
+                    <span className="nav-label">{t('nav.heatmap') || 'Geopolítica'}</span>
                   </IconButton>
                 </Box>
               )}

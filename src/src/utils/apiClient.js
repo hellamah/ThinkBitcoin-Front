@@ -1,5 +1,6 @@
 import { API_URL } from '../api'
 import { getMockResponse, USE_MOCK_API } from './mockApi'
+import { getCache, setCache } from './cache'
 
 export const HttpMethod = Object.freeze({
   GET: 'GET',
@@ -17,6 +18,7 @@ export const ApiEndpoint = Object.freeze({
     LIST: '/ThinkBitcoin/usuariosTB/',
     CREATE: '/ThinkBitcoin/usuariosTB/',
     DELETE: (id) => `/ThinkBitcoin/usuariosTB/${id}`,
+    CHANGE_PASSWORD: '/ThinkBitcoin/usuariosTB/AlterarSenha',
   }),
   PREFERENCES: Object.freeze({
     ALL: '/ThinkBitcoin/preferencias',
@@ -36,6 +38,15 @@ export const ApiEndpoint = Object.freeze({
   VARIAVEL_EXTERNA: Object.freeze({
     FEAR_GREED: '/ThinkBitcoin/variavel-externa/fear-greed',
     TREND: '/ThinkBitcoin/variavel-externa/trend',
+    TREND_HEATMAP: '/ThinkBitcoin/variavel-externa/trend/heatmap',
+  }),
+  PATRIMONIO: Object.freeze({
+    BY_USER: (id) => `/ThinkBitcoin/patrimonio/${id}`,
+    CREATE: '/ThinkBitcoin/patrimonio',
+  }),
+  PLANOS_PAGAMENTO: Object.freeze({
+    LIST: '/ThinkBitcoin/planos-pagamento',
+    MIGRATE: '/ThinkBitcoin/planos-pagamento/migrar',
   }),
 })
 
@@ -54,16 +65,35 @@ const createRequestInit = (method, headers, body) => {
 
 export const apiRequest = async (
   endpoint,
-  { method = HttpMethod.GET, headers = {}, body, signal } = {}
+  {
+    method = HttpMethod.GET,
+    headers = {},
+    body,
+    signal,
+    useCache = false,
+    ttl,
+    cacheKey,
+    forceRefresh = false
+  } = {}
 ) => {
-  if (USE_MOCK_API) {
-    const mockResponse = getMockResponse({ endpoint, method, body })
-    if (mockResponse) return mockResponse
+  const isGet = method === HttpMethod.GET
+  const key = cacheKey || `api_cache_${endpoint}`
+
+  if (useCache && isGet && !forceRefresh) {
+    const cachedData = getCache(key)
+    if (cachedData !== null) {
+      return cachedData
+    }
   }
 
-  // Intercepta endpoints em desenvolvimento para evitar poluição de erros 404 no console
-  if (endpoint.includes('fear-greed') || endpoint.includes('trend')) {
-    return Promise.reject(new Error('Backend endpoint not implemented yet - Intercepted to prevent 404 log'))
+  if (USE_MOCK_API) {
+    const mockResponse = getMockResponse({ endpoint, method, body })
+    if (mockResponse) {
+      if (useCache && isGet) {
+        setCache(key, mockResponse, ttl)
+      }
+      return mockResponse
+    }
   }
 
   const response = await fetch(
@@ -82,7 +112,12 @@ export const apiRequest = async (
 
   if (response.status === 204) return null
 
-  return response.json()
+  const data = await response.json()
+  if (useCache && isGet) {
+    setCache(key, data, ttl)
+  }
+
+  return data
 }
 
 export const AuthenticationEndpoint = ApiEndpoint.AUTHENTICATION
@@ -91,3 +126,5 @@ export const MarketEndpoint = ApiEndpoint.MARKET
 export const PreferencesEndpoint = ApiEndpoint.PREFERENCES
 export const CargoEndpoint = ApiEndpoint.CARGO
 export const VariavelExternaEndpoint = ApiEndpoint.VARIAVEL_EXTERNA
+export const PatrimonioEndpoint = ApiEndpoint.PATRIMONIO
+export const PlanosPagamentoEndpoint = ApiEndpoint.PLANOS_PAGAMENTO

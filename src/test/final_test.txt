@@ -1,0 +1,10 @@
+﻿
+ RUN  v3.2.4 E:/Development/ThinkBitcoin-main/ThinkBitcoin-Front/src/test
+
+ Ô£ô mathUtils.test.js (35 tests) 31ms
+
+ Test Files  1 passed (1)
+      Tests  35 passed (35)
+   Start at  08:04:03
+   Duration  3.22s (transform 38ms, setup 18ms, collect 28ms, tests 31ms, environment 0ms, prepare 128ms)
+
