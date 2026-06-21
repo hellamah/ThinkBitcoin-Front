@@ -131,15 +131,20 @@ export default function HistoryTable({
                     onClick={() => handleSort('variation')}
                     sx={sortLabelSx}
                   >
-                    {t('variation')}
+                    {t('variation') || 'Variação'}
                   </TableSortLabel>
                 </TableCell>
+                <TableCell sx={sortLabelSx}>{t('taxaFinanciamento') || 'Taxa Finan.'}</TableCell>
+                <TableCell sx={sortLabelSx}>{t('contratosAberto') || 'Contratos Aberto'}</TableCell>
+                <TableCell sx={sortLabelSx}>{t('longAccount') || 'Long Acc'}</TableCell>
+                <TableCell sx={sortLabelSx}>{t('longShortRatio') || 'L/S Ratio'}</TableCell>
+                <TableCell sx={sortLabelSx}>{t('shortAccount') || 'Short Acc'}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {sortedData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={moedasFiltro.length > 1 ? 4 : 3} align="center" sx={{ color: '#666', py: 8 }}>
+                  <TableCell colSpan={moedasFiltro.length > 1 ? 9 : 8} align="center" sx={{ color: '#666', py: 8 }}>
                     <div style={{ opacity: 0.5, fontSize: '0.9rem' }}>
                       {t('noRecordsFound') || 'Nenhum registro encontrado para os filtros selecionados'}
                     </div>
@@ -150,6 +155,13 @@ export default function HistoryTable({
                   const val = r.precoFechamento ?? r.PrecoFechamento ?? r.valor ?? r.Valor ?? r.valorNegociado ?? r.ValorNegociado ?? 0
                   const dVar = r.precoPercentualVariacao ?? r.PrecoPercentualVariacao ?? r.variacaoPercentual ?? r.VariacaoPercentual ?? r.variacao ?? r.Variacao ?? 0
                   const isUp = dVar >= 0
+
+                  const funding = r.taxaFinanciamento ?? r.TaxaFinanciamento
+                  const openInterest = r.contratosAberto ?? r.ContratosAberto
+                  const longAcc = r.longAccount ?? r.LongAccount
+                  const lsRatio = r.longShortRatio ?? r.LongShortRatio
+                  const shortAcc = r.shortAccount ?? r.ShortAccount
+
                   return (
                     <TableRow
                       key={idx}
@@ -174,6 +186,21 @@ export default function HistoryTable({
                           {isUp ? <MdTrendingUp /> : <MdTrendingDown />}
                           {mathUtils.formatPercent(dVar)}
                         </span>
+                      </TableCell>
+                      <TableCell sx={{ color: '#eee' }}>
+                        {funding !== null && funding !== undefined ? mathUtils.formatPercent(funding * 100, 4, true) : '-'}
+                      </TableCell>
+                      <TableCell sx={{ color: '#eee' }}>
+                        {openInterest !== null && openInterest !== undefined ? mathUtils.formatCompact(openInterest, 2) : '-'}
+                      </TableCell>
+                      <TableCell sx={{ color: '#eee' }}>
+                        {longAcc !== null && longAcc !== undefined ? mathUtils.formatPercent(longAcc * 100, 2, false) : '-'}
+                      </TableCell>
+                      <TableCell sx={{ color: '#eee' }}>
+                        {lsRatio !== null && lsRatio !== undefined ? mathUtils.formatNumber(lsRatio, 2) : '-'}
+                      </TableCell>
+                      <TableCell sx={{ color: '#eee' }}>
+                        {shortAcc !== null && shortAcc !== undefined ? mathUtils.formatPercent(shortAcc * 100, 2, false) : '-'}
                       </TableCell>
                     </TableRow>
                   )

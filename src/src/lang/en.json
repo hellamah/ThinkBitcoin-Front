@@ -192,9 +192,13 @@
     "free": "Free",
     "active": "ACTIVE",
     "upgrade": "Migrate",
-    "migrateConfirm": "Do you really want to migrate to the plan {{nome}}?",
-    "migrateSuccess": "Plan migrated successfully!",
-    "migrateError": "Failed to migrate plan. Please try again."
-  }
+    "migrateConfirm": "Are you sure you want to upgrade to the {{nome}} plan?",
+    "migrateSuccess": "Plan upgraded successfully!",
+    "migrateError": "Failed to upgrade plan. Please try again."
+  },
+  "taxaFinanciamento": "Funding Rate",
+  "contratosAberto": "Open Interest",
+  "longAccount": "Long Accounts",
+  "longShortRatio": "L/S Ratio",
+  "shortAccount": "Short Accounts"
 }
-
