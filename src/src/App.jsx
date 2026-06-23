@@ -9,6 +9,7 @@ import GeoHeatmapView from './pages/GeoHeatmapView.jsx'
 import Layout from './components/Layout.jsx'
 import { DashboardProvider } from './context/DashboardContext.jsx'
 import ConsentimentoLGPD, { hasConsented } from './components/ConsentimentoLGPD.jsx'
+import RedefinirSenha from './pages/RedefinirSenha.jsx'
 
 function App() {
   const [consentido, setConsentido] = useState(hasConsented)
@@ -20,6 +21,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/redefinir-senha" element={<RedefinirSenha />} />
           <Route
             path="/dashboard"
             element={
