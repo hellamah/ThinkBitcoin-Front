@@ -12,6 +12,9 @@ import {
   InputLabel,
   InputAdornment,
   IconButton,
+  Checkbox,
+  FormControlLabel,
+  Link,
 } from '@mui/material'
 import Container from '@mui/material/Container'
 import { MdClose, MdBolt, MdAutoGraph, MdShield, MdTranslate, MdPerson, MdSettings } from 'react-icons/md'
@@ -66,6 +69,8 @@ const CadastroConviteOverlay = ({ onFechar }) => {
   const [carregando, setCarregando] = useState(false)
   const [sucesso, setSucesso] = useState(false)
   const [visivel, setVisivel] = useState(false)
+  const [aceitouPrivacidade, setAceitouPrivacidade] = useState(false)
+  const [aceitouTermos, setAceitouTermos] = useState(false)
 
   // Animação de entrada
   useEffect(() => {
@@ -484,12 +489,62 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                   </Box>
                 </Box>
 
-                <Box sx={{ mt: 5, pb: 4, display: 'flex', flexDirection: 'column', gap: 2, maxWidth: 640, mx: 'auto', width: '100%' }}>
+                <Box sx={{ mt: 4, pb: 4, display: 'flex', flexDirection: 'column', gap: 1.5, maxWidth: 640, mx: 'auto', width: '100%' }}>
+
+                  {/* Checkboxes de consentimento */}
+                  <Box sx={{
+                    p: 2.5, borderRadius: '14px',
+                    border: '1px solid rgba(255, 215, 0, 0.12)',
+                    background: 'rgba(255, 215, 0, 0.03)',
+                    display: 'flex', flexDirection: 'column', gap: 1,
+                  }}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={aceitouPrivacidade}
+                          onChange={(e) => setAceitouPrivacidade(e.target.checked)}
+                          sx={{ color: 'rgba(255,255,255,0.3)', '&.Mui-checked': { color: 'var(--color-primary)' }, py: 0.5 }}
+                        />
+                      }
+                      label={
+                        <Typography sx={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.55)', lineHeight: 1.4 }}>
+                          Li e concordo com a{' '}
+                          <Link href="https://minerthinkbitcoin.com/privacidade" target="_blank" rel="noopener"
+                            sx={{ color: 'var(--color-primary)', fontWeight: 600, '&:hover': { opacity: 0.8 } }}>
+                            Política de Privacidade
+                          </Link>
+                          {' '}e com o tratamento dos meus dados conforme a LGPD.
+                        </Typography>
+                      }
+                      sx={{ alignItems: 'flex-start', mr: 0 }}
+                    />
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={aceitouTermos}
+                          onChange={(e) => setAceitouTermos(e.target.checked)}
+                          sx={{ color: 'rgba(255,255,255,0.3)', '&.Mui-checked': { color: 'var(--color-primary)' }, py: 0.5 }}
+                        />
+                      }
+                      label={
+                        <Typography sx={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.55)', lineHeight: 1.4 }}>
+                          Li e concordo com os{' '}
+                          <Link href="https://minerthinkbitcoin.com/termos" target="_blank" rel="noopener"
+                            sx={{ color: 'var(--color-primary)', fontWeight: 600, '&:hover': { opacity: 0.8 } }}>
+                            Termos de Uso
+                          </Link>
+                          {' '}da plataforma ThinkBitcoin.
+                        </Typography>
+                      }
+                      sx={{ alignItems: 'flex-start', mr: 0 }}
+                    />
+                  </Box>
+
                   <ErrorMessage message={erro} onClose={() => setErro('')} />
                   <Button
                     variant="contained"
                     type="submit"
-                    disabled={carregando}
+                    disabled={carregando || !aceitouPrivacidade || !aceitouTermos}
                     fullWidth
                     size="large"
                     sx={{
@@ -506,6 +561,10 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                         bgcolor: '#f5cc00',
                         transform: 'translateY(-3px)',
                         boxShadow: '0 15px 40px -10px rgba(255, 215, 0, 0.5)',
+                      },
+                      '&.Mui-disabled': {
+                        bgcolor: 'rgba(255, 215, 0, 0.2)',
+                        color: 'rgba(0,0,0,0.4)',
                       },
                       transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
                     }}
