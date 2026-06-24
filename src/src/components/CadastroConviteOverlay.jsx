@@ -21,6 +21,7 @@ import { MdClose, MdBolt, MdAutoGraph, MdShield, MdTranslate, MdPerson, MdSettin
 import ErrorMessage from './ErrorMessage'
 import { apiRequest, HttpMethod, UserEndpoint, MarketEndpoint } from '../utils/apiClient'
 import { authenticate } from '../utils/authentication'
+import { useAuth } from '../context/AuthContext'
 import useTranslation from '../hooks/useTranslation'
 import {
   DEFAULT_PREFERENCES,
@@ -40,6 +41,7 @@ import {
 const CadastroConviteOverlay = ({ onFechar }) => {
 
   const { t } = useTranslation()
+  const { token } = useAuth()
 
   const [nome, setNome] = useState('')
   const [email, setEmail] = useState('')
@@ -128,6 +130,7 @@ const CadastroConviteOverlay = ({ onFechar }) => {
       try {
         await apiRequest(UserEndpoint.ENVIAR_BOAS_VINDAS, {
           method: HttpMethod.POST,
+          headers: { Authorization: `Bearer ${token}` },
           body: { email, nome, senha },
         })
       } catch {
