@@ -279,8 +279,8 @@ const mockHandlers = [
       // Cria um payload mock no padrão JWT para o decode da aplicação
       const payload = {
         'idUsuarioTB': 'b282e124-4dd8-4ccd-a9c6-5b6b0c324a50',
-        'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name': 'Helama Teste',
-        'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress': 'ssssssshelamaborges@gmail.com'
+        'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name': 'Usuário Teste',
+        'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress': 'teste@thinkbitcoin.com'
       }
       const base64Payload = btoa(JSON.stringify(payload))
       return {
@@ -296,8 +296,8 @@ const mockHandlers = [
       mensagem: 'Preferências mock retornadas com sucesso',
       resultado: {
         idPreferenciasUsuarioTB: 'b282e124-4dd8-4ccd-a9c6-5b6b0c324a50',
-        nome: 'Helama Teste',
-        email: 'ssssssshelamaborges@gmail.com',
+        nome: 'Usuário Teste',
+        email: 'teste@thinkbitcoin.com',
         tema: 'dark',
         idioma: 'pt',
         notificacoes: true,
@@ -336,7 +336,15 @@ const mockHandlers = [
   {
     method: 'POST',
     match: (endpoint) => endpoint === '/ThinkBitcoin/usuariosTB/',
-    response: () => ({ mensagem: 'Usuário mock cadastrado com sucesso' }),
+    response: (endpoint, body) => {
+      const emailExistente = 'teste@thinkbitcoin.com'
+      if (body?.email?.toLowerCase() === emailExistente.toLowerCase()) {
+        const err = new Error('Este e-mail já está cadastrado na plataforma.')
+        err.status = 409
+        throw err
+      }
+      return { mensagem: 'Usuário mock cadastrado com sucesso' }
+    },
   },
   {
     method: 'GET',

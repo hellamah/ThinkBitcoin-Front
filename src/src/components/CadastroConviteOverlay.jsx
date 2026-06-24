@@ -136,8 +136,8 @@ const CadastroConviteOverlay = ({ onFechar }) => {
       await apiRequest(UserEndpoint.CREATE, { method: HttpMethod.POST, body: payload })
       setSucesso(true)
       setTimeout(fecharComAnimacao, 1800)
-    } catch {
-      setErro(t('registerFailed'))
+    } catch (err) {
+      setErro(err?.message || t('registerFailed'))
     } finally {
       setCarregando(false)
     }
