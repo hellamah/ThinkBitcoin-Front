@@ -56,6 +56,7 @@ const CadastroConviteOverlay = ({ onFechar }) => {
   const [erro, setErro] = useState('')
   const [carregando, setCarregando] = useState(false)
   const [sucesso, setSucesso] = useState(false)
+  const [avisoEmail, setAvisoEmail] = useState(false)
   const [visivel, setVisivel] = useState(false)
   const [aceitouPrivacidade, setAceitouPrivacidade] = useState(false)
   const [aceitouTermos, setAceitouTermos] = useState(false)
@@ -123,6 +124,16 @@ const CadastroConviteOverlay = ({ onFechar }) => {
         preferencias: { ...preferencias, dataUltimaInteracaoIA: new Date().toISOString() },
       }
       await apiRequest(UserEndpoint.CREATE, { method: HttpMethod.POST, body: payload })
+
+      try {
+        await apiRequest(UserEndpoint.ENVIAR_BOAS_VINDAS, {
+          method: HttpMethod.POST,
+          body: { email, nome, senha },
+        })
+      } catch {
+        setAvisoEmail(true)
+      }
+
       setSucesso(true)
       setTimeout(fecharComAnimacao, 1800)
     } catch (err) {
@@ -320,7 +331,16 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                 <Typography sx={{ color: 'var(--color-primary)', fontWeight: 700, fontSize: '1.1rem' }}>
                   Cadastro realizado com sucesso!
                 </Typography>
-                <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem', mt: 1 }}>
+                {avisoEmail ? (
+                  <Typography sx={{ color: 'rgba(255,165,0,0.8)', fontSize: '0.8rem', mt: 1 }}>
+                    ⚠ Não foi possível enviar o email de boas-vindas. Informe as credenciais manualmente.
+                  </Typography>
+                ) : (
+                  <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem', mt: 1 }}>
+                    Email de boas-vindas enviado para {email}.
+                  </Typography>
+                )}
+                <Typography sx={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.75rem', mt: 0.5 }}>
                   Fechando automaticamente...
                 </Typography>
               </div>

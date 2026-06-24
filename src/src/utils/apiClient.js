@@ -21,6 +21,7 @@ export const ApiEndpoint = Object.freeze({
     CHANGE_PASSWORD: '/ThinkBitcoin/usuariosTB/AlterarSenha',
     RECUPERAR_SENHA: '/ThinkBitcoin/usuariosTB/recuperar-senha',
     REDEFINIR_SENHA: '/ThinkBitcoin/usuariosTB/redefinir-senha',
+    ENVIAR_BOAS_VINDAS: '/ThinkBitcoin/usuariosTB/enviar-boas-vindas',
   }),
   PREFERENCES: Object.freeze({
     ALL: '/ThinkBitcoin/preferencias',
