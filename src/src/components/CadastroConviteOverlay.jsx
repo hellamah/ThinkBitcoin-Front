@@ -30,17 +30,6 @@ import {
   Language,
 } from '../utils/preferences'
 
-const CoinOption = ({ sigla, nome, icone }) => (
-  <MenuItem value={sigla}>
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-      {icone ? <img src={icone} alt={nome || sigla} style={{ width: 22, height: 22 }} /> : <MdCurrencyBitcoin size={22} />}
-      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-        <Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: '#fff', lineHeight: 1.2 }}>{nome || sigla}</Typography>
-        <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)' }}>{sigla}</Typography>
-      </Box>
-    </Box>
-  </MenuItem>
-);
 
 /**
  * Overlay de cadastro por convite.
@@ -430,7 +419,7 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                       </Grid>
                       <Grid item xs={12} sm={6}>
                         <FormControl fullWidth variant="filled" sx={{ ...inputSx, minWidth: 160 }}>
-                          <InputLabel>{t('preferredCoin')}</InputLabel>
+                          <InputLabel shrink>{t('preferredCoin')}</InputLabel>
                           <Select
                             value={preferencias.siglaMoedaPreferida || ''}
                             onChange={(e) => handlePrefChange('siglaMoedaPreferida', e.target.value)}
@@ -449,14 +438,22 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                           >
                             <MenuItem value=""><em>--</em></MenuItem>
                             {moedas.map((m) => (
-                              <CoinOption key={m.sigla} sigla={m.sigla} nome={m.nome} icone={m.icone} />
+                              <MenuItem key={m.sigla} value={m.sigla}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                  {m.icone ? <img src={m.icone} alt={m.nome || m.sigla} style={{ width: 22, height: 22 }} /> : <MdCurrencyBitcoin size={22} />}
+                                  <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                                    <Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: '#fff', lineHeight: 1.2 }}>{m.nome || m.sigla}</Typography>
+                                    <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)' }}>{m.sigla}</Typography>
+                                  </Box>
+                                </Box>
+                              </MenuItem>
                             ))}
                           </Select>
                         </FormControl>
                       </Grid>
                       <Grid item xs={12} sm={6}>
                         <FormControl fullWidth variant="filled" sx={{ ...inputSx }}>
-                          <InputLabel>{t('riskProfile')}</InputLabel>
+                          <InputLabel shrink>{t('riskProfile')}</InputLabel>
                           <Select
                             value={preferencias.perfilRisco}
                             onChange={(e) => handlePrefChange('perfilRisco', e.target.value)}
@@ -471,7 +468,7 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                       </Grid>
                       <Grid item xs={12} sm={6}>
                         <FormControl fullWidth variant="filled" sx={{ ...inputSx }}>
-                          <InputLabel>{t('algorithmStyle')}</InputLabel>
+                          <InputLabel shrink>{t('algorithmStyle')}</InputLabel>
                           <Select
                             value={preferencias.estiloAlgoritmo}
                             onChange={(e) => handlePrefChange('estiloAlgoritmo', e.target.value)}
