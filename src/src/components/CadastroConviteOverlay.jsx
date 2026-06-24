@@ -30,6 +30,18 @@ import {
   Language,
 } from '../utils/preferences'
 
+const CoinOption = ({ sigla, nome, icone }) => (
+  <MenuItem value={sigla}>
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+      {icone ? <img src={icone} alt={nome || sigla} style={{ width: 22, height: 22 }} /> : <MdCurrencyBitcoin size={22} />}
+      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+        <Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: '#fff', lineHeight: 1.2 }}>{nome || sigla}</Typography>
+        <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)' }}>{sigla}</Typography>
+      </Box>
+    </Box>
+  </MenuItem>
+);
+
 /**
  * Overlay de cadastro por convite.
  * Um usuário autenticado pode cadastrar outra pessoa sem sair da Home.
@@ -37,19 +49,6 @@ import {
  * @param {{ onFechar: () => void }} props
  */
 const CadastroConviteOverlay = ({ onFechar }) => {
-
-  // Component reutilizável para exibir opção de moeda com ícone
-  const CoinOption = ({ sigla, nome, icone }) => (
-    <MenuItem value={sigla}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-        {icone ? <img src={icone} alt={nome || sigla} style={{ width: 22, height: 22 }} /> : <MdCurrencyBitcoin size={22} />}
-        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-          <Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: '#fff', lineHeight: 1.2 }}>{nome || sigla}</Typography>
-          <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)' }}>{sigla}</Typography>
-        </Box>
-      </Box>
-    </MenuItem>
-  );
 
   const { t } = useTranslation()
 
