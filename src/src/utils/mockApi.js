@@ -35,6 +35,26 @@ export const USE_MOCK_API =
   (parseUseMockFlag(resolvedUseMockEnv) ||
    (resolvedUseMockEnv === undefined && resolveIsDevMode()))
 
+// Codifica em base64 usando bytes UTF-8 (simétrico ao decode em authentication.js).
+// btoa() puro trata cada caractere como Latin-1 e corrompe acentos: "á" vira o byte 0xE1,
+// que é UTF-8 inválido e aparece como "�" ao decodificar com TextDecoder.
+const base64FromUtf8 = (str) => {
+  if (typeof Buffer !== 'undefined') {
+    return Buffer.from(str, 'utf-8').toString('base64')
+  }
+
+  if (typeof TextEncoder !== 'undefined' && typeof btoa === 'function') {
+    const bytes = new TextEncoder().encode(str)
+    let bin = ''
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i])
+    return btoa(bin)
+  }
+
+  if (typeof btoa === 'function') return btoa(str)
+
+  return str
+}
+
 const buildMockToken = () => {
   const header = { alg: 'HS256', typ: 'JWT' }
   const payload = {
@@ -43,19 +63,11 @@ const buildMockToken = () => {
     'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress': 'helama@thinkbitcoin.com',
   }
 
-  const encode = (value) => {
-    const json = JSON.stringify(value)
-
-    if (typeof btoa === 'function') {
-      return btoa(json).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
-    }
-
-    if (typeof Buffer !== 'undefined') {
-      return Buffer.from(json).toString('base64url')
-    }
-
-    return json
-  }
+  const encode = (value) =>
+    base64FromUtf8(JSON.stringify(value))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '')
 
   return `${encode(header)}.${encode(payload)}.mock-signature`
 }
@@ -282,7 +294,7 @@ const mockHandlers = [
         'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name': 'Usuário Teste',
         'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress': 'teste@thinkbitcoin.com'
       }
-      const base64Payload = btoa(JSON.stringify(payload))
+      const base64Payload = base64FromUtf8(JSON.stringify(payload))
       return {
         mensagem: 'Token mock gerado com sucesso',
         resultado: { tokenAutenticado: `header.${base64Payload}.signature` },
