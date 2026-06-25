@@ -154,6 +154,19 @@
     "tourPasso5Descricao": "Top 5 countries ranked by asset dominance. Click to filter the carousel.",
     "tourFechar": "Got it!"
   },
+  "dashboardTour": {
+    "passo1Titulo": "Total Net Worth",
+    "passo1Descricao": "Track and manage your consolidated balance in BRL and USD.",
+    "passo2Titulo": "Asset Carousel",
+    "passo2Descricao": "Pick one or more coins to analyze. Click the robot to start an AI debate.",
+    "passo3Titulo": "Filters",
+    "passo3Descricao": "Refine by period, interval and result to focus on the data that matters.",
+    "passo4Titulo": "Charts",
+    "passo4Descricao": "Compare price and variation, switch normalization and expand for detail.",
+    "passo5Titulo": "History",
+    "passo5Descricao": "Browse the filtered operation history and page through results.",
+    "fechar": "Got it!"
+  },
   "patrimonio": {
     "title": "Total Equity",
     "valueBRL": "Balance (BRL)",
@@ -192,9 +205,13 @@
     "free": "Free",
     "active": "ACTIVE",
     "upgrade": "Migrate",
-    "migrateConfirm": "Do you really want to migrate to the plan {{nome}}?",
-    "migrateSuccess": "Plan migrated successfully!",
-    "migrateError": "Failed to migrate plan. Please try again."
-  }
+    "migrateConfirm": "Are you sure you want to upgrade to the {{nome}} plan?",
+    "migrateSuccess": "Plan upgraded successfully!",
+    "migrateError": "Failed to upgrade plan. Please try again."
+  },
+  "taxaFinanciamento": "Funding Rate",
+  "contratosAberto": "Open Interest",
+  "longAccount": "Long Accounts",
+  "longShortRatio": "L/S Ratio",
+  "shortAccount": "Short Accounts"
 }
-

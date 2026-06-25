@@ -12,12 +12,16 @@ import {
   InputLabel,
   InputAdornment,
   IconButton,
+  Checkbox,
+  FormControlLabel,
+  Link,
 } from '@mui/material'
 import Container from '@mui/material/Container'
 import { MdClose, MdBolt, MdAutoGraph, MdShield, MdTranslate, MdPerson, MdSettings } from 'react-icons/md'
 import ErrorMessage from './ErrorMessage'
 import { apiRequest, HttpMethod, UserEndpoint, MarketEndpoint } from '../utils/apiClient'
 import { authenticate } from '../utils/authentication'
+import { useAuth } from '../context/AuthContext'
 import useTranslation from '../hooks/useTranslation'
 import {
   DEFAULT_PREFERENCES,
@@ -27,6 +31,7 @@ import {
   Language,
 } from '../utils/preferences'
 
+
 /**
  * Overlay de cadastro por convite.
  * Um usuário autenticado pode cadastrar outra pessoa sem sair da Home.
@@ -35,20 +40,8 @@ import {
  */
 const CadastroConviteOverlay = ({ onFechar }) => {
 
-  // Component reutilizável para exibir opção de moeda com ícone
-  const CoinOption = ({ sigla, nome, icone }) => (
-    <MenuItem value={sigla}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-        {icone ? <img src={icone} alt={nome || sigla} style={{ width: 22, height: 22 }} /> : <MdCurrencyBitcoin size={22} />}
-        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-          <Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: '#fff', lineHeight: 1.2 }}>{nome || sigla}</Typography>
-          <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)' }}>{sigla}</Typography>
-        </Box>
-      </Box>
-    </MenuItem>
-  );
-
   const { t } = useTranslation()
+  const { token } = useAuth()
 
   const [nome, setNome] = useState('')
   const [email, setEmail] = useState('')
@@ -65,7 +58,10 @@ const CadastroConviteOverlay = ({ onFechar }) => {
   const [erro, setErro] = useState('')
   const [carregando, setCarregando] = useState(false)
   const [sucesso, setSucesso] = useState(false)
+  const [avisoEmail, setAvisoEmail] = useState(false)
   const [visivel, setVisivel] = useState(false)
+  const [aceitouPrivacidade, setAceitouPrivacidade] = useState(false)
+  const [aceitouTermos, setAceitouTermos] = useState(false)
 
   // Animação de entrada
   useEffect(() => {
@@ -130,10 +126,21 @@ const CadastroConviteOverlay = ({ onFechar }) => {
         preferencias: { ...preferencias, dataUltimaInteracaoIA: new Date().toISOString() },
       }
       await apiRequest(UserEndpoint.CREATE, { method: HttpMethod.POST, body: payload })
+
+      try {
+        await apiRequest(UserEndpoint.ENVIAR_BOAS_VINDAS, {
+          method: HttpMethod.POST,
+          headers: { Authorization: `Bearer ${token}` },
+          body: { email, nome, senha },
+        })
+      } catch {
+        setAvisoEmail(true)
+      }
+
       setSucesso(true)
       setTimeout(fecharComAnimacao, 1800)
-    } catch {
-      setErro(t('registerFailed'))
+    } catch (err) {
+      setErro(err?.message || t('registerFailed'))
     } finally {
       setCarregando(false)
     }
@@ -327,7 +334,16 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                 <Typography sx={{ color: 'var(--color-primary)', fontWeight: 700, fontSize: '1.1rem' }}>
                   Cadastro realizado com sucesso!
                 </Typography>
-                <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem', mt: 1 }}>
+                {avisoEmail ? (
+                  <Typography sx={{ color: 'rgba(255,165,0,0.8)', fontSize: '0.8rem', mt: 1 }}>
+                    ⚠ Não foi possível enviar o email de boas-vindas. Informe as credenciais manualmente.
+                  </Typography>
+                ) : (
+                  <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem', mt: 1 }}>
+                    Email de boas-vindas enviado para {email}.
+                  </Typography>
+                )}
+                <Typography sx={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.75rem', mt: 0.5 }}>
                   Fechando automaticamente...
                 </Typography>
               </div>
@@ -426,7 +442,7 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                       </Grid>
                       <Grid item xs={12} sm={6}>
                         <FormControl fullWidth variant="filled" sx={{ ...inputSx, minWidth: 160 }}>
-                          <InputLabel>{t('preferredCoin')}</InputLabel>
+                          <InputLabel shrink>{t('preferredCoin')}</InputLabel>
                           <Select
                             value={preferencias.siglaMoedaPreferida || ''}
                             onChange={(e) => handlePrefChange('siglaMoedaPreferida', e.target.value)}
@@ -445,14 +461,22 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                           >
                             <MenuItem value=""><em>--</em></MenuItem>
                             {moedas.map((m) => (
-                              <CoinOption key={m.sigla} sigla={m.sigla} nome={m.nome} icone={m.icone} />
+                              <MenuItem key={m.sigla} value={m.sigla}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                  {m.icone ? <img src={m.icone} alt={m.nome || m.sigla} style={{ width: 22, height: 22 }} /> : <MdCurrencyBitcoin size={22} />}
+                                  <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                                    <Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: '#fff', lineHeight: 1.2 }}>{m.nome || m.sigla}</Typography>
+                                    <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)' }}>{m.sigla}</Typography>
+                                  </Box>
+                                </Box>
+                              </MenuItem>
                             ))}
                           </Select>
                         </FormControl>
                       </Grid>
                       <Grid item xs={12} sm={6}>
                         <FormControl fullWidth variant="filled" sx={{ ...inputSx }}>
-                          <InputLabel>{t('riskProfile')}</InputLabel>
+                          <InputLabel shrink>{t('riskProfile')}</InputLabel>
                           <Select
                             value={preferencias.perfilRisco}
                             onChange={(e) => handlePrefChange('perfilRisco', e.target.value)}
@@ -467,7 +491,7 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                       </Grid>
                       <Grid item xs={12} sm={6}>
                         <FormControl fullWidth variant="filled" sx={{ ...inputSx }}>
-                          <InputLabel>{t('algorithmStyle')}</InputLabel>
+                          <InputLabel shrink>{t('algorithmStyle')}</InputLabel>
                           <Select
                             value={preferencias.estiloAlgoritmo}
                             onChange={(e) => handlePrefChange('estiloAlgoritmo', e.target.value)}
@@ -484,12 +508,62 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                   </Box>
                 </Box>
 
-                <Box sx={{ mt: 5, pb: 4, display: 'flex', flexDirection: 'column', gap: 2, maxWidth: 640, mx: 'auto', width: '100%' }}>
+                <Box sx={{ mt: 4, pb: 4, display: 'flex', flexDirection: 'column', gap: 1.5, maxWidth: 640, mx: 'auto', width: '100%' }}>
+
+                  {/* Checkboxes de consentimento */}
+                  <Box sx={{
+                    p: 2.5, borderRadius: '14px',
+                    border: '1px solid rgba(255, 215, 0, 0.12)',
+                    background: 'rgba(255, 215, 0, 0.03)',
+                    display: 'flex', flexDirection: 'column', gap: 1,
+                  }}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={aceitouPrivacidade}
+                          onChange={(e) => setAceitouPrivacidade(e.target.checked)}
+                          sx={{ color: 'rgba(255,255,255,0.3)', '&.Mui-checked': { color: 'var(--color-primary)' }, py: 0.5 }}
+                        />
+                      }
+                      label={
+                        <Typography sx={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.55)', lineHeight: 1.4 }}>
+                          Li e concordo com a{' '}
+                          <Link href="https://minerthinkbitcoin.com/privacidade" target="_blank" rel="noopener"
+                            sx={{ color: 'var(--color-primary)', fontWeight: 600, '&:hover': { opacity: 0.8 } }}>
+                            Política de Privacidade
+                          </Link>
+                          {' '}e com o tratamento dos meus dados conforme a LGPD.
+                        </Typography>
+                      }
+                      sx={{ alignItems: 'flex-start', mr: 0 }}
+                    />
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={aceitouTermos}
+                          onChange={(e) => setAceitouTermos(e.target.checked)}
+                          sx={{ color: 'rgba(255,255,255,0.3)', '&.Mui-checked': { color: 'var(--color-primary)' }, py: 0.5 }}
+                        />
+                      }
+                      label={
+                        <Typography sx={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.55)', lineHeight: 1.4 }}>
+                          Li e concordo com os{' '}
+                          <Link href="https://minerthinkbitcoin.com/termos" target="_blank" rel="noopener"
+                            sx={{ color: 'var(--color-primary)', fontWeight: 600, '&:hover': { opacity: 0.8 } }}>
+                            Termos de Uso
+                          </Link>
+                          {' '}da plataforma ThinkBitcoin.
+                        </Typography>
+                      }
+                      sx={{ alignItems: 'flex-start', mr: 0 }}
+                    />
+                  </Box>
+
                   <ErrorMessage message={erro} onClose={() => setErro('')} />
                   <Button
                     variant="contained"
                     type="submit"
-                    disabled={carregando}
+                    disabled={carregando || !aceitouPrivacidade || !aceitouTermos}
                     fullWidth
                     size="large"
                     sx={{
@@ -506,6 +580,10 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                         bgcolor: '#f5cc00',
                         transform: 'translateY(-3px)',
                         boxShadow: '0 15px 40px -10px rgba(255, 215, 0, 0.5)',
+                      },
+                      '&.Mui-disabled': {
+                        bgcolor: 'rgba(255, 215, 0, 0.2)',
+                        color: 'rgba(0,0,0,0.4)',
                       },
                       transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
                     }}

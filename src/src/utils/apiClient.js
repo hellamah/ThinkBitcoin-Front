@@ -19,6 +19,9 @@ export const ApiEndpoint = Object.freeze({
     CREATE: '/ThinkBitcoin/usuariosTB/',
     DELETE: (id) => `/ThinkBitcoin/usuariosTB/${id}`,
     CHANGE_PASSWORD: '/ThinkBitcoin/usuariosTB/AlterarSenha',
+    RECUPERAR_SENHA: '/ThinkBitcoin/usuariosTB/recuperar-senha',
+    REDEFINIR_SENHA: '/ThinkBitcoin/usuariosTB/redefinir-senha',
+    ENVIAR_BOAS_VINDAS: '/ThinkBitcoin/usuariosTB/enviar-boas-vindas',
   }),
   PREFERENCES: Object.freeze({
     ALL: '/ThinkBitcoin/preferencias',
@@ -73,7 +76,8 @@ export const apiRequest = async (
     useCache = false,
     ttl,
     cacheKey,
-    forceRefresh = false
+    forceRefresh = false,
+    suppressAuthRedirect = false,
   } = {}
 ) => {
   const isGet = method === HttpMethod.GET
@@ -102,7 +106,7 @@ export const apiRequest = async (
   )
 
   if (!response.ok) {
-    if (response.status === 401 && typeof window !== 'undefined') {
+    if (response.status === 401 && !suppressAuthRedirect && typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('auth-expired'))
     }
     const error = new Error('Falha na requisição à API')

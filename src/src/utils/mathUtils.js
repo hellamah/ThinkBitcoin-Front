@@ -73,16 +73,49 @@ export const formatCurrency = (value, currency = 'USD') => {
 }
 
 /**
- * Formata um valor numérico para percentual com sinal.
+ * Formata um valor numérico para percentual com ou sem sinal.
  * 
  * @param {number|string} value - Valor percentual (ex: 5.2).
  * @param {number} [precision=2] - Casas decimais.
- * @returns {string} - Valor formatado com sinal (ex: +5.20% ou -1.50%).
+ * @param {boolean} [includeSign=true] - Se deve incluir o sinal de + para positivos.
+ * @returns {string} - Valor formatado (ex: +5.20% ou 5.20%).
  */
-export const formatPercent = (value, precision = 2) => {
+export const formatPercent = (value, precision = 2, includeSign = true) => {
   if (value === null || value === undefined || value === '') return '-'
   const num = Number(value)
   if (isNaN(num)) return '-'
-  const sign = num >= 0 ? '+' : ''
+  const sign = (includeSign && num >= 0) ? '+' : ''
   return `${sign}${num.toFixed(precision)}%`
+}
+
+/**
+ * Formata um número para formato compacto (ex: 1.2K, 2.5M, 1.2B).
+ * 
+ * @param {number|string} value - O número a ser formatado.
+ * @param {number} [precision=2] - Casas decimais.
+ * @returns {string} - O número formatado de forma compacta.
+ */
+export const formatCompact = (value, precision = 2) => {
+  if (value === null || value === undefined || value === '') return '-'
+  const num = Number(value)
+  if (isNaN(num)) return '-'
+  return new Intl.NumberFormat('en-US', {
+    notation: 'compact',
+    compactDisplay: 'short',
+    maximumFractionDigits: precision
+  }).format(num)
+}
+
+/**
+ * Formata um número decimal com precisão fixa.
+ * 
+ * @param {number|string} value - O número a ser formatado.
+ * @param {number} [precision=2] - Casas decimais.
+ * @returns {string} - O número formatado.
+ */
+export const formatNumber = (value, precision = 2) => {
+  if (value === null || value === undefined || value === '') return '-'
+  const num = Number(value)
+  if (isNaN(num)) return '-'
+  return num.toFixed(precision)
 }

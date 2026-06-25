@@ -172,7 +172,8 @@ function Settings() {
           idUsuarioTB: user?.idUsuarioTB,
           senhaAtual: senha.atual,
           novaSenha: senha.nova
-        }
+        },
+        suppressAuthRedirect: true,
       })
       setToast(t('passwordChangedSuccess') || 'Senha alterada com sucesso!')
       setSenha({ atual: '', nova: '', confirma: '' })

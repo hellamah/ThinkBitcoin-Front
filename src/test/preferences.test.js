@@ -16,9 +16,13 @@ import {
   getInitialPreferences,
   getStoredTheme,
   getStoredToken,
+  getTourVisto,
+  getTourHeatmapVisto,
   sanitizePreferences,
   setStoredTheme,
   setStoredToken,
+  setTourVisto,
+  setTourHeatmapVisto,
 } from '../src/utils/preferences'
 
 // Mock robusto de localStorage e window para ambiente node
@@ -118,5 +122,32 @@ describe('utils/preferences › Persistência (LocalStorage)', () => {
     const initial = getInitialPreferences()
     expect(initial.tema).toBe(Theme.LIGHT)
     expect(initial.idioma).toBe(Language.PT) // Padrão pois não estava no storage
+  })
+})
+
+describe('utils/preferences › Tours de onboarding (getTourVisto/setTourVisto)', () => {
+  beforeEach(() => {
+    const mockStorage = criarMockStorage()
+    vi.stubGlobal('window', { localStorage: mockStorage })
+    vi.stubGlobal('localStorage', mockStorage)
+  })
+
+  it('deve retornar false quando o tour da tela ainda não foi visto', () => {
+    expect(getTourVisto('dashboard')).toBe(false)
+  })
+
+  it('deve persistir e recuperar o estado "visto" por tela, com chave isolada', () => {
+    setTourVisto('dashboard')
+    expect(localStorage.setItem).toHaveBeenCalledWith('tb_tour_dashboard_visto', '1')
+    expect(getTourVisto('dashboard')).toBe(true)
+    // Telas diferentes não compartilham o mesmo flag
+    expect(getTourVisto('heatmap')).toBe(false)
+  })
+
+  it('deve manter os wrappers de compatibilidade do Heatmap funcionando', () => {
+    setTourHeatmapVisto()
+    expect(localStorage.setItem).toHaveBeenCalledWith('tb_tour_heatmap_visto', '1')
+    expect(getTourHeatmapVisto()).toBe(true)
+    expect(getTourVisto('heatmap')).toBe(true)
   })
 })

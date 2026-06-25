@@ -155,24 +155,30 @@ export const getInitialPreferences = () =>
   sanitizePreferences({ tema: getStoredTheme() })
 
 // ---------------------------------------------------------------------------
-// Tour do Heatmap
+// Tours de onboarding (react-joyride)
 // ---------------------------------------------------------------------------
-const CHAVE_TOUR_HEATMAP = 'tb_heatmap_tour_visto'
+const chaveTour = (nome) => `tb_tour_${nome}_visto`
 
 /**
- * Retorna true se o usuário já concluiu (ou pulou) o tour de apresentação do Heatmap.
+ * Retorna true se o usuário já concluiu (ou pulou) o tour de onboarding da tela.
+ * @param {string} nome identificador da tela (ex.: 'heatmap', 'dashboard')
  */
-export const getTourHeatmapVisto = () => {
+export const getTourVisto = (nome) => {
   const storage = getStorage()
   if (!storage) return false
-  return storage.getItem(CHAVE_TOUR_HEATMAP) === '1'
+  return storage.getItem(chaveTour(nome)) === '1'
 }
 
 /**
- * Marca o tour do Heatmap como visto para não exibi-lo novamente.
+ * Marca o tour de onboarding da tela como visto para não exibi-lo novamente.
+ * @param {string} nome identificador da tela (ex.: 'heatmap', 'dashboard')
  */
-export const setTourHeatmapVisto = () => {
+export const setTourVisto = (nome) => {
   const storage = getStorage()
   if (!storage) return
-  storage.setItem(CHAVE_TOUR_HEATMAP, '1')
+  storage.setItem(chaveTour(nome), '1')
 }
+
+// Wrappers de compatibilidade para o tour do Heatmap.
+export const getTourHeatmapVisto = () => getTourVisto('heatmap')
+export const setTourHeatmapVisto = () => setTourVisto('heatmap')

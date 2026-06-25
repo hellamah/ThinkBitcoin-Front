@@ -35,6 +35,26 @@ export const USE_MOCK_API =
   (parseUseMockFlag(resolvedUseMockEnv) ||
    (resolvedUseMockEnv === undefined && resolveIsDevMode()))
 
+// Codifica em base64 usando bytes UTF-8 (simétrico ao decode em authentication.js).
+// btoa() puro trata cada caractere como Latin-1 e corrompe acentos: "á" vira o byte 0xE1,
+// que é UTF-8 inválido e aparece como "�" ao decodificar com TextDecoder.
+const base64FromUtf8 = (str) => {
+  if (typeof Buffer !== 'undefined') {
+    return Buffer.from(str, 'utf-8').toString('base64')
+  }
+
+  if (typeof TextEncoder !== 'undefined' && typeof btoa === 'function') {
+    const bytes = new TextEncoder().encode(str)
+    let bin = ''
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i])
+    return btoa(bin)
+  }
+
+  if (typeof btoa === 'function') return btoa(str)
+
+  return str
+}
+
 const buildMockToken = () => {
   const header = { alg: 'HS256', typ: 'JWT' }
   const payload = {
@@ -43,19 +63,11 @@ const buildMockToken = () => {
     'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress': 'helama@thinkbitcoin.com',
   }
 
-  const encode = (value) => {
-    const json = JSON.stringify(value)
-
-    if (typeof btoa === 'function') {
-      return btoa(json).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
-    }
-
-    if (typeof Buffer !== 'undefined') {
-      return Buffer.from(json).toString('base64url')
-    }
-
-    return json
-  }
+  const encode = (value) =>
+    base64FromUtf8(JSON.stringify(value))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '')
 
   return `${encode(header)}.${encode(payload)}.mock-signature`
 }
@@ -123,6 +135,11 @@ const buildCoinValueResponse = (symbol, urlParams) => {
         dominanciaCompradoraPercentual: 60.0,
         dominanciaVendedoraPercentual: 40.0,
         volumeDelta: 30.1,
+        taxaFinanciamento: 0.0005 * (Math.random() > 0.5 ? 1 : -1),
+        contratosAberto: 2000000 + Math.random() * 500000,
+        longShortRatio: 1.0 + Math.random(),
+        longAccount: 0.5 + Math.random() * 0.2,
+        shortAccount: 0.5 - Math.random() * 0.2,
       })
     }
   }
@@ -274,10 +291,10 @@ const mockHandlers = [
       // Cria um payload mock no padrão JWT para o decode da aplicação
       const payload = {
         'idUsuarioTB': 'b282e124-4dd8-4ccd-a9c6-5b6b0c324a50',
-        'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name': 'Helama Teste',
-        'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress': 'ssssssshelamaborges@gmail.com'
+        'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name': 'Usuário Teste',
+        'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress': 'teste@thinkbitcoin.com'
       }
-      const base64Payload = btoa(JSON.stringify(payload))
+      const base64Payload = base64FromUtf8(JSON.stringify(payload))
       return {
         mensagem: 'Token mock gerado com sucesso',
         resultado: { tokenAutenticado: `header.${base64Payload}.signature` },
@@ -291,8 +308,8 @@ const mockHandlers = [
       mensagem: 'Preferências mock retornadas com sucesso',
       resultado: {
         idPreferenciasUsuarioTB: 'b282e124-4dd8-4ccd-a9c6-5b6b0c324a50',
-        nome: 'Helama Teste',
-        email: 'ssssssshelamaborges@gmail.com',
+        nome: 'Usuário Teste',
+        email: 'teste@thinkbitcoin.com',
         tema: 'dark',
         idioma: 'pt',
         notificacoes: true,
@@ -331,7 +348,15 @@ const mockHandlers = [
   {
     method: 'POST',
     match: (endpoint) => endpoint === '/ThinkBitcoin/usuariosTB/',
-    response: () => ({ mensagem: 'Usuário mock cadastrado com sucesso' }),
+    response: (endpoint, body) => {
+      const emailExistente = 'teste@thinkbitcoin.com'
+      if (body?.email?.toLowerCase() === emailExistente.toLowerCase()) {
+        const err = new Error('Este e-mail já está cadastrado na plataforma.')
+        err.status = 409
+        throw err
+      }
+      return { mensagem: 'Usuário mock cadastrado com sucesso' }
+    },
   },
   {
     method: 'GET',

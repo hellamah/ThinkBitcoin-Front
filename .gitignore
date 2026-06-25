@@ -29,12 +29,12 @@ dist-ssr
 /.vs/slnx.sqlite
 /.vs/slnx.sqlite-journal
 /.vs/slnx.sqlite
-src/out_fixed.txt
-src/out.txt
-src/test_result.txt
-src/final_test.txt
-src/test_final.log
-src/test_output.txt
-src/test_results.log
-src/src/out.txt
-src/src/final_test.txt
+
+# Dumps de saída de testes gerados localmente (não versionar)
+out.txt
+out_fixed.txt
+final_test.txt
+test_result.txt
+test_results.log
+test_output.txt
+test_final.log

@@ -575,32 +575,39 @@ export default function GeoHeatmapView() {
   // ---------------------------------------------------------------------------
   // Tour Onboarding (react-joyride)
   // ---------------------------------------------------------------------------
+  // Nota: na react-joyride v3 a prop é `skipBeacon` (a v2 usava `disableBeacon`).
+  // Sem ela, o primeiro passo renderiza um beacon estático no DOM em vez de abrir
+  // o tooltip direto, deixando um ponto "preso" na tela até o tour ser concluído.
   const passosTour = useMemo(() => [
     {
       target: '[data-tour="carrossel"]',
       title: t('heatmap.tourPasso1Titulo') || 'Carrossel de Ativos',
       content: t('heatmap.tourPasso1Descricao') || 'Selecione o ativo que deseja visualizar.',
-      disableBeacon: true,
+      skipBeacon: true,
     },
     {
       target: '[data-tour="intervalos"]',
       title: t('heatmap.tourPasso2Titulo') || 'Filtro de Intervalo',
       content: t('heatmap.tourPasso2Descricao') || 'Alterne entre 1H, 1D e 1M.',
+      skipBeacon: true,
     },
     {
       target: '[data-tour="acoes-topo"]',
       title: t('heatmap.tourPasso3Titulo') || 'Exportar e Compartilhar',
       content: t('heatmap.tourPasso3Descricao') || 'Baixe os dados ou compartilhe o link.',
+      skipBeacon: true,
     },
     {
       target: '[data-tour="zoom"]',
       title: t('heatmap.tourPasso4Titulo') || 'Zoom Geográfico',
       content: t('heatmap.tourPasso4Descricao') || 'Clique em uma região para dar zoom.',
+      skipBeacon: true,
     },
     {
       target: '[data-tour="inteligencia"]',
       title: t('heatmap.tourPasso5Titulo') || 'Central de Inteligência',
       content: t('heatmap.tourPasso5Descricao') || 'Top 5 países. Clique para filtrar o carrossel.',
+      skipBeacon: true,
     },
   ], [])
 
@@ -648,14 +655,16 @@ export default function GeoHeatmapView() {
         .react-joyride__tooltip button { font-family: 'Outfit', sans-serif !important; }
       `}} />
 
-      {/* Tour Onboarding */}
+      {/* Tour Onboarding — montado apenas enquanto roda para não deixar
+          o portal/beacon residual da react-joyride no DOM. */}
+      {tourRodando && (
       <Joyride
         steps={passosTour}
         run={tourRodando}
         continuous
         showSkipButton
         showProgress
-        callback={handleTourCallback}
+        onEvent={handleTourCallback}
         locale={{
           back: 'Voltar',
           close: t('heatmap.tourFechar') || 'Entendi!',
@@ -677,6 +686,7 @@ export default function GeoHeatmapView() {
           buttonSkip: { color: 'rgba(255,255,255,0.4)', fontSize: '0.78rem' },
         }}
       />
+      )}
 
       {/* Notificações (snackbar) */}
       <Snackbar

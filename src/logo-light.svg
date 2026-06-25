@@ -1,32 +1,28 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="300" height="80" viewBox="0 0 300 80" fill="none">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@200;800&amp;display=swap');
-        .logo-text { font-family: 'Outfit', sans-serif; transition: all 0.3s ease; }
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;800&amp;display=swap');
+        .logo-text { font-family: 'Outfit', 'Segoe UI', system-ui, sans-serif; }
     </style>
-    <defs>
-        <linearGradient id="gold-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#D4AF37" />
-            <stop offset="50%" stop-color="#F9E076" />
-            <stop offset="100%" stop-color="#8E6E2E" />
-        </linearGradient>
-    </defs>
-    
-    <!-- Robust Geometric Icon -->
-    <g transform="translate(15, 15)">
-        <!-- Outer Golden Circle -->
-        <circle cx="25" cy="25" r="23" stroke="url(#gold-grad)" stroke-width="2.5" />
-        
-        <!-- Clean B Symbol -->
-        <path d="M22 13V37M22 13C28 13 32 16 32 20C32 24 28 25 22 25C28 25 32 26 32 30C32 34 28 37 22 37M20 9V13M24 9V13M20 37V41M24 37V41" 
-              stroke="url(#gold-grad)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />
-        
-        <!-- Subtle connection dots (representing "Think") -->
-        <circle cx="25" cy="2" r="2" fill="url(#gold-grad)" />
-        <circle cx="25" cy="48" r="2" fill="url(#gold-grad)" />
+
+    <!-- Trading lab mark: erlenmeyer flask inside a hexagon, with a rising trend -->
+    <g>
+        <polygon points="27,17.5 53,17.5 66,40 53,62.5 27,62.5 14,40"
+                 fill="none" stroke="#FFD700" stroke-width="2.5" stroke-linejoin="round" />
+
+        <!-- Flask -->
+        <path d="M36 24 L36 35 L26 54 Q25 56.5 27.5 56.5 L52.5 56.5 Q55 56.5 54 54 L44 35 L44 24"
+              fill="none" stroke="#FFD700" stroke-width="2.4" stroke-linejoin="round" />
+        <line x1="33" y1="24" x2="47" y2="24" stroke="#FFD700" stroke-width="2.4" stroke-linecap="round" />
+
+        <!-- Rising trend (the trade) -->
+        <polyline points="30,52 35,47 39,49 45,41"
+                  fill="none" stroke="#27c07a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M42 41 L45.5 40.8 L44.8 44"
+              fill="none" stroke="#27c07a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
     </g>
-    
-    <!-- Approved Typography -->
-    <text x="80" y="52" class="logo-text" fill="white" font-size="34" letter-spacing="-1.2">
-        <tspan font-weight="200" opacity="0.8">Think</tspan><tspan font-weight="900">Bitcoin</tspan>
+
+    <!-- Wordmark -->
+    <text x="82" y="52" class="logo-text" font-size="32" letter-spacing="-1">
+        <tspan font-weight="300" fill="#C9B782">Think</tspan><tspan font-weight="800" fill="#FFD700">Bitcoin</tspan>
     </text>
 </svg>

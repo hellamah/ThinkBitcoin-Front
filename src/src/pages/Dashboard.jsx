@@ -13,6 +13,7 @@ import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
 import useMediaQuery from '@mui/material/useMediaQuery'
+import { Joyride, STATUS } from 'react-joyride'
 
 import { useAuth } from '../context/AuthContext'
 import { useDashboard } from '../context/DashboardContext'
@@ -22,6 +23,7 @@ import useCoinPrices from '../hooks/useCoinPrices'
 import useDashboardData from '../hooks/useDashboardData'
 import useDashboardCharts from '../hooks/useDashboardCharts'
 import * as mathUtils from '../utils/mathUtils'
+import { getTourVisto, setTourVisto } from '../utils/preferences'
 
 // Sub-componentes Refatorados
 import DashboardHeader from '../components/dashboard/DashboardHeader'
@@ -74,6 +76,60 @@ export default function Dashboard() {
   const [currentCorrelationId, setCurrentCorrelationId] = useState(null)
 
   const hasInitializedPref = useRef(false)
+
+  // ------ tour onboarding (react-joyride v3) ------
+  const [tourRodando, setTourRodando] = useState(false)
+
+  // Nota: na react-joyride v3 a prop é `skipBeacon` (não `disableBeacon`) e o
+  // handler é `onEvent` (não `callback`). Sem isso o primeiro passo abre um
+  // beacon estático preso na tela e o tour nunca é marcado como visto.
+  const passosTour = useMemo(() => [
+    {
+      target: '[data-tour="dash-patrimonio"]',
+      title: t('dashboardTour.passo1Titulo') || 'Patrimônio Total',
+      content: t('dashboardTour.passo1Descricao') || 'Acompanhe e gerencie seu saldo consolidado.',
+      skipBeacon: true,
+    },
+    {
+      target: '[data-tour="dash-carrossel"]',
+      title: t('dashboardTour.passo2Titulo') || 'Carrossel de Ativos',
+      content: t('dashboardTour.passo2Descricao') || 'Selecione moedas para analisar e inicie um debate com a IA.',
+      skipBeacon: true,
+    },
+    {
+      target: '[data-tour="dash-filtros"]',
+      title: t('dashboardTour.passo3Titulo') || 'Filtros',
+      content: t('dashboardTour.passo3Descricao') || 'Refine por período, intervalo e resultado.',
+      skipBeacon: true,
+    },
+    {
+      target: '[data-tour="dash-graficos"]',
+      title: t('dashboardTour.passo4Titulo') || 'Gráficos',
+      content: t('dashboardTour.passo4Descricao') || 'Compare preço e variação e expanda para ver em detalhe.',
+      skipBeacon: true,
+    },
+    {
+      target: '[data-tour="dash-historico"]',
+      title: t('dashboardTour.passo5Titulo') || 'Histórico',
+      content: t('dashboardTour.passo5Descricao') || 'Veja o histórico de operações filtrado.',
+      skipBeacon: true,
+    },
+  ], [t])
+
+  // Inicia o tour automaticamente na primeira visita, após os dados carregarem.
+  useEffect(() => {
+    if (!token || getTourVisto('dashboard') || !moedasCarousel?.length) return
+    const timer = setTimeout(() => setTourRodando(true), 800)
+    return () => clearTimeout(timer)
+  }, [token, moedasCarousel])
+
+  const handleTourCallback = (data) => {
+    const { status } = data
+    if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
+      setTourRodando(false)
+      setTourVisto('dashboard')
+    }
+  }
 
   // Fechar modal com a tecla Esc
   useEffect(() => {
@@ -257,9 +313,52 @@ export default function Dashboard() {
   try {
     return (
       <div className="dashboard-container">
+        {/* Tour onboarding — montado apenas enquanto roda para não deixar
+            o portal/beacon residual da react-joyride no DOM. */}
+        {tourRodando && (
+          <Joyride
+            steps={passosTour}
+            run={tourRodando}
+            continuous
+            showSkipButton
+            showProgress
+            onEvent={handleTourCallback}
+            locale={{
+              back: 'Voltar',
+              close: t('dashboardTour.fechar') || 'Entendi!',
+              last: t('dashboardTour.fechar') || 'Entendi!',
+              next: 'Próximo',
+              skip: 'Pular',
+            }}
+            styles={{
+              options: {
+                primaryColor: '#ffd700',
+                textColor: '#fff',
+                backgroundColor: 'rgba(15,15,15,0.97)',
+                arrowColor: 'rgba(15,15,15,0.97)',
+                zIndex: 9999,
+              },
+              tooltip: {
+                background: 'rgba(15,15,15,0.97)',
+                border: '1px solid rgba(255,215,0,0.35)',
+                borderRadius: 16,
+                color: '#fff',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.8)',
+              },
+              tooltipTitle: { color: '#ffd700', fontWeight: 800, fontSize: '1rem' },
+              tooltipContent: { color: 'rgba(255,255,255,0.8)', fontSize: '0.88rem' },
+              buttonNext: { background: '#ffd700', color: '#000', fontWeight: 700, borderRadius: '8px' },
+              buttonBack: { color: 'rgba(255,255,255,0.6)' },
+              buttonSkip: { color: 'rgba(255,255,255,0.4)', fontSize: '0.78rem' },
+            }}
+          />
+        )}
+
         <DashboardHeader t={t} prefs={prefs} usuario={usuario} />
 
-        <PatrimonioCard token={token} user={usuario} />
+        <div data-tour="dash-patrimonio">
+          <PatrimonioCard token={token} user={usuario} />
+        </div>
 
         <ErrorMessage message={erro} onClose={() => setErro('')} />
 
@@ -273,18 +372,23 @@ export default function Dashboard() {
           />
         )}
 
-        <CoinCarousel 
-          moedasCarousel={moedasCarousel}
-          moedasFiltro={moedasFiltro}
-          selecionarMoeda={selecionarMoeda}
-          handleDebateTrigger={handleDebateTrigger}
-          t={t}
-          isMobile={isMobile}
-        />
+        <div data-tour="dash-carrossel">
+          <CoinCarousel
+            moedasCarousel={moedasCarousel}
+            moedasFiltro={moedasFiltro}
+            selecionarMoeda={selecionarMoeda}
+            handleDebateTrigger={handleDebateTrigger}
+            t={t}
+            isMobile={isMobile}
+          />
+        </div>
 
-        <DashboardFilters t={t} />
+        <div data-tour="dash-filtros">
+          <DashboardFilters t={t} />
+        </div>
 
-        <DashboardCharts 
+        <div data-tour="dash-graficos">
+        <DashboardCharts
           multiMoeda={chartConfig.multiMoeda}
           normalizacao={normalizacao}
           setNormalizacao={setNormalizacao}
@@ -299,20 +403,23 @@ export default function Dashboard() {
           trendAtual={trendAtual}
           t={t}
         />
+        </div>
 
         {moedasFiltro.length === 1 && trendAtual && (
           <IntelligencePanel trendAtual={trendAtual} t={t} />
         )}
 
-        <HistoryTable 
-          historicoMoeda={historicoMoeda}
-          historicoFiltrado={historicoFiltrado}
-          moedasFiltro={moedasFiltro}
-          totalPaginas={totalPaginas}
-          pagina={pagina}
-          setPagina={setPagina}
-          t={t}
-        />
+        <div data-tour="dash-historico">
+          <HistoryTable
+            historicoMoeda={historicoMoeda}
+            historicoFiltrado={historicoFiltrado}
+            moedasFiltro={moedasFiltro}
+            totalPaginas={totalPaginas}
+            pagina={pagina}
+            setPagina={setPagina}
+            t={t}
+          />
+        </div>
       </div>
     )
   } catch (err) {

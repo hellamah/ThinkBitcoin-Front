@@ -46,7 +46,7 @@ Mesmo com backend privado, a experiência visual do produto pode ser avaliada po
   - Evolução de UX, gráficos e performance.
 
 ## Pré-requisitos
-- Node.js 18 ou superior.
+- Node.js 20.19 ou superior (exigido pelo Vite 7).
 - npm 10 ou superior.
 
 ## Instalação (A partir da raiz do projeto)

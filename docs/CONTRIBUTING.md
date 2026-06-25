@@ -5,7 +5,7 @@ Obrigado por querer contribuir com o ThinkBitcoin-Front. Este documento define o
 ## 1) Como rodar localmente (A partir da raiz do projeto)
 
 ### Pré-requisitos
-- Node.js 18+
+- Node.js 20.19+ (exigido pelo Vite 7)
 - npm 10+
 
 ### Setup rápido

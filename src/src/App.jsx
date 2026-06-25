@@ -7,15 +7,16 @@ import Settings from './pages/Settings.jsx'
 import GeoHeatmapView from './pages/GeoHeatmapView.jsx'
 import Layout from './components/Layout.jsx'
 import { DashboardProvider } from './context/DashboardContext.jsx'
+import RedefinirSenha from './pages/RedefinirSenha.jsx'
 
 function App() {
-
   return (
     <DashboardProvider>
       <Layout>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/redefinir-senha" element={<RedefinirSenha />} />
           <Route
             path="/dashboard"
             element={

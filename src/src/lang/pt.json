@@ -154,6 +154,19 @@
     "tourPasso5Descricao": "Ranking dos top 5 países por dominância do ativo. Clique para filtrar o carrossel.",
     "tourFechar": "Entendi!"
   },
+  "dashboardTour": {
+    "passo1Titulo": "Patrimônio Total",
+    "passo1Descricao": "Acompanhe e gerencie seu saldo consolidado em BRL e USD.",
+    "passo2Titulo": "Carrossel de Ativos",
+    "passo2Descricao": "Selecione uma ou mais moedas para analisar. Clique no robô para iniciar um debate com a IA.",
+    "passo3Titulo": "Filtros",
+    "passo3Descricao": "Refine por período, intervalo e resultado para focar nos dados que importam.",
+    "passo4Titulo": "Gráficos",
+    "passo4Descricao": "Compare preço e variação, troque a normalização e expanda para ver em detalhe.",
+    "passo5Titulo": "Histórico",
+    "passo5Descricao": "Veja o histórico de operações filtrado e navegue pelas páginas.",
+    "fechar": "Entendi!"
+  },
   "patrimonio": {
     "title": "Patrimônio Total",
     "valueBRL": "Saldo (BRL)",
@@ -195,6 +208,11 @@
     "migrateConfirm": "Deseja realmente migrar para o plano {{nome}}?",
     "migrateSuccess": "Plano migrado com sucesso!",
     "migrateError": "Falha ao migrar plano. Tente novamente."
-  }
+  },
+  "taxaFinanciamento": "Taxa de Financiamento",
+  "contratosAberto": "Contratos em Aberto",
+  "longAccount": "Contas Long",
+  "longShortRatio": "L/S Ratio",
+  "shortAccount": "Contas Short"
 }
 
