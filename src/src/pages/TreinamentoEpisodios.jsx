@@ -774,7 +774,8 @@ function ListView({ items, resumo, serie, loading, error, onRefresh, onOpen, sel
   const pageItems = sorted.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
 
   return (
-    <Box sx={{ p: { xs: 2, md: 4 }, color: 'white' }}>
+    <div className="dashboard-container">
+      <Box sx={{ p: { xs: 2, md: 4 }, color: 'white' }}>
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3, flexWrap: 'wrap', gap: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -1099,7 +1100,8 @@ function ListView({ items, resumo, serie, loading, error, onRefresh, onOpen, sel
           </Paper>
         </>
       )}
-    </Box>
+      </Box>
+    </div>
   )
 }
 
@@ -1142,7 +1144,8 @@ function DetailView({ item, onBack }) {
   ]
 
   return (
-    <Box sx={{ p: { xs: 2, md: 4 }, color: 'white' }}>
+    <div className="dashboard-container">
+      <Box sx={{ p: { xs: 2, md: 4 }, color: 'white' }}>
       <Button startIcon={<MdArrowBack />} onClick={onBack} sx={{ color: 'white', mb: 2 }}>Voltar</Button>
       <Typography variant="h5" sx={{ mb: 1, fontWeight: 700 }}>Episódio #{item.episodio}</Typography>
       <Typography variant="body2" sx={{ mb: 3, opacity: 0.7 }}>
@@ -1179,7 +1182,8 @@ function DetailView({ item, onBack }) {
           </ChartCard>
         </Grid>
       </Grid>
-    </Box>
+      </Box>
+    </div>
   )
 }
 
