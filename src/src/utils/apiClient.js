@@ -51,6 +51,9 @@ export const ApiEndpoint = Object.freeze({
     LIST: '/ThinkBitcoin/planos-pagamento',
     MIGRATE: '/ThinkBitcoin/planos-pagamento/migrar',
   }),
+  TREINAMENTO_EPISODIO: Object.freeze({
+    LIST: '/api/TreinamentoEpisodio',
+  }),
 })
 
 const JSON_HEADERS = Object.freeze({ 'Content-Type': 'application/json' })
@@ -132,3 +135,4 @@ export const CargoEndpoint = ApiEndpoint.CARGO
 export const VariavelExternaEndpoint = ApiEndpoint.VARIAVEL_EXTERNA
 export const PatrimonioEndpoint = ApiEndpoint.PATRIMONIO
 export const PlanosPagamentoEndpoint = ApiEndpoint.PLANOS_PAGAMENTO
+export const TreinamentoEpisodioEndpoint = ApiEndpoint.TREINAMENTO_EPISODIO

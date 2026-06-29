@@ -27,7 +27,8 @@
     "settings": "Settings",
     "login": "Login",
     "logout": "Logout",
-    "heatmap": "Geopolitics"
+    "heatmap": "Geopolitics",
+    "training": "AI Training"
   },
   "dashboard": "Dashboard",
   "sequence": "Return Sequence",

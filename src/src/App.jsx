@@ -5,6 +5,7 @@ import Login from './pages/Login.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import Settings from './pages/Settings.jsx'
 import GeoHeatmapView from './pages/GeoHeatmapView.jsx'
+import TreinamentoEpisodios from './pages/TreinamentoEpisodios.jsx'
 import Layout from './components/Layout.jsx'
 import { DashboardProvider } from './context/DashboardContext.jsx'
 import RedefinirSenha from './pages/RedefinirSenha.jsx'
@@ -30,6 +31,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <Settings />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/treinamento-episodios"
+            element={
+              <ProtectedRoute>
+                <TreinamentoEpisodios />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/treinamento-episodios/:id"
+            element={
+              <ProtectedRoute>
+                <TreinamentoEpisodios />
               </ProtectedRoute>
             }
           />
