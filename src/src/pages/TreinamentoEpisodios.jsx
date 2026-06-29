@@ -179,6 +179,95 @@ function ZoomableChartCard({ title, subtitle, height, ChartComp, data, options, 
   )
 }
 
+function EvolucaoCard({ items, onSelectCoin }) {
+  if (!items || items.length === 0) return null
+  const sorted = [...items].sort((a, b) => (b.episodios ?? 0) - (a.episodios ?? 0))
+  return (
+    <Paper sx={{
+      p: 2.5,
+      background: CHART_BG,
+      border: `1px solid ${CHART_BORDER}`,
+      backdropFilter: 'blur(10px)',
+      color: 'white',
+    }}>
+      <Box sx={{ mb: 1.5 }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Evolução desde o início</Typography>
+        <Typography variant="caption" sx={{ opacity: 0.6 }}>
+          Comparativo entre o primeiro episódio registrado e o atual, por moeda · clique para filtrar
+        </Typography>
+      </Box>
+      <TableContainer>
+        <Table size="small" sx={{ '& td, & th': { color: 'white', borderColor: 'rgba(255,255,255,0.08)' } }}>
+          <TableHead>
+            <TableRow>
+              <TableCell>Moeda</TableCell>
+              <TableCell align="right">Episódios</TableCell>
+              <TableCell align="right">Reward inicial → atual</TableCell>
+              <TableCell align="right">Win rate inicial → atual</TableCell>
+              <TableCell align="right">Loss médio</TableCell>
+              <TableCell align="right">Última atualização</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {sorted.map((r) => {
+              const rewardDelta = (r.rewardAtual ?? 0) - (r.rewardInicial ?? 0)
+              const wrDelta = (r.winRateAtual ?? 0) - (r.winRateInicial ?? 0)
+              const rewardColor = rewardDelta >= 0 ? '#14F195' : '#FF5C7C'
+              const wrColor = wrDelta >= 0 ? '#14F195' : '#FF5C7C'
+              return (
+                <TableRow
+                  key={r.moeda}
+                  hover
+                  onClick={() => onSelectCoin?.(r.moeda)}
+                  sx={{ cursor: 'pointer', '&:hover': { background: 'rgba(255,255,255,0.06)' } }}
+                >
+                  <TableCell>
+                    <Chip
+                      label={r.moeda}
+                      size="small"
+                      sx={{
+                        background: (COIN_COLORS[r.moeda] || '#888') + '33',
+                        color: COIN_COLORS[r.moeda] || 'white',
+                        border: `1px solid ${(COIN_COLORS[r.moeda] || '#888')}66`,
+                        fontWeight: 600,
+                      }}
+                    />
+                  </TableCell>
+                  <TableCell align="right">{r.episodios}</TableCell>
+                  <TableCell align="right">
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 1 }}>
+                      <Typography variant="caption" sx={{ opacity: 0.6 }}>{formatNumber(r.rewardInicial, 3)}</Typography>
+                      <Typography variant="caption" sx={{ opacity: 0.4 }}>→</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{formatNumber(r.rewardAtual, 3)}</Typography>
+                      <Typography variant="caption" sx={{ color: rewardColor, fontWeight: 700, minWidth: 56, textAlign: 'right' }}>
+                        {rewardDelta >= 0 ? '+' : ''}{formatNumber(rewardDelta, 3)}
+                      </Typography>
+                    </Box>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 1 }}>
+                      <Typography variant="caption" sx={{ opacity: 0.6 }}>{formatPercent(r.winRateInicial)}</Typography>
+                      <Typography variant="caption" sx={{ opacity: 0.4 }}>→</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{formatPercent(r.winRateAtual)}</Typography>
+                      <Typography variant="caption" sx={{ color: wrColor, fontWeight: 700, minWidth: 56, textAlign: 'right' }}>
+                        {wrDelta >= 0 ? '+' : ''}{(wrDelta * 100).toFixed(2)}pp
+                      </Typography>
+                    </Box>
+                  </TableCell>
+                  <TableCell align="right">{formatNumber(r.lossMedio, 2)}</TableCell>
+                  <TableCell align="right">
+                    <Typography variant="caption" sx={{ opacity: 0.7 }}>{formatDate(r.dataHoraAtual)}</Typography>
+                  </TableCell>
+                </TableRow>
+              )
+            })}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Paper>
+  )
+}
+
 function TopEpisodiosCard({ title, subtitle, items, accent, onOpen }) {
   return (
     <Paper sx={{
@@ -263,20 +352,26 @@ function ChartCard({ title, subtitle, children, height = { xs: 280, md: 320 }, a
   )
 }
 
-function ListView({ items, loading, error, onRefresh, onOpen }) {
+function ListView({ items, resumo, serie, loading, error, onRefresh, onOpen, selectedCoins, setSelectedCoins }) {
   const [orderBy, setOrderBy] = useState('episodio')
   const [order, setOrder] = useState('desc')
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(25)
-  const [selectedCoins, setSelectedCoins] = useState([])
 
+  // Lista de moedas para o filtro vem do RESUMO (fonte de verdade global,
+  // independente do filtro server-side atual). Cai pra items se resumo vazio.
   const coinsDisponiveis = useMemo(() => {
+    if (resumo && resumo.length > 0) {
+      return resumo.map((r) => r.moeda).filter(Boolean).sort()
+    }
     const set = new Set(items.map((i) => i.moeda).filter(Boolean))
     return Array.from(set).sort()
-  }, [items])
+  }, [items, resumo])
 
+  // Quando exatamente 1 moeda está selecionada, o servidor já devolveu só ela.
+  // Caso contrário (0 ou >1), filtramos client-side.
   const filtered = useMemo(() => {
-    if (selectedCoins.length === 0) return items
+    if (selectedCoins.length <= 1) return items
     return items.filter((i) => selectedCoins.includes(i.moeda))
   }, [items, selectedCoins])
 
@@ -320,12 +415,35 @@ function ListView({ items, loading, error, onRefresh, onOpen }) {
 
   // Labels mostram "#ep" mas como pode haver duplicação entre ciclos,
   // o tooltip vai diferenciar pelo dataset/contexto.
-  const labels = timeline.map((r, i) => `#${r.episodio}`)
-  const rewardSeries = timeline.map((r) => r.rewardMedio ?? 0)
-  const rewardMA = movingAverage(rewardSeries, 5)
-  const lossSeries = timeline.map((r) => r.lossMedia ?? 0)
-  const epsilonSeries = timeline.map((r) => r.epsilon ?? 0)
-  const winRateSeries = timeline.map((r) => (r.winRate ?? 0) * 100)
+  const moedaServerFilter = selectedCoins.length === 1 ? selectedCoins[0] : null
+
+  // Se /serie está disponível (1 moeda), usamos os dados suavizados do backend
+  // como fonte primária para as séries. Caso contrário, derivamos de timeline.
+  const usingSerie = Array.isArray(serie) && serie.length > 0
+  const serieSorted = useMemo(() => {
+    if (!usingSerie) return []
+    return [...serie].sort((a, b) => new Date(a.dataHora).getTime() - new Date(b.dataHora).getTime())
+  }, [serie, usingSerie])
+
+  const labels = usingSerie
+    ? serieSorted.map((r) => `#${r.episodio}`)
+    : timeline.map((r) => `#${r.episodio}`)
+  const rewardSeries = usingSerie
+    ? serieSorted.map((r) => r.rewardMedio ?? 0)
+    : timeline.map((r) => r.rewardMedio ?? 0)
+  // Backend já calcula a média móvel; quando não temos serie, calculamos client-side
+  const rewardMA = usingSerie
+    ? serieSorted.map((r) => r.rewardMedioMediaMovel ?? r.rewardMedio ?? 0)
+    : movingAverage(rewardSeries, 5)
+  const lossSeries = usingSerie
+    ? serieSorted.map((r) => r.lossMedia ?? 0)
+    : timeline.map((r) => r.lossMedia ?? 0)
+  const epsilonSeries = usingSerie
+    ? serieSorted.map((r) => r.epsilon ?? 0)
+    : timeline.map((r) => r.epsilon ?? 0)
+  const winRateSeries = usingSerie
+    ? serieSorted.map((r) => (r.winRateMediaMovel ?? r.winRate ?? 0) * 100)
+    : timeline.map((r) => (r.winRate ?? 0) * 100)
 
   const rewardData = {
     labels,
@@ -738,6 +856,16 @@ function ListView({ items, loading, error, onRefresh, onOpen }) {
             </Grid>
           </Grid>
 
+          {/* Evolução desde o início (vem do /resumo) */}
+          {resumo && resumo.length > 0 && (
+            <Box sx={{ mb: 3 }}>
+              <EvolucaoCard
+                items={resumo}
+                onSelectCoin={(coin) => setSelectedCoins([coin])}
+              />
+            </Box>
+          )}
+
           {/* Gráficos */}
           <Box sx={{ mb: 2 }}>
             <ZoomableChartCard
@@ -796,7 +924,9 @@ function ListView({ items, loading, error, onRefresh, onOpen }) {
             <Grid size={{ xs: 12, md: 6 }}>
               <ZoomableChartCard
                 title="Curva de aprendizado"
-                subtitle="Reward médio por episódio + média móvel (5) · arraste/scroll"
+                subtitle={usingSerie
+                  ? `Suavização do backend (janela 5) para ${moedaServerFilter} · arraste/scroll`
+                  : 'Reward médio por episódio + média móvel (5) · arraste/scroll'}
                 ChartComp={Line}
                 data={rewardData}
                 options={baseChartOptions()}
@@ -1057,23 +1187,69 @@ export default function TreinamentoEpisodios() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [items, setItems] = useState([])
+  const [resumo, setResumo] = useState([])
+  const [serie, setSerie] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [selectedCoins, setSelectedCoins] = useState([])
+  const [refreshKey, setRefreshKey] = useState(0)
 
-  const load = async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const data = await apiRequest(TreinamentoEpisodioEndpoint.LIST)
-      setItems(Array.isArray(data?.resultado) ? data.resultado : (Array.isArray(data) ? data : []))
-    } catch (e) {
-      setError(e?.message || 'Falha ao carregar episódios')
-    } finally {
-      setLoading(false)
+  // Filtro server-side só quando exatamente 1 moeda está selecionada.
+  // 0 ou >1 → fetch all e filtramos no client (multi-seleção).
+  const moedaServerFilter = selectedCoins.length === 1 ? selectedCoins[0] : null
+
+  // Carrega LIST + RESUMO em paralelo. Refetcha quando moedaServerFilter muda.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    let canceled = false
+    const load = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const [listResp, resumoResp] = await Promise.all([
+          apiRequest(TreinamentoEpisodioEndpoint.LIST({ moeda: moedaServerFilter || undefined })),
+          apiRequest(TreinamentoEpisodioEndpoint.RESUMO()),
+        ])
+        if (canceled) return
+        const list = Array.isArray(listResp?.resultado)
+          ? listResp.resultado
+          : (Array.isArray(listResp) ? listResp : [])
+        const res = Array.isArray(resumoResp?.resultado)
+          ? resumoResp.resultado
+          : (Array.isArray(resumoResp) ? resumoResp : [])
+        setItems(list)
+        setResumo(res)
+      } catch (e) {
+        if (!canceled) setError(e?.message || 'Falha ao carregar episódios')
+      } finally {
+        if (!canceled) setLoading(false)
+      }
     }
-  }
+    load()
+    return () => { canceled = true }
+  }, [moedaServerFilter, refreshKey])
 
-  useEffect(() => { load() }, [])
+  // /serie só faz sentido com 1 moeda. Cancela quando muda.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!moedaServerFilter) {
+      setSerie(null)
+      return
+    }
+    let canceled = false
+    apiRequest(TreinamentoEpisodioEndpoint.SERIE({ moeda: moedaServerFilter, janela: 5 }))
+      .then((resp) => {
+        if (canceled) return
+        const data = Array.isArray(resp?.resultado)
+          ? resp.resultado
+          : (Array.isArray(resp) ? resp : [])
+        setSerie(data)
+      })
+      .catch(() => { if (!canceled) setSerie(null) })
+    return () => { canceled = true }
+  }, [moedaServerFilter, refreshKey])
+
+  const refresh = () => setRefreshKey((k) => k + 1)
 
   if (id) {
     const item = items.find((i) => i.idTreinamentoEpisodio === id)
@@ -1090,10 +1266,14 @@ export default function TreinamentoEpisodios() {
   return (
     <ListView
       items={items}
+      resumo={resumo}
+      serie={serie}
       loading={loading}
       error={error}
-      onRefresh={load}
+      onRefresh={refresh}
       onOpen={(rowId) => navigate(`/treinamento-episodios/${rowId}`)}
+      selectedCoins={selectedCoins}
+      setSelectedCoins={setSelectedCoins}
     />
   )
 }

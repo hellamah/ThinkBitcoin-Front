@@ -52,7 +52,26 @@ export const ApiEndpoint = Object.freeze({
     MIGRATE: '/ThinkBitcoin/planos-pagamento/migrar',
   }),
   TREINAMENTO_EPISODIO: Object.freeze({
-    LIST: '/api/TreinamentoEpisodio',
+    LIST: ({ moeda, limite } = {}) => {
+      const params = new URLSearchParams()
+      if (moeda) params.set('moeda', moeda)
+      if (limite != null) params.set('limite', String(limite))
+      const qs = params.toString()
+      return qs ? `/api/TreinamentoEpisodio?${qs}` : '/api/TreinamentoEpisodio'
+    },
+    RESUMO: ({ moeda } = {}) => {
+      const params = new URLSearchParams()
+      if (moeda) params.set('moeda', moeda)
+      const qs = params.toString()
+      return qs ? `/api/TreinamentoEpisodio/resumo?${qs}` : '/api/TreinamentoEpisodio/resumo'
+    },
+    SERIE: ({ moeda, janela, limite }) => {
+      const params = new URLSearchParams()
+      params.set('moeda', moeda)
+      if (janela != null) params.set('janela', String(janela))
+      if (limite != null) params.set('limite', String(limite))
+      return `/api/TreinamentoEpisodio/serie?${params.toString()}`
+    },
   }),
 })
 
