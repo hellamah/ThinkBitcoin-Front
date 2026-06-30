@@ -52,6 +52,7 @@ export const ApiEndpoint = Object.freeze({
     MIGRATE: '/ThinkBitcoin/planos-pagamento/migrar',
   }),
   TREINAMENTO_EPISODIO: Object.freeze({
+    
     LIST: ({ moeda, limite } = {}) => {
       const params = new URLSearchParams()
       if (moeda) params.set('moeda', moeda)
