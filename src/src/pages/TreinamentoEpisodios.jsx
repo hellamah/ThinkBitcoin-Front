@@ -1211,13 +1211,14 @@ export default function TreinamentoEpisodios() {
       setError(null)
       try {
         const [listResp, resumoResp] = await Promise.all([
-          apiRequest(TreinamentoEpisodioEndpoint.LIST({ moeda: moedaServerFilter || undefined })),
+          apiRequest(TreinamentoEpisodioEndpoint.LIST({ moeda: moedaServerFilter || undefined, quantidade: 500 })),
           apiRequest(TreinamentoEpisodioEndpoint.RESUMO()),
         ])
         if (canceled) return
-        const list = Array.isArray(listResp?.resultado)
-          ? listResp.resultado
-          : (Array.isArray(listResp) ? listResp : [])
+        // resultado agora é um objeto paginado: { lista, totalRegistros, totalPaginas, paginaAtual }
+        const list = Array.isArray(listResp?.resultado?.lista)
+          ? listResp.resultado.lista
+          : (Array.isArray(listResp?.resultado) ? listResp.resultado : [])
         const res = Array.isArray(resumoResp?.resultado)
           ? resumoResp.resultado
           : (Array.isArray(resumoResp) ? resumoResp : [])
