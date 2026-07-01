@@ -98,6 +98,7 @@ const formatBackendDateTime = (ts) => {
 }
 
 // As consultas trabalham em grupos (janelas) de 4 horas, alinhados à hora local.
+const ONE_HOUR_MS = 60 * 60 * 1000
 const FOUR_HOURS_MS = 4 * 60 * 60 * 1000
 const bucketStartOf = (ts) => {
   const d = new Date(ts)
@@ -165,6 +166,18 @@ const COLUMNS = [
 const CHART_BG = 'rgba(255,255,255,0.04)'
 const CHART_BORDER = 'rgba(255,255,255,0.08)'
 
+const X_TICKS = { color: '#aaa', maxRotation: 0, autoSkip: true, maxTicksLimit: 10 }
+
+// Mostra "#ep · data/hora" no título do tooltip quando o dataset expõe `metaDates`
+const tooltipTitleWithDate = (its) => {
+  if (!its || its.length === 0) return ''
+  const first = its[0]
+  const d = first.chart?.data?.metaDates?.[first.dataIndex]
+  if (!d) return first.label ?? ''
+  const dt = new Date(d)
+  return Number.isNaN(dt.getTime()) ? first.label : `${first.label} · ${dt.toLocaleString()}`
+}
+
 const baseChartOptions = (extra = {}) => {
   const { plugins: extraPlugins, scales: extraScales, ...rest } = extra
   return {
@@ -180,12 +193,13 @@ const baseChartOptions = (extra = {}) => {
         titleColor: ACCENT,
         bodyColor: '#fff',
         padding: 10,
+        callbacks: { title: tooltipTitleWithDate },
       },
       zoom: ZOOM_CONFIG,
       ...(extraPlugins || {}),
     },
     scales: extraScales || {
-      x: { ticks: { color: '#aaa', maxRotation: 0, autoSkip: true }, grid: { color: 'rgba(255,255,255,0.05)' } },
+      x: { ticks: X_TICKS, grid: { color: 'rgba(255,255,255,0.05)' } },
       y: { ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.05)' } },
     },
     ...rest,
@@ -452,6 +466,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
         title: { display: true, text: 'Episódio', color: '#aaa' },
       },
     },
+    interaction: { mode: 'nearest', intersect: true },
     plugins: {
       legend: { labels: { color: '#e0e0e0', usePointStyle: true, padding: 12 } },
       tooltip: {
@@ -479,24 +494,41 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
       },
       zoom: {
         ...ZOOM_CONFIG,
+        limits: { x: { minRange: ONE_HOUR_MS, maxRange: FOUR_HOURS_MS } },
         zoom: { ...ZOOM_CONFIG.zoom, onZoom: ({ chart }) => handleRangeChange(chart) },
         pan: { ...ZOOM_CONFIG.pan, onPan: ({ chart }) => handleRangeChange(chart) },
       },
     },
   }), [handleRangeChange])
 
+  // Plugin que define a vista inicial do scatter como as últimas 4h dos dados.
+  // Usa afterDatasetsDraw (roda após dados disponíveis) e flag no chart para
+  // executar só uma vez — sem tocar em estado React, sem causar re-renders.
+  const scatterInitRangePlugin = useMemo(() => ({
+    id: 'scatterInitRange',
+    afterDatasetsDraw: (chart) => {
+      if (chart._initRangeDone) return
+      const xs = []
+      chart.data.datasets.forEach((d) => d.data?.forEach((p) => p?.x && xs.push(p.x)))
+      if (xs.length === 0) return
+      chart._initRangeDone = true
+      const xMax = Math.max(...xs)
+      chart.zoomScale('x', { min: xMax - FOUR_HOURS_MS, max: xMax }, 'none')
+    },
+  }), [])
+
   const defaultChartOptions = useMemo(() => baseChartOptions(), [])
   const lossEpsilonOptions = useMemo(() => baseChartOptions({
     scales: {
-      x: { ticks: { color: '#aaa', maxRotation: 0, autoSkip: true }, grid: { color: 'rgba(255,255,255,0.05)' } },
-      y: { type: 'linear', position: 'left', ticks: { color: '#FF5C7C' }, grid: { color: 'rgba(255,255,255,0.05)' }, title: { display: true, text: 'Loss', color: '#FF5C7C' } },
-      y1: { type: 'linear', position: 'right', ticks: { color: '#5CB8FF' }, grid: { drawOnChartArea: false }, title: { display: true, text: 'Epsilon', color: '#5CB8FF' } },
+      x: { ticks: X_TICKS, grid: { color: 'rgba(255,255,255,0.05)' } },
+      y: { type: 'linear', position: 'left', beginAtZero: true, ticks: { color: '#FF5C7C' }, grid: { color: 'rgba(255,255,255,0.05)' }, title: { display: true, text: 'Loss', color: '#FF5C7C' } },
+      y1: { type: 'linear', position: 'right', min: 0, max: 1, ticks: { color: '#5CB8FF' }, grid: { drawOnChartArea: false }, title: { display: true, text: 'Epsilon', color: '#5CB8FF' } },
     },
   }), [])
   const winRateOptions = useMemo(() => baseChartOptions({
     scales: {
-      x: { ticks: { color: '#aaa', maxRotation: 0, autoSkip: true }, grid: { color: 'rgba(255,255,255,0.05)' } },
-      y: { ticks: { color: '#aaa', callback: (v) => `${v}%` }, grid: { color: 'rgba(255,255,255,0.05)' }, min: 0, max: 100 },
+      x: { ticks: X_TICKS, grid: { color: 'rgba(255,255,255,0.05)' } },
+      y: { ticks: { color: '#aaa', callback: (v) => `${v}%` }, grid: { color: 'rgba(255,255,255,0.05)' }, min: 0, suggestedMax: 60 },
     },
   }), [])
   const duracaoOptions = useMemo(() => baseChartOptions({
@@ -618,6 +650,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
   const activeTimeline = usingSerie ? visibleSerieSorted : visibleTimeline
 
   const labels = activeTimeline.map((r) => `#${r.episodio}`)
+  const labelDates = activeTimeline.map((r) => r.dataHora)
   const rewardSeries = usingSerie
     ? visibleSerieSorted.map((r) => r.rewardMedio ?? 0)
     : visibleTimeline.map((r) => r.rewardMedio ?? 0)
@@ -637,6 +670,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
 
   const rewardData = {
     labels,
+    metaDates: labelDates,
     datasets: [
       {
         label: 'Reward médio',
@@ -662,6 +696,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
 
   const lossEpsilonData = {
     labels,
+    metaDates: labelDates,
     datasets: [
       {
         label: 'Loss média',
@@ -690,6 +725,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
 
   const winRateData = {
     labels,
+    metaDates: labelDates,
     datasets: [
       {
         label: 'Win rate (%)',
@@ -827,8 +863,10 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
       acc += r.rewardTotal ?? 0
       return acc
     })
+    const tlLabels = visibleTimeline.map((r) => `#${r.episodio}`)
     return {
-      labels,
+      labels: tlLabels,
+      metaDates: visibleTimeline.map((r) => r.dataHora),
       datasets: [{
         label: 'Reward acumulado',
         data,
@@ -840,11 +878,12 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
         borderWidth: 2,
       }],
     }
-  }, [visibleTimeline, labels])
+  }, [visibleTimeline])
 
   // Duração por episódio
   const duracaoData = useMemo(() => ({
-    labels,
+    labels: visibleTimeline.map((r) => `#${r.episodio}`),
+    metaDates: visibleTimeline.map((r) => r.dataHora),
     datasets: [{
       label: 'Duração (s)',
       data: visibleTimeline.map((r) => r.duracaoSegundos ?? 0),
@@ -855,7 +894,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
       pointRadius: 0,
       borderWidth: 2,
     }],
-  }), [visibleTimeline, labels])
+  }), [visibleTimeline])
 
   // Comparativo por moeda (barras agrupadas: reward médio escalado, win rate %, qty episódios)
   const comparativoMoedaData = useMemo(() => {
@@ -1072,7 +1111,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
               height={{ xs: 320, md: 420 }}
               ChartComp={Scatter}
               data={timelineData}
-              plugins={[cycleBandsPlugin]}
+              plugins={[cycleBandsPlugin, scatterInitRangePlugin]}
               onReset={resetVisibleRange}
               options={scatterOptions}
             />
