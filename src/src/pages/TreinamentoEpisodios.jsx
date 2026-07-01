@@ -155,9 +155,12 @@ function KpiCard({ icon, label, value, sub }) {
   )
 }
 
-function ZoomableChartCard({ title, subtitle, height, ChartComp, data, options, plugins }) {
+function ZoomableChartCard({ title, subtitle, height, ChartComp, data, options, plugins, onReset }) {
   const ref = useRef(null)
-  const reset = () => ref.current?.resetZoom?.()
+  const reset = () => {
+    ref.current?.resetZoom?.()
+    onReset?.()
+  }
   return (
     <ChartCard
       title={title}
@@ -352,11 +355,18 @@ function ChartCard({ title, subtitle, children, height = { xs: 280, md: 320 }, a
   )
 }
 
-function ListView({ items, resumo, serie, loading, error, onRefresh, onOpen, selectedCoins, setSelectedCoins }) {
+function ListView({ items, resumo, serie, loading, loadingRange, error, onRefresh, onOpen, selectedCoins, setSelectedCoins, visibleRange, setVisibleRange }) {
   const [orderBy, setOrderBy] = useState('episodio')
   const [order, setOrder] = useState('desc')
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(25)
+
+  const handleRangeChange = useCallback((chart) => {
+    const { min, max } = chart.scales.x
+    setVisibleRange({ min, max })
+  }, [setVisibleRange])
+
+  const resetVisibleRange = useCallback(() => setVisibleRange({ min: null, max: null }), [setVisibleRange])
 
   // Lista de moedas para o filtro vem do RESUMO (fonte de verdade global,
   // independente do filtro server-side atual). Cai pra items se resumo vazio.
@@ -425,25 +435,44 @@ function ListView({ items, resumo, serie, loading, error, onRefresh, onOpen, sel
     return [...serie].sort((a, b) => new Date(a.dataHora).getTime() - new Date(b.dataHora).getTime())
   }, [serie, usingSerie])
 
-  const labels = usingSerie
-    ? serieSorted.map((r) => `#${r.episodio}`)
-    : timeline.map((r) => `#${r.episodio}`)
+  const visibleTimeline = useMemo(() => {
+    if (visibleRange.min == null && visibleRange.max == null) return timeline
+    return timeline.filter((r) => {
+      const t = new Date(r.dataHora).getTime()
+      return (visibleRange.min == null || t >= visibleRange.min) &&
+             (visibleRange.max == null || t <= visibleRange.max)
+    })
+  }, [timeline, visibleRange])
+
+  const visibleSerieSorted = useMemo(() => {
+    if (!usingSerie) return []
+    if (visibleRange.min == null && visibleRange.max == null) return serieSorted
+    return serieSorted.filter((r) => {
+      const t = new Date(r.dataHora).getTime()
+      return (visibleRange.min == null || t >= visibleRange.min) &&
+             (visibleRange.max == null || t <= visibleRange.max)
+    })
+  }, [serieSorted, usingSerie, visibleRange])
+
+  const activeTimeline = usingSerie ? visibleSerieSorted : visibleTimeline
+
+  const labels = activeTimeline.map((r) => `#${r.episodio}`)
   const rewardSeries = usingSerie
-    ? serieSorted.map((r) => r.rewardMedio ?? 0)
-    : timeline.map((r) => r.rewardMedio ?? 0)
+    ? visibleSerieSorted.map((r) => r.rewardMedio ?? 0)
+    : visibleTimeline.map((r) => r.rewardMedio ?? 0)
   // Backend já calcula a média móvel; quando não temos serie, calculamos client-side
   const rewardMA = usingSerie
-    ? serieSorted.map((r) => r.rewardMedioMediaMovel ?? r.rewardMedio ?? 0)
+    ? visibleSerieSorted.map((r) => r.rewardMedioMediaMovel ?? r.rewardMedio ?? 0)
     : movingAverage(rewardSeries, 5)
   const lossSeries = usingSerie
-    ? serieSorted.map((r) => r.lossMedia ?? 0)
-    : timeline.map((r) => r.lossMedia ?? 0)
+    ? visibleSerieSorted.map((r) => r.lossMedia ?? 0)
+    : visibleTimeline.map((r) => r.lossMedia ?? 0)
   const epsilonSeries = usingSerie
-    ? serieSorted.map((r) => r.epsilon ?? 0)
-    : timeline.map((r) => r.epsilon ?? 0)
+    ? visibleSerieSorted.map((r) => r.epsilon ?? 0)
+    : visibleTimeline.map((r) => r.epsilon ?? 0)
   const winRateSeries = usingSerie
-    ? serieSorted.map((r) => (r.winRateMediaMovel ?? r.winRate ?? 0) * 100)
-    : timeline.map((r) => (r.winRate ?? 0) * 100)
+    ? visibleSerieSorted.map((r) => (r.winRateMediaMovel ?? r.winRate ?? 0) * 100)
+    : visibleTimeline.map((r) => (r.winRate ?? 0) * 100)
 
   const rewardData = {
     labels,
@@ -633,7 +662,7 @@ function ListView({ items, resumo, serie, loading, error, onRefresh, onOpen, sel
   // Reward acumulado por episódio (soma cumulativa do rewardTotal)
   const cumulativeRewardData = useMemo(() => {
     let acc = 0
-    const data = timeline.map((r) => {
+    const data = visibleTimeline.map((r) => {
       acc += r.rewardTotal ?? 0
       return acc
     })
@@ -650,14 +679,14 @@ function ListView({ items, resumo, serie, loading, error, onRefresh, onOpen, sel
         borderWidth: 2,
       }],
     }
-  }, [timeline, labels])
+  }, [visibleTimeline, labels])
 
   // Duração por episódio
   const duracaoData = useMemo(() => ({
     labels,
     datasets: [{
       label: 'Duração (s)',
-      data: timeline.map((r) => r.duracaoSegundos ?? 0),
+      data: visibleTimeline.map((r) => r.duracaoSegundos ?? 0),
       borderColor: '#FFB547',
       backgroundColor: 'rgba(255,181,71,0.15)',
       fill: true,
@@ -665,7 +694,7 @@ function ListView({ items, resumo, serie, loading, error, onRefresh, onOpen, sel
       pointRadius: 0,
       borderWidth: 2,
     }],
-  }), [timeline, labels])
+  }), [visibleTimeline, labels])
 
   // Comparativo por moeda (barras agrupadas: reward médio escalado, win rate %, qty episódios)
   const comparativoMoedaData = useMemo(() => {
@@ -798,6 +827,13 @@ function ListView({ items, resumo, serie, loading, error, onRefresh, onOpen, sel
 
       {error && <ErrorMessage message={error} />}
 
+      {loadingRange && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, opacity: 0.8 }}>
+          <CircularProgress size={14} sx={{ color: ACCENT }} />
+          <Typography variant="caption" sx={{ color: ACCENT }}>Buscando dados do período…</Typography>
+        </Box>
+      )}
+
       {loading && (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
           <CircularProgress sx={{ color: ACCENT }} />
@@ -876,6 +912,7 @@ function ListView({ items, resumo, serie, loading, error, onRefresh, onOpen, sel
               ChartComp={Scatter}
               data={timelineData}
               plugins={[cycleBandsPlugin]}
+              onReset={resetVisibleRange}
               options={baseChartOptions({
                     scales: {
                       x: {
@@ -915,6 +952,11 @@ function ListView({ items, resumo, serie, loading, error, onRefresh, onOpen, sel
                             ]
                           },
                         },
+                      },
+                      zoom: {
+                        ...ZOOM_CONFIG,
+                        zoom: { ...ZOOM_CONFIG.zoom, onZoom: ({ chart }) => handleRangeChange(chart) },
+                        pan: { ...ZOOM_CONFIG.pan, onPan: ({ chart }) => handleRangeChange(chart) },
                       },
                     },
                   })}
@@ -1194,30 +1236,34 @@ export default function TreinamentoEpisodios() {
   const [resumo, setResumo] = useState([])
   const [serie, setSerie] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [loadingRange, setLoadingRange] = useState(false)
   const [error, setError] = useState(null)
   const [selectedCoins, setSelectedCoins] = useState([])
   const [refreshKey, setRefreshKey] = useState(0)
+  const [visibleRange, setVisibleRange] = useState({ min: null, max: null })
+  // Chaves "minMinuto-maxMinuto" das janelas de tempo já buscadas
+  const fetchedRangesRef = useRef(new Set())
 
-  // Filtro server-side só quando exatamente 1 moeda está selecionada.
-  // 0 ou >1 → fetch all e filtramos no client (multi-seleção).
   const moedaServerFilter = selectedCoins.length === 1 ? selectedCoins[0] : null
 
-  // Carrega LIST + RESUMO em paralelo. Refetcha quando moedaServerFilter muda.
+  // Carrega apenas a primeira página (dados recentes). Refetcha quando filtro ou refresh muda.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     let canceled = false
+    fetchedRangesRef.current.clear()
+    setVisibleRange({ min: null, max: null })
     const load = async () => {
       setLoading(true)
       setError(null)
       try {
         const [listResp, resumoResp] = await Promise.all([
-          apiRequest(TreinamentoEpisodioEndpoint.LIST({ moeda: moedaServerFilter || undefined, quantidade: 500 })),
+          apiRequest(TreinamentoEpisodioEndpoint.LIST({ moeda: moedaServerFilter || undefined, quantidade: 500, pagina: 1 })),
           apiRequest(TreinamentoEpisodioEndpoint.RESUMO()),
         ])
         if (canceled) return
-        // resultado agora é um objeto paginado: { lista, totalRegistros, totalPaginas, paginaAtual }
-        const list = Array.isArray(listResp?.resultado?.lista)
-          ? listResp.resultado.lista
+        const paginado = listResp?.resultado
+        const list = Array.isArray(paginado?.lista)
+          ? paginado.lista
           : (Array.isArray(listResp?.resultado) ? listResp.resultado : [])
         const res = Array.isArray(resumoResp?.resultado)
           ? resumoResp.resultado
@@ -1233,6 +1279,53 @@ export default function TreinamentoEpisodios() {
     load()
     return () => { canceled = true }
   }, [moedaServerFilter, refreshKey])
+
+  // Fetch sob demanda quando o usuário arrasta o scatter para uma janela sem dados
+  const itemsRef = useRef(items)
+  useEffect(() => { itemsRef.current = items }, [items])
+
+  useEffect(() => {
+    const { min, max } = visibleRange
+    if (min == null || max == null) return
+
+    // Chave por granularidade de minuto para evitar re-fetches duplicados
+    const key = `${Math.floor(min / 60000)}-${Math.floor(max / 60000)}`
+    if (fetchedRangesRef.current.has(key)) return
+
+    // Verifica se já temos dados nesta janela (sem depender de items no array de deps)
+    const hasData = itemsRef.current.some((item) => {
+      const t = new Date(item.dataHora).getTime()
+      return t >= min && t <= max
+    })
+    if (hasData) return
+
+    fetchedRangesRef.current.add(key)
+
+    let canceled = false
+    setLoadingRange(true)
+    apiRequest(TreinamentoEpisodioEndpoint.LIST({
+      moeda: moedaServerFilter || undefined,
+      dataInicio: new Date(min).toISOString(),
+      dataFim: new Date(max).toISOString(),
+      quantidade: 500,
+    }))
+      .then((resp) => {
+        if (canceled) return
+        const list = Array.isArray(resp?.resultado?.lista)
+          ? resp.resultado.lista
+          : (Array.isArray(resp?.resultado) ? resp.resultado : [])
+        if (list.length > 0) {
+          setItems((prev) => {
+            const existingIds = new Set(prev.map((i) => i.idTreinamentoEpisodio))
+            const novos = list.filter((i) => !existingIds.has(i.idTreinamentoEpisodio))
+            return novos.length > 0 ? [...prev, ...novos] : prev
+          })
+        }
+      })
+      .catch(() => {})
+      .finally(() => { if (!canceled) setLoadingRange(false) })
+    return () => { canceled = true }
+  }, [visibleRange, moedaServerFilter])
 
   // /serie só faz sentido com 1 moeda. Cancela quando muda.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1274,11 +1367,14 @@ export default function TreinamentoEpisodios() {
       resumo={resumo}
       serie={serie}
       loading={loading}
+      loadingRange={loadingRange}
       error={error}
       onRefresh={refresh}
       onOpen={(rowId) => navigate(`/treinamento-episodios/${rowId}`)}
       selectedCoins={selectedCoins}
       setSelectedCoins={setSelectedCoins}
+      visibleRange={visibleRange}
+      setVisibleRange={setVisibleRange}
     />
   )
 }
