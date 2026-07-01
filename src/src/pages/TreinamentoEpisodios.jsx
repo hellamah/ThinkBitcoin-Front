@@ -55,9 +55,22 @@ const ZOOM_CONFIG = {
 const COIN_COLORS = {
   BTC: '#F7931A', ETH: '#627EEA', BNB: '#F3BA2F', SOL: '#14F195',
   XRP: '#23292F', ADA: '#0033AD', DOGE: '#C2A633', LTC: '#345D9D',
-  LINK: '#2A5ADA',
+  LINK: '#2A5ADA', PAXG: '#DBB43E',
 }
 const ACCENT = '#FFD700'
+
+// Cor da moeda: usa a cor de marca quando existe; senão gera um HEX estável a
+// partir do nome (moedas que só aparecem ao carregar janelas antigas, ex.: PAXG).
+// Retorna sempre HEX de 6 dígitos para permitir sufixo de alpha (ex.: +'33').
+const coinColor = (coin) => {
+  if (COIN_COLORS[coin]) return COIN_COLORS[coin]
+  if (!coin) return '#888888'
+  let h = 0
+  for (let i = 0; i < coin.length; i++) h = (h * 31 + coin.charCodeAt(i)) >>> 0
+  const ch = (shift) => 80 + ((h >> shift) % 150) // faixa 80–229: nem escuro, nem estourado
+  const hex = (n) => n.toString(16).padStart(2, '0')
+  return `#${hex(ch(0))}${hex(ch(8))}${hex(ch(16))}`
+}
 
 const formatNumber = (value, digits = 4) => {
   if (value === null || value === undefined || Number.isNaN(value)) return '-'
@@ -74,6 +87,59 @@ const formatDate = (value) => {
   if (!value) return '-'
   const d = new Date(value)
   return Number.isNaN(d.getTime()) ? value : d.toLocaleString()
+}
+
+// Backend aceita ISO 8601 sem timezone (ex.: 2026-07-01T16:00:00), casando com o
+// formato de dataHora retornado. Componentes LOCAIS para bater com o eixo do gráfico.
+const pad2 = (n) => String(n).padStart(2, '0')
+const formatBackendDateTime = (ts) => {
+  const d = new Date(ts)
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`
+}
+
+// As consultas trabalham em grupos (janelas) de 4 horas, alinhados à hora local.
+const FOUR_HOURS_MS = 4 * 60 * 60 * 1000
+const bucketStartOf = (ts) => {
+  const d = new Date(ts)
+  d.setHours(Math.floor(d.getHours() / 4) * 4, 0, 0, 0)
+  return d.getTime()
+}
+
+const extractLista = (resp) =>
+  Array.isArray(resp?.resultado?.lista) ? resp.resultado.lista
+    : Array.isArray(resp?.resultado) ? resp.resultado
+      : []
+
+// Busca TODOS os episódios de uma janela [inicioMs, fimMs), paginando se preciso.
+const fetchWindow = async (moeda, inicioMs, fimMs) => {
+  const QTD = 1000
+  const params = (pagina) => ({
+    moeda: moeda || undefined,
+    dataInicio: formatBackendDateTime(inicioMs),
+    dataFim: formatBackendDateTime(fimMs),
+    quantidade: QTD,
+    pagina,
+    ordenarAscendente: false,
+  })
+  const first = await apiRequest(TreinamentoEpisodioEndpoint.LIST(params(1)))
+  let all = extractLista(first)
+  const totalPaginas = first?.resultado?.totalPaginas ?? 1
+  if (totalPaginas > 1) {
+    const rest = await Promise.all(
+      Array.from({ length: totalPaginas - 1 }, (_, i) =>
+        apiRequest(TreinamentoEpisodioEndpoint.LIST(params(i + 2)))
+      )
+    )
+    for (const r of rest) all = all.concat(extractLista(r))
+  }
+  return all
+}
+
+const mergeItems = (prev, novos) => {
+  if (!novos || novos.length === 0) return prev
+  const ids = new Set(prev.map((i) => i.idTreinamentoEpisodio))
+  const add = novos.filter((i) => !ids.has(i.idTreinamentoEpisodio))
+  return add.length > 0 ? [...prev, ...add] : prev
 }
 
 const movingAverage = (arr, window = 5) => {
@@ -229,9 +295,9 @@ function EvolucaoCard({ items, onSelectCoin }) {
                       label={r.moeda}
                       size="small"
                       sx={{
-                        background: (COIN_COLORS[r.moeda] || '#888') + '33',
-                        color: COIN_COLORS[r.moeda] || 'white',
-                        border: `1px solid ${(COIN_COLORS[r.moeda] || '#888')}66`,
+                        background: coinColor(r.moeda) + '33',
+                        color: coinColor(r.moeda),
+                        border: `1px solid ${coinColor(r.moeda)}66`,
                         fontWeight: 600,
                       }}
                     />
@@ -307,9 +373,9 @@ function TopEpisodiosCard({ title, subtitle, items, accent, onOpen }) {
               label={r.moeda}
               size="small"
               sx={{
-                background: (COIN_COLORS[r.moeda] || '#888') + '33',
-                color: COIN_COLORS[r.moeda] || 'white',
-                border: `1px solid ${(COIN_COLORS[r.moeda] || '#888')}66`,
+                background: coinColor(r.moeda) + '33',
+                color: coinColor(r.moeda),
+                border: `1px solid ${coinColor(r.moeda)}66`,
                 fontWeight: 600,
                 minWidth: 56,
               }}
@@ -368,6 +434,90 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
 
   const resetVisibleRange = useCallback(() => setVisibleRange({ min: null, max: null }), [setVisibleRange])
 
+  // Opções memoizadas: o react-chartjs-2 reaplica `options` (Object.assign) a cada
+  // mudança de referência, sobrescrevendo scales.x.min/max que o plugin de zoom usa —
+  // o que reseta zoom/pan a cada re-render. Mantê-las estáveis preserva o zoom.
+  const scatterOptions = useMemo(() => baseChartOptions({
+    scales: {
+      x: {
+        type: 'time',
+        adapters: { date: { locale: ptBR } },
+        time: { tooltipFormat: 'dd/MM HH:mm:ss', displayFormats: { minute: 'HH:mm', hour: 'HH:mm', day: 'dd/MM' } },
+        ticks: { color: '#aaa' },
+        grid: { color: 'rgba(255,255,255,0.05)' },
+      },
+      y: {
+        ticks: { color: '#aaa', precision: 0 },
+        grid: { color: 'rgba(255,255,255,0.05)' },
+        title: { display: true, text: 'Episódio', color: '#aaa' },
+      },
+    },
+    plugins: {
+      legend: { labels: { color: '#e0e0e0', usePointStyle: true, padding: 12 } },
+      tooltip: {
+        backgroundColor: 'rgba(15,15,20,0.95)',
+        borderColor: 'rgba(255,215,0,0.4)',
+        borderWidth: 1,
+        titleColor: ACCENT,
+        bodyColor: '#fff',
+        padding: 10,
+        callbacks: {
+          title: (its) => {
+            const p = its[0]?.raw
+            return p ? `#${p.y} · ${its[0].dataset.label}` : ''
+          },
+          label: (ctx) => {
+            const p = ctx.raw
+            return [
+              `Data: ${new Date(p.x).toLocaleString()}`,
+              `Duração: ${p.duracao.toFixed(1)}s`,
+              `Reward: ${p.rewardMedio.toFixed(4)}`,
+              `Win rate: ${(p.winRate * 100).toFixed(2)}%`,
+            ]
+          },
+        },
+      },
+      zoom: {
+        ...ZOOM_CONFIG,
+        zoom: { ...ZOOM_CONFIG.zoom, onZoom: ({ chart }) => handleRangeChange(chart) },
+        pan: { ...ZOOM_CONFIG.pan, onPan: ({ chart }) => handleRangeChange(chart) },
+      },
+    },
+  }), [handleRangeChange])
+
+  const defaultChartOptions = useMemo(() => baseChartOptions(), [])
+  const lossEpsilonOptions = useMemo(() => baseChartOptions({
+    scales: {
+      x: { ticks: { color: '#aaa', maxRotation: 0, autoSkip: true }, grid: { color: 'rgba(255,255,255,0.05)' } },
+      y: { type: 'linear', position: 'left', ticks: { color: '#FF5C7C' }, grid: { color: 'rgba(255,255,255,0.05)' }, title: { display: true, text: 'Loss', color: '#FF5C7C' } },
+      y1: { type: 'linear', position: 'right', ticks: { color: '#5CB8FF' }, grid: { drawOnChartArea: false }, title: { display: true, text: 'Epsilon', color: '#5CB8FF' } },
+    },
+  }), [])
+  const winRateOptions = useMemo(() => baseChartOptions({
+    scales: {
+      x: { ticks: { color: '#aaa', maxRotation: 0, autoSkip: true }, grid: { color: 'rgba(255,255,255,0.05)' } },
+      y: { ticks: { color: '#aaa', callback: (v) => `${v}%` }, grid: { color: 'rgba(255,255,255,0.05)' }, min: 0, max: 100 },
+    },
+  }), [])
+  const duracaoOptions = useMemo(() => baseChartOptions({
+    scales: {
+      x: { ticks: { color: '#aaa', maxRotation: 0, autoSkip: true }, grid: { color: 'rgba(255,255,255,0.05)' } },
+      y: { ticks: { color: '#aaa', callback: (v) => `${v}s` }, grid: { color: 'rgba(255,255,255,0.05)' } },
+    },
+  }), [])
+  const comparativoOptions = useMemo(() => baseChartOptions({
+    scales: {
+      x: { ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+      y: { ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+    },
+  }), [])
+  const acoesOptions = useMemo(() => baseChartOptions({
+    scales: {
+      x: { stacked: true, ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+      y: { stacked: true, ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+    },
+  }), [])
+
   // Lista de moedas para o filtro vem do RESUMO (fonte de verdade global,
   // independente do filtro server-side atual). Cai pra items se resumo vazio.
   const coinsDisponiveis = useMemo(() => {
@@ -385,19 +535,30 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
     return items.filter((i) => selectedCoins.includes(i.moeda))
   }, [items, selectedCoins])
 
+  // Janela visível do scatter: o scatter é o "mapa" (mostra tudo, `filtered`);
+  // KPIs, barras, top 5, tabela e gráficos de linha refletem só o que está à vista.
+  const visibleFiltered = useMemo(() => {
+    if (visibleRange.min == null && visibleRange.max == null) return filtered
+    return filtered.filter((r) => {
+      const t = new Date(r.dataHora).getTime()
+      return (visibleRange.min == null || t >= visibleRange.min) &&
+             (visibleRange.max == null || t <= visibleRange.max)
+    })
+  }, [filtered, visibleRange])
+
   const toggleCoin = (coin) => {
     setSelectedCoins((cur) => cur.includes(coin) ? cur.filter((c) => c !== coin) : [...cur, coin])
     setPage(0)
   }
 
   const kpis = useMemo(() => {
-    if (filtered.length === 0) {
+    if (visibleFiltered.length === 0) {
       return { total: 0, rewardAvg: 0, winRateAvg: 0, bestCoin: '-' }
     }
-    const total = filtered.length
-    const rewardAvg = filtered.reduce((acc, r) => acc + (r.rewardMedio ?? 0), 0) / total
-    const winRateAvg = filtered.reduce((acc, r) => acc + (r.winRate ?? 0), 0) / total
-    const byCoin = filtered.reduce((acc, r) => {
+    const total = visibleFiltered.length
+    const rewardAvg = visibleFiltered.reduce((acc, r) => acc + (r.rewardMedio ?? 0), 0) / total
+    const winRateAvg = visibleFiltered.reduce((acc, r) => acc + (r.winRate ?? 0), 0) / total
+    const byCoin = visibleFiltered.reduce((acc, r) => {
       if (!r.moeda) return acc
       acc[r.moeda] = acc[r.moeda] || { sum: 0, count: 0 }
       acc[r.moeda].sum += r.rewardMedio ?? 0
@@ -414,7 +575,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
       bestCoin: bestCoin ? `${bestCoin.coin}` : '-',
       bestCoinAvg: bestCoin ? bestCoin.avg : 0,
     }
-  }, [filtered])
+  }, [visibleFiltered])
 
   // Série temporal ordenada por data/hora ascendente (preserva múltiplos ciclos)
   const timeline = useMemo(() => {
@@ -546,7 +707,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
   // Distribuição de ações agregada por moeda
   const acoesPorMoeda = useMemo(() => {
     const agg = {}
-    filtered.forEach((r) => {
+    visibleFiltered.forEach((r) => {
       if (!r.moeda) return
       agg[r.moeda] = agg[r.moeda] || { hold: 0, compra: 0, venda: 0 }
       agg[r.moeda].hold += r.acoesHold ?? 0
@@ -577,7 +738,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
         },
       ],
     }
-  }, [filtered])
+  }, [visibleFiltered])
 
   // Detecta ciclos: novo ciclo quando o número do episódio CAI (reset do treino)
   // ou quando há um gap temporal grande entre episódios consecutivos.
@@ -699,7 +860,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
   // Comparativo por moeda (barras agrupadas: reward médio escalado, win rate %, qty episódios)
   const comparativoMoedaData = useMemo(() => {
     const agg = {}
-    filtered.forEach((r) => {
+    visibleFiltered.forEach((r) => {
       if (!r.moeda) return
       agg[r.moeda] = agg[r.moeda] || { rewards: [], winRates: [], qty: 0 }
       agg[r.moeda].rewards.push(r.rewardMedio ?? 0)
@@ -736,16 +897,16 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
         },
       ],
     }
-  }, [filtered])
+  }, [visibleFiltered])
 
-  // Top 5 melhores e piores por reward médio
+  // Top 5 melhores e piores por reward médio (dentro da janela visível)
   const tops = useMemo(() => {
-    const arr = [...filtered].sort((a, b) => (b.rewardMedio ?? -Infinity) - (a.rewardMedio ?? -Infinity))
+    const arr = [...visibleFiltered].sort((a, b) => (b.rewardMedio ?? -Infinity) - (a.rewardMedio ?? -Infinity))
     return {
       best: arr.slice(0, 5),
       worst: arr.slice(-5).reverse(),
     }
-  }, [filtered])
+  }, [visibleFiltered])
 
   // Linha do tempo: scatter X=dataHora, Y=episódio, ponto colorido por moeda,
   // raio proporcional à duração do treinamento.
@@ -774,8 +935,8 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
       datasets: Object.entries(byCoin).sort(([a], [b]) => a.localeCompare(b)).map(([coin, pts]) => ({
         label: coin,
         data: pts,
-        backgroundColor: (COIN_COLORS[coin] || '#888') + 'CC',
-        borderColor: COIN_COLORS[coin] || '#888',
+        backgroundColor: coinColor(coin) + 'CC',
+        borderColor: coinColor(coin),
         borderWidth: 1,
         pointRadius: pts.map((p) => scale(p.duracao)),
         pointHoverRadius: pts.map((p) => scale(p.duracao) + 2),
@@ -784,7 +945,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
   }, [filtered])
 
   const sorted = useMemo(() => {
-    const copy = [...filtered]
+    const copy = [...visibleFiltered]
     copy.sort((a, b) => {
       const av = a[orderBy]
       const bv = b[orderBy]
@@ -793,7 +954,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
       return order === 'asc' ? cmp : -cmp
     })
     return copy
-  }, [filtered, orderBy, order])
+  }, [visibleFiltered, orderBy, order])
 
   const handleSort = (id) => {
     if (orderBy === id) setOrder(order === 'asc' ? 'desc' : 'asc')
@@ -848,7 +1009,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
               <Typography variant="caption" sx={{ opacity: 0.7, mr: 1 }}>FILTRAR POR MOEDA:</Typography>
               {coinsDisponiveis.map((coin) => {
                 const active = selectedCoins.includes(coin)
-                const color = COIN_COLORS[coin] || '#888'
+                const color = coinColor(coin)
                 return (
                   <Chip
                     key={coin}
@@ -913,53 +1074,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
               data={timelineData}
               plugins={[cycleBandsPlugin]}
               onReset={resetVisibleRange}
-              options={baseChartOptions({
-                    scales: {
-                      x: {
-                        type: 'time',
-                        adapters: { date: { locale: ptBR } },
-                        time: { tooltipFormat: 'dd/MM HH:mm:ss', displayFormats: { minute: 'HH:mm', hour: 'HH:mm', day: 'dd/MM' } },
-                        ticks: { color: '#aaa' },
-                        grid: { color: 'rgba(255,255,255,0.05)' },
-                      },
-                      y: {
-                        ticks: { color: '#aaa', precision: 0 },
-                        grid: { color: 'rgba(255,255,255,0.05)' },
-                        title: { display: true, text: 'Episódio', color: '#aaa' },
-                      },
-                    },
-                    plugins: {
-                      legend: { labels: { color: '#e0e0e0', usePointStyle: true, padding: 12 } },
-                      tooltip: {
-                        backgroundColor: 'rgba(15,15,20,0.95)',
-                        borderColor: 'rgba(255,215,0,0.4)',
-                        borderWidth: 1,
-                        titleColor: ACCENT,
-                        bodyColor: '#fff',
-                        padding: 10,
-                        callbacks: {
-                          title: (items) => {
-                            const p = items[0]?.raw
-                            return p ? `#${p.y} · ${items[0].dataset.label}` : ''
-                          },
-                          label: (ctx) => {
-                            const p = ctx.raw
-                            return [
-                              `Data: ${new Date(p.x).toLocaleString()}`,
-                              `Duração: ${p.duracao.toFixed(1)}s`,
-                              `Reward: ${p.rewardMedio.toFixed(4)}`,
-                              `Win rate: ${(p.winRate * 100).toFixed(2)}%`,
-                            ]
-                          },
-                        },
-                      },
-                      zoom: {
-                        ...ZOOM_CONFIG,
-                        zoom: { ...ZOOM_CONFIG.zoom, onZoom: ({ chart }) => handleRangeChange(chart) },
-                        pan: { ...ZOOM_CONFIG.pan, onPan: ({ chart }) => handleRangeChange(chart) },
-                      },
-                    },
-                  })}
+              options={scatterOptions}
             />
           </Box>
 
@@ -972,7 +1087,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
                   : 'Reward médio por episódio + média móvel (5) · arraste/scroll'}
                 ChartComp={Line}
                 data={rewardData}
-                options={baseChartOptions()}
+                options={defaultChartOptions}
               />
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
@@ -981,13 +1096,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
                 subtitle="Convergência do modelo vs decaimento da exploração · arraste/scroll"
                 ChartComp={Line}
                 data={lossEpsilonData}
-                options={baseChartOptions({
-                  scales: {
-                    x: { ticks: { color: '#aaa', maxRotation: 0, autoSkip: true }, grid: { color: 'rgba(255,255,255,0.05)' } },
-                    y: { type: 'linear', position: 'left', ticks: { color: '#FF5C7C' }, grid: { color: 'rgba(255,255,255,0.05)' }, title: { display: true, text: 'Loss', color: '#FF5C7C' } },
-                    y1: { type: 'linear', position: 'right', ticks: { color: '#5CB8FF' }, grid: { drawOnChartArea: false }, title: { display: true, text: 'Epsilon', color: '#5CB8FF' } },
-                  },
-                })}
+                options={lossEpsilonOptions}
               />
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
@@ -996,12 +1105,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
                 subtitle="Percentual de trades vencedores por episódio · arraste/scroll"
                 ChartComp={Line}
                 data={winRateData}
-                options={baseChartOptions({
-                  scales: {
-                    x: { ticks: { color: '#aaa', maxRotation: 0, autoSkip: true }, grid: { color: 'rgba(255,255,255,0.05)' } },
-                    y: { ticks: { color: '#aaa', callback: (v) => `${v}%` }, grid: { color: 'rgba(255,255,255,0.05)' }, min: 0, max: 100 },
-                  },
-                })}
+                options={winRateOptions}
               />
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
@@ -1010,7 +1114,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
                 subtitle="Trajetória global · arraste/scroll"
                 ChartComp={Line}
                 data={cumulativeRewardData}
-                options={baseChartOptions()}
+                options={defaultChartOptions}
               />
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
@@ -1019,24 +1123,14 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
                 subtitle="Segundos gastos em cada treinamento · arraste/scroll"
                 ChartComp={Line}
                 data={duracaoData}
-                options={baseChartOptions({
-                  scales: {
-                    x: { ticks: { color: '#aaa', maxRotation: 0, autoSkip: true }, grid: { color: 'rgba(255,255,255,0.05)' } },
-                    y: { ticks: { color: '#aaa', callback: (v) => `${v}s` }, grid: { color: 'rgba(255,255,255,0.05)' } },
-                  },
-                })}
+                options={duracaoOptions}
               />
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               <ChartCard title="Comparativo por moeda" subtitle="Reward médio (×100), win rate e nº de episódios agregados">
                 <Bar
                   data={comparativoMoedaData}
-                  options={baseChartOptions({
-                    scales: {
-                      x: { ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-                      y: { ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-                    },
-                  })}
+                  options={comparativoOptions}
                 />
               </ChartCard>
             </Grid>
@@ -1044,12 +1138,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
               <ChartCard title="Distribuição de ações por moeda" subtitle="Total acumulado de Hold / Compra / Venda">
                 <Bar
                   data={acoesPorMoeda}
-                  options={baseChartOptions({
-                    scales: {
-                      x: { stacked: true, ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-                      y: { stacked: true, ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-                    },
-                  })}
+                  options={acoesOptions}
                 />
               </ChartCard>
             </Grid>
@@ -1104,9 +1193,9 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
                           label={row.moeda}
                           size="small"
                           sx={{
-                            background: (COIN_COLORS[row.moeda] || '#888') + '33',
-                            color: COIN_COLORS[row.moeda] || 'white',
-                            border: `1px solid ${(COIN_COLORS[row.moeda] || '#888')}66`,
+                            background: coinColor(row.moeda) + '33',
+                            color: coinColor(row.moeda),
+                            border: `1px solid ${coinColor(row.moeda)}66`,
                             fontWeight: 600,
                           }}
                         />
@@ -1195,9 +1284,9 @@ function DetailView({ item, onBack }) {
           label={item.moeda}
           size="small"
           sx={{
-            background: (COIN_COLORS[item.moeda] || '#888') + '33',
-            color: COIN_COLORS[item.moeda] || 'white',
-            border: `1px solid ${(COIN_COLORS[item.moeda] || '#888')}66`,
+            background: coinColor(item.moeda) + '33',
+            color: coinColor(item.moeda),
+            border: `1px solid ${coinColor(item.moeda)}66`,
             fontWeight: 600,
             mr: 1,
           }}
@@ -1241,35 +1330,48 @@ export default function TreinamentoEpisodios() {
   const [selectedCoins, setSelectedCoins] = useState([])
   const [refreshKey, setRefreshKey] = useState(0)
   const [visibleRange, setVisibleRange] = useState({ min: null, max: null })
-  // Chaves "minMinuto-maxMinuto" das janelas de tempo já buscadas
-  const fetchedRangesRef = useRef(new Set())
+  // Buckets (janelas de 4h) já buscados, identificados pelo timestamp de início
+  const fetchedBucketsRef = useRef(new Set())
+  const genRef = useRef(0)       // invalida fetches de gerações antigas (troca de filtro/refresh)
+  const inflightRef = useRef(0)  // conta buscas de janela em andamento
 
   const moedaServerFilter = selectedCoins.length === 1 ? selectedCoins[0] : null
 
-  // Carrega apenas a primeira página (dados recentes). Refetcha quando filtro ou refresh muda.
+  // Carga inicial em grupos de 4h: descobre o episódio mais recente e carrega as
+  // duas janelas de 4h mais recentes. Refetcha quando filtro ou refresh muda.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     let canceled = false
-    fetchedRangesRef.current.clear()
+    genRef.current += 1
+    fetchedBucketsRef.current.clear()
+    inflightRef.current = 0
     setVisibleRange({ min: null, max: null })
+    setLoadingRange(false)
     const load = async () => {
       setLoading(true)
       setError(null)
       try {
-        const [listResp, resumoResp] = await Promise.all([
-          apiRequest(TreinamentoEpisodioEndpoint.LIST({ moeda: moedaServerFilter || undefined, quantidade: 500, pagina: 1 })),
+        const [probeResp, resumoResp] = await Promise.all([
+          apiRequest(TreinamentoEpisodioEndpoint.LIST({ moeda: moedaServerFilter || undefined, quantidade: 1, ordenarAscendente: false })),
           apiRequest(TreinamentoEpisodioEndpoint.RESUMO()),
         ])
         if (canceled) return
-        const paginado = listResp?.resultado
-        const list = Array.isArray(paginado?.lista)
-          ? paginado.lista
-          : (Array.isArray(listResp?.resultado) ? listResp.resultado : [])
         const res = Array.isArray(resumoResp?.resultado)
           ? resumoResp.resultado
           : (Array.isArray(resumoResp) ? resumoResp : [])
-        setItems(list)
         setResumo(res)
+
+        const maisRecente = extractLista(probeResp)[0]
+        if (!maisRecente) { setItems([]); return }
+
+        const bucketAtual = bucketStartOf(new Date(maisRecente.dataHora).getTime())
+        const inicio = bucketAtual - FOUR_HOURS_MS      // janela anterior
+        const fim = bucketAtual + FOUR_HOURS_MS          // fim da janela atual
+        const dados = await fetchWindow(moedaServerFilter, inicio, fim)
+        if (canceled) return
+        fetchedBucketsRef.current.add(bucketAtual)
+        fetchedBucketsRef.current.add(bucketAtual - FOUR_HOURS_MS)
+        setItems(dados)
       } catch (e) {
         if (!canceled) setError(e?.message || 'Falha ao carregar episódios')
       } finally {
@@ -1280,56 +1382,37 @@ export default function TreinamentoEpisodios() {
     return () => { canceled = true }
   }, [moedaServerFilter, refreshKey])
 
-  // Fetch sob demanda quando o usuário arrasta o scatter para uma janela sem dados
-  const itemsRef = useRef(items)
-  useEffect(() => { itemsRef.current = items }, [items])
-
+  // Ao navegar o scatter (pan/zoom), carrega as janelas de 4h visíveis ainda não
+  // buscadas. Cada bucket é buscado uma única vez; tudo que chega é mesclado.
   useEffect(() => {
-    const { min } = visibleRange
-    if (min == null) return
+    const { min, max } = visibleRange
+    if (min == null || max == null) return
 
-    // Considera só os itens relevantes ao filtro atual para achar o mais antigo
-    const relevantes = moedaServerFilter
-      ? itemsRef.current.filter((i) => i.moeda === moedaServerFilter)
-      : itemsRef.current
-    if (relevantes.length === 0) return
+    const buckets = []
+    for (let b = bucketStartOf(min); b <= bucketStartOf(max); b += FOUR_HOURS_MS) {
+      if (!fetchedBucketsRef.current.has(b)) buckets.push(b)
+    }
+    if (buckets.length === 0) return
 
-    const oldestLoaded = Math.min(...relevantes.map((i) => new Date(i.dataHora).getTime()))
-
-    // Só busca quando o usuário arrastou para ANTES do dado mais antigo carregado
-    if (min >= oldestLoaded) return
-
-    // Chave = fronteira mais antiga já buscada. Se a busca não trouxe nada mais
-    // antigo, oldestLoaded não muda e não refetcha (evita loop). Se trouxe,
-    // oldestLoaded recua, gera nova chave e permite caminhar mais para trás.
-    const key = `older-${Math.floor(oldestLoaded / 60000)}`
-    if (fetchedRangesRef.current.has(key)) return
-    fetchedRangesRef.current.add(key)
-
-    let canceled = false
+    // marca já pra não refazer em eventos repetidos de pan/zoom
+    buckets.forEach((b) => fetchedBucketsRef.current.add(b))
+    const gen = genRef.current
+    inflightRef.current += buckets.length
     setLoadingRange(true)
-    apiRequest(TreinamentoEpisodioEndpoint.LIST({
-      moeda: moedaServerFilter || undefined,
-      dataFim: new Date(oldestLoaded).toISOString(),
-      quantidade: 500,
-      ordenarAscendente: false, // garante os 500 mais recentes ANTES da fronteira
-    }))
-      .then((resp) => {
-        if (canceled) return
-        const list = Array.isArray(resp?.resultado?.lista)
-          ? resp.resultado.lista
-          : (Array.isArray(resp?.resultado) ? resp.resultado : [])
-        if (list.length > 0) {
-          setItems((prev) => {
-            const existingIds = new Set(prev.map((i) => i.idTreinamentoEpisodio))
-            const novos = list.filter((i) => !existingIds.has(i.idTreinamentoEpisodio))
-            return novos.length > 0 ? [...prev, ...novos] : prev
-          })
-        }
+
+    Promise.all(buckets.map((b) => fetchWindow(moedaServerFilter, b, b + FOUR_HOURS_MS)))
+      .then((results) => {
+        if (genRef.current !== gen) return   // filtro/refresh mudou → descarta
+        setItems((prev) => mergeItems(prev, results.flat()))
       })
-      .catch(() => {})
-      .finally(() => { if (!canceled) setLoadingRange(false) })
-    return () => { canceled = true }
+      .catch(() => {
+        // libera os buckets pra permitir nova tentativa
+        if (genRef.current === gen) buckets.forEach((b) => fetchedBucketsRef.current.delete(b))
+      })
+      .finally(() => {
+        inflightRef.current = Math.max(0, inflightRef.current - buckets.length)
+        if (inflightRef.current === 0) setLoadingRange(false)
+      })
   }, [visibleRange, moedaServerFilter])
 
   // /serie só faz sentido com 1 moeda. Cancela quando muda.
