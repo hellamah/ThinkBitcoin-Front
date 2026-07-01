@@ -1285,29 +1285,34 @@ export default function TreinamentoEpisodios() {
   useEffect(() => { itemsRef.current = items }, [items])
 
   useEffect(() => {
-    const { min, max } = visibleRange
-    if (min == null || max == null) return
+    const { min } = visibleRange
+    if (min == null) return
 
-    // Chave por granularidade de minuto para evitar re-fetches duplicados
-    const key = `${Math.floor(min / 60000)}-${Math.floor(max / 60000)}`
+    // Considera só os itens relevantes ao filtro atual para achar o mais antigo
+    const relevantes = moedaServerFilter
+      ? itemsRef.current.filter((i) => i.moeda === moedaServerFilter)
+      : itemsRef.current
+    if (relevantes.length === 0) return
+
+    const oldestLoaded = Math.min(...relevantes.map((i) => new Date(i.dataHora).getTime()))
+
+    // Só busca quando o usuário arrastou para ANTES do dado mais antigo carregado
+    if (min >= oldestLoaded) return
+
+    // Chave = fronteira mais antiga já buscada. Se a busca não trouxe nada mais
+    // antigo, oldestLoaded não muda e não refetcha (evita loop). Se trouxe,
+    // oldestLoaded recua, gera nova chave e permite caminhar mais para trás.
+    const key = `older-${Math.floor(oldestLoaded / 60000)}`
     if (fetchedRangesRef.current.has(key)) return
-
-    // Verifica se já temos dados nesta janela (sem depender de items no array de deps)
-    const hasData = itemsRef.current.some((item) => {
-      const t = new Date(item.dataHora).getTime()
-      return t >= min && t <= max
-    })
-    if (hasData) return
-
     fetchedRangesRef.current.add(key)
 
     let canceled = false
     setLoadingRange(true)
     apiRequest(TreinamentoEpisodioEndpoint.LIST({
       moeda: moedaServerFilter || undefined,
-      dataInicio: new Date(min).toISOString(),
-      dataFim: new Date(max).toISOString(),
+      dataFim: new Date(oldestLoaded).toISOString(),
       quantidade: 500,
+      ordenarAscendente: false, // garante os 500 mais recentes ANTES da fronteira
     }))
       .then((resp) => {
         if (canceled) return
