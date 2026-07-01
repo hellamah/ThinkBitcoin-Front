@@ -100,6 +100,13 @@ const formatBackendDateTime = (ts) => {
 // As consultas trabalham em grupos (janelas) de 4 horas, alinhados à hora local.
 const ONE_HOUR_MS = 60 * 60 * 1000
 const FOUR_HOURS_MS = 4 * 60 * 60 * 1000
+const FIVE_HOURS_MS = 5 * 60 * 60 * 1000
+
+// Range inicial estável para o scatter (calculado uma vez no carregamento do módulo).
+// Valores no nível do módulo garantem que scatterOptions nunca mude de referência,
+// preservando o estado de zoom/pan do chartjs-plugin-zoom entre re-renders.
+const _SCATTER_INIT_MAX = Date.now()
+const _SCATTER_INIT_MIN = _SCATTER_INIT_MAX - FOUR_HOURS_MS
 const bucketStartOf = (ts) => {
   const d = new Date(ts)
   d.setHours(Math.floor(d.getHours() / 4) * 4, 0, 0, 0)
@@ -457,6 +464,8 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
         type: 'time',
         adapters: { date: { locale: ptBR } },
         time: { tooltipFormat: 'dd/MM HH:mm:ss', displayFormats: { minute: 'HH:mm', hour: 'HH:mm', day: 'dd/MM' } },
+        min: _SCATTER_INIT_MIN,
+        max: _SCATTER_INIT_MAX,
         ticks: { color: '#aaa' },
         grid: { color: 'rgba(255,255,255,0.05)' },
       },
@@ -494,28 +503,12 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
       },
       zoom: {
         ...ZOOM_CONFIG,
-        limits: { x: { minRange: ONE_HOUR_MS, maxRange: FOUR_HOURS_MS } },
+        limits: { x: { minRange: ONE_HOUR_MS, maxRange: FIVE_HOURS_MS } },
         zoom: { ...ZOOM_CONFIG.zoom, onZoom: ({ chart }) => handleRangeChange(chart) },
         pan: { ...ZOOM_CONFIG.pan, onPan: ({ chart }) => handleRangeChange(chart) },
       },
     },
   }), [handleRangeChange])
-
-  // Plugin que define a vista inicial do scatter como as últimas 4h dos dados.
-  // Usa afterDatasetsDraw (roda após dados disponíveis) e flag no chart para
-  // executar só uma vez — sem tocar em estado React, sem causar re-renders.
-  const scatterInitRangePlugin = useMemo(() => ({
-    id: 'scatterInitRange',
-    afterDatasetsDraw: (chart) => {
-      if (chart._initRangeDone) return
-      const xs = []
-      chart.data.datasets.forEach((d) => d.data?.forEach((p) => p?.x && xs.push(p.x)))
-      if (xs.length === 0) return
-      chart._initRangeDone = true
-      const xMax = Math.max(...xs)
-      chart.zoomScale('x', { min: xMax - FOUR_HOURS_MS, max: xMax }, 'none')
-    },
-  }), [])
 
   const defaultChartOptions = useMemo(() => baseChartOptions(), [])
   const lossEpsilonOptions = useMemo(() => baseChartOptions({
@@ -1111,7 +1104,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
               height={{ xs: 320, md: 420 }}
               ChartComp={Scatter}
               data={timelineData}
-              plugins={[cycleBandsPlugin, scatterInitRangePlugin]}
+              plugins={[cycleBandsPlugin]}
               onReset={resetVisibleRange}
               options={scatterOptions}
             />
