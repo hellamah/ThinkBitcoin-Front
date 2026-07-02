@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom'
-import { MdHome, MdLogin, MdDashboard, MdLogout, MdSettings, MdPublic } from 'react-icons/md'
+import { MdHome, MdLogin, MdDashboard, MdLogout, MdSettings, MdPublic, MdPsychology } from 'react-icons/md'
 import AppBar from '@mui/material/AppBar'
 import Toolbar from '@mui/material/Toolbar'
 import IconButton from '@mui/material/IconButton'
@@ -70,6 +70,16 @@ function Layout({ children }) {
       >
         <MdPublic />
         <span className="nav-label">{t('nav.heatmap') || 'Geopolítica'}</span>
+      </IconButton>
+      <IconButton
+        component={NavLink}
+        to="/treinamento-episodios"
+        className={linkClass}
+        title={t('nav.training') || 'Treinamento IA'}
+        aria-label={t('nav.training') || 'Treinamento IA'}
+      >
+        <MdPsychology />
+        <span className="nav-label">{t('nav.training') || 'Treinamento IA'}</span>
       </IconButton>
     </>
   )
@@ -154,6 +164,15 @@ function Layout({ children }) {
                   >
                     <MdPublic />
                     <span className="nav-label">{t('nav.heatmap') || 'Geopolítica'}</span>
+                  </IconButton>
+                  <IconButton
+                    component={NavLink}
+                    to="/treinamento-episodios"
+                    className={linkClass}
+                    title={t('nav.training') || 'Treinamento IA'}
+                  >
+                    <MdPsychology />
+                    <span className="nav-label">{t('nav.training') || 'Treinamento IA'}</span>
                   </IconButton>
                 </Box>
               )}

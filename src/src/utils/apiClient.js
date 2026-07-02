@@ -51,6 +51,37 @@ export const ApiEndpoint = Object.freeze({
     LIST: '/ThinkBitcoin/planos-pagamento',
     MIGRATE: '/ThinkBitcoin/planos-pagamento/migrar',
   }),
+  TREINAMENTO_EPISODIO: Object.freeze({
+    LIST: ({ moeda, dataInicio, dataFim, pagina, quantidade, ordenarAscendente } = {}) => {
+      const params = new URLSearchParams()
+      if (moeda) params.set('moeda', moeda)
+      if (dataInicio) params.set('dataInicio', dataInicio)
+      if (dataFim) params.set('dataFim', dataFim)
+      if (pagina != null) params.set('pagina', String(pagina))
+      if (quantidade != null) params.set('quantidade', String(quantidade))
+      if (ordenarAscendente != null) params.set('ordenarAscendente', String(ordenarAscendente))
+      const qs = params.toString()
+      return qs ? `/api/TreinamentoEpisodio?${qs}` : '/api/TreinamentoEpisodio'
+    },
+    RESUMO: ({ moeda, dataInicio, dataFim } = {}) => {
+      const params = new URLSearchParams()
+      if (moeda) params.set('moeda', moeda)
+      if (dataInicio) params.set('dataInicio', dataInicio)
+      if (dataFim) params.set('dataFim', dataFim)
+      const qs = params.toString()
+      return qs ? `/api/TreinamentoEpisodio/resumo?${qs}` : '/api/TreinamentoEpisodio/resumo'
+    },
+    SERIE: ({ moeda, dataInicio, dataFim, janela, limite } = {}) => {
+      const params = new URLSearchParams()
+      if (moeda) params.set('moeda', moeda)
+      if (dataInicio) params.set('dataInicio', dataInicio)
+      if (dataFim) params.set('dataFim', dataFim)
+      if (janela != null) params.set('janela', String(janela))
+      if (limite != null) params.set('limite', String(limite))
+      const qs = params.toString()
+      return qs ? `/api/TreinamentoEpisodio/serie?${qs}` : '/api/TreinamentoEpisodio/serie'
+    },
+  }),
 })
 
 const JSON_HEADERS = Object.freeze({ 'Content-Type': 'application/json' })
@@ -132,3 +163,4 @@ export const CargoEndpoint = ApiEndpoint.CARGO
 export const VariavelExternaEndpoint = ApiEndpoint.VARIAVEL_EXTERNA
 export const PatrimonioEndpoint = ApiEndpoint.PATRIMONIO
 export const PlanosPagamentoEndpoint = ApiEndpoint.PLANOS_PAGAMENTO
+export const TreinamentoEpisodioEndpoint = ApiEndpoint.TREINAMENTO_EPISODIO
