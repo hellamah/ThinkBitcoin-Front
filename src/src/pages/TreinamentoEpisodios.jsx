@@ -15,7 +15,7 @@ import TableSortLabel from '@mui/material/TableSortLabel'
 import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
 import Grid from '@mui/material/Grid'
-import { MdArrowBack, MdRefresh, MdPsychology, MdTrendingUp, MdEmojiEvents, MdShowChart, MdInsights } from 'react-icons/md'
+import { MdArrowBack, MdArrowForward, MdRefresh, MdPsychology, MdTrendingUp, MdTrendingDown, MdEmojiEvents, MdShowChart, MdInsights, MdTimer, MdCompareArrows, MdLeaderboard, MdSpeed } from 'react-icons/md'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -23,6 +23,8 @@ import {
   PointElement,
   LineElement,
   BarElement,
+  ArcElement,
+  RadialLinearScale,
   TimeScale,
   Title,
   Tooltip,
@@ -32,12 +34,13 @@ import {
 import 'chartjs-adapter-date-fns'
 import { ptBR } from 'date-fns/locale'
 import zoomPlugin from 'chartjs-plugin-zoom'
-import { Line, Bar, Scatter } from 'react-chartjs-2'
+import { Line, Bar, Scatter, Doughnut, Radar } from 'react-chartjs-2'
 import ErrorMessage from '../components/ErrorMessage'
 import { apiRequest, TreinamentoEpisodioEndpoint } from '../utils/apiClient'
 
 ChartJS.register(
-  CategoryScale, LinearScale, PointElement, LineElement, BarElement, TimeScale,
+  CategoryScale, LinearScale, PointElement, LineElement, BarElement,
+  ArcElement, RadialLinearScale, TimeScale,
   Title, Tooltip, Legend, Filler, zoomPlugin,
 )
 
@@ -1268,7 +1271,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
   )
 }
 
-function DetailView({ item, onBack }) {
+function DetailView({ item, allItems, onBack, onNavigate }) {
   if (!item) {
     return (
       <Box sx={{ p: 4, color: 'white' }}>
@@ -1278,73 +1281,593 @@ function DetailView({ item, onBack }) {
     )
   }
 
-  const total = (item.acoesHold ?? 0) + (item.acoesCompra ?? 0) + (item.acoesVenda ?? 0)
-  const acoesData = {
+  // ── Dados da mesma moeda ──
+  const sameCoinItems = useMemo(() =>
+    (allItems || [])
+      .filter((i) => i.moeda === item.moeda)
+      .sort((a, b) => new Date(a.dataHora).getTime() - new Date(b.dataHora).getTime()),
+    [allItems, item.moeda]
+  )
+
+  const coinAvg = useMemo(() => {
+    if (sameCoinItems.length === 0) return { reward: 0, loss: 0, winRate: 0, epsilon: 0, duracao: 0 }
+    const n = sameCoinItems.length
+    return {
+      reward: sameCoinItems.reduce((s, r) => s + (r.rewardMedio ?? 0), 0) / n,
+      loss: sameCoinItems.reduce((s, r) => s + (r.lossMedia ?? 0), 0) / n,
+      winRate: sameCoinItems.reduce((s, r) => s + (r.winRate ?? 0), 0) / n,
+      epsilon: sameCoinItems.reduce((s, r) => s + (r.epsilon ?? 0), 0) / n,
+      duracao: sameCoinItems.reduce((s, r) => s + (r.duracaoSegundos ?? 0), 0) / n,
+    }
+  }, [sameCoinItems])
+
+  // ── Navegação prev/next ──
+  const currentIndex = sameCoinItems.findIndex((i) => i.idTreinamentoEpisodio === item.idTreinamentoEpisodio)
+  const prevItem = currentIndex > 0 ? sameCoinItems[currentIndex - 1] : null
+  const nextItem = currentIndex < sameCoinItems.length - 1 ? sameCoinItems[currentIndex + 1] : null
+
+  // ── Ranking (posição entre todos os items por reward) ──
+  const ranking = useMemo(() => {
+    const sorted = [...(allItems || [])].sort((a, b) => (b.rewardMedio ?? -Infinity) - (a.rewardMedio ?? -Infinity))
+    const pos = sorted.findIndex((i) => i.idTreinamentoEpisodio === item.idTreinamentoEpisodio)
+    return { position: pos >= 0 ? pos + 1 : null, total: sorted.length }
+  }, [allItems, item.idTreinamentoEpisodio])
+
+  const rankingCoin = useMemo(() => {
+    const sorted = [...sameCoinItems].sort((a, b) => (b.rewardMedio ?? -Infinity) - (a.rewardMedio ?? -Infinity))
+    const pos = sorted.findIndex((i) => i.idTreinamentoEpisodio === item.idTreinamentoEpisodio)
+    return { position: pos >= 0 ? pos + 1 : null, total: sorted.length }
+  }, [sameCoinItems, item.idTreinamentoEpisodio])
+
+  // ── Ações Doughnut ──
+  const totalAcoes = (item.acoesHold ?? 0) + (item.acoesCompra ?? 0) + (item.acoesVenda ?? 0)
+  const doughnutData = {
     labels: ['Hold', 'Compra', 'Venda'],
     datasets: [{
-      label: 'Ações',
       data: [item.acoesHold ?? 0, item.acoesCompra ?? 0, item.acoesVenda ?? 0],
       backgroundColor: ['rgba(160,160,160,0.85)', 'rgba(20,241,149,0.85)', 'rgba(255,92,124,0.85)'],
-      borderRadius: 6,
+      borderColor: ['rgba(160,160,160,1)', 'rgba(20,241,149,1)', 'rgba(255,92,124,1)'],
+      borderWidth: 2,
+      hoverOffset: 8,
     }],
   }
+  const doughnutOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '65%',
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: { color: '#e0e0e0', usePointStyle: true, padding: 16, font: { size: 12 } },
+      },
+      tooltip: {
+        backgroundColor: 'rgba(15,15,20,0.95)',
+        borderColor: 'rgba(255,215,0,0.4)',
+        borderWidth: 1,
+        titleColor: ACCENT,
+        bodyColor: '#fff',
+        padding: 10,
+        callbacks: {
+          label: (ctx) => {
+            const pct = totalAcoes > 0 ? ((ctx.raw / totalAcoes) * 100).toFixed(1) : 0
+            return ` ${ctx.label}: ${ctx.raw} (${pct}%)`
+          },
+        },
+      },
+    },
+  }
 
-  const fields = [
-    ['Episódio', item.episodio],
-    ['Moeda', item.moeda],
-    ['Data/Hora', formatDate(item.dataHora)],
-    ['Reward Médio', formatNumber(item.rewardMedio)],
-    ['Reward Total', formatNumber(item.rewardTotal, 2)],
-    ['Loss Média', formatNumber(item.lossMedia)],
-    ['Epsilon', formatNumber(item.epsilon)],
-    ['Win Rate', formatPercent(item.winRate)],
-    ['Ações Hold', item.acoesHold],
-    ['Ações Compra', item.acoesCompra],
-    ['Ações Venda', item.acoesVenda],
-    ['Total de Steps', item.totalSteps],
-    ['Duração (s)', formatNumber(item.duracaoSegundos, 2)],
-    ['ID', item.idTreinamentoEpisodio],
-  ]
+  // ── Radar: episódio vs média da moeda ──
+  const radarData = useMemo(() => {
+    // Normalizar cada métrica no intervalo [0, 1] em relação ao range da moeda
+    const metrics = [
+      { label: 'Reward', key: 'rewardMedio', higher: true },
+      { label: 'Win Rate', key: 'winRate', higher: true },
+      { label: 'Duração', key: 'duracaoSegundos', higher: false },
+      { label: 'Epsilon', key: 'epsilon', higher: false },
+      { label: 'Loss', key: 'lossMedia', higher: false },
+    ]
+    const normalize = (key) => {
+      if (sameCoinItems.length < 2) return { val: 0.5, avg: 0.5 }
+      const vals = sameCoinItems.map((r) => r[key] ?? 0)
+      const min = Math.min(...vals)
+      const max = Math.max(...vals)
+      const range = max - min || 1
+      return {
+        val: ((item[key] ?? 0) - min) / range,
+        avg: (coinAvg[key === 'rewardMedio' ? 'reward' : key === 'lossMedia' ? 'loss' : key] - min) / range,
+      }
+    }
+    const itemVals = metrics.map((m) => normalize(m.key).val * 100)
+    const avgVals = metrics.map((m) => normalize(m.key).avg * 100)
+    return {
+      labels: metrics.map((m) => m.label),
+      datasets: [
+        {
+          label: `Episódio #${item.episodio}`,
+          data: itemVals,
+          borderColor: ACCENT,
+          backgroundColor: 'rgba(255,215,0,0.15)',
+          borderWidth: 2,
+          pointBackgroundColor: ACCENT,
+          pointRadius: 4,
+        },
+        {
+          label: `Média ${item.moeda}`,
+          data: avgVals,
+          borderColor: 'rgba(92,184,255,0.8)',
+          backgroundColor: 'rgba(92,184,255,0.08)',
+          borderWidth: 2,
+          borderDash: [4, 4],
+          pointBackgroundColor: '#5CB8FF',
+          pointRadius: 3,
+        },
+      ],
+    }
+  }, [item, sameCoinItems, coinAvg])
+
+  const radarOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      r: {
+        angleLines: { color: 'rgba(255,255,255,0.1)' },
+        grid: { color: 'rgba(255,255,255,0.08)' },
+        pointLabels: { color: '#e0e0e0', font: { size: 12 } },
+        ticks: { display: false },
+        suggestedMin: 0,
+        suggestedMax: 100,
+      },
+    },
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: { color: '#e0e0e0', usePointStyle: true, padding: 16 },
+      },
+      tooltip: {
+        backgroundColor: 'rgba(15,15,20,0.95)',
+        borderColor: 'rgba(255,215,0,0.4)',
+        borderWidth: 1,
+        titleColor: ACCENT,
+        bodyColor: '#fff',
+        padding: 10,
+        callbacks: { label: (ctx) => ` ${ctx.dataset.label}: ${ctx.raw.toFixed(1)}%` },
+      },
+    },
+  }
+
+  // ── Mini-timeline: últimos 20 episódios da mesma moeda ──
+  const miniTimeline = useMemo(() => {
+    const idx = sameCoinItems.findIndex((i) => i.idTreinamentoEpisodio === item.idTreinamentoEpisodio)
+    if (idx < 0) return sameCoinItems.slice(-20)
+    const start = Math.max(0, idx - 10)
+    const end = Math.min(sameCoinItems.length, idx + 11)
+    return sameCoinItems.slice(start, end)
+  }, [sameCoinItems, item.idTreinamentoEpisodio])
+
+  const miniTimelineData = useMemo(() => ({
+    labels: miniTimeline.map((r) => `#${r.episodio}`),
+    datasets: [
+      {
+        label: 'Reward médio',
+        data: miniTimeline.map((r) => r.rewardMedio ?? 0),
+        borderColor: miniTimeline.map((r) =>
+          r.idTreinamentoEpisodio === item.idTreinamentoEpisodio ? ACCENT : 'rgba(255,215,0,0.5)'
+        ),
+        backgroundColor: miniTimeline.map((r) =>
+          r.idTreinamentoEpisodio === item.idTreinamentoEpisodio ? ACCENT : 'rgba(255,215,0,0.15)'
+        ),
+        borderWidth: miniTimeline.map((r) =>
+          r.idTreinamentoEpisodio === item.idTreinamentoEpisodio ? 3 : 1.5
+        ),
+        pointRadius: miniTimeline.map((r) =>
+          r.idTreinamentoEpisodio === item.idTreinamentoEpisodio ? 7 : 3
+        ),
+        pointBackgroundColor: miniTimeline.map((r) =>
+          r.idTreinamentoEpisodio === item.idTreinamentoEpisodio ? ACCENT : 'rgba(255,215,0,0.5)'
+        ),
+        tension: 0.3,
+        fill: false,
+      },
+    ],
+  }), [miniTimeline, item.idTreinamentoEpisodio])
+
+  const miniTimelineOptions = useMemo(() => ({
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: 'rgba(15,15,20,0.95)',
+        borderColor: 'rgba(255,215,0,0.4)',
+        borderWidth: 1,
+        titleColor: ACCENT,
+        bodyColor: '#fff',
+        padding: 10,
+        callbacks: {
+          afterLabel: (ctx) => {
+            const ep = miniTimeline[ctx.dataIndex]
+            if (!ep) return ''
+            return [
+              `Win rate: ${formatPercent(ep.winRate)}`,
+              `Loss: ${formatNumber(ep.lossMedia)}`,
+              `Duração: ${formatNumber(ep.duracaoSegundos, 1)}s`,
+            ].join('\n')
+          },
+        },
+      },
+    },
+    scales: {
+      x: { ticks: { color: '#aaa', maxRotation: 0, autoSkip: true }, grid: { color: 'rgba(255,255,255,0.05)' } },
+      y: { ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+    },
+  }), [miniTimeline])
+
+  // ── Delta helpers ──
+  const delta = (val, avg) => {
+    if (avg === 0 && val === 0) return 0
+    return val - avg
+  }
+  const deltaColor = (d, inverted = false) => {
+    const positive = inverted ? d <= 0 : d >= 0
+    return positive ? '#14F195' : '#FF5C7C'
+  }
+  const deltaSign = (d) => d >= 0 ? '+' : ''
+
+  // ── Win rate visual gauge ──
+  const winRatePct = (item.winRate ?? 0) * 100
+  const winRateGaugeColor = winRatePct >= 50 ? '#14F195' : winRatePct >= 35 ? '#FFB547' : '#FF5C7C'
+
+  // ── Deltas para KPIs ──
+  const rewardDelta = delta(item.rewardMedio ?? 0, coinAvg.reward)
+  const lossDelta = delta(item.lossMedia ?? 0, coinAvg.loss)
+  const winRateDelta = delta(item.winRate ?? 0, coinAvg.winRate)
+  const duracaoDelta = delta(item.duracaoSegundos ?? 0, coinAvg.duracao)
+
+  // ── Eficiência (reward / duração) ──
+  const eficiencia = (item.duracaoSegundos ?? 0) > 0 ? (item.rewardMedio ?? 0) / (item.duracaoSegundos ?? 1) : 0
+  const eficienciaAvg = coinAvg.duracao > 0 ? coinAvg.reward / coinAvg.duracao : 0
+  const eficienciaDelta = delta(eficiencia, eficienciaAvg)
 
   return (
     <div className="dashboard-container">
       <Box sx={{ p: { xs: 2, md: 4 }, color: 'white' }}>
-      <Button startIcon={<MdArrowBack />} onClick={onBack} sx={{ color: 'white', mb: 2 }}>Voltar</Button>
-      <Typography variant="h5" sx={{ mb: 1, fontWeight: 700 }}>Episódio #{item.episodio}</Typography>
-      <Typography variant="body2" sx={{ mb: 3, opacity: 0.7 }}>
-        <Chip
-          label={item.moeda}
-          size="small"
-          sx={{
-            background: coinColor(item.moeda) + '33',
-            color: coinColor(item.moeda),
-            border: `1px solid ${coinColor(item.moeda)}66`,
-            fontWeight: 600,
-            mr: 1,
-          }}
-        />
-        {formatDate(item.dataHora)}
-      </Typography>
+        {/* ── Header com navegação ── */}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, flexWrap: 'wrap', gap: 1 }}>
+          <Button startIcon={<MdArrowBack />} onClick={onBack} sx={{ color: 'white' }}>Voltar</Button>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              size="small"
+              startIcon={<MdArrowBack size={14} />}
+              disabled={!prevItem}
+              onClick={() => onNavigate(prevItem.idTreinamentoEpisodio)}
+              sx={{ color: 'white', borderColor: 'rgba(255,255,255,0.3)', fontSize: 12 }}
+              variant="outlined"
+            >
+              Anterior
+            </Button>
+            <Button
+              size="small"
+              endIcon={<MdArrowForward size={14} />}
+              disabled={!nextItem}
+              onClick={() => onNavigate(nextItem.idTreinamentoEpisodio)}
+              sx={{ color: 'white', borderColor: 'rgba(255,255,255,0.3)', fontSize: 12 }}
+              variant="outlined"
+            >
+              Próximo
+            </Button>
+          </Box>
+        </Box>
 
-      <Grid container spacing={2}>
-        <Grid size={{ xs: 12, md: 7 }}>
-          <Paper sx={{ p: 3, background: CHART_BG, border: `1px solid ${CHART_BORDER}`, color: 'white' }}>
-            <Grid container spacing={2}>
-              {fields.map(([label, value]) => (
-                <Grid size={{ xs: 12, sm: 6, md: 4 }} key={label}>
-                  <Typography variant="caption" sx={{ opacity: 0.65, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: 10 }}>{label}</Typography>
-                  <Typography variant="body1" sx={{ wordBreak: 'break-all', fontWeight: 500 }}>{value ?? '-'}</Typography>
-                </Grid>
-              ))}
-            </Grid>
-          </Paper>
+        {/* ── Título e badge ── */}
+        <Box sx={{ mb: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
+            <MdPsychology size={28} color={ACCENT} />
+            <Typography variant="h5" sx={{ fontWeight: 700 }}>Episódio #{item.episodio}</Typography>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+            <Chip
+              label={item.moeda}
+              size="small"
+              sx={{
+                background: coinColor(item.moeda) + '33',
+                color: coinColor(item.moeda),
+                border: `1px solid ${coinColor(item.moeda)}66`,
+                fontWeight: 600,
+              }}
+            />
+            <Typography variant="body2" sx={{ opacity: 0.7 }}>{formatDate(item.dataHora)}</Typography>
+            {ranking.position && (
+              <Chip
+                icon={<MdLeaderboard size={14} />}
+                label={`#${ranking.position} de ${ranking.total} geral`}
+                size="small"
+                sx={{
+                  background: 'rgba(167,139,250,0.15)',
+                  color: '#A78BFA',
+                  border: '1px solid rgba(167,139,250,0.3)',
+                  fontWeight: 500,
+                  fontSize: 11,
+                  '& .MuiChip-icon': { color: '#A78BFA' },
+                }}
+              />
+            )}
+            {rankingCoin.position && (
+              <Chip
+                icon={<MdEmojiEvents size={14} />}
+                label={`#${rankingCoin.position} de ${rankingCoin.total} em ${item.moeda}`}
+                size="small"
+                sx={{
+                  background: coinColor(item.moeda) + '15',
+                  color: coinColor(item.moeda),
+                  border: `1px solid ${coinColor(item.moeda)}30`,
+                  fontWeight: 500,
+                  fontSize: 11,
+                  '& .MuiChip-icon': { color: coinColor(item.moeda) },
+                }}
+              />
+            )}
+          </Box>
+        </Box>
+
+        {/* ── KPIs com delta ── */}
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+          <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+            <Paper sx={{
+              p: 2, height: '100%',
+              background: 'linear-gradient(135deg, rgba(255,215,0,0.08), rgba(255,255,255,0.03))',
+              border: '1px solid rgba(255,215,0,0.15)',
+              backdropFilter: 'blur(10px)', color: 'white',
+              display: 'flex', flexDirection: 'column', gap: 0.5,
+            }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, opacity: 0.85 }}>
+                <MdTrendingUp size={16} color={ACCENT} />
+                <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.8, fontSize: 10 }}>Reward Médio</Typography>
+              </Box>
+              <Typography variant="h5" sx={{ fontWeight: 700, color: ACCENT, lineHeight: 1.2 }}>{formatNumber(item.rewardMedio)}</Typography>
+              <Typography variant="caption" sx={{ color: deltaColor(rewardDelta), fontWeight: 600 }}>
+                {deltaSign(rewardDelta)}{formatNumber(rewardDelta)} vs média
+              </Typography>
+            </Paper>
+          </Grid>
+          <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+            <Paper sx={{
+              p: 2, height: '100%',
+              background: 'linear-gradient(135deg, rgba(20,241,149,0.08), rgba(255,255,255,0.03))',
+              border: '1px solid rgba(20,241,149,0.15)',
+              backdropFilter: 'blur(10px)', color: 'white',
+              display: 'flex', flexDirection: 'column', gap: 0.5,
+            }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, opacity: 0.85 }}>
+                <MdShowChart size={16} color="#14F195" />
+                <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.8, fontSize: 10 }}>Win Rate</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
+                <Typography variant="h5" sx={{ fontWeight: 700, color: winRateGaugeColor, lineHeight: 1.2 }}>{formatPercent(item.winRate)}</Typography>
+              </Box>
+              <Box sx={{ width: '100%', height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.1)', mt: 0.5 }}>
+                <Box sx={{ width: `${Math.min(100, winRatePct)}%`, height: '100%', borderRadius: 2, background: winRateGaugeColor, transition: 'width 0.5s ease' }} />
+              </Box>
+              <Typography variant="caption" sx={{ color: deltaColor(winRateDelta), fontWeight: 600 }}>
+                {deltaSign(winRateDelta)}{(winRateDelta * 100).toFixed(2)}pp vs média
+              </Typography>
+            </Paper>
+          </Grid>
+          <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+            <Paper sx={{
+              p: 2, height: '100%',
+              background: 'linear-gradient(135deg, rgba(255,92,124,0.08), rgba(255,255,255,0.03))',
+              border: '1px solid rgba(255,92,124,0.15)',
+              backdropFilter: 'blur(10px)', color: 'white',
+              display: 'flex', flexDirection: 'column', gap: 0.5,
+            }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, opacity: 0.85 }}>
+                <MdTrendingDown size={16} color="#FF5C7C" />
+                <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.8, fontSize: 10 }}>Loss Média</Typography>
+              </Box>
+              <Typography variant="h5" sx={{ fontWeight: 700, color: '#FF5C7C', lineHeight: 1.2 }}>{formatNumber(item.lossMedia)}</Typography>
+              <Typography variant="caption" sx={{ color: deltaColor(lossDelta, true), fontWeight: 600 }}>
+                {deltaSign(lossDelta)}{formatNumber(lossDelta)} vs média
+              </Typography>
+            </Paper>
+          </Grid>
+          <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+            <Paper sx={{
+              p: 2, height: '100%',
+              background: 'linear-gradient(135deg, rgba(92,184,255,0.08), rgba(255,255,255,0.03))',
+              border: '1px solid rgba(92,184,255,0.15)',
+              backdropFilter: 'blur(10px)', color: 'white',
+              display: 'flex', flexDirection: 'column', gap: 0.5,
+            }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, opacity: 0.85 }}>
+                <MdSpeed size={16} color="#5CB8FF" />
+                <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.8, fontSize: 10 }}>Epsilon</Typography>
+              </Box>
+              <Typography variant="h5" sx={{ fontWeight: 700, color: '#5CB8FF', lineHeight: 1.2 }}>{formatNumber(item.epsilon)}</Typography>
+              <Box sx={{ width: '100%', height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.1)', mt: 0.5 }}>
+                <Box sx={{ width: `${Math.min(100, (item.epsilon ?? 0) * 100)}%`, height: '100%', borderRadius: 2, background: '#5CB8FF', transition: 'width 0.5s ease' }} />
+              </Box>
+              <Typography variant="caption" sx={{ opacity: 0.6 }}>exploração</Typography>
+            </Paper>
+          </Grid>
+          <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+            <Paper sx={{
+              p: 2, height: '100%',
+              background: 'linear-gradient(135deg, rgba(255,181,71,0.08), rgba(255,255,255,0.03))',
+              border: '1px solid rgba(255,181,71,0.15)',
+              backdropFilter: 'blur(10px)', color: 'white',
+              display: 'flex', flexDirection: 'column', gap: 0.5,
+            }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, opacity: 0.85 }}>
+                <MdTimer size={16} color="#FFB547" />
+                <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.8, fontSize: 10 }}>Duração</Typography>
+              </Box>
+              <Typography variant="h5" sx={{ fontWeight: 700, color: '#FFB547', lineHeight: 1.2 }}>{formatNumber(item.duracaoSegundos, 1)}s</Typography>
+              <Typography variant="caption" sx={{ color: deltaColor(duracaoDelta, true), fontWeight: 600 }}>
+                {deltaSign(duracaoDelta)}{formatNumber(duracaoDelta, 1)}s vs média
+              </Typography>
+            </Paper>
+          </Grid>
+          <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+            <Paper sx={{
+              p: 2, height: '100%',
+              background: 'linear-gradient(135deg, rgba(167,139,250,0.08), rgba(255,255,255,0.03))',
+              border: '1px solid rgba(167,139,250,0.15)',
+              backdropFilter: 'blur(10px)', color: 'white',
+              display: 'flex', flexDirection: 'column', gap: 0.5,
+            }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, opacity: 0.85 }}>
+                <MdCompareArrows size={16} color="#A78BFA" />
+                <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.8, fontSize: 10 }}>Eficiência</Typography>
+              </Box>
+              <Typography variant="h5" sx={{ fontWeight: 700, color: '#A78BFA', lineHeight: 1.2 }}>{formatNumber(eficiencia, 6)}</Typography>
+              <Typography variant="caption" sx={{ color: deltaColor(eficienciaDelta), fontWeight: 600 }}>
+                {deltaSign(eficienciaDelta)}{formatNumber(eficienciaDelta, 6)} vs média
+              </Typography>
+              <Typography variant="caption" sx={{ opacity: 0.5, fontSize: 9 }}>reward / segundo</Typography>
+            </Paper>
+          </Grid>
         </Grid>
-        <Grid size={{ xs: 12, md: 5 }}>
-          <ChartCard title="Distribuição de ações" subtitle={`Total: ${total} ações`}>
-            <Bar data={acoesData} options={baseChartOptions()} />
-          </ChartCard>
+
+        {/* ── Gráficos: Radar + Doughnut ── */}
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+          <Grid size={{ xs: 12, md: 5 }}>
+            <Paper sx={{
+              p: 2.5, height: { xs: 340, md: 380 },
+              background: CHART_BG, border: `1px solid ${CHART_BORDER}`,
+              backdropFilter: 'blur(10px)', color: 'white',
+              display: 'flex', flexDirection: 'column',
+            }}>
+              <Box sx={{ mb: 1 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Perfil do episódio</Typography>
+                <Typography variant="caption" sx={{ opacity: 0.6 }}>
+                  Comparação normalizada vs média de {item.moeda}
+                </Typography>
+              </Box>
+              <Box sx={{ flex: 1, position: 'relative', minHeight: 0 }}>
+                <Radar data={radarData} options={radarOptions} />
+              </Box>
+            </Paper>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3.5 }}>
+            <Paper sx={{
+              p: 2.5, height: { xs: 340, md: 380 },
+              background: CHART_BG, border: `1px solid ${CHART_BORDER}`,
+              backdropFilter: 'blur(10px)', color: 'white',
+              display: 'flex', flexDirection: 'column',
+            }}>
+              <Box sx={{ mb: 1 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Distribuição de ações</Typography>
+                <Typography variant="caption" sx={{ opacity: 0.6 }}>Total: {totalAcoes} ações em {item.totalSteps ?? '-'} steps</Typography>
+              </Box>
+              <Box sx={{ flex: 1, position: 'relative', minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Doughnut data={doughnutData} options={doughnutOptions} />
+              </Box>
+            </Paper>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3.5 }}>
+            <Paper sx={{
+              p: 2.5, height: { xs: 340, md: 380 },
+              background: CHART_BG, border: `1px solid ${CHART_BORDER}`,
+              backdropFilter: 'blur(10px)', color: 'white',
+              display: 'flex', flexDirection: 'column',
+            }}>
+              <Box sx={{ mb: 1.5 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Detalhes completos</Typography>
+                <Typography variant="caption" sx={{ opacity: 0.6 }}>Todos os campos do episódio</Typography>
+              </Box>
+              <Box sx={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                {[
+                  ['Episódio', item.episodio, null],
+                  ['Reward Total', formatNumber(item.rewardTotal, 2), null],
+                  ['Ações Hold', item.acoesHold ?? 0, { color: 'rgba(160,160,160,0.9)' }],
+                  ['Ações Compra', item.acoesCompra ?? 0, { color: '#14F195' }],
+                  ['Ações Venda', item.acoesVenda ?? 0, { color: '#FF5C7C' }],
+                  ['Total Steps', item.totalSteps ?? '-', null],
+                ].map(([label, value, style]) => (
+                  <Box key={label} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.5, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                    <Typography variant="caption" sx={{ opacity: 0.65, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: 10 }}>{label}</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600, ...style }}>{value}</Typography>
+                  </Box>
+                ))}
+                <Box sx={{ mt: 'auto', pt: 1 }}>
+                  <Typography variant="caption" sx={{ opacity: 0.4, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: 9 }}>ID</Typography>
+                  <Typography variant="caption" sx={{ opacity: 0.5, wordBreak: 'break-all', display: 'block', fontSize: 10 }}>
+                    {item.idTreinamentoEpisodio}
+                  </Typography>
+                </Box>
+              </Box>
+            </Paper>
+          </Grid>
         </Grid>
-      </Grid>
+
+        {/* ── Mini-timeline ── */}
+        {miniTimeline.length > 1 && (
+          <Box sx={{ mb: 3 }}>
+            <Paper sx={{
+              p: 2.5, height: { xs: 280, md: 320 },
+              background: CHART_BG, border: `1px solid ${CHART_BORDER}`,
+              backdropFilter: 'blur(10px)', color: 'white',
+              display: 'flex', flexDirection: 'column',
+            }}>
+              <Box sx={{ mb: 1 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Contexto temporal</Typography>
+                <Typography variant="caption" sx={{ opacity: 0.6 }}>
+                  Episódios vizinhos de {item.moeda} · ponto destacado = episódio atual
+                </Typography>
+              </Box>
+              <Box sx={{ flex: 1, position: 'relative', minHeight: 0 }}>
+                <Line data={miniTimelineData} options={miniTimelineOptions} />
+              </Box>
+            </Paper>
+          </Box>
+        )}
+
+        {/* ── Comparação lado a lado com episódio anterior ── */}
+        {prevItem && (
+          <Box sx={{ mb: 3 }}>
+            <Paper sx={{
+              p: 2.5,
+              background: CHART_BG, border: `1px solid ${CHART_BORDER}`,
+              backdropFilter: 'blur(10px)', color: 'white',
+            }}>
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Comparação com episódio anterior</Typography>
+                <Typography variant="caption" sx={{ opacity: 0.6 }}>
+                  #{prevItem.episodio} ({formatDate(prevItem.dataHora)}) → #{item.episodio} ({formatDate(item.dataHora)})
+                </Typography>
+              </Box>
+              <Grid container spacing={2}>
+                {[
+                  { label: 'Reward Médio', prev: prevItem.rewardMedio, curr: item.rewardMedio, fmt: (v) => formatNumber(v), inverted: false },
+                  { label: 'Win Rate', prev: prevItem.winRate, curr: item.winRate, fmt: (v) => formatPercent(v), inverted: false },
+                  { label: 'Loss Média', prev: prevItem.lossMedia, curr: item.lossMedia, fmt: (v) => formatNumber(v), inverted: true },
+                  { label: 'Epsilon', prev: prevItem.epsilon, curr: item.epsilon, fmt: (v) => formatNumber(v), inverted: true },
+                  { label: 'Duração (s)', prev: prevItem.duracaoSegundos, curr: item.duracaoSegundos, fmt: (v) => formatNumber(v, 1), inverted: true },
+                ].map(({ label, prev, curr, fmt, inverted }) => {
+                  const d = (curr ?? 0) - (prev ?? 0)
+                  return (
+                    <Grid size={{ xs: 6, sm: 4, md: 2.4 }} key={label}>
+                      <Box sx={{ textAlign: 'center', p: 1.5, borderRadius: 1, background: 'rgba(255,255,255,0.03)' }}>
+                        <Typography variant="caption" sx={{ opacity: 0.65, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: 10, display: 'block', mb: 0.5 }}>{label}</Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                          <Typography variant="body2" sx={{ opacity: 0.5 }}>{fmt(prev)}</Typography>
+                          <Typography variant="caption" sx={{ opacity: 0.3 }}>→</Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>{fmt(curr)}</Typography>
+                        </Box>
+                        <Typography variant="caption" sx={{ color: deltaColor(d, inverted), fontWeight: 700, fontSize: 12 }}>
+                          {d >= 0 ? '▲' : '▼'} {deltaSign(d)}{label === 'Win Rate' ? `${(d * 100).toFixed(2)}pp` : formatNumber(d, label === 'Duração (s)' ? 1 : 4)}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                  )
+                })}
+              </Grid>
+            </Paper>
+          </Box>
+        )}
+
       </Box>
     </div>
   )
