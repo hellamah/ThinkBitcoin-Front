@@ -8,10 +8,9 @@ import {
   Title,
   Tooltip,
   Legend,
+  Filler,
 } from 'chart.js'
 import Box from '@mui/material/Box'
-import Typography from '@mui/material/Typography'
-import Button from '@mui/material/Button'
 import useMediaQuery from '@mui/material/useMediaQuery'
 import { Joyride, STATUS } from 'react-joyride'
 
@@ -44,6 +43,7 @@ ChartJS.register(
   Title,
   Tooltip,
   Legend,
+  Filler,
 )
 
 ChartJS.defaults.color = '#e0e0e0'
@@ -51,7 +51,7 @@ ChartJS.defaults.borderColor = '#333'
 
 export default function Dashboard() {
   const { token, user: usuario, prefs } = useAuth()
-  const moedasCarousel = useCoinPrices()
+  const { moedas: moedasCarousel, erro: erroMoedas, setErro: setErroMoedas } = useCoinPrices()
   const { t } = useTranslation()
   const { messages, enviarMensagem, clearMessages, isConnected } = useChatHub()
   const isMobile = useMediaQuery('(max-width:600px)')
@@ -188,7 +188,6 @@ export default function Dashboard() {
     trendPorMoeda,
     totalPaginas,
     historicoMoeda,
-    dados,
     erro,
     setErro
   } = useDashboardData({
@@ -199,8 +198,7 @@ export default function Dashboard() {
     dataFim,
     intervalo,
     pagina,
-    quantidade,
-    resultadoFiltro
+    quantidade
   })
 
   // Lógicas do ChatHub
@@ -310,8 +308,8 @@ export default function Dashboard() {
 
   if (!token) return <Box sx={{ p: 5 }}>Redirecting to login...</Box>
 
-  try {
-    return (
+  // Erros de renderização são capturados pelo ErrorBoundary montado no App.
+  return (
       <div className="dashboard-container">
         {/* Tour onboarding — montado apenas enquanto roda para não deixar
             o portal/beacon residual da react-joyride no DOM. */}
@@ -361,6 +359,7 @@ export default function Dashboard() {
         </div>
 
         <ErrorMessage message={erro} onClose={() => setErro('')} />
+        <ErrorMessage message={erroMoedas} onClose={() => setErroMoedas('')} />
 
         {showChat && (
           <Terminal
@@ -421,17 +420,5 @@ export default function Dashboard() {
           />
         </div>
       </div>
-    )
-  } catch (err) {
-    console.error('Erro fatal no render do Dashboard:', err)
-    return (
-      <Box sx={{ p: 5, color: '#ff5252', background: '#0a0a0a', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
-        <Typography variant="h5">Ocorreu um erro ao carregar o Dashboard.</Typography>
-        <Typography sx={{ mt: 2, opacity: 0.7 }}>{err.message}</Typography>
-        <Button variant="outlined" sx={{ mt: 4, color: '#ffd700', borderColor: '#ffd700' }} onClick={() => window.location.reload()}>
-          Recarregar Página
-        </Button>
-      </Box>
-    )
-  }
+  )
 }

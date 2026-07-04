@@ -1,14 +1,7 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { apiRequest, MarketEndpoint, VariavelExternaEndpoint } from '../utils/apiClient'
 import { toUTCISO } from '../utils/dateUtils'
 import { useDashboard } from '../context/DashboardContext'
-
-const MOCK_DADOS = [
-  { dataHora: new Date().toISOString(), valorNegociado: 1000, variacaoPercentual: 0.1 },
-  { dataHora: new Date(Date.now() - 3600 * 1000).toISOString(), valorNegociado: 1200, variacaoPercentual: 0.15 },
-  { dataHora: new Date(Date.now() - 2 * 3600 * 1000).toISOString(), valorNegociado: 900, variacaoPercentual: -0.05 },
-  { dataHora: new Date(Date.now() - 3 * 3600 * 1000).toISOString(), valorNegociado: 950, variacaoPercentual: 0.02 },
-]
 
 export default function useDashboardData({
   token,
@@ -18,8 +11,7 @@ export default function useDashboardData({
   dataFim,
   intervalo,
   pagina,
-  quantidade,
-  resultadoFiltro
+  quantidade
 }) {
   const { refreshTrigger } = useDashboard()
   const [historicosPorMoeda, setHistoricosPorMoeda] = useState({})
@@ -28,9 +20,8 @@ export default function useDashboardData({
   const [loadingSentiment, setLoadingSentiment] = useState(false)
   const [totalPaginas, setTotalPaginas] = useState(1)
   const [historicoMoeda, setHistoricoMoeda] = useState(null)
-  const [dados, setDados] = useState([])
   const [erro, setErro] = useState('')
-  
+
   const filterSummaryRef = useRef('')
 
   // Limpa erro automaticamente após 10 segundos
@@ -43,19 +34,32 @@ export default function useDashboardData({
     }
   }, [erro])
 
+  // `moedasCarousel` troca de referência a cada atualização de preços; usá-lo
+  // direto como dependência refazia todas as consultas do dashboard. O mapa
+  // sigla->id é memoizado pelo conteúdo (pares sigla:id), que só muda de fato
+  // quando a lista de moedas muda.
+  const chaveMapaMoedas = (moedasCarousel ?? [])
+    .map((m) => `${m.simbolo}:${m.id}`)
+    .join('|')
+  const siglaParaIdMap = useMemo(() => {
+    const map = new Map()
+    moedasCarousel?.forEach((m) => {
+      const sig = (m.simbolo || '').toLowerCase()
+      if (sig && m.id) map.set(sig, m.id)
+    })
+    return map
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chaveMapaMoedas])
+
   useEffect(() => {
     let controller = new AbortController()
 
     const carregarDashboardData = async () => {
-      if (!token) {
-        setDados(MOCK_DADOS)
-        return
-      }
+      if (!token) return
 
       setErro('')
       const signal = controller.signal
 
-      setDados(MOCK_DADOS)
       setLoadingSentiment(true)
 
       const commonParams = new URLSearchParams()
@@ -66,13 +70,6 @@ export default function useDashboardData({
       if (quantidade) commonParams.append('quantidade', quantidade)
       commonParams.append('ordemAsc', 'false')
       const queryString = commonParams.toString() ? `?${commonParams.toString()}` : ''
-
-      const siglaParaIdMap = new Map()
-      moedasCarousel?.forEach(m => {
-        const sig = (m.simbolo || '').toLowerCase()
-        const id = m.id
-        if (sig && id) siglaParaIdMap.set(sig, id)
-      })
 
       const currentFilterKey = `${intervalo}-${dataInicio}-${dataFim}-${pagina}-${quantidade}`
       const isSameFilter = filterSummaryRef.current === currentFilterKey
@@ -89,41 +86,15 @@ export default function useDashboardData({
         const urlPreco = `${MarketEndpoint.COIN_VALUE(sigla.toLowerCase())}${queryString}`
 
         const pPreco = apiRequest(urlPreco, { headers: { Authorization: `Bearer ${token}` }, signal })
-        
-        const gerarHistoricoMock = (tipo, qtd) => {
-          const mockRegs = []
-          const now = new Date()
-          const step = intervalo === '1m' ? 60000 : 3600000 
-          for (let i = 0; i < qtd; i++) {
-            const dataRef = new Date(now.getTime() - i * step).toISOString()
-            if (tipo === 'fear') {
-              mockRegs.push({
-                valor: 40 + Math.floor(Math.random() * 40),
-                classificacao: 'Neutral',
-                horaReferencia: dataRef
-              })
-            } else {
-              mockRegs.push({
-                valorAtual: 100 + Math.floor(Math.random() * 50),
-                mA5: 120, mA15: 121, delta5: 10, delta15: 20,
-                volatilidade15: 30, minutosDesdePico: 60, rankNoMinuto: 5, geoTop1Code: 'CH',
-                horaReferencia: dataRef
-              })
-            }
-          }
-          return { resultado: { registros: mockRegs } }
-        }
 
+        // Sentimento é complementar: se a API falhar, os painéis ficam vazios
+        // em vez de exibir dados inventados como se fossem reais.
         const pFear = idMoeda
-          ? apiRequest(`${VariavelExternaEndpoint.FEAR_GREED}${queryString}${queryString ? '&' : '?'}idMoeda=${idMoeda}`, { headers: { Authorization: `Bearer ${token}` }, signal }).catch(() => 
-              gerarHistoricoMock('fear', quantidade || 20)
-            )
+          ? apiRequest(`${VariavelExternaEndpoint.FEAR_GREED}${queryString}${queryString ? '&' : '?'}idMoeda=${idMoeda}`, { headers: { Authorization: `Bearer ${token}` }, signal }).catch(() => null)
           : Promise.resolve(null)
-          
+
         const pTrend = idMoeda
-          ? apiRequest(`${VariavelExternaEndpoint.TREND}${queryString}${queryString ? '&' : '?'}idMoeda=${idMoeda}`, { headers: { Authorization: `Bearer ${token}` }, signal }).catch(() => 
-              gerarHistoricoMock('trend', quantidade || 20)
-            )
+          ? apiRequest(`${VariavelExternaEndpoint.TREND}${queryString}${queryString ? '&' : '?'}idMoeda=${idMoeda}`, { headers: { Authorization: `Bearer ${token}` }, signal }).catch(() => null)
           : Promise.resolve(null)
 
         try {
@@ -131,9 +102,9 @@ export default function useDashboardData({
 
           return {
             sigla,
-            preco: resPreco?.resultado ?? resPreco?.Resultado ?? resPreco,
-            fear: resFear?.resultado ?? resFear?.Resultado ?? resFear,
-            trend: resTrend?.resultado ?? resTrend?.Resultado ?? resTrend
+            preco: resPreco?.resultado ?? resPreco,
+            fear: resFear?.resultado ?? resFear,
+            trend: resTrend?.resultado ?? resTrend
           }
         } catch (err) {
           if (err.name === 'AbortError') return null
@@ -147,25 +118,36 @@ export default function useDashboardData({
       const novoHistoricoPreco = {}
       const novoFearGreed = {}
       const novoTrend = {}
+      const moedasComErro = []
 
       resultados.forEach(res => {
-        if (!res || res.error) return
+        if (!res) return
+        if (res.error) {
+          moedasComErro.push(res.sigla)
+          return
+        }
         const { sigla, preco, fear, trend } = res
 
-        const regsPreco = preco?.registros ?? preco?.Registros ?? (Array.isArray(preco) ? preco : [])
-        const regsFear = fear?.registros ?? fear?.Registros ?? (Array.isArray(fear) ? fear : [])
-        const regsTrend = trend?.registros ?? trend?.Registros ?? (Array.isArray(trend) ? trend : [])
+        const regsPreco = preco?.registros ?? (Array.isArray(preco) ? preco : [])
+        const regsFear = fear?.registros ?? (Array.isArray(fear) ? fear : [])
+        const regsTrend = trend?.registros ?? (Array.isArray(trend) ? trend : [])
 
         novoHistoricoPreco[sigla] = regsPreco
         novoFearGreed[sigla] = regsFear
         novoTrend[sigla] = regsTrend
 
         if (sigla === moedasFiltro[0]) {
-          const paginasTotal = preco?.totalPaginas ?? preco?.TotalPaginas ?? 1
+          const paginasTotal = preco?.totalPaginas ?? 1
           setTotalPaginas(paginasTotal)
           setHistoricoMoeda({ registros: regsPreco, totalPaginas: paginasTotal })
         }
       })
+
+      if (signal.aborted) return
+
+      if (moedasComErro.length > 0) {
+        setErro(`Não foi possível carregar os dados de: ${moedasComErro.join(', ')}`)
+      }
 
       setHistoricosPorMoeda(novoHistoricoPreco)
       setFearGreedPorMoeda(novoFearGreed)
@@ -178,7 +160,7 @@ export default function useDashboardData({
     return () => {
       controller.abort()
     }
-  }, [moedasFiltro, dataInicio, dataFim, resultadoFiltro, pagina, quantidade, intervalo, token, moedasCarousel, refreshTrigger])
+  }, [moedasFiltro, dataInicio, dataFim, pagina, quantidade, intervalo, token, siglaParaIdMap, refreshTrigger])
 
   return {
     historicosPorMoeda,
@@ -187,7 +169,6 @@ export default function useDashboardData({
     loadingSentiment,
     totalPaginas,
     historicoMoeda,
-    dados,
     erro,
     setErro
   }

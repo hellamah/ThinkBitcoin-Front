@@ -86,6 +86,27 @@ export const ApiEndpoint = Object.freeze({
 
 const JSON_HEADERS = Object.freeze({ 'Content-Type': 'application/json' })
 
+// A API .NET ora serializa em PascalCase, ora em camelCase. Normalizar aqui,
+// na fronteira, dispensa cadeias defensivas como `resultado ?? Resultado` no
+// resto do código. Só converte chaves no padrão PascalCase clássico (maiúscula
+// seguida de minúscula) para não corromper chaves-código como "BTC" ou "US".
+const PASCAL_KEY = /^[A-Z][a-z]/
+
+export const normalizeApiKeys = (value) => {
+  if (Array.isArray(value)) return value.map(normalizeApiKeys)
+  if (value === null || typeof value !== 'object') return value
+  const out = {}
+  for (const [key, val] of Object.entries(value)) {
+    const camel = PASCAL_KEY.test(key)
+      ? key.charAt(0).toLowerCase() + key.slice(1)
+      : key
+    // Se a resposta trouxer as duas variantes, a camelCase original prevalece.
+    if (camel !== key && Object.prototype.hasOwnProperty.call(value, camel)) continue
+    out[camel] = normalizeApiKeys(val)
+  }
+  return out
+}
+
 const buildUrl = (endpoint) => `${API_URL}${endpoint}`
 
 const createRequestInit = (method, headers, body) => {
@@ -124,10 +145,11 @@ export const apiRequest = async (
   if (USE_MOCK_API) {
     const mockResponse = getMockResponse({ endpoint, method, body })
     if (mockResponse) {
+      const normalizedMock = normalizeApiKeys(mockResponse)
       if (useCache && isGet) {
-        setCache(key, mockResponse, ttl)
+        setCache(key, normalizedMock, ttl)
       }
-      return mockResponse
+      return normalizedMock
     }
   }
 
@@ -147,7 +169,7 @@ export const apiRequest = async (
 
   if (response.status === 204) return null
 
-  const data = await response.json()
+  const data = normalizeApiKeys(await response.json())
   if (useCache && isGet) {
     setCache(key, data, ttl)
   }

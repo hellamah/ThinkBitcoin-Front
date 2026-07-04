@@ -6,7 +6,7 @@
  */
 import { describe, expect, it, vi } from 'vitest'
 import { API_URL } from '../src/api'
-import { ApiEndpoint, HttpMethod, apiRequest } from '../src/utils/apiClient'
+import { ApiEndpoint, HttpMethod, apiRequest, normalizeApiKeys } from '../src/utils/apiClient'
 
 // Mock de fetch global é configurado em vitest.setup.js
 
@@ -28,6 +28,44 @@ describe('utils/apiClient › Enums & Endpoints', () => {
   it('deve gerar endpoints dinâmicos (ID/Símbolo) corretamente', () => {
     expect(ApiEndpoint.USER.ME('U001')).toBe('/ThinkBitcoin/usuariosTB/U001')
     expect(ApiEndpoint.MARKET.COIN_VALUE('BTC')).toBe('/ThinkBitcoin/moeda/BTC/valor')
+  })
+})
+
+describe('utils/apiClient › normalizeApiKeys (Normalização PascalCase → camelCase)', () => {
+  it('deve converter chaves PascalCase para camelCase recursivamente', () => {
+    const bruto = {
+      Resultado: {
+        Registros: [{ PrecoFechamento: 10, HoraReferencia: '2026-01-01' }],
+        TotalPaginas: 3,
+      },
+    }
+    expect(normalizeApiKeys(bruto)).toEqual({
+      resultado: {
+        registros: [{ precoFechamento: 10, horaReferencia: '2026-01-01' }],
+        totalPaginas: 3,
+      },
+    })
+  })
+
+  it('deve preservar chaves que já estão em camelCase e valores primitivos', () => {
+    const bruto = { resultado: { valor: 1.5, ativo: true, nulo: null } }
+    expect(normalizeApiKeys(bruto)).toEqual(bruto)
+  })
+
+  it('não deve alterar chaves-código como siglas de moeda ou país', () => {
+    const bruto = { BTC: 1, US: 2, MA5: 3 }
+    expect(normalizeApiKeys(bruto)).toEqual({ BTC: 1, US: 2, MA5: 3 })
+  })
+
+  it('deve manter a variante camelCase quando a resposta trouxer as duas', () => {
+    const bruto = { Valor: 1, valor: 2 }
+    expect(normalizeApiKeys(bruto)).toEqual({ valor: 2 })
+  })
+
+  it('deve normalizar arrays na raiz e passar adiante tipos não-objeto', () => {
+    expect(normalizeApiKeys([{ Sigla: 'BTC' }])).toEqual([{ sigla: 'BTC' }])
+    expect(normalizeApiKeys('texto')).toBe('texto')
+    expect(normalizeApiKeys(null)).toBeNull()
   })
 })
 
@@ -67,6 +105,17 @@ describe('utils/apiClient › apiRequest (Comunicação com API)', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     }))
+  })
+
+  it('deve entregar respostas com chaves normalizadas para camelCase', async () => {
+    fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ Resultado: { TokenAutenticado: 'abc' } }),
+    })
+
+    const res = await apiRequest('/pascal')
+    expect(res).toEqual({ resultado: { tokenAutenticado: 'abc' } })
   })
 
   it('deve retornar null graciosamente para status 204 (No Content)', async () => {

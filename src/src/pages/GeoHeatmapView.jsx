@@ -160,7 +160,7 @@ export default function GeoHeatmapView() {
   const { token, user: usuario, prefs } = useAuth()
   const { refreshTrigger, moedaSelecionada, setMoedaSelecionada } = useDashboard()
   const { t } = useTranslation()
-  const moedasCarousel = useCoinPrices()
+  const { moedas: moedasCarousel, erro: erroMoedas, setErro: setErroMoedas } = useCoinPrices()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -712,6 +712,7 @@ export default function GeoHeatmapView() {
 
       <DashboardHeader t={t} prefs={prefs} usuario={usuario} title={t('nav.heatmap') || 'Geopolítica'} />
       <ErrorMessage message={erro} onClose={() => setErro('')} />
+      <ErrorMessage message={erroMoedas} onClose={() => setErroMoedas('')} />
 
       {/* Carrossel de Ativos */}
       <div data-tour="carrossel">
