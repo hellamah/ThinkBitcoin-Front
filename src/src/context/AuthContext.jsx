@@ -11,8 +11,19 @@ import {
   setStoredToken,
   clearStoredToken,
 } from '../utils/preferences'
-import { decodeAuthenticationToken } from '../utils/authentication'
-import { apiRequest, HttpMethod, UserEndpoint, PreferencesEndpoint } from '../utils/apiClient'
+import { decodeAuthenticationToken, isAuthenticationTokenExpired } from '../utils/authentication'
+import { apiRequest, HttpMethod, PreferencesEndpoint } from '../utils/apiClient'
+
+// Lê o token armazenado descartando (e limpando) tokens já expirados, para o
+// usuário não permanecer "logado" até levar o primeiro 401.
+const lerTokenValido = () => {
+  const stored = getStoredToken()
+  if (stored && isAuthenticationTokenExpired(stored)) {
+    clearStoredToken()
+    return null
+  }
+  return stored
+}
 
 const AuthContext = createContext({
   token: null,
@@ -24,11 +35,8 @@ const AuthContext = createContext({
 })
 
 export function AuthProvider({ children }) {
-  const initialToken = getStoredToken()
-  const [token, setToken] = useState(initialToken)
-  const [user, setUser] = useState(() =>
-    decodeAuthenticationToken(initialToken)
-  )
+  const [token, setToken] = useState(lerTokenValido)
+  const [user, setUser] = useState(() => decodeAuthenticationToken(token))
   const [prefs, setPrefs] = useState(() => getInitialPreferences())
   const buildTheme = useCallback(
     (tema) =>
@@ -61,54 +69,46 @@ export function AuthProvider({ children }) {
     applyTheme(prefs.tema)
   }, [prefs.tema, applyTheme])
 
-  useEffect(() => {
-    const handleAuthExpired = () => {
-      logout()
-    }
-    if (typeof window !== 'undefined') {
-      window.addEventListener('auth-expired', handleAuthExpired)
-    }
-    return () => {
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('auth-expired', handleAuthExpired)
-      }
-    }
-  }, [])
-
-  const carregarPreferencias = async (t) => {
-    try {
-      const json = await apiRequest(PreferencesEndpoint.MINE, {
-        headers: { Authorization: `Bearer ${t}` },
-      })
-      const resData = json?.resultado || json?.Resultado || json
-      if (resData) {
-        setPrefs((atual) =>
-          sanitizePreferences({ ...atual, ...resData })
-        )
-      }
-    } catch {
-      /* ignore */
-    }
-  }
-
-  const login = async (t) => {
-    setToken(t)
-    setStoredToken(t)
-    setUser(decodeAuthenticationToken(t))
-    await carregarPreferencias(t)
-  }
-
-  const logout = () => {
+  const logout = useCallback(() => {
     setToken(null)
     clearStoredToken()
     setUser(null)
     const defaults = getInitialPreferences()
     setPrefs(defaults)
     applyTheme(defaults.tema)
-  }
+  }, [applyTheme])
 
   useEffect(() => {
-    if (token) carregarPreferencias(token)
+    if (typeof window === 'undefined') return
+    window.addEventListener('auth-expired', logout)
+    return () => {
+      window.removeEventListener('auth-expired', logout)
+    }
+  }, [logout])
+
+  const login = async (t) => {
+    // Grava antes de setToken: o efeito abaixo dispara a carga de preferências
+    // e o apiClient lê o token do storage.
+    setStoredToken(t)
+    setToken(t)
+    setUser(decodeAuthenticationToken(t))
+  }
+
+  // Única fonte de carga das preferências: cobre login e sessão restaurada.
+  useEffect(() => {
+    if (!token) return
+    const carregarPreferencias = async () => {
+      try {
+        const json = await apiRequest(PreferencesEndpoint.MINE)
+        const resData = json?.resultado || json
+        if (resData) {
+          setPrefs((atual) => sanitizePreferences({ ...atual, ...resData }))
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    carregarPreferencias()
   }, [token])
 
   const updatePreferences = async (novo) => {
@@ -119,7 +119,6 @@ export function AuthProvider({ children }) {
     try {
       await apiRequest(PreferencesEndpoint.ALL, {
         method: HttpMethod.PUT,
-        headers: { Authorization: `Bearer ${token}` },
         body: atual,
       })
     } catch {

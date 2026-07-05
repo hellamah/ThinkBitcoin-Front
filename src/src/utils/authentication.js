@@ -56,6 +56,16 @@ const decodeJwtPayload = (token) => {
   }
 }
 
+/**
+ * Retorna true se o token JWT tiver claim `exp` no passado.
+ * Tokens sem `exp` (ex.: mocks de desenvolvimento) são tratados como válidos.
+ */
+export const isAuthenticationTokenExpired = (token) => {
+  const payload = decodeJwtPayload(token)
+  if (!payload || typeof payload.exp !== 'number') return false
+  return payload.exp * 1000 <= Date.now()
+}
+
 export const decodeAuthenticationToken = (token) => {
   const payload = decodeJwtPayload(token)
   if (!payload) return null

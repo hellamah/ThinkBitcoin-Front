@@ -41,7 +41,6 @@ export default function PatrimonioModal({ visible, onClose, token, user, patrimo
     try {
       await apiRequest(PatrimonioEndpoint.CREATE, {
         method: HttpMethod.POST,
-        headers: { Authorization: `Bearer ${token}` },
         body: {
           idUsuarioTB: user?.idUsuarioTB,
           valorBRL: valor,

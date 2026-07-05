@@ -85,16 +85,16 @@ export default function useDashboardData({
         const idMoeda = siglaParaIdMap.get(sigla.toLowerCase())
         const urlPreco = `${MarketEndpoint.COIN_VALUE(sigla.toLowerCase())}${queryString}`
 
-        const pPreco = apiRequest(urlPreco, { headers: { Authorization: `Bearer ${token}` }, signal })
+        const pPreco = apiRequest(urlPreco, { signal })
 
         // Sentimento é complementar: se a API falhar, os painéis ficam vazios
         // em vez de exibir dados inventados como se fossem reais.
         const pFear = idMoeda
-          ? apiRequest(`${VariavelExternaEndpoint.FEAR_GREED}${queryString}${queryString ? '&' : '?'}idMoeda=${idMoeda}`, { headers: { Authorization: `Bearer ${token}` }, signal }).catch(() => null)
+          ? apiRequest(`${VariavelExternaEndpoint.FEAR_GREED}${queryString}${queryString ? '&' : '?'}idMoeda=${idMoeda}`, { signal }).catch(() => null)
           : Promise.resolve(null)
 
         const pTrend = idMoeda
-          ? apiRequest(`${VariavelExternaEndpoint.TREND}${queryString}${queryString ? '&' : '?'}idMoeda=${idMoeda}`, { headers: { Authorization: `Bearer ${token}` }, signal }).catch(() => null)
+          ? apiRequest(`${VariavelExternaEndpoint.TREND}${queryString}${queryString ? '&' : '?'}idMoeda=${idMoeda}`, { signal }).catch(() => null)
           : Promise.resolve(null)
 
         try {

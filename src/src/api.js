@@ -50,19 +50,15 @@ const getHostUrl = (portConfig) => {
 }
 
 const hostUrl = getHostUrl(PORTS.DOTNET_API)
+const pythonHostUrl = getHostUrl(PORTS.PYTHON_API)
 
-const resolveEnvUrl = () => {
-  try {
-    return import.meta.env?.VITE_API_URL
-  } catch {
-    return undefined
-  }
-}
 const envUrl = import.meta.env?.VITE_API_URL
+const pythonEnvUrl = import.meta.env?.VITE_PYTHON_API_URL
 
 // Em produção (Vercel + Cloudflare), usamos a envUrl pura (ex: https://api.minerthinkbitcoin.com)
 // Em desenvolvimento local, usamos a lógica de portas do Minikube/Localhost
 const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1'
 
 export const API_URL = isLocal ? hostUrl : (envUrl || hostUrl)
-export const PYTHON_API_URL = isLocal ? getHostUrl(PORTS.PYTHON_API) : (envUrl || hostUrl)
+// A API Python tem sua própria env var: cair no VITE_API_URL apontaria para a API .NET.
+export const PYTHON_API_URL = isLocal ? pythonHostUrl : (pythonEnvUrl || pythonHostUrl)

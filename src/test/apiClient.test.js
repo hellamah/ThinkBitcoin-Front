@@ -129,8 +129,67 @@ describe('utils/apiClient › apiRequest (Comunicação com API)', () => {
 
     await expect(apiRequest('/crash')).rejects.toMatchObject({
       message: 'Falha na requisição à API',
-      status: 500
+      status: 500,
+      hasBackendMessage: false
     })
+  })
+
+  it('deve usar a mensagem de erro enviada pelo backend quando disponível', async () => {
+    fetch.mockResolvedValue({
+      ok: false,
+      status: 400,
+      json: () => Promise.resolve({ Mensagem: 'Senha inválida' }),
+    })
+
+    await expect(apiRequest('/login-falho')).rejects.toMatchObject({
+      message: 'Senha inválida',
+      status: 400,
+      hasBackendMessage: true
+    })
+  })
+
+  it('deve anexar o Bearer token armazenado automaticamente quando existir', async () => {
+    vi.stubGlobal('window', {
+      localStorage: {
+        getItem: (k) => (k === 'token' ? 'token-armazenado' : null),
+      },
+    })
+    fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({}),
+    })
+
+    try {
+      await apiRequest('/privado')
+      expect(fetch).toHaveBeenCalledWith(`${API_URL}/privado`, expect.objectContaining({
+        headers: { Authorization: 'Bearer token-armazenado' },
+      }))
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('não deve sobrescrever um header Authorization definido pelo caller', async () => {
+    vi.stubGlobal('window', {
+      localStorage: {
+        getItem: (k) => (k === 'token' ? 'token-armazenado' : null),
+      },
+    })
+    fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({}),
+    })
+
+    try {
+      await apiRequest('/custom', { headers: { Authorization: 'Bearer explicito' } })
+      expect(fetch).toHaveBeenCalledWith(`${API_URL}/custom`, expect.objectContaining({
+        headers: { Authorization: 'Bearer explicito' },
+      }))
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 
   it('deve propagar falhas de rede (rejeição do fetch) corretamente', async () => {

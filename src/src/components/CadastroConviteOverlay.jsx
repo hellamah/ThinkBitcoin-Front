@@ -130,7 +130,6 @@ const CadastroConviteOverlay = ({ onFechar }) => {
       try {
         await apiRequest(UserEndpoint.ENVIAR_BOAS_VINDAS, {
           method: HttpMethod.POST,
-          headers: { Authorization: `Bearer ${token}` },
           body: { email, nome, senha },
         })
       } catch {

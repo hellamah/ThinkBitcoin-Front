@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { apiRequest, MarketEndpoint } from '../utils/apiClient'
 
+// Intervalo de atualização dos preços do carrossel.
+const POLLING_INTERVAL_MS = 60_000
 
 export default function useCoinPrices() {
   const [moedas, setMoedas] = useState([])
@@ -101,8 +103,16 @@ export default function useCoinPrices() {
 
     inicializarMoedas()
 
+    // Mantém os valores do carrossel atualizados; sem isso os preços congelam
+    // no primeiro fetch. Pausa quando a aba está em segundo plano.
+    const intervalo = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return
+      obterValores()
+    }, POLLING_INTERVAL_MS)
+
     return () => {
       ativo = false
+      clearInterval(intervalo)
     }
   }, [])
 

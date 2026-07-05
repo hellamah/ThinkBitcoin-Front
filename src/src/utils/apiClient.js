@@ -1,6 +1,7 @@
 import { API_URL } from '../api'
 import { getMockResponse, USE_MOCK_API } from './mockApi'
 import { getCache, setCache } from './cache'
+import { getStoredToken } from './preferences'
 
 export const HttpMethod = Object.freeze({
   GET: 'GET',
@@ -118,6 +119,28 @@ const createRequestInit = (method, headers, body) => {
   }
 }
 
+// Anexa o Bearer token armazenado quando o caller não define Authorization.
+// Endpoints públicos (login, recuperação de senha) funcionam igual: sem token
+// armazenado, nada é anexado.
+const withAuthHeader = (headers) => {
+  if (headers.Authorization || headers.authorization) return headers
+  const token = getStoredToken()
+  return token ? { ...headers, Authorization: `Bearer ${token}` } : headers
+}
+
+// Extrai a mensagem de erro do corpo da resposta, quando o backend enviar uma.
+const extractErrorMessage = async (response) => {
+  try {
+    const body = normalizeApiKeys(await response.json())
+    const msg = body?.mensagem ?? body?.message ?? body?.erro ?? null
+    if (typeof msg === 'string' && msg.trim()) return msg.trim()
+    if (Array.isArray(body?.erros) && body.erros.length > 0) return body.erros.join('; ')
+  } catch {
+    /* corpo vazio ou não-JSON */
+  }
+  return null
+}
+
 export const apiRequest = async (
   endpoint,
   {
@@ -155,15 +178,17 @@ export const apiRequest = async (
 
   const response = await fetch(
     buildUrl(endpoint),
-    { ...createRequestInit(method, headers, body), signal }
+    { ...createRequestInit(method, withAuthHeader(headers), body), signal }
   )
 
   if (!response.ok) {
     if (response.status === 401 && !suppressAuthRedirect && typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('auth-expired'))
     }
-    const error = new Error('Falha na requisição à API')
+    const backendMessage = await extractErrorMessage(response)
+    const error = new Error(backendMessage || 'Falha na requisição à API')
     error.status = response.status
+    error.hasBackendMessage = Boolean(backendMessage)
     throw error
   }
 

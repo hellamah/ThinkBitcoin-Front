@@ -408,7 +408,6 @@ export default function GeoHeatmapView() {
       const sep = idMoedaParam ? '&' : '?'
       const url = `${VariavelExternaEndpoint.TREND_HEATMAP}${idMoedaParam}${sep}intervalo=${intervaloMapa}`
       const response = await apiRequest(url, {
-        headers: { Authorization: `Bearer ${token}` },
         useCache: true,
         cacheKey: chaveCache,
         ttl: 5 * 60 * 1000,

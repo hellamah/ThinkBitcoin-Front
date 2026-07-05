@@ -63,9 +63,7 @@ function Settings() {
     if (!token) return
     setLoadingPlano(true)
     try {
-      const res = await apiRequest(PlanosPagamentoEndpoint.LIST, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      const res = await apiRequest(PlanosPagamentoEndpoint.LIST)
       const lista = res?.resultado?.planos || res?.Resultado?.planos || []
       const ativo = lista.find(p => p.ativo) || lista[0]
       setPlanoAtivo(ativo)
@@ -167,7 +165,6 @@ function Settings() {
     try {
       await apiRequest(UserEndpoint.CHANGE_PASSWORD, {
         method: HttpMethod.POST,
-        headers: { Authorization: `Bearer ${token}` },
         body: {
           idUsuarioTB: user?.idUsuarioTB,
           senhaAtual: senha.atual,
