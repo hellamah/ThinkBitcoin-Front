@@ -74,39 +74,35 @@ export default function Dashboard() {
   // ------ tour onboarding (react-joyride v3) ------
   const [tourRodando, setTourRodando] = useState(false)
 
-  // Nota: na react-joyride v3 a prop é `skipBeacon` (não `disableBeacon`) e o
-  // handler é `onEvent` (não `callback`). Sem isso o primeiro passo abre um
-  // beacon estático preso na tela e o tour nunca é marcado como visto.
+  // Nota: react-joyride v3 — `skipBeacon`, `showProgress`, cores e ações dos
+  // botões são configurados via prop `options` (não existem `showSkipButton`,
+  // `showProgress` nem `styles.options` de nível superior como na v2), e o
+  // handler de eventos é `onEvent` (não `callback`).
   const passosTour = useMemo(() => [
     {
       target: '[data-tour="dash-patrimonio"]',
       title: t('dashboardTour.passo1Titulo') || 'Patrimônio Total',
       content: t('dashboardTour.passo1Descricao') || 'Acompanhe e gerencie seu saldo consolidado.',
-      skipBeacon: true,
     },
     {
       target: '[data-tour="dash-carrossel"]',
       title: t('dashboardTour.passo2Titulo') || 'Carrossel de Ativos',
       content: t('dashboardTour.passo2Descricao') || 'Selecione uma ou mais moedas para analisar.',
-      skipBeacon: true,
     },
     {
       target: '[data-tour="dash-filtros"]',
       title: t('dashboardTour.passo3Titulo') || 'Filtros',
       content: t('dashboardTour.passo3Descricao') || 'Refine por período, intervalo e resultado.',
-      skipBeacon: true,
     },
     {
       target: '[data-tour="dash-graficos"]',
       title: t('dashboardTour.passo4Titulo') || 'Gráficos',
       content: t('dashboardTour.passo4Descricao') || 'Compare preço e variação e expanda para ver em detalhe.',
-      skipBeacon: true,
     },
     {
       target: '[data-tour="dash-historico"]',
       title: t('dashboardTour.passo5Titulo') || 'Histórico',
       content: t('dashboardTour.passo5Descricao') || 'Veja o histórico de operações filtrado.',
-      skipBeacon: true,
     },
   ], [t])
 
@@ -291,34 +287,41 @@ export default function Dashboard() {
             steps={passosTour}
             run={tourRodando}
             continuous
-            showSkipButton
-            showProgress
             onEvent={handleTourCallback}
             locale={{
               back: 'Voltar',
               close: t('dashboardTour.fechar') || 'Entendi!',
               last: t('dashboardTour.fechar') || 'Entendi!',
               next: 'Próximo',
+              nextWithProgress: 'Próximo ({current} de {total})',
               skip: 'Pular',
             }}
+            options={{
+              // Sem beacon: o tooltip abre direto em cada passo.
+              skipBeacon: true,
+              buttons: ['back', 'close', 'skip', 'primary'],
+              showProgress: true,
+              // O ✕ dispensa o tour inteiro (status "skipped" marca como visto);
+              // o default 'close' da v3 avançaria para o próximo passo.
+              closeButtonAction: 'skip',
+              // Clique no overlay e tecla ESC não avançam por acidente.
+              overlayClickAction: false,
+              dismissKeyAction: false,
+              primaryColor: '#ffd700',
+              textColor: '#fff',
+              backgroundColor: 'rgba(15,15,15,0.97)',
+              arrowColor: 'rgba(15,15,15,0.97)',
+              zIndex: 9999,
+            }}
             styles={{
-              options: {
-                primaryColor: '#ffd700',
-                textColor: '#fff',
-                backgroundColor: 'rgba(15,15,15,0.97)',
-                arrowColor: 'rgba(15,15,15,0.97)',
-                zIndex: 9999,
-              },
               tooltip: {
-                background: 'rgba(15,15,15,0.97)',
                 border: '1px solid rgba(255,215,0,0.35)',
                 borderRadius: 16,
-                color: '#fff',
                 boxShadow: '0 20px 60px rgba(0,0,0,0.8)',
               },
               tooltipTitle: { color: '#ffd700', fontWeight: 800, fontSize: '1rem' },
               tooltipContent: { color: 'rgba(255,255,255,0.8)', fontSize: '0.88rem' },
-              buttonNext: { background: '#ffd700', color: '#000', fontWeight: 700, borderRadius: '8px' },
+              buttonPrimary: { background: '#ffd700', color: '#000', fontWeight: 700, borderRadius: '8px' },
               buttonBack: { color: 'rgba(255,255,255,0.6)' },
               buttonSkip: { color: 'rgba(255,255,255,0.4)', fontSize: '0.78rem' },
             }}
