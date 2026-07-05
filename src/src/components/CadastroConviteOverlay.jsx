@@ -382,10 +382,11 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                       </Grid>
                       <Grid item xs={12} sm={6}>
                         <FormControl fullWidth variant="filled" sx={{ ...inputSx, minWidth: 200 }}>
-                          <InputLabel>{t('cargo')}</InputLabel>
-                          <Select 
-                            value={cargo} 
-                            onChange={(e) => setCargo(e.target.value)} 
+                          <InputLabel id="cadastro-cargo-label">{t('cargo')}</InputLabel>
+                          <Select
+                            labelId="cadastro-cargo-label"
+                            value={cargo}
+                            onChange={(e) => setCargo(e.target.value)}
                             disableUnderline
                             MenuProps={menuProps}
                           >
@@ -396,8 +397,9 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                       </Grid>
                       <Grid item xs={12} sm={6}>
                         <FormControl fullWidth variant="filled" sx={{ ...inputSx, minWidth: 160 }}>
-                          <InputLabel>{t('language')}</InputLabel>
+                          <InputLabel id="cadastro-idioma-label">{t('language')}</InputLabel>
                           <Select
+                            labelId="cadastro-idioma-label"
                             value={preferencias.idioma}
                             onChange={(e) => handlePrefChange('idioma', e.target.value)}
                             disableUnderline
@@ -441,8 +443,9 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                       </Grid>
                       <Grid item xs={12} sm={6}>
                         <FormControl fullWidth variant="filled" sx={{ ...inputSx, minWidth: 160 }}>
-                          <InputLabel shrink>{t('preferredCoin')}</InputLabel>
+                          <InputLabel id="cadastro-moeda-label" shrink>{t('preferredCoin')}</InputLabel>
                           <Select
+                            labelId="cadastro-moeda-label"
                             value={preferencias.siglaMoedaPreferida || ''}
                             onChange={(e) => handlePrefChange('siglaMoedaPreferida', e.target.value)}
                             disableUnderline
@@ -475,8 +478,9 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                       </Grid>
                       <Grid item xs={12} sm={6}>
                         <FormControl fullWidth variant="filled" sx={{ ...inputSx }}>
-                          <InputLabel shrink>{t('riskProfile')}</InputLabel>
+                          <InputLabel id="cadastro-risco-label" shrink>{t('riskProfile')}</InputLabel>
                           <Select
+                            labelId="cadastro-risco-label"
                             value={preferencias.perfilRisco}
                             onChange={(e) => handlePrefChange('perfilRisco', e.target.value)}
                             disableUnderline
@@ -490,8 +494,9 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                       </Grid>
                       <Grid item xs={12} sm={6}>
                         <FormControl fullWidth variant="filled" sx={{ ...inputSx }}>
-                          <InputLabel shrink>{t('algorithmStyle')}</InputLabel>
+                          <InputLabel id="cadastro-algoritmo-label" shrink>{t('algorithmStyle')}</InputLabel>
                           <Select
+                            labelId="cadastro-algoritmo-label"
                             value={preferencias.estiloAlgoritmo}
                             onChange={(e) => handlePrefChange('estiloAlgoritmo', e.target.value)}
                             disableUnderline
