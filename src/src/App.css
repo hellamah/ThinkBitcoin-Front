@@ -408,40 +408,6 @@
   /* Permitir que o brilho e zoom saiam do card sem cortar */
 }
 
-.ai-chat-btn-overlay {
-  position: absolute !important;
-  bottom: 12px;
-  left: 50% !important;
-  transform: translateX(-50%) !important;
-  top: auto !important;
-  right: auto !important;
-  color: var(--color-primary) !important;
-  background: rgba(10, 10, 10, 0.95) !important;
-  backdrop-filter: blur(8px);
-  border: 1.5px solid var(--color-primary) !important;
-  /* Borda mais visível */
-  opacity: 1;
-  /* Sempre visível para facilitar o uso */
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  z-index: 100 !important;
-  width: 42px !important;
-  /* Ligeiramente maior para melhor toque */
-  height: 42px !important;
-  padding: 0 !important;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6) !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-}
-
-.ai-chat-btn-overlay:hover {
-  opacity: 1;
-  background: var(--color-primary) !important;
-  color: #000 !important;
-  transform: translateX(-50%) scale(1.1) !important;
-  box-shadow: 0 0 20px rgba(255, 215, 0, 0.5) !important;
-}
-
 .carousel-info {
   display: flex;
   flex-direction: column;

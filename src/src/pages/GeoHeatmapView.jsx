@@ -719,7 +719,6 @@ export default function GeoHeatmapView() {
           moedasCarousel={moedasExibidas}
           moedasFiltro={moedasFiltro}
           selecionarMoeda={selecionarMoeda}
-          handleDebateTrigger={() => {}}
           t={t}
           isMobile={false}
           isHeatmap={true}

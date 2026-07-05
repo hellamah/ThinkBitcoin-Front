@@ -9,7 +9,7 @@ import Login from './pages/Login.jsx'
 import Layout from './components/Layout.jsx'
 import { DashboardProvider } from './context/DashboardContext.jsx'
 
-// Páginas pesadas (chart.js, react-google-charts, signalr) carregadas sob demanda
+// Páginas pesadas (chart.js, react-google-charts) carregadas sob demanda
 // para não inflar o bundle inicial de quem entra em / ou /login.
 const Dashboard = lazy(() => import('./pages/Dashboard.jsx'))
 const Settings = lazy(() => import('./pages/Settings.jsx'))

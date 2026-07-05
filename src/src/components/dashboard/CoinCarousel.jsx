@@ -3,17 +3,15 @@ import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import Card from '@mui/material/Card'
 import CardActionArea from '@mui/material/CardActionArea'
-import IconButton from '@mui/material/IconButton'
-import { MdTrendingUp, MdTrendingDown, MdRefresh, MdSmartToy } from 'react-icons/md'
+import { MdTrendingUp, MdTrendingDown, MdRefresh } from 'react-icons/md'
 import CryptoIcon from '../CryptoIcon'
 import * as mathUtils from '../../utils/mathUtils'
 
-export default function CoinCarousel({ 
-  moedasCarousel, 
-  moedasFiltro, 
-  selecionarMoeda, 
-  handleDebateTrigger, 
-  t, 
+export default function CoinCarousel({
+  moedasCarousel,
+  moedasFiltro,
+  selecionarMoeda,
+  t,
   isMobile,
   isHeatmap
 }) {
@@ -100,19 +98,6 @@ export default function CoinCarousel({
                   </div>
                 )}
               </CardActionArea>
-
-              {handleDebateTrigger && (
-                <IconButton
-                  className="ai-chat-btn-overlay"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDebateTrigger(m.simbolo);
-                  }}
-                  title={t('chatWithAI', { coin: m.simbolo })}
-                >
-                  <MdSmartToy />
-                </IconButton>
-              )}
             </Card>
           )
         })

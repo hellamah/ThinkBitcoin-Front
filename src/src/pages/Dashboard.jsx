@@ -17,7 +17,6 @@ import { Joyride, STATUS } from 'react-joyride'
 import { useAuth } from '../context/AuthContext'
 import { useDashboard } from '../context/DashboardContext'
 import useTranslation from '../hooks/useTranslation'
-import useChatHub from '../hooks/useChatHub'
 import useCoinPrices from '../hooks/useCoinPrices'
 import useDashboardData from '../hooks/useDashboardData'
 import useDashboardCharts from '../hooks/useDashboardCharts'
@@ -32,7 +31,6 @@ import DashboardFilters from '../components/dashboard/DashboardFilters'
 import IntelligencePanel from '../components/dashboard/IntelligencePanel'
 import DashboardCharts from '../components/dashboard/DashboardCharts'
 import HistoryTable from '../components/dashboard/HistoryTable'
-import Terminal from '../components/Terminal'
 import ErrorMessage from '../components/ErrorMessage'
 
 ChartJS.register(
@@ -53,7 +51,6 @@ export default function Dashboard() {
   const { token, user: usuario, prefs } = useAuth()
   const { moedas: moedasCarousel, erro: erroMoedas, setErro: setErroMoedas } = useCoinPrices()
   const { t } = useTranslation()
-  const { messages, enviarMensagem, clearMessages, isConnected } = useChatHub()
   const isMobile = useMediaQuery('(max-width:600px)')
 
   const {
@@ -71,9 +68,6 @@ export default function Dashboard() {
   // Estados Visuais Locais
   const [normalizacao, setNormalizacao] = useState('base100')
   const [expandedChart, setExpandedChart] = useState(null)
-  const [showChat, setShowChat] = useState(false)
-  const [moedaChat, setMoedaChat] = useState(null)
-  const [currentCorrelationId, setCurrentCorrelationId] = useState(null)
 
   const hasInitializedPref = useRef(false)
 
@@ -93,7 +87,7 @@ export default function Dashboard() {
     {
       target: '[data-tour="dash-carrossel"]',
       title: t('dashboardTour.passo2Titulo') || 'Carrossel de Ativos',
-      content: t('dashboardTour.passo2Descricao') || 'Selecione moedas para analisar e inicie um debate com a IA.',
+      content: t('dashboardTour.passo2Descricao') || 'Selecione uma ou mais moedas para analisar.',
       skipBeacon: true,
     },
     {
@@ -200,27 +194,6 @@ export default function Dashboard() {
     pagina,
     quantidade
   })
-
-  // Lógicas do ChatHub
-  const handleDebateTrigger = async (sigla) => {
-    if (!token) return
-    const corrId = crypto.randomUUID?.() || Math.random().toString(36).substring(2, 15)
-    setMoedaChat(sigla)
-    setShowChat(true)
-    setCurrentCorrelationId(corrId)
-
-    try {
-      const success = await enviarMensagem(`#analisar ${sigla}`, '', corrId)
-      if (!success) throw new Error(!isConnected ? 'Conexão não estabelecida.' : 'Falha no servidor.')
-    } catch (err) {
-      console.error(err)
-      setErro(isConnected ? (t('errorTriggeringDebate') || 'Erro ao iniciar debate com a IA') : 'O chat está offline.')
-    }
-  }
-
-  const handleChatCommand = async (fullCommand) => {
-    await enviarMensagem(fullCommand, '', currentCorrelationId)
-  }
 
   const selecionarMoeda = (simbolo) => {
     const isSelecionada = moedasFiltro.includes(simbolo)
@@ -361,22 +334,11 @@ export default function Dashboard() {
         <ErrorMessage message={erro} onClose={() => setErro('')} />
         <ErrorMessage message={erroMoedas} onClose={() => setErroMoedas('')} />
 
-        {showChat && (
-          <Terminal
-            messages={messages}
-            onCommand={handleChatCommand}
-            onClose={() => setShowChat(false)}
-            status={isConnected ? 'CONNECTED' : 'OFFLINE'}
-            title={`CHATBOT_${moedaChat || 'GLOBAL'}`}
-          />
-        )}
-
         <div data-tour="dash-carrossel">
           <CoinCarousel
             moedasCarousel={moedasCarousel}
             moedasFiltro={moedasFiltro}
             selecionarMoeda={selecionarMoeda}
-            handleDebateTrigger={handleDebateTrigger}
             t={t}
             isMobile={isMobile}
           />
