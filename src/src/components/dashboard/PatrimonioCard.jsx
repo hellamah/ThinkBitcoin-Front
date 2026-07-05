@@ -20,9 +20,7 @@ export default function PatrimonioCard({ token, user }) {
     if (!token || !user?.idUsuarioTB) return
     setLoading(true)
     try {
-      const res = await apiRequest(PatrimonioEndpoint.BY_USER(user.idUsuarioTB), {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      const res = await apiRequest(PatrimonioEndpoint.BY_USER(user.idUsuarioTB))
       const dados = res?.resultado || res?.Resultado || null
       setPatrimonio(dados)
     } catch (err) {

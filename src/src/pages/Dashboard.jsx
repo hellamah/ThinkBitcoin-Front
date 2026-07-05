@@ -8,17 +8,15 @@ import {
   Title,
   Tooltip,
   Legend,
+  Filler,
 } from 'chart.js'
 import Box from '@mui/material/Box'
-import Typography from '@mui/material/Typography'
-import Button from '@mui/material/Button'
 import useMediaQuery from '@mui/material/useMediaQuery'
 import { Joyride, STATUS } from 'react-joyride'
 
 import { useAuth } from '../context/AuthContext'
 import { useDashboard } from '../context/DashboardContext'
 import useTranslation from '../hooks/useTranslation'
-import useChatHub from '../hooks/useChatHub'
 import useCoinPrices from '../hooks/useCoinPrices'
 import useDashboardData from '../hooks/useDashboardData'
 import useDashboardCharts from '../hooks/useDashboardCharts'
@@ -33,7 +31,6 @@ import DashboardFilters from '../components/dashboard/DashboardFilters'
 import IntelligencePanel from '../components/dashboard/IntelligencePanel'
 import DashboardCharts from '../components/dashboard/DashboardCharts'
 import HistoryTable from '../components/dashboard/HistoryTable'
-import Terminal from '../components/Terminal'
 import ErrorMessage from '../components/ErrorMessage'
 
 ChartJS.register(
@@ -44,6 +41,7 @@ ChartJS.register(
   Title,
   Tooltip,
   Legend,
+  Filler,
 )
 
 ChartJS.defaults.color = '#e0e0e0'
@@ -51,9 +49,8 @@ ChartJS.defaults.borderColor = '#333'
 
 export default function Dashboard() {
   const { token, user: usuario, prefs } = useAuth()
-  const moedasCarousel = useCoinPrices()
+  const { moedas: moedasCarousel, erro: erroMoedas, setErro: setErroMoedas } = useCoinPrices()
   const { t } = useTranslation()
-  const { messages, enviarMensagem, clearMessages, isConnected } = useChatHub()
   const isMobile = useMediaQuery('(max-width:600px)')
 
   const {
@@ -71,48 +68,41 @@ export default function Dashboard() {
   // Estados Visuais Locais
   const [normalizacao, setNormalizacao] = useState('base100')
   const [expandedChart, setExpandedChart] = useState(null)
-  const [showChat, setShowChat] = useState(false)
-  const [moedaChat, setMoedaChat] = useState(null)
-  const [currentCorrelationId, setCurrentCorrelationId] = useState(null)
 
   const hasInitializedPref = useRef(false)
 
   // ------ tour onboarding (react-joyride v3) ------
   const [tourRodando, setTourRodando] = useState(false)
 
-  // Nota: na react-joyride v3 a prop é `skipBeacon` (não `disableBeacon`) e o
-  // handler é `onEvent` (não `callback`). Sem isso o primeiro passo abre um
-  // beacon estático preso na tela e o tour nunca é marcado como visto.
+  // Nota: react-joyride v3 — `skipBeacon`, `showProgress`, cores e ações dos
+  // botões são configurados via prop `options` (não existem `showSkipButton`,
+  // `showProgress` nem `styles.options` de nível superior como na v2), e o
+  // handler de eventos é `onEvent` (não `callback`).
   const passosTour = useMemo(() => [
     {
       target: '[data-tour="dash-patrimonio"]',
       title: t('dashboardTour.passo1Titulo') || 'Patrimônio Total',
       content: t('dashboardTour.passo1Descricao') || 'Acompanhe e gerencie seu saldo consolidado.',
-      skipBeacon: true,
     },
     {
       target: '[data-tour="dash-carrossel"]',
       title: t('dashboardTour.passo2Titulo') || 'Carrossel de Ativos',
-      content: t('dashboardTour.passo2Descricao') || 'Selecione moedas para analisar e inicie um debate com a IA.',
-      skipBeacon: true,
+      content: t('dashboardTour.passo2Descricao') || 'Selecione uma ou mais moedas para analisar.',
     },
     {
       target: '[data-tour="dash-filtros"]',
       title: t('dashboardTour.passo3Titulo') || 'Filtros',
       content: t('dashboardTour.passo3Descricao') || 'Refine por período, intervalo e resultado.',
-      skipBeacon: true,
     },
     {
       target: '[data-tour="dash-graficos"]',
       title: t('dashboardTour.passo4Titulo') || 'Gráficos',
       content: t('dashboardTour.passo4Descricao') || 'Compare preço e variação e expanda para ver em detalhe.',
-      skipBeacon: true,
     },
     {
       target: '[data-tour="dash-historico"]',
       title: t('dashboardTour.passo5Titulo') || 'Histórico',
       content: t('dashboardTour.passo5Descricao') || 'Veja o histórico de operações filtrado.',
-      skipBeacon: true,
     },
   ], [t])
 
@@ -188,7 +178,6 @@ export default function Dashboard() {
     trendPorMoeda,
     totalPaginas,
     historicoMoeda,
-    dados,
     erro,
     setErro
   } = useDashboardData({
@@ -199,30 +188,8 @@ export default function Dashboard() {
     dataFim,
     intervalo,
     pagina,
-    quantidade,
-    resultadoFiltro
+    quantidade
   })
-
-  // Lógicas do ChatHub
-  const handleDebateTrigger = async (sigla) => {
-    if (!token) return
-    const corrId = crypto.randomUUID?.() || Math.random().toString(36).substring(2, 15)
-    setMoedaChat(sigla)
-    setShowChat(true)
-    setCurrentCorrelationId(corrId)
-
-    try {
-      const success = await enviarMensagem(`#analisar ${sigla}`, '', corrId)
-      if (!success) throw new Error(!isConnected ? 'Conexão não estabelecida.' : 'Falha no servidor.')
-    } catch (err) {
-      console.error(err)
-      setErro(isConnected ? (t('errorTriggeringDebate') || 'Erro ao iniciar debate com a IA') : 'O chat está offline.')
-    }
-  }
-
-  const handleChatCommand = async (fullCommand) => {
-    await enviarMensagem(fullCommand, '', currentCorrelationId)
-  }
 
   const selecionarMoeda = (simbolo) => {
     const isSelecionada = moedasFiltro.includes(simbolo)
@@ -310,8 +277,8 @@ export default function Dashboard() {
 
   if (!token) return <Box sx={{ p: 5 }}>Redirecting to login...</Box>
 
-  try {
-    return (
+  // Erros de renderização são capturados pelo ErrorBoundary montado no App.
+  return (
       <div className="dashboard-container">
         {/* Tour onboarding — montado apenas enquanto roda para não deixar
             o portal/beacon residual da react-joyride no DOM. */}
@@ -320,34 +287,41 @@ export default function Dashboard() {
             steps={passosTour}
             run={tourRodando}
             continuous
-            showSkipButton
-            showProgress
             onEvent={handleTourCallback}
             locale={{
               back: 'Voltar',
               close: t('dashboardTour.fechar') || 'Entendi!',
               last: t('dashboardTour.fechar') || 'Entendi!',
               next: 'Próximo',
+              nextWithProgress: 'Próximo ({current} de {total})',
               skip: 'Pular',
             }}
+            options={{
+              // Sem beacon: o tooltip abre direto em cada passo.
+              skipBeacon: true,
+              buttons: ['back', 'close', 'skip', 'primary'],
+              showProgress: true,
+              // O ✕ dispensa o tour inteiro (status "skipped" marca como visto);
+              // o default 'close' da v3 avançaria para o próximo passo.
+              closeButtonAction: 'skip',
+              // Clique no overlay e tecla ESC não avançam por acidente.
+              overlayClickAction: false,
+              dismissKeyAction: false,
+              primaryColor: '#ffd700',
+              textColor: '#fff',
+              backgroundColor: 'rgba(15,15,15,0.97)',
+              arrowColor: 'rgba(15,15,15,0.97)',
+              zIndex: 9999,
+            }}
             styles={{
-              options: {
-                primaryColor: '#ffd700',
-                textColor: '#fff',
-                backgroundColor: 'rgba(15,15,15,0.97)',
-                arrowColor: 'rgba(15,15,15,0.97)',
-                zIndex: 9999,
-              },
               tooltip: {
-                background: 'rgba(15,15,15,0.97)',
                 border: '1px solid rgba(255,215,0,0.35)',
                 borderRadius: 16,
-                color: '#fff',
                 boxShadow: '0 20px 60px rgba(0,0,0,0.8)',
               },
               tooltipTitle: { color: '#ffd700', fontWeight: 800, fontSize: '1rem' },
               tooltipContent: { color: 'rgba(255,255,255,0.8)', fontSize: '0.88rem' },
-              buttonNext: { background: '#ffd700', color: '#000', fontWeight: 700, borderRadius: '8px' },
+              buttonPrimary: { background: '#ffd700', color: '#000', fontWeight: 700, borderRadius: '8px' },
               buttonBack: { color: 'rgba(255,255,255,0.6)' },
               buttonSkip: { color: 'rgba(255,255,255,0.4)', fontSize: '0.78rem' },
             }}
@@ -361,23 +335,13 @@ export default function Dashboard() {
         </div>
 
         <ErrorMessage message={erro} onClose={() => setErro('')} />
-
-        {showChat && (
-          <Terminal
-            messages={messages}
-            onCommand={handleChatCommand}
-            onClose={() => setShowChat(false)}
-            status={isConnected ? 'CONNECTED' : 'OFFLINE'}
-            title={`CHATBOT_${moedaChat || 'GLOBAL'}`}
-          />
-        )}
+        <ErrorMessage message={erroMoedas} onClose={() => setErroMoedas('')} />
 
         <div data-tour="dash-carrossel">
           <CoinCarousel
             moedasCarousel={moedasCarousel}
             moedasFiltro={moedasFiltro}
             selecionarMoeda={selecionarMoeda}
-            handleDebateTrigger={handleDebateTrigger}
             t={t}
             isMobile={isMobile}
           />
@@ -421,17 +385,5 @@ export default function Dashboard() {
           />
         </div>
       </div>
-    )
-  } catch (err) {
-    console.error('Erro fatal no render do Dashboard:', err)
-    return (
-      <Box sx={{ p: 5, color: '#ff5252', background: '#0a0a0a', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
-        <Typography variant="h5">Ocorreu um erro ao carregar o Dashboard.</Typography>
-        <Typography sx={{ mt: 2, opacity: 0.7 }}>{err.message}</Typography>
-        <Button variant="outlined" sx={{ mt: 4, color: '#ffd700', borderColor: '#ffd700' }} onClick={() => window.location.reload()}>
-          Recarregar Página
-        </Button>
-      </Box>
-    )
-  }
+  )
 }

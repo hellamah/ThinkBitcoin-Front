@@ -10,6 +10,7 @@ import {
   AuthTokenClaim,
   authenticate,
   decodeAuthenticationToken,
+  isAuthenticationTokenExpired,
 } from '../src/utils/authentication'
 import { API_URL } from '../src/api'
 
@@ -121,5 +122,30 @@ describe('utils/authentication › decodeAuthenticationToken (Decodificação JW
     } else {
       expect(res).toBeNull()
     }
+  })
+})
+
+describe('utils/authentication › isAuthenticationTokenExpired (Validação de Expiração)', () => {
+  const tokenComPayload = (payload) =>
+    `h.${Buffer.from(JSON.stringify(payload)).toString('base64url')}.s`
+
+  it('deve retornar true para token com exp no passado', () => {
+    const token = tokenComPayload({ exp: Math.floor(Date.now() / 1000) - 60 })
+    expect(isAuthenticationTokenExpired(token)).toBe(true)
+  })
+
+  it('deve retornar false para token com exp no futuro', () => {
+    const token = tokenComPayload({ exp: Math.floor(Date.now() / 1000) + 3600 })
+    expect(isAuthenticationTokenExpired(token)).toBe(false)
+  })
+
+  it('deve tratar tokens sem claim exp como válidos (ex.: mocks de desenvolvimento)', () => {
+    const token = tokenComPayload({ idUsuarioTB: 'U001' })
+    expect(isAuthenticationTokenExpired(token)).toBe(false)
+  })
+
+  it('deve tratar tokens inválidos ou nulos como não expirados (decisão fica com o decode)', () => {
+    expect(isAuthenticationTokenExpired(null)).toBe(false)
+    expect(isAuthenticationTokenExpired('nao-e-um-jwt')).toBe(false)
   })
 })

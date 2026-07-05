@@ -24,9 +24,7 @@ export default function PlanosPagamentoModal({ visible, onClose, token, user, on
     setLoading(true)
     setErrorMsg('')
     try {
-      const res = await apiRequest(PlanosPagamentoEndpoint.LIST, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      const res = await apiRequest(PlanosPagamentoEndpoint.LIST)
       const lista = res?.resultado?.planos || res?.Resultado?.planos || []
       setPlanos(lista)
     } catch (err) {
@@ -83,7 +81,6 @@ export default function PlanosPagamentoModal({ visible, onClose, token, user, on
 
       await apiRequest(PlanosPagamentoEndpoint.MIGRATE, {
         method: HttpMethod.POST,
-        headers: { Authorization: `Bearer ${token}` },
         body
       })
 

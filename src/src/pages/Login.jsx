@@ -39,8 +39,9 @@ function Login() {
       const usuario = decodeAuthenticationToken(dados.tokenAutenticado)
       setMensagem(t('welcome', { name: usuario?.nome ?? '' }))
       setTimeout(() => navegar('/dashboard'), 800)
-    } catch {
-      setErro(t('loginFailed'))
+    } catch (err) {
+      // Mostra o motivo informado pelo backend (ex.: "Senha inválida") quando houver.
+      setErro(err?.hasBackendMessage ? err.message : t('loginFailed'))
     } finally {
       setCarregando(false)
     }

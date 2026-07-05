@@ -160,7 +160,7 @@ export default function GeoHeatmapView() {
   const { token, user: usuario, prefs } = useAuth()
   const { refreshTrigger, moedaSelecionada, setMoedaSelecionada } = useDashboard()
   const { t } = useTranslation()
-  const moedasCarousel = useCoinPrices()
+  const { moedas: moedasCarousel, erro: erroMoedas, setErro: setErroMoedas } = useCoinPrices()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -408,7 +408,6 @@ export default function GeoHeatmapView() {
       const sep = idMoedaParam ? '&' : '?'
       const url = `${VariavelExternaEndpoint.TREND_HEATMAP}${idMoedaParam}${sep}intervalo=${intervaloMapa}`
       const response = await apiRequest(url, {
-        headers: { Authorization: `Bearer ${token}` },
         useCache: true,
         cacheKey: chaveCache,
         ttl: 5 * 60 * 1000,
@@ -575,41 +574,37 @@ export default function GeoHeatmapView() {
   // ---------------------------------------------------------------------------
   // Tour Onboarding (react-joyride)
   // ---------------------------------------------------------------------------
-  // Nota: na react-joyride v3 a prop é `skipBeacon` (a v2 usava `disableBeacon`).
-  // Sem ela, o primeiro passo renderiza um beacon estático no DOM em vez de abrir
-  // o tooltip direto, deixando um ponto "preso" na tela até o tour ser concluído.
+  // Nota: react-joyride v3 — `skipBeacon`, `showProgress`, cores e ações dos
+  // botões são configurados via prop `options` (não existem `showSkipButton`,
+  // `showProgress` nem `styles.options` de nível superior como na v2), e o
+  // handler de eventos é `onEvent` (não `callback`).
   const passosTour = useMemo(() => [
     {
       target: '[data-tour="carrossel"]',
       title: t('heatmap.tourPasso1Titulo') || 'Carrossel de Ativos',
       content: t('heatmap.tourPasso1Descricao') || 'Selecione o ativo que deseja visualizar.',
-      skipBeacon: true,
     },
     {
       target: '[data-tour="intervalos"]',
       title: t('heatmap.tourPasso2Titulo') || 'Filtro de Intervalo',
       content: t('heatmap.tourPasso2Descricao') || 'Alterne entre 1H, 1D e 1M.',
-      skipBeacon: true,
     },
     {
       target: '[data-tour="acoes-topo"]',
       title: t('heatmap.tourPasso3Titulo') || 'Exportar e Compartilhar',
       content: t('heatmap.tourPasso3Descricao') || 'Baixe os dados ou compartilhe o link.',
-      skipBeacon: true,
     },
     {
       target: '[data-tour="zoom"]',
       title: t('heatmap.tourPasso4Titulo') || 'Zoom Geográfico',
       content: t('heatmap.tourPasso4Descricao') || 'Clique em uma região para dar zoom.',
-      skipBeacon: true,
     },
     {
       target: '[data-tour="inteligencia"]',
       title: t('heatmap.tourPasso5Titulo') || 'Central de Inteligência',
       content: t('heatmap.tourPasso5Descricao') || 'Top 5 países. Clique para filtrar o carrossel.',
-      skipBeacon: true,
     },
-  ], [])
+  ], [t])
 
   // Inicia o tour automaticamente na primeira visita
   useEffect(() => {
@@ -662,26 +657,36 @@ export default function GeoHeatmapView() {
         steps={passosTour}
         run={tourRodando}
         continuous
-        showSkipButton
-        showProgress
         onEvent={handleTourCallback}
         locale={{
           back: 'Voltar',
           close: t('heatmap.tourFechar') || 'Entendi!',
           last: t('heatmap.tourFechar') || 'Entendi!',
           next: 'Próximo',
+          nextWithProgress: 'Próximo ({current} de {total})',
           skip: 'Pular',
         }}
+        options={{
+          // Sem beacon: o tooltip abre direto em cada passo.
+          skipBeacon: true,
+          buttons: ['back', 'close', 'skip', 'primary'],
+          showProgress: true,
+          // O ✕ dispensa o tour inteiro (status "skipped" marca como visto);
+          // o default 'close' da v3 avançaria para o próximo passo.
+          closeButtonAction: 'skip',
+          // Clique no overlay e tecla ESC não avançam por acidente.
+          overlayClickAction: false,
+          dismissKeyAction: false,
+          primaryColor: '#ffd700',
+          textColor: '#fff',
+          backgroundColor: 'rgba(15,15,15,0.97)',
+          arrowColor: 'rgba(15,15,15,0.97)',
+          zIndex: 9999,
+        }}
         styles={{
-          options: {
-            primaryColor: '#ffd700',
-            textColor: '#fff',
-            backgroundColor: 'rgba(15,15,15,0.97)',
-            zIndex: 9999,
-          },
           tooltipTitle: { color: '#ffd700', fontWeight: 800, fontSize: '1rem' },
           tooltipContent: { color: 'rgba(255,255,255,0.8)', fontSize: '0.88rem' },
-          buttonNext: { background: '#ffd700', color: '#000', fontWeight: 700, borderRadius: '8px' },
+          buttonPrimary: { background: '#ffd700', color: '#000', fontWeight: 700, borderRadius: '8px' },
           buttonBack: { color: 'rgba(255,255,255,0.6)' },
           buttonSkip: { color: 'rgba(255,255,255,0.4)', fontSize: '0.78rem' },
         }}
@@ -712,6 +717,7 @@ export default function GeoHeatmapView() {
 
       <DashboardHeader t={t} prefs={prefs} usuario={usuario} title={t('nav.heatmap') || 'Geopolítica'} />
       <ErrorMessage message={erro} onClose={() => setErro('')} />
+      <ErrorMessage message={erroMoedas} onClose={() => setErroMoedas('')} />
 
       {/* Carrossel de Ativos */}
       <div data-tour="carrossel">
@@ -719,7 +725,6 @@ export default function GeoHeatmapView() {
           moedasCarousel={moedasExibidas}
           moedasFiltro={moedasFiltro}
           selecionarMoeda={selecionarMoeda}
-          handleDebateTrigger={() => {}}
           t={t}
           isMobile={false}
           isHeatmap={true}

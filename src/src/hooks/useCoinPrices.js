@@ -1,9 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { apiRequest, MarketEndpoint } from '../utils/apiClient'
 
+// Intervalo de atualização dos preços do carrossel.
+const POLLING_INTERVAL_MS = 60_000
 
 export default function useCoinPrices() {
   const [moedas, setMoedas] = useState([])
+  const [erro, setErro] = useState('')
   const moedasRef = useRef([])
 
   useEffect(() => {
@@ -16,11 +19,11 @@ export default function useCoinPrices() {
     const inicializarMoedas = async () => {
       try {
         const json = await apiRequest(MarketEndpoint.COIN_LIST)
-        const lista = ((json?.resultado || json?.Resultado) || [])
+        const lista = (json?.resultado || [])
           .map((m) => ({
-            id: m?.id || m?.Id,
-            simbolo: m?.sigla || m?.Sigla,
-            nome: m?.nome || m?.Nome,
+            id: m?.id,
+            simbolo: m?.sigla,
+            nome: m?.nome,
             valor: 0,
             dados: [],
             variacao: 0,
@@ -37,15 +40,9 @@ export default function useCoinPrices() {
         }
       } catch (err) {
         console.error('Erro ao listar moedas:', err)
-        // Fallback Premium: Garante que o usuário veja algo mesmo se o backend falhar
-        const mockLista = [
-          { id: 'btc-id', simbolo: 'BTC', nome: 'Bitcoin', valor: 0, dados: [], variacao: 0 },
-          { id: 'eth-id', simbolo: 'ETH', nome: 'Ethereum', valor: 0, dados: [], variacao: 0 },
-          { id: 'sol-id', simbolo: 'SOL', nome: 'Solana', valor: 0, dados: [], variacao: 0 },
-        ]
+        // Sem lista não há o que exibir: sinaliza o erro em vez de inventar moedas.
         if (ativo) {
-          setMoedas(mockLista)
-          obterValores(mockLista)
+          setErro('Não foi possível carregar a lista de moedas. Tente novamente mais tarde.')
         }
       }
     }
@@ -57,53 +54,44 @@ export default function useCoinPrices() {
       const atualizadas = await Promise.all(
         listaParaProcessar.map(async (m) => {
           try {
-            // Usa o símbolo (sigla) para buscar o valor. Convertemos para lowercase conforme o exemplo do usuário.
+            // Usa o símbolo (sigla) para buscar o valor.
+            // Fear/trend são complementares: em caso de falha ficam nulos e a UI
+            // simplesmente não exibe sentimento, em vez de mostrar dados fictícios.
             const [resPreco, resFear, resTrend] = await Promise.all([
               apiRequest(MarketEndpoint.COIN_VALUE(m.simbolo.toLowerCase())),
-              apiRequest(`/ThinkBitcoin/variavel-externa/fear-greed?idMoeda=${m.id}&quantidade=1&ordemAsc=false`).catch(() => ({
-                resultado: { registros: [{ valor: 75, classificacao: 'Greed' }] }
-              })),
-              apiRequest(`/ThinkBitcoin/variavel-externa/trend?idMoeda=${m.id}&quantidade=1&ordemAsc=false`).catch(() => ({
-                resultado: { registros: [{
-                  valorAtual: 130, mA5: 120, mA15: 121, delta5: 19, delta15: 33,
-                  volatilidade15: 30.45, minutosDesdePico: 115, rankNoMinuto: 6, geoTop1Code: 'CH'
-                }] }
-              }))
+              apiRequest(`/ThinkBitcoin/variavel-externa/fear-greed?idMoeda=${m.id}&quantidade=1&ordemAsc=false`).catch(() => null),
+              apiRequest(`/ThinkBitcoin/variavel-externa/trend?idMoeda=${m.id}&quantidade=1&ordemAsc=false`).catch(() => null)
             ])
 
             // Tenta extrair o valor do preço
             let valor = 0
-            const pRes = resPreco?.resultado ?? resPreco?.Resultado ?? resPreco
-            const registro = pRes?.registros?.[0] ?? pRes?.Registros?.[0] ?? (Array.isArray(pRes) ? pRes[0] : pRes)
+            const pRes = resPreco?.resultado ?? resPreco
+            const registro = pRes?.registros?.[0] ?? (Array.isArray(pRes) ? pRes[0] : pRes)
 
             if (typeof resPreco === 'number') {
               valor = resPreco
             } else if (registro) {
-              valor = registro.precoFechamento ?? registro.PrecoFechamento ??
-                registro.valorNegociado ?? registro.ValorNegociado ??
-                registro.valor ?? registro.Valor ??
-                pRes?.valor ?? pRes?.Valor ?? 0
+              valor = registro.precoFechamento ??
+                registro.valorNegociado ??
+                registro.valor ??
+                pRes?.valor ?? 0
             }
 
-            const apiVariacao = registro?.precoPercentualVariacao ?? registro?.PrecoPercentualVariacao ??
-              registro?.variacaoPercentual ?? registro?.VariacaoPercentual ?? null
+            const apiVariacao = registro?.precoPercentualVariacao ??
+              registro?.variacaoPercentual ?? null
 
             const historico = [...m.dados.slice(-6), valor]
             const anterior = m.dados[m.dados.length - 1] ?? valor
             const variacao = apiVariacao !== null ? apiVariacao : (anterior !== 0 ? ((valor - anterior) / anterior) * 100 : 0)
 
             // Extrai dados de sentimento
-            const fgRes = resFear?.resultado ?? resFear?.Resultado ?? resFear
-            const fear = fgRes?.registros?.[0] ?? fgRes?.Registros?.[0] ?? (Array.isArray(fgRes) ? fgRes[0] : null)
+            const fgRes = resFear?.resultado ?? resFear
+            const fear = fgRes?.registros?.[0] ?? (Array.isArray(fgRes) ? fgRes[0] : null)
 
-            const trRes = resTrend?.resultado ?? resTrend?.Resultado ?? resTrend
-            const trend = trRes?.registros?.[0] ?? trRes?.Registros?.[0] ?? (Array.isArray(trRes) ? trRes[0] : null)
+            const trRes = resTrend?.resultado ?? resTrend
+            const trend = trRes?.registros?.[0] ?? (Array.isArray(trRes) ? trRes[0] : null)
 
-            // Mock de marketCap e volume para exibição no panel top-coins
-            const marketCap = m.simbolo === 'BTC' ? 1200000000000 : (m.simbolo === 'ETH' ? 400000000000 : 15000000000 + Math.random() * 5000000000)
-            const volume = marketCap * (0.02 + Math.random() * 0.05)
-
-            return { ...m, valor, dados: historico, variacao, fear, trend, marketCap, volume }
+            return { ...m, valor, dados: historico, variacao, fear, trend }
           } catch (err) {
             console.error(`Erro ao buscar valor para ${m.simbolo}:`, err)
             return m
@@ -115,10 +103,18 @@ export default function useCoinPrices() {
 
     inicializarMoedas()
 
+    // Mantém os valores do carrossel atualizados; sem isso os preços congelam
+    // no primeiro fetch. Pausa quando a aba está em segundo plano.
+    const intervalo = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return
+      obterValores()
+    }, POLLING_INTERVAL_MS)
+
     return () => {
       ativo = false
+      clearInterval(intervalo)
     }
   }, [])
 
-  return moedas
+  return { moedas, erro, setErro }
 }

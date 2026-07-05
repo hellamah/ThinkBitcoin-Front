@@ -1,6 +1,7 @@
 import { API_URL } from '../api'
 import { getMockResponse, USE_MOCK_API } from './mockApi'
 import { getCache, setCache } from './cache'
+import { getStoredToken } from './preferences'
 
 export const HttpMethod = Object.freeze({
   GET: 'GET',
@@ -86,6 +87,27 @@ export const ApiEndpoint = Object.freeze({
 
 const JSON_HEADERS = Object.freeze({ 'Content-Type': 'application/json' })
 
+// A API .NET ora serializa em PascalCase, ora em camelCase. Normalizar aqui,
+// na fronteira, dispensa cadeias defensivas como `resultado ?? Resultado` no
+// resto do código. Só converte chaves no padrão PascalCase clássico (maiúscula
+// seguida de minúscula) para não corromper chaves-código como "BTC" ou "US".
+const PASCAL_KEY = /^[A-Z][a-z]/
+
+export const normalizeApiKeys = (value) => {
+  if (Array.isArray(value)) return value.map(normalizeApiKeys)
+  if (value === null || typeof value !== 'object') return value
+  const out = {}
+  for (const [key, val] of Object.entries(value)) {
+    const camel = PASCAL_KEY.test(key)
+      ? key.charAt(0).toLowerCase() + key.slice(1)
+      : key
+    // Se a resposta trouxer as duas variantes, a camelCase original prevalece.
+    if (camel !== key && Object.prototype.hasOwnProperty.call(value, camel)) continue
+    out[camel] = normalizeApiKeys(val)
+  }
+  return out
+}
+
 const buildUrl = (endpoint) => `${API_URL}${endpoint}`
 
 const createRequestInit = (method, headers, body) => {
@@ -95,6 +117,28 @@ const createRequestInit = (method, headers, body) => {
     headers: hasBody ? { ...JSON_HEADERS, ...headers } : { ...headers },
     body: hasBody ? JSON.stringify(body) : undefined,
   }
+}
+
+// Anexa o Bearer token armazenado quando o caller não define Authorization.
+// Endpoints públicos (login, recuperação de senha) funcionam igual: sem token
+// armazenado, nada é anexado.
+const withAuthHeader = (headers) => {
+  if (headers.Authorization || headers.authorization) return headers
+  const token = getStoredToken()
+  return token ? { ...headers, Authorization: `Bearer ${token}` } : headers
+}
+
+// Extrai a mensagem de erro do corpo da resposta, quando o backend enviar uma.
+const extractErrorMessage = async (response) => {
+  try {
+    const body = normalizeApiKeys(await response.json())
+    const msg = body?.mensagem ?? body?.message ?? body?.erro ?? null
+    if (typeof msg === 'string' && msg.trim()) return msg.trim()
+    if (Array.isArray(body?.erros) && body.erros.length > 0) return body.erros.join('; ')
+  } catch {
+    /* corpo vazio ou não-JSON */
+  }
+  return null
 }
 
 export const apiRequest = async (
@@ -124,30 +168,33 @@ export const apiRequest = async (
   if (USE_MOCK_API) {
     const mockResponse = getMockResponse({ endpoint, method, body })
     if (mockResponse) {
+      const normalizedMock = normalizeApiKeys(mockResponse)
       if (useCache && isGet) {
-        setCache(key, mockResponse, ttl)
+        setCache(key, normalizedMock, ttl)
       }
-      return mockResponse
+      return normalizedMock
     }
   }
 
   const response = await fetch(
     buildUrl(endpoint),
-    { ...createRequestInit(method, headers, body), signal }
+    { ...createRequestInit(method, withAuthHeader(headers), body), signal }
   )
 
   if (!response.ok) {
     if (response.status === 401 && !suppressAuthRedirect && typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('auth-expired'))
     }
-    const error = new Error('Falha na requisição à API')
+    const backendMessage = await extractErrorMessage(response)
+    const error = new Error(backendMessage || 'Falha na requisição à API')
     error.status = response.status
+    error.hasBackendMessage = Boolean(backendMessage)
     throw error
   }
 
   if (response.status === 204) return null
 
-  const data = await response.json()
+  const data = normalizeApiKeys(await response.json())
   if (useCache && isGet) {
     setCache(key, data, ttl)
   }

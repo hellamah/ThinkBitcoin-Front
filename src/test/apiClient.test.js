@@ -6,7 +6,7 @@
  */
 import { describe, expect, it, vi } from 'vitest'
 import { API_URL } from '../src/api'
-import { ApiEndpoint, HttpMethod, apiRequest } from '../src/utils/apiClient'
+import { ApiEndpoint, HttpMethod, apiRequest, normalizeApiKeys } from '../src/utils/apiClient'
 
 // Mock de fetch global é configurado em vitest.setup.js
 
@@ -28,6 +28,44 @@ describe('utils/apiClient › Enums & Endpoints', () => {
   it('deve gerar endpoints dinâmicos (ID/Símbolo) corretamente', () => {
     expect(ApiEndpoint.USER.ME('U001')).toBe('/ThinkBitcoin/usuariosTB/U001')
     expect(ApiEndpoint.MARKET.COIN_VALUE('BTC')).toBe('/ThinkBitcoin/moeda/BTC/valor')
+  })
+})
+
+describe('utils/apiClient › normalizeApiKeys (Normalização PascalCase → camelCase)', () => {
+  it('deve converter chaves PascalCase para camelCase recursivamente', () => {
+    const bruto = {
+      Resultado: {
+        Registros: [{ PrecoFechamento: 10, HoraReferencia: '2026-01-01' }],
+        TotalPaginas: 3,
+      },
+    }
+    expect(normalizeApiKeys(bruto)).toEqual({
+      resultado: {
+        registros: [{ precoFechamento: 10, horaReferencia: '2026-01-01' }],
+        totalPaginas: 3,
+      },
+    })
+  })
+
+  it('deve preservar chaves que já estão em camelCase e valores primitivos', () => {
+    const bruto = { resultado: { valor: 1.5, ativo: true, nulo: null } }
+    expect(normalizeApiKeys(bruto)).toEqual(bruto)
+  })
+
+  it('não deve alterar chaves-código como siglas de moeda ou país', () => {
+    const bruto = { BTC: 1, US: 2, MA5: 3 }
+    expect(normalizeApiKeys(bruto)).toEqual({ BTC: 1, US: 2, MA5: 3 })
+  })
+
+  it('deve manter a variante camelCase quando a resposta trouxer as duas', () => {
+    const bruto = { Valor: 1, valor: 2 }
+    expect(normalizeApiKeys(bruto)).toEqual({ valor: 2 })
+  })
+
+  it('deve normalizar arrays na raiz e passar adiante tipos não-objeto', () => {
+    expect(normalizeApiKeys([{ Sigla: 'BTC' }])).toEqual([{ sigla: 'BTC' }])
+    expect(normalizeApiKeys('texto')).toBe('texto')
+    expect(normalizeApiKeys(null)).toBeNull()
   })
 })
 
@@ -69,6 +107,17 @@ describe('utils/apiClient › apiRequest (Comunicação com API)', () => {
     }))
   })
 
+  it('deve entregar respostas com chaves normalizadas para camelCase', async () => {
+    fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ Resultado: { TokenAutenticado: 'abc' } }),
+    })
+
+    const res = await apiRequest('/pascal')
+    expect(res).toEqual({ resultado: { tokenAutenticado: 'abc' } })
+  })
+
   it('deve retornar null graciosamente para status 204 (No Content)', async () => {
     fetch.mockResolvedValue({ ok: true, status: 204 })
     const res = await apiRequest('/no-content')
@@ -80,8 +129,67 @@ describe('utils/apiClient › apiRequest (Comunicação com API)', () => {
 
     await expect(apiRequest('/crash')).rejects.toMatchObject({
       message: 'Falha na requisição à API',
-      status: 500
+      status: 500,
+      hasBackendMessage: false
     })
+  })
+
+  it('deve usar a mensagem de erro enviada pelo backend quando disponível', async () => {
+    fetch.mockResolvedValue({
+      ok: false,
+      status: 400,
+      json: () => Promise.resolve({ Mensagem: 'Senha inválida' }),
+    })
+
+    await expect(apiRequest('/login-falho')).rejects.toMatchObject({
+      message: 'Senha inválida',
+      status: 400,
+      hasBackendMessage: true
+    })
+  })
+
+  it('deve anexar o Bearer token armazenado automaticamente quando existir', async () => {
+    vi.stubGlobal('window', {
+      localStorage: {
+        getItem: (k) => (k === 'token' ? 'token-armazenado' : null),
+      },
+    })
+    fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({}),
+    })
+
+    try {
+      await apiRequest('/privado')
+      expect(fetch).toHaveBeenCalledWith(`${API_URL}/privado`, expect.objectContaining({
+        headers: { Authorization: 'Bearer token-armazenado' },
+      }))
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('não deve sobrescrever um header Authorization definido pelo caller', async () => {
+    vi.stubGlobal('window', {
+      localStorage: {
+        getItem: (k) => (k === 'token' ? 'token-armazenado' : null),
+      },
+    })
+    fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({}),
+    })
+
+    try {
+      await apiRequest('/custom', { headers: { Authorization: 'Bearer explicito' } })
+      expect(fetch).toHaveBeenCalledWith(`${API_URL}/custom`, expect.objectContaining({
+        headers: { Authorization: 'Bearer explicito' },
+      }))
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 
   it('deve propagar falhas de rede (rejeição do fetch) corretamente', async () => {

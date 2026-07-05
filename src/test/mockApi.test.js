@@ -214,21 +214,6 @@ describe('utils/mockApi › getMockResponse', () => {
     })
   })
 
-  describe('Debate', () => {
-    it('retorna confirmação de debate iniciado para POST /debate', () => {
-      const resp = getMockResponse({
-        endpoint: '/ThinkBitcoin/debate',
-        method: 'POST',
-        body: { moeda: 'BTC' },
-      })
-
-      expect(resp).toMatchObject({
-        mensagem: expect.any(String),
-        resultado: true,
-      })
-    })
-  })
-
   describe('Variáveis Externas (Fear & Greed, Trend e Heatmap)', () => {
     it('retorna mock de Fear & Greed para GET /variavel-externa/fear-greed', () => {
       const resp = getMockResponse({
