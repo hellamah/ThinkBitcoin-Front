@@ -340,6 +340,78 @@
   position: relative;
 }
 
+.crypto-carousel-wrapper {
+  position: relative;
+}
+
+/* Fade nas bordas: sinaliza que existe mais conteúdo naquela direção,
+   já que a barra de rolagem do carrossel fica escondida. */
+.crypto-carousel-wrapper::before,
+.crypto-carousel-wrapper::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 48px;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.crypto-carousel-wrapper::before {
+  left: 0;
+  background: linear-gradient(90deg, rgba(10, 10, 10, 0.85), transparent);
+}
+
+.crypto-carousel-wrapper::after {
+  right: 0;
+  background: linear-gradient(270deg, rgba(10, 10, 10, 0.85), transparent);
+}
+
+.crypto-carousel-wrapper.can-left::before {
+  opacity: 1;
+}
+
+.crypto-carousel-wrapper.can-right::after {
+  opacity: 1;
+}
+
+.carousel-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
+  width: 38px;
+  height: 38px;
+  padding: 0; /* anula o padding do estilo global de button, que esmagava o ícone */
+  border-radius: 50%;
+  border: 1px solid rgba(255, 215, 0, 0.35);
+  background: rgba(15, 15, 15, 0.9);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.carousel-nav:hover {
+  background: rgba(255, 215, 0, 0.15);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.25);
+}
+
+.carousel-nav.prev {
+  left: 10px;
+}
+
+.carousel-nav.next {
+  right: 10px;
+}
+
 .crypto-carousel {
   display: flex;
   overflow-x: auto;
@@ -393,7 +465,6 @@
 .carousel-item {
   flex: 0 0 auto;
   min-width: 150px;
-  min-height: 180px;
   display: flex;
   flex-direction: column;
   background: rgba(40, 40, 40, 0.4) !important;
@@ -996,9 +1067,9 @@
 
 /* Enhanced Top‑Coins Panel */
 .top-list {
-  display: flex !important;
-  flex-direction: row !important;
-  flex-wrap: nowrap !important;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
   gap: 12px;
   width: 100%;
   padding: 4px 0;
@@ -1086,76 +1157,18 @@
   background: rgba(244, 67, 54, 0.1);
 }
 
-.top-item-stats-stage {
-  position: relative;
-  height: 34px;
-  margin-top: 6px;
-  overflow: hidden;
-}
-
-.price-view,
-.details-view {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.price-view {
-  opacity: 1;
-  transform: translateY(0);
-}
-
 .top-price {
+  display: block;
+  margin-top: 6px;
   font-family: 'Share Tech Mono', monospace;
   font-size: 1.1rem;
   font-weight: 700;
   color: var(--color-primary);
 }
 
-.top-item-card:hover .price-view {
-  opacity: 0;
-  transform: translateY(-12px);
-}
-
-.details-view {
-  opacity: 0;
-  transform: translateY(12px);
-  pointer-events: none;
-}
-
-.top-item-card:hover .details-view {
-  opacity: 1;
-  transform: translateY(0);
-  pointer-events: auto;
-}
-
-.reveal-stat {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.65rem;
-  font-family: 'Share Tech Mono', monospace;
-  line-height: 1.4;
-}
-
-.reveal-stat .label {
-  color: var(--color-primary);
-  opacity: 0.7;
-  font-weight: 700;
-}
-
-.reveal-stat .value {
-  color: rgba(255, 255, 255, 0.8);
-}
-
 @media (max-width: 1200px) {
   .top-list {
-    flex-wrap: wrap !important;
+    flex-wrap: wrap;
   }
 
   .top-item-card {
@@ -1213,45 +1226,6 @@
   border-radius: 50%;
   background: currentColor;
   box-shadow: 0 0 4px currentColor;
-}
-
-.top-list {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin-top: 1rem;
-}
-
-.top-item {
-  display: flex !important;
-  align-items: center;
-  gap: 16px;
-  padding: 12px 16px !important;
-  background: transparent !important;
-  border: none !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
-  border-radius: 0 !important;
-  transition: background 0.2s !important;
-}
-
-.top-item:last-child {
-  border-bottom: none !important;
-}
-
-.top-item:hover {
-  background: rgba(255, 255, 255, 0.03) !important;
-}
-
-.top-name {
-  flex: 1;
-  font-weight: 500;
-  font-size: 0.95rem;
-}
-
-.top-var {
-  font-weight: 600;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.9rem;
 }
 
 .form-card {
