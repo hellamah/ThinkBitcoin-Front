@@ -35,9 +35,11 @@ import 'chartjs-adapter-date-fns'
 import { ptBR } from 'date-fns/locale'
 import zoomPlugin from 'chartjs-plugin-zoom'
 import { Line, Bar, Scatter, Doughnut, Radar } from 'react-chartjs-2'
+import { useTheme } from '@mui/material/styles'
 import ErrorMessage from '../components/ErrorMessage'
 import { apiRequest, TreinamentoEpisodioEndpoint, MarketEndpoint, VariavelExternaEndpoint } from '../utils/apiClient'
 import { toUTCISO } from '../utils/dateUtils'
+import useTranslation from '../hooks/useTranslation'
 
 ChartJS.register(
   CategoryScale, LinearScale, PointElement, LineElement, BarElement,
@@ -62,6 +64,21 @@ const COIN_COLORS = {
   LINK: '#2A5ADA', PAXG: '#DBB43E',
 }
 const ACCENT = '#FFD700'
+
+const chartBg = (dk) => dk ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)'
+const chartBorder = (dk) => dk ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'
+const gridColor = (dk) => dk ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)'
+const tickColor = (dk) => dk ? '#aaa' : '#666'
+const legendColor = (dk) => dk ? '#e0e0e0' : '#333'
+const tooltipBg = (dk) => dk ? 'rgba(15,15,20,0.95)' : 'rgba(255,255,255,0.95)'
+const tooltipBody = (dk) => dk ? '#fff' : '#333'
+const hoverBg = (dk) => dk ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'
+const subtleBg = (dk) => dk ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'
+const subtleBorder = (dk) => dk ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)'
+const textPrimary = (dk) => dk ? '#fff' : '#202020'
+const textSecondary = (dk) => dk ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)'
+const gradientEnd = (dk) => dk ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)'
+const gaugeTrack = (dk) => dk ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'
 
 // Cor da moeda: usa a cor de marca quando existe; senão gera um HEX estável a
 // partir do nome (moedas que só aparecem ao carregar janelas antigas, ex.: PAXG).
@@ -158,23 +175,20 @@ const movingAverage = (arr, window = 5) => {
   })
 }
 
-const COLUMNS = [
-  { id: 'episodio', label: 'Episódio', numeric: true },
-  { id: 'dataHora', label: 'Data/Hora', numeric: false },
-  { id: 'moeda', label: 'Moeda', numeric: false },
-  { id: 'versaoModelo', label: 'Versão', numeric: false },
-  { id: 'rewardMedio', label: 'Reward Médio', numeric: true },
-  { id: 'rewardTotal', label: 'Reward Total', numeric: true },
-  { id: 'lossMedia', label: 'Loss Média', numeric: true },
-  { id: 'epsilon', label: 'Epsilon', numeric: true },
-  { id: 'winRate', label: 'Win Rate', numeric: true },
-  { id: 'duracaoSegundos', label: 'Duração (s)', numeric: true },
+const getColumns = (t) => [
+  { id: 'episodio', label: t('treinamento.colEpisode'), numeric: true },
+  { id: 'dataHora', label: t('treinamento.colDateTime'), numeric: false },
+  { id: 'moeda', label: t('treinamento.colCoin'), numeric: false },
+  { id: 'versaoModelo', label: t('treinamento.colVersion'), numeric: false },
+  { id: 'rewardMedio', label: t('treinamento.colRewardAvg'), numeric: true },
+  { id: 'rewardTotal', label: t('treinamento.colRewardTotal'), numeric: true },
+  { id: 'lossMedia', label: t('treinamento.colLossAvg'), numeric: true },
+  { id: 'epsilon', label: t('treinamento.colEpsilon'), numeric: true },
+  { id: 'winRate', label: t('treinamento.colWinRate'), numeric: true },
+  { id: 'duracaoSegundos', label: t('treinamento.colDuration'), numeric: true },
 ]
 
-const CHART_BG = 'rgba(255,255,255,0.04)'
-const CHART_BORDER = 'rgba(255,255,255,0.08)'
-
-const X_TICKS = { color: '#aaa', maxRotation: 0, autoSkip: true, maxTicksLimit: 10 }
+const xTicks = (dk) => ({ color: tickColor(dk), maxRotation: 0, autoSkip: true, maxTicksLimit: 10 })
 
 // Mostra "#ep · data/hora" no título do tooltip quando o dataset expõe `metaDates`
 const tooltipTitleWithDate = (its) => {
@@ -186,20 +200,20 @@ const tooltipTitleWithDate = (its) => {
   return Number.isNaN(dt.getTime()) ? first.label : `${first.label} · ${dt.toLocaleString()}`
 }
 
-const baseChartOptions = (extra = {}) => {
+const baseChartOptions = (dk, extra = {}) => {
   const { plugins: extraPlugins, scales: extraScales, ...rest } = extra
   return {
     responsive: true,
     maintainAspectRatio: false,
     interaction: { mode: 'index', intersect: false },
     plugins: {
-      legend: { labels: { color: '#e0e0e0', usePointStyle: true, padding: 12 } },
+      legend: { labels: { color: legendColor(dk), usePointStyle: true, padding: 12 } },
       tooltip: {
-        backgroundColor: 'rgba(15,15,20,0.95)',
+        backgroundColor: tooltipBg(dk),
         borderColor: 'rgba(255,215,0,0.4)',
         borderWidth: 1,
         titleColor: ACCENT,
-        bodyColor: '#fff',
+        bodyColor: tooltipBody(dk),
         padding: 10,
         callbacks: { title: tooltipTitleWithDate },
       },
@@ -207,23 +221,25 @@ const baseChartOptions = (extra = {}) => {
       ...(extraPlugins || {}),
     },
     scales: extraScales || {
-      x: { ticks: X_TICKS, grid: { color: 'rgba(255,255,255,0.05)' } },
-      y: { ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+      x: { ticks: xTicks(dk), grid: { color: gridColor(dk) } },
+      y: { ticks: { color: tickColor(dk) }, grid: { color: gridColor(dk) } },
     },
     ...rest,
   }
 }
 
 function KpiCard({ icon, label, value, sub }) {
+  const { palette } = useTheme()
+  const dk = palette.mode === 'dark'
   return (
     <Paper
       sx={{
         p: 2.5,
         height: '100%',
-        background: 'linear-gradient(135deg, rgba(255,215,0,0.08), rgba(255,255,255,0.03))',
+        background: `linear-gradient(135deg, rgba(255,215,0,0.08), ${gradientEnd(dk)})`,
         border: '1px solid rgba(255,215,0,0.15)',
         backdropFilter: 'blur(10px)',
-        color: 'white',
+        color: textPrimary(dk),
         display: 'flex',
         flexDirection: 'column',
         gap: 0.5,
@@ -244,6 +260,9 @@ function KpiCard({ icon, label, value, sub }) {
 }
 
 function ZoomableChartCard({ title, subtitle, height, ChartComp, data, options, plugins, onReset, resetRange }) {
+  const { palette } = useTheme()
+  const dk = palette.mode === 'dark'
+  const { t } = useTranslation()
   const ref = useRef(null)
   const reset = () => {
     const chart = ref.current
@@ -265,9 +284,9 @@ function ZoomableChartCard({ title, subtitle, height, ChartComp, data, options, 
           size="small"
           onClick={reset}
           startIcon={<MdRefresh size={14} />}
-          sx={{ color: 'rgba(255,255,255,0.65)', fontSize: 11, minWidth: 'auto', textTransform: 'none' }}
+          sx={{ color: textSecondary(dk), fontSize: 11, minWidth: 'auto', textTransform: 'none' }}
         >
-          reset
+          {t('treinamento.reset')}
         </Button>
       }
     >
@@ -277,32 +296,35 @@ function ZoomableChartCard({ title, subtitle, height, ChartComp, data, options, 
 }
 
 function EvolucaoCard({ items, onSelectCoin }) {
+  const { palette } = useTheme()
+  const dk = palette.mode === 'dark'
+  const { t } = useTranslation()
   if (!items || items.length === 0) return null
   const sorted = [...items].sort((a, b) => (b.episodios ?? 0) - (a.episodios ?? 0))
   return (
     <Paper sx={{
       p: 2.5,
-      background: CHART_BG,
-      border: `1px solid ${CHART_BORDER}`,
+      background: chartBg(dk),
+      border: `1px solid ${chartBorder(dk)}`,
       backdropFilter: 'blur(10px)',
-      color: 'white',
+      color: textPrimary(dk),
     }}>
       <Box sx={{ mb: 1.5 }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Evolução desde o início</Typography>
+        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{t('treinamento.evolutionTitle')}</Typography>
         <Typography variant="caption" sx={{ opacity: 0.6 }}>
-          Comparativo entre o primeiro episódio registrado e o atual, por moeda · clique para filtrar
+          {t('treinamento.evolutionSubtitle')}
         </Typography>
       </Box>
       <TableContainer>
-        <Table size="small" sx={{ '& td, & th': { color: 'white', borderColor: 'rgba(255,255,255,0.08)' } }}>
+        <Table size="small" sx={{ '& td, & th': { color: textPrimary(dk), borderColor: chartBorder(dk) } }}>
           <TableHead>
             <TableRow>
-              <TableCell>Moeda</TableCell>
-              <TableCell align="right">Episódios</TableCell>
-              <TableCell align="right">Reward inicial → atual</TableCell>
-              <TableCell align="right">Win rate inicial → atual</TableCell>
-              <TableCell align="right">Loss médio</TableCell>
-              <TableCell align="right">Última atualização</TableCell>
+              <TableCell>{t('treinamento.colCoin')}</TableCell>
+              <TableCell align="right">{t('treinamento.colEpisodes')}</TableCell>
+              <TableCell align="right">{t('treinamento.colRewardRange')}</TableCell>
+              <TableCell align="right">{t('treinamento.colWinRateRange')}</TableCell>
+              <TableCell align="right">{t('treinamento.colAvgLoss')}</TableCell>
+              <TableCell align="right">{t('treinamento.colLastUpdate')}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -316,7 +338,7 @@ function EvolucaoCard({ items, onSelectCoin }) {
                   key={r.moeda}
                   hover
                   onClick={() => onSelectCoin?.(r.moeda)}
-                  sx={{ cursor: 'pointer', '&:hover': { background: 'rgba(255,255,255,0.06)' } }}
+                  sx={{ cursor: 'pointer', '&:hover': { background: hoverBg(dk) } }}
                 >
                   <TableCell>
                     <Chip
@@ -366,13 +388,16 @@ function EvolucaoCard({ items, onSelectCoin }) {
 }
 
 function TopEpisodiosCard({ title, subtitle, items, accent, onOpen }) {
+  const { palette } = useTheme()
+  const dk = palette.mode === 'dark'
+  const { t } = useTranslation()
   return (
     <Paper sx={{
       p: 2.5,
-      background: CHART_BG,
-      border: `1px solid ${CHART_BORDER}`,
+      background: chartBg(dk),
+      border: `1px solid ${chartBorder(dk)}`,
       backdropFilter: 'blur(10px)',
-      color: 'white',
+      color: textPrimary(dk),
       height: '100%',
     }}>
       <Box sx={{ mb: 1.5 }}>
@@ -391,9 +416,9 @@ function TopEpisodiosCard({ title, subtitle, items, accent, onOpen }) {
               p: 1,
               borderRadius: 1,
               cursor: 'pointer',
-              background: 'rgba(255,255,255,0.03)',
+              background: dk ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
               borderLeft: `3px solid ${accent}`,
-              '&:hover': { background: 'rgba(255,255,255,0.07)' },
+              '&:hover': { background: hoverBg(dk) },
             }}
           >
             <Typography variant="caption" sx={{ opacity: 0.5, width: 18, textAlign: 'center' }}>#{idx + 1}</Typography>
@@ -418,7 +443,7 @@ function TopEpisodiosCard({ title, subtitle, items, accent, onOpen }) {
           </Box>
         ))}
         {items.length === 0 && (
-          <Typography variant="caption" sx={{ opacity: 0.5, py: 2, textAlign: 'center' }}>Sem dados</Typography>
+          <Typography variant="caption" sx={{ opacity: 0.5, py: 2, textAlign: 'center' }}>{t('treinamento.noData')}</Typography>
         )}
       </Box>
     </Paper>
@@ -426,14 +451,16 @@ function TopEpisodiosCard({ title, subtitle, items, accent, onOpen }) {
 }
 
 function ChartCard({ title, subtitle, children, height = { xs: 280, md: 320 }, action }) {
+  const { palette } = useTheme()
+  const dk = palette.mode === 'dark'
   return (
     <Paper sx={{
       p: 2.5,
       height,
-      background: CHART_BG,
-      border: `1px solid ${CHART_BORDER}`,
+      background: chartBg(dk),
+      border: `1px solid ${chartBorder(dk)}`,
       backdropFilter: 'blur(10px)',
-      color: 'white',
+      color: textPrimary(dk),
       display: 'flex',
       flexDirection: 'column',
     }}>
@@ -450,6 +477,10 @@ function ChartCard({ title, subtitle, children, height = { xs: 280, md: 320 }, a
 }
 
 function ListView({ items, resumo, serie, loading, loadingRange, error, onRefresh, onOpen, selectedCoins, setSelectedCoins, selectedVersao, setSelectedVersao, visibleRange, setVisibleRange }) {
+  const { palette } = useTheme()
+  const dk = palette.mode === 'dark'
+  const { t } = useTranslation()
+  const columns = useMemo(() => getColumns(t), [t])
   const [orderBy, setOrderBy] = useState('episodio')
   const [order, setOrder] = useState('desc')
   const [page, setPage] = useState(0)
@@ -483,7 +514,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
   // Opções memoizadas: o react-chartjs-2 reaplica `options` (Object.assign) a cada
   // mudança de referência, sobrescrevendo scales.x.min/max que o plugin de zoom usa —
   // o que reseta zoom/pan a cada re-render. Mantê-las estáveis preserva o zoom.
-  const scatterOptions = useMemo(() => baseChartOptions({
+  const scatterOptions = useMemo(() => baseChartOptions(dk, {
     scales: {
       x: {
         type: 'time',
@@ -491,24 +522,24 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
         time: { tooltipFormat: 'dd/MM HH:mm:ss', displayFormats: { minute: 'HH:mm', hour: 'HH:mm', day: 'dd/MM' } },
         min: scatterInitRange.min,
         max: scatterInitRange.max,
-        ticks: { color: '#aaa' },
-        grid: { color: 'rgba(255,255,255,0.05)' },
+        ticks: { color: tickColor(dk) },
+        grid: { color: gridColor(dk) },
       },
       y: {
-        ticks: { color: '#aaa', precision: 0 },
-        grid: { color: 'rgba(255,255,255,0.05)' },
-        title: { display: true, text: 'Episódio', color: '#aaa' },
+        ticks: { color: tickColor(dk), precision: 0 },
+        grid: { color: gridColor(dk) },
+        title: { display: true, text: t('treinamento.episode'), color: tickColor(dk) },
       },
     },
     interaction: { mode: 'nearest', intersect: true },
     plugins: {
-      legend: { labels: { color: '#e0e0e0', usePointStyle: true, padding: 12 } },
+      legend: { labels: { color: legendColor(dk), usePointStyle: true, padding: 12 } },
       tooltip: {
-        backgroundColor: 'rgba(15,15,20,0.95)',
+        backgroundColor: tooltipBg(dk),
         borderColor: 'rgba(255,215,0,0.4)',
         borderWidth: 1,
         titleColor: ACCENT,
-        bodyColor: '#fff',
+        bodyColor: tooltipBody(dk),
         padding: 10,
         callbacks: {
           title: (its) => {
@@ -518,11 +549,11 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
           label: (ctx) => {
             const p = ctx.raw
             return [
-              `Data: ${new Date(p.x).toLocaleString()}`,
-              ...(p.versaoModelo ? [`Versão: ${p.versaoModelo}`] : []),
-              `Duração: ${p.duracao.toFixed(1)}s`,
-              `Reward: ${p.rewardMedio.toFixed(4)}`,
-              `Win rate: ${(p.winRate * 100).toFixed(2)}%`,
+              `${t('treinamento.scatterDate')}: ${new Date(p.x).toLocaleString()}`,
+              ...(p.versaoModelo ? [`${t('treinamento.scatterVersion')}: ${p.versaoModelo}`] : []),
+              `${t('treinamento.scatterDuration')}: ${p.duracao.toFixed(1)}s`,
+              `${t('treinamento.scatterReward')}: ${p.rewardMedio.toFixed(4)}`,
+              `${t('treinamento.scatterWinRate')}: ${(p.winRate * 100).toFixed(2)}%`,
             ]
           },
         },
@@ -534,40 +565,40 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
         pan: { ...ZOOM_CONFIG.pan, onPan: ({ chart }) => handleRangeChange(chart) },
       },
     },
-  }), [handleRangeChange, scatterInitRange])
+  }), [handleRangeChange, scatterInitRange, dk, t])
 
-  const defaultChartOptions = useMemo(() => baseChartOptions(), [])
-  const lossEpsilonOptions = useMemo(() => baseChartOptions({
+  const defaultChartOptions = useMemo(() => baseChartOptions(dk), [dk])
+  const lossEpsilonOptions = useMemo(() => baseChartOptions(dk, {
     scales: {
-      x: { ticks: X_TICKS, grid: { color: 'rgba(255,255,255,0.05)' } },
-      y: { type: 'linear', position: 'left', beginAtZero: true, ticks: { color: '#FF5C7C' }, grid: { color: 'rgba(255,255,255,0.05)' }, title: { display: true, text: 'Loss', color: '#FF5C7C' } },
+      x: { ticks: xTicks(dk), grid: { color: gridColor(dk) } },
+      y: { type: 'linear', position: 'left', beginAtZero: true, ticks: { color: '#FF5C7C' }, grid: { color: gridColor(dk) }, title: { display: true, text: 'Loss', color: '#FF5C7C' } },
       y1: { type: 'linear', position: 'right', min: 0, max: 1, ticks: { color: '#5CB8FF' }, grid: { drawOnChartArea: false }, title: { display: true, text: 'Epsilon', color: '#5CB8FF' } },
     },
-  }), [])
-  const winRateOptions = useMemo(() => baseChartOptions({
+  }), [dk])
+  const winRateOptions = useMemo(() => baseChartOptions(dk, {
     scales: {
-      x: { ticks: X_TICKS, grid: { color: 'rgba(255,255,255,0.05)' } },
-      y: { ticks: { color: '#aaa', callback: (v) => `${v}%` }, grid: { color: 'rgba(255,255,255,0.05)' }, min: 0, suggestedMax: 60 },
+      x: { ticks: xTicks(dk), grid: { color: gridColor(dk) } },
+      y: { ticks: { color: tickColor(dk), callback: (v) => `${v}%` }, grid: { color: gridColor(dk) }, min: 0, suggestedMax: 60 },
     },
-  }), [])
-  const duracaoOptions = useMemo(() => baseChartOptions({
+  }), [dk])
+  const duracaoOptions = useMemo(() => baseChartOptions(dk, {
     scales: {
-      x: { ticks: { color: '#aaa', maxRotation: 0, autoSkip: true }, grid: { color: 'rgba(255,255,255,0.05)' } },
-      y: { ticks: { color: '#aaa', callback: (v) => `${v}s` }, grid: { color: 'rgba(255,255,255,0.05)' } },
+      x: { ticks: { color: tickColor(dk), maxRotation: 0, autoSkip: true }, grid: { color: gridColor(dk) } },
+      y: { ticks: { color: tickColor(dk), callback: (v) => `${v}s` }, grid: { color: gridColor(dk) } },
     },
-  }), [])
-  const comparativoOptions = useMemo(() => baseChartOptions({
+  }), [dk])
+  const comparativoOptions = useMemo(() => baseChartOptions(dk, {
     scales: {
-      x: { ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-      y: { ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+      x: { ticks: { color: tickColor(dk) }, grid: { color: gridColor(dk) } },
+      y: { ticks: { color: tickColor(dk) }, grid: { color: gridColor(dk) } },
     },
-  }), [])
-  const acoesOptions = useMemo(() => baseChartOptions({
+  }), [dk])
+  const acoesOptions = useMemo(() => baseChartOptions(dk, {
     scales: {
-      x: { stacked: true, ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-      y: { stacked: true, ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+      x: { stacked: true, ticks: { color: tickColor(dk) }, grid: { color: gridColor(dk) } },
+      y: { stacked: true, ticks: { color: tickColor(dk) }, grid: { color: gridColor(dk) } },
     },
-  }), [])
+  }), [dk])
 
   // Lista de moedas para o filtro vem do RESUMO (fonte de verdade global,
   // independente do filtro server-side atual). Cai pra items se resumo vazio.
@@ -700,7 +731,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
     metaDates: labelDates,
     datasets: [
       {
-        label: 'Reward médio',
+        label: t('treinamento.avgReward'),
         data: rewardSeries,
         borderColor: 'rgba(255,215,0,0.55)',
         backgroundColor: 'rgba(255,215,0,0.10)',
@@ -710,7 +741,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
         borderWidth: 1.5,
       },
       {
-        label: 'Média móvel (5)',
+        label: t('treinamento.movingAvg'),
         data: rewardMA,
         borderColor: ACCENT,
         backgroundColor: 'transparent',
@@ -726,7 +757,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
     metaDates: labelDates,
     datasets: [
       {
-        label: 'Loss média',
+        label: t('treinamento.lossLabel'),
         data: lossSeries,
         borderColor: '#FF5C7C',
         backgroundColor: 'rgba(255,92,124,0.12)',
@@ -737,7 +768,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
         borderWidth: 2,
       },
       {
-        label: 'Epsilon',
+        label: t('treinamento.epsilon'),
         data: epsilonSeries,
         borderColor: '#5CB8FF',
         backgroundColor: 'transparent',
@@ -755,7 +786,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
     metaDates: labelDates,
     datasets: [
       {
-        label: 'Win rate (%)',
+        label: t('treinamento.winRatePercent'),
         data: winRateSeries,
         borderColor: '#14F195',
         backgroundColor: 'rgba(20,241,149,0.15)',
@@ -782,19 +813,19 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
       labels: moedas,
       datasets: [
         {
-          label: 'Hold',
+          label: t('treinamento.hold'),
           data: moedas.map((m) => agg[m].hold),
           backgroundColor: 'rgba(160,160,160,0.85)',
           borderRadius: 4,
         },
         {
-          label: 'Compra',
+          label: t('treinamento.buy'),
           data: moedas.map((m) => agg[m].compra),
           backgroundColor: 'rgba(20,241,149,0.85)',
           borderRadius: 4,
         },
         {
-          label: 'Venda',
+          label: t('treinamento.sell'),
           data: moedas.map((m) => agg[m].venda),
           backgroundColor: 'rgba(255,92,124,0.85)',
           borderRadius: 4,
@@ -877,7 +908,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
         // rótulo do ciclo
         ctx.fillStyle = `rgba(${color.join(',')},0.95)`
         ctx.font = 'bold 12px sans-serif'
-        ctx.fillText(`Ciclo ${idx + 1} (${c.count} ep.)`, x1 + 6, chartArea.top + 16)
+        ctx.fillText(t('treinamento.cycleLabel', { num: idx + 1, count: c.count }), x1 + 6, chartArea.top + 16)
       })
       ctx.restore()
     },
@@ -895,7 +926,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
       labels: tlLabels,
       metaDates: visibleTimeline.map((r) => r.dataHora),
       datasets: [{
-        label: 'Reward acumulado',
+        label: t('treinamento.cumulativeLabel'),
         data,
         borderColor: '#A78BFA',
         backgroundColor: 'rgba(167,139,250,0.18)',
@@ -912,7 +943,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
     labels: visibleTimeline.map((r) => `#${r.episodio}`),
     metaDates: visibleTimeline.map((r) => r.dataHora),
     datasets: [{
-      label: 'Duração (s)',
+      label: t('treinamento.durationLabel'),
       data: visibleTimeline.map((r) => r.duracaoSegundos ?? 0),
       borderColor: '#FFB547',
       backgroundColor: 'rgba(255,181,71,0.15)',
@@ -938,7 +969,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
       labels: moedas,
       datasets: [
         {
-          label: 'Reward médio (×100)',
+          label: t('treinamento.rewardAvg100'),
           data: moedas.map((m) => {
             const arr = agg[m].rewards
             return (arr.reduce((a, b) => a + b, 0) / arr.length) * 100
@@ -947,7 +978,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
           borderRadius: 4,
         },
         {
-          label: 'Win rate (%)',
+          label: t('treinamento.winRatePercent'),
           data: moedas.map((m) => {
             const arr = agg[m].winRates
             return arr.reduce((a, b) => a + b, 0) / arr.length
@@ -956,7 +987,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
           borderRadius: 4,
         },
         {
-          label: 'Nº episódios',
+          label: t('treinamento.numEpisodes'),
           data: moedas.map((m) => agg[m].qty),
           backgroundColor: 'rgba(92,184,255,0.75)',
           borderRadius: 4,
@@ -1032,14 +1063,14 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
 
   return (
     <div className="dashboard-container">
-      <Box sx={{ p: { xs: 2, md: 4 }, color: 'white' }}>
+      <Box sx={{ p: { xs: 2, md: 4 }, color: textPrimary(dk) }}>
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3, flexWrap: 'wrap', gap: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <MdPsychology size={28} color={ACCENT} />
           <Box>
-            <Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>Treinamento de IA</Typography>
-            <Typography variant="caption" sx={{ opacity: 0.65 }}>Curva de aprendizado e métricas por episódio · atualiza a cada 60s</Typography>
+            <Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>{t('treinamento.title')}</Typography>
+            <Typography variant="caption" sx={{ opacity: 0.65 }}>{t('treinamento.subtitle')}</Typography>
           </Box>
         </Box>
         <Button
@@ -1047,9 +1078,9 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
           startIcon={<MdRefresh />}
           onClick={onRefresh}
           disabled={loading}
-          sx={{ color: 'white', borderColor: 'rgba(255,255,255,0.4)' }}
+          sx={{ color: textPrimary(dk), borderColor: subtleBorder(dk) }}
         >
-          Atualizar
+          {t('treinamento.refresh')}
         </Button>
       </Box>
 
@@ -1058,7 +1089,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
       {loadingRange && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, opacity: 0.8 }}>
           <CircularProgress size={14} sx={{ color: ACCENT }} />
-          <Typography variant="caption" sx={{ color: ACCENT }}>Buscando dados do período…</Typography>
+          <Typography variant="caption" sx={{ color: ACCENT }}>{t('treinamento.loadingRange')}</Typography>
         </Box>
       )}
 
@@ -1073,7 +1104,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
           {/* Filtro de moedas */}
           {coinsDisponiveis.length > 0 && (
             <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-              <Typography variant="caption" sx={{ opacity: 0.7, mr: 1 }}>FILTRAR POR MOEDA:</Typography>
+              <Typography variant="caption" sx={{ opacity: 0.7, mr: 1 }}>{t('treinamento.filterByCoin')}</Typography>
               {coinsDisponiveis.map((coin) => {
                 const active = selectedCoins.includes(coin)
                 const color = coinColor(coin)
@@ -1085,18 +1116,18 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
                     size="small"
                     sx={{
                       cursor: 'pointer',
-                      background: active ? color : 'rgba(255,255,255,0.08)',
-                      color: active ? '#000' : 'white',
+                      background: active ? color : subtleBg(dk),
+                      color: active ? '#000' : textPrimary(dk),
                       fontWeight: active ? 700 : 400,
-                      border: `1px solid ${active ? color : 'rgba(255,255,255,0.15)'}`,
-                      '&:hover': { background: active ? color : 'rgba(255,255,255,0.15)' },
+                      border: `1px solid ${active ? color : subtleBorder(dk)}`,
+                      '&:hover': { background: active ? color : subtleBorder(dk) },
                     }}
                   />
                 )
               })}
               {selectedCoins.length > 0 && (
-                <Button size="small" onClick={() => setSelectedCoins([])} sx={{ color: 'rgba(255,255,255,0.7)' }}>
-                  limpar
+                <Button size="small" onClick={() => setSelectedCoins([])} sx={{ color: textSecondary(dk) }}>
+                  {t('treinamento.clear')}
                 </Button>
               )}
             </Box>
@@ -1105,7 +1136,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
           {/* Filtro de versão do modelo (server-side) */}
           {versoesDisponiveis.length > 0 && (
             <Box sx={{ mb: 3, mt: -1.5, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-              <Typography variant="caption" sx={{ opacity: 0.7, mr: 1 }} title="Versões vistas nos episódios carregados">VERSÃO DO MODELO:</Typography>
+              <Typography variant="caption" sx={{ opacity: 0.7, mr: 1 }} title={t('treinamento.modelVersionTooltip')}>{t('treinamento.modelVersion')}</Typography>
               {versoesDisponiveis.map((versao) => {
                 const active = selectedVersao === versao
                 return (
@@ -1116,18 +1147,18 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
                     size="small"
                     sx={{
                       cursor: 'pointer',
-                      background: active ? '#A78BFA' : 'rgba(255,255,255,0.08)',
-                      color: active ? '#000' : 'white',
+                      background: active ? '#A78BFA' : subtleBg(dk),
+                      color: active ? '#000' : textPrimary(dk),
                       fontWeight: active ? 700 : 400,
-                      border: `1px solid ${active ? '#A78BFA' : 'rgba(255,255,255,0.15)'}`,
-                      '&:hover': { background: active ? '#A78BFA' : 'rgba(255,255,255,0.15)' },
+                      border: `1px solid ${active ? '#A78BFA' : subtleBorder(dk)}`,
+                      '&:hover': { background: active ? '#A78BFA' : subtleBorder(dk) },
                     }}
                   />
                 )
               })}
               {selectedVersao && (
-                <Button size="small" onClick={() => setSelectedVersao(null)} sx={{ color: 'rgba(255,255,255,0.7)' }}>
-                  limpar
+                <Button size="small" onClick={() => setSelectedVersao(null)} sx={{ color: textSecondary(dk) }}>
+                  {t('treinamento.clear')}
                 </Button>
               )}
             </Box>
@@ -1136,19 +1167,19 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
           {/* KPIs */}
           <Grid container spacing={2} sx={{ mb: 3 }}>
             <Grid size={{ xs: 6, md: 2.4 }}>
-              <KpiCard icon={<MdInsights size={20} />} label="Episódios" value={kpis.total} />
+              <KpiCard icon={<MdInsights size={20} />} label={t('treinamento.episodes')} value={kpis.total} />
             </Grid>
             <Grid size={{ xs: 6, md: 2.4 }}>
-              <KpiCard icon={<MdTrendingUp size={20} />} label="Reward médio" value={formatNumber(kpis.rewardAvg, 3)} sub="média do conjunto" />
+              <KpiCard icon={<MdTrendingUp size={20} />} label={t('treinamento.avgReward')} value={formatNumber(kpis.rewardAvg, 3)} sub={t('treinamento.setAverage')} />
             </Grid>
             <Grid size={{ xs: 6, md: 2.4 }}>
-              <KpiCard icon={<MdShowChart size={20} />} label="Win rate médio" value={formatPercent(kpis.winRateAvg)} />
+              <KpiCard icon={<MdShowChart size={20} />} label={t('treinamento.avgWinRate')} value={formatPercent(kpis.winRateAvg)} />
             </Grid>
             <Grid size={{ xs: 6, md: 2.4 }}>
-              <KpiCard icon={<MdEmojiEvents size={20} />} label="Melhor moeda" value={kpis.bestCoin} sub={kpis.bestCoin !== '-' ? `avg ${formatNumber(kpis.bestCoinAvg, 3)}` : null} />
+              <KpiCard icon={<MdEmojiEvents size={20} />} label={t('treinamento.bestCoin')} value={kpis.bestCoin} sub={kpis.bestCoin !== '-' ? `avg ${formatNumber(kpis.bestCoinAvg, 3)}` : null} />
             </Grid>
             <Grid size={{ xs: 6, md: 2.4 }}>
-              <KpiCard icon={<MdPsychology size={20} />} label="Ciclos detectados" value={cycles.length} sub={cycles.length > 0 ? `mais recente: C${cycles.length}` : null} />
+              <KpiCard icon={<MdPsychology size={20} />} label={t('treinamento.detectedCycles')} value={cycles.length} sub={cycles.length > 0 ? t('treinamento.mostRecent', { num: cycles.length }) : null} />
             </Grid>
           </Grid>
 
@@ -1165,8 +1196,8 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
           {/* Gráficos */}
           <Box sx={{ mb: 2 }}>
             <ZoomableChartCard
-              title="Linha do tempo dos treinamentos"
-              subtitle={`Arraste para deslocar · scroll para zoom · ${cycles.length} ciclo${cycles.length === 1 ? '' : 's'} detectado${cycles.length === 1 ? '' : 's'} (faixas verticais)`}
+              title={t('treinamento.timelineTitle')}
+              subtitle={`${t('treinamento.dragScrollZoom')} · ${t('treinamento.cyclesDetected', { count: cycles.length })}`}
               height={{ xs: 320, md: 420 }}
               ChartComp={Scatter}
               data={timelineData}
@@ -1180,10 +1211,10 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
           <Grid container spacing={2} sx={{ mb: 3 }}>
             <Grid size={{ xs: 12, md: 6 }}>
               <ZoomableChartCard
-                title="Curva de aprendizado"
+                title={t('treinamento.learningCurve')}
                 subtitle={usingSerie
-                  ? `Suavização do backend (janela 5) para ${moedaServerFilter} · arraste/scroll`
-                  : 'Reward médio por episódio + média móvel (5) · arraste/scroll'}
+                  ? t('treinamento.backendSmoothing', { coin: moedaServerFilter })
+                  : t('treinamento.rewardPerEpMA')}
                 ChartComp={Line}
                 data={rewardData}
                 options={defaultChartOptions}
@@ -1191,8 +1222,8 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               <ZoomableChartCard
-                title="Loss × Epsilon"
-                subtitle="Convergência do modelo vs decaimento da exploração · arraste/scroll"
+                title={t('treinamento.lossEpsilon')}
+                subtitle={t('treinamento.lossEpsilonSub')}
                 ChartComp={Line}
                 data={lossEpsilonData}
                 options={lossEpsilonOptions}
@@ -1200,8 +1231,8 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               <ZoomableChartCard
-                title="Win rate"
-                subtitle="Percentual de trades vencedores por episódio · arraste/scroll"
+                title={t('treinamento.winRate')}
+                subtitle={t('treinamento.winRateSub')}
                 ChartComp={Line}
                 data={winRateData}
                 options={winRateOptions}
@@ -1209,8 +1240,8 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               <ZoomableChartCard
-                title="Reward acumulado"
-                subtitle="Trajetória global · arraste/scroll"
+                title={t('treinamento.cumulativeReward')}
+                subtitle={t('treinamento.cumulativeSub')}
                 ChartComp={Line}
                 data={cumulativeRewardData}
                 options={defaultChartOptions}
@@ -1218,15 +1249,15 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               <ZoomableChartCard
-                title="Duração por episódio"
-                subtitle="Segundos gastos em cada treinamento · arraste/scroll"
+                title={t('treinamento.durationPerEp')}
+                subtitle={t('treinamento.durationSub')}
                 ChartComp={Line}
                 data={duracaoData}
                 options={duracaoOptions}
               />
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
-              <ChartCard title="Comparativo por moeda" subtitle="Reward médio (×100), win rate e nº de episódios agregados">
+              <ChartCard title={t('treinamento.coinComparison')} subtitle={t('treinamento.coinCompSub')}>
                 <Bar
                   data={comparativoMoedaData}
                   options={comparativoOptions}
@@ -1234,7 +1265,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
               </ChartCard>
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
-              <ChartCard title="Distribuição de ações por moeda" subtitle="Total acumulado de Hold / Compra / Venda">
+              <ChartCard title={t('treinamento.actionDist')} subtitle={t('treinamento.actionDistSub')}>
                 <Bar
                   data={acoesPorMoeda}
                   options={acoesOptions}
@@ -1246,30 +1277,30 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
           {/* Top 5 */}
           <Grid container spacing={2} sx={{ mb: 3 }}>
             <Grid size={{ xs: 12, md: 6 }}>
-              <TopEpisodiosCard title="Top 5 melhores" subtitle="Maiores rewards médios" items={tops.best} accent="#14F195" onOpen={onOpen} />
+              <TopEpisodiosCard title={t('treinamento.top5Best')} subtitle={t('treinamento.highestRewards')} items={tops.best} accent="#14F195" onOpen={onOpen} />
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
-              <TopEpisodiosCard title="Top 5 piores" subtitle="Menores rewards médios" items={tops.worst} accent="#FF5C7C" onOpen={onOpen} />
+              <TopEpisodiosCard title={t('treinamento.top5Worst')} subtitle={t('treinamento.lowestRewards')} items={tops.worst} accent="#FF5C7C" onOpen={onOpen} />
             </Grid>
           </Grid>
 
           {/* Tabela */}
-          <Paper sx={{ background: CHART_BG, border: `1px solid ${CHART_BORDER}`, backdropFilter: 'blur(8px)', color: 'white' }}>
-            <Box sx={{ p: 2, borderBottom: `1px solid ${CHART_BORDER}` }}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Episódios</Typography>
-              <Typography variant="caption" sx={{ opacity: 0.6 }}>Clique numa linha para ver detalhes</Typography>
+          <Paper sx={{ background: chartBg(dk), border: `1px solid ${chartBorder(dk)}`, backdropFilter: 'blur(8px)', color: textPrimary(dk) }}>
+            <Box sx={{ p: 2, borderBottom: `1px solid ${chartBorder(dk)}` }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{t('treinamento.tableTitle')}</Typography>
+              <Typography variant="caption" sx={{ opacity: 0.6 }}>{t('treinamento.tableSubtitle')}</Typography>
             </Box>
             <TableContainer>
-              <Table size="small" sx={{ '& td, & th': { color: 'white', borderColor: 'rgba(255,255,255,0.08)' } }}>
+              <Table size="small" sx={{ '& td, & th': { color: textPrimary(dk), borderColor: chartBorder(dk) } }}>
                 <TableHead>
                   <TableRow>
-                    {COLUMNS.map((col) => (
+                    {columns.map((col) => (
                       <TableCell key={col.id} align={col.numeric ? 'right' : 'left'} sortDirection={orderBy === col.id ? order : false}>
                         <TableSortLabel
                           active={orderBy === col.id}
                           direction={orderBy === col.id ? order : 'asc'}
                           onClick={() => handleSort(col.id)}
-                          sx={{ color: 'white !important', '& .MuiTableSortLabel-icon': { color: 'white !important' } }}
+                          sx={{ color: `${textPrimary(dk)} !important`, '& .MuiTableSortLabel-icon': { color: `${textPrimary(dk)} !important` } }}
                         >
                           {col.label}
                         </TableSortLabel>
@@ -1283,7 +1314,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
                       key={row.idTreinamentoEpisodio}
                       hover
                       onClick={() => onOpen(row.idTreinamentoEpisodio)}
-                      sx={{ cursor: 'pointer', '&:hover': { background: 'rgba(255,255,255,0.06)' } }}
+                      sx={{ cursor: 'pointer', '&:hover': { background: hoverBg(dk) } }}
                     >
                       <TableCell align="right">{row.episodio}</TableCell>
                       <TableCell>{formatDate(row.dataHora)}</TableCell>
@@ -1313,7 +1344,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
                   {pageItems.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={COLUMNS.length} align="center" sx={{ py: 4 }}>
-                        Nenhum episódio encontrado.
+                        {t('treinamento.noEpisodes')}
                       </TableCell>
                     </TableRow>
                   )}
@@ -1328,7 +1359,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
               rowsPerPage={rowsPerPage}
               onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0) }}
               rowsPerPageOptions={[10, 25, 50, 100]}
-              sx={{ color: 'white' }}
+              sx={{ color: textPrimary(dk) }}
             />
           </Paper>
         </>
@@ -1339,11 +1370,14 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
 }
 
 function DetailView({ item, allItems, onBack, onNavigate }) {
+  const { palette } = useTheme()
+  const dk = palette.mode === 'dark'
+  const { t } = useTranslation()
   if (!item) {
     return (
-      <Box sx={{ p: 4, color: 'white' }}>
-        <Button startIcon={<MdArrowBack />} onClick={onBack} sx={{ color: 'white', mb: 2 }}>Voltar</Button>
-        <Typography>Episódio não encontrado.</Typography>
+      <Box sx={{ p: 4, color: textPrimary(dk) }}>
+        <Button startIcon={<MdArrowBack />} onClick={onBack} sx={{ color: textPrimary(dk), mb: 2 }}>{t('treinamento.back')}</Button>
+        <Typography>{t('treinamento.notFound')}</Typography>
       </Box>
     )
   }
@@ -1389,7 +1423,7 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
   // ── Ações Doughnut ──
   const totalAcoes = (item.acoesHold ?? 0) + (item.acoesCompra ?? 0) + (item.acoesVenda ?? 0)
   const doughnutData = {
-    labels: ['Hold', 'Compra', 'Venda'],
+    labels: [t('treinamento.hold'), t('treinamento.buy'), t('treinamento.sell')],
     datasets: [{
       data: [item.acoesHold ?? 0, item.acoesCompra ?? 0, item.acoesVenda ?? 0],
       backgroundColor: ['rgba(160,160,160,0.85)', 'rgba(20,241,149,0.85)', 'rgba(255,92,124,0.85)'],
@@ -1405,14 +1439,14 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
     plugins: {
       legend: {
         position: 'bottom',
-        labels: { color: '#e0e0e0', usePointStyle: true, padding: 16, font: { size: 12 } },
+        labels: { color: legendColor(dk), usePointStyle: true, padding: 16, font: { size: 12 } },
       },
       tooltip: {
-        backgroundColor: 'rgba(15,15,20,0.95)',
+        backgroundColor: tooltipBg(dk),
         borderColor: 'rgba(255,215,0,0.4)',
         borderWidth: 1,
         titleColor: ACCENT,
-        bodyColor: '#fff',
+        bodyColor: tooltipBody(dk),
         padding: 10,
         callbacks: {
           label: (ctx) => {
@@ -1428,11 +1462,11 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
   const radarData = useMemo(() => {
     // Normalizar cada métrica no intervalo [0, 1] em relação ao range da moeda
     const metrics = [
-      { label: 'Reward', key: 'rewardMedio', higher: true },
-      { label: 'Win Rate', key: 'winRate', higher: true },
-      { label: 'Duração', key: 'duracaoSegundos', higher: false },
-      { label: 'Epsilon', key: 'epsilon', higher: false },
-      { label: 'Loss', key: 'lossMedia', higher: false },
+      { label: t('treinamento.reward'), key: 'rewardMedio', higher: true },
+      { label: t('treinamento.winRate'), key: 'winRate', higher: true },
+      { label: t('treinamento.radarDuration'), key: 'duracaoSegundos', higher: false },
+      { label: t('treinamento.epsilon'), key: 'epsilon', higher: false },
+      { label: t('treinamento.radarLoss'), key: 'lossMedia', higher: false },
     ]
     const normalize = (key) => {
       if (sameCoinItems.length < 2) return { val: 0.5, avg: 0.5 }
@@ -1451,7 +1485,7 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
       labels: metrics.map((m) => m.label),
       datasets: [
         {
-          label: `Episódio #${item.episodio}`,
+          label: t('treinamento.episodeNum', { num: item.episodio }),
           data: itemVals,
           borderColor: ACCENT,
           backgroundColor: 'rgba(255,215,0,0.15)',
@@ -1460,7 +1494,7 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
           pointRadius: 4,
         },
         {
-          label: `Média ${item.moeda}`,
+          label: t('treinamento.avgCoin', { coin: item.moeda }),
           data: avgVals,
           borderColor: 'rgba(92,184,255,0.8)',
           backgroundColor: 'rgba(92,184,255,0.08)',
@@ -1478,9 +1512,9 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
     maintainAspectRatio: false,
     scales: {
       r: {
-        angleLines: { color: 'rgba(255,255,255,0.1)' },
-        grid: { color: 'rgba(255,255,255,0.08)' },
-        pointLabels: { color: '#e0e0e0', font: { size: 12 } },
+        angleLines: { color: dk ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' },
+        grid: { color: chartBorder(dk) },
+        pointLabels: { color: legendColor(dk), font: { size: 12 } },
         ticks: { display: false },
         suggestedMin: 0,
         suggestedMax: 100,
@@ -1489,14 +1523,14 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
     plugins: {
       legend: {
         position: 'bottom',
-        labels: { color: '#e0e0e0', usePointStyle: true, padding: 16 },
+        labels: { color: legendColor(dk), usePointStyle: true, padding: 16 },
       },
       tooltip: {
-        backgroundColor: 'rgba(15,15,20,0.95)',
+        backgroundColor: tooltipBg(dk),
         borderColor: 'rgba(255,215,0,0.4)',
         borderWidth: 1,
         titleColor: ACCENT,
-        bodyColor: '#fff',
+        bodyColor: tooltipBody(dk),
         padding: 10,
         callbacks: { label: (ctx) => ` ${ctx.dataset.label}: ${ctx.raw.toFixed(1)}%` },
       },
@@ -1516,7 +1550,7 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
     labels: miniTimeline.map((r) => `#${r.episodio}`),
     datasets: [
       {
-        label: 'Reward médio',
+        label: t('treinamento.avgReward'),
         data: miniTimeline.map((r) => r.rewardMedio ?? 0),
         borderColor: miniTimeline.map((r) =>
           r.idTreinamentoEpisodio === item.idTreinamentoEpisodio ? ACCENT : 'rgba(255,215,0,0.5)'
@@ -1546,30 +1580,30 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: 'rgba(15,15,20,0.95)',
+        backgroundColor: tooltipBg(dk),
         borderColor: 'rgba(255,215,0,0.4)',
         borderWidth: 1,
         titleColor: ACCENT,
-        bodyColor: '#fff',
+        bodyColor: tooltipBody(dk),
         padding: 10,
         callbacks: {
           afterLabel: (ctx) => {
             const ep = miniTimeline[ctx.dataIndex]
             if (!ep) return ''
             return [
-              `Win rate: ${formatPercent(ep.winRate)}`,
-              `Loss: ${formatNumber(ep.lossMedia)}`,
-              `Duração: ${formatNumber(ep.duracaoSegundos, 1)}s`,
+              `${t('treinamento.scatterWinRate')}: ${formatPercent(ep.winRate)}`,
+              `${t('treinamento.radarLoss')}: ${formatNumber(ep.lossMedia)}`,
+              `${t('treinamento.scatterDuration')}: ${formatNumber(ep.duracaoSegundos, 1)}s`,
             ].join('\n')
           },
         },
       },
     },
     scales: {
-      x: { ticks: { color: '#aaa', maxRotation: 0, autoSkip: true }, grid: { color: 'rgba(255,255,255,0.05)' } },
-      y: { ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+      x: { ticks: { color: tickColor(dk), maxRotation: 0, autoSkip: true }, grid: { color: gridColor(dk) } },
+      y: { ticks: { color: tickColor(dk) }, grid: { color: gridColor(dk) } },
     },
-  }), [miniTimeline])
+  }), [miniTimeline, dk, t])
 
   // ── Contexto de mercado: candles da moeda em torno do episódio ──
   // Janela: [início do episódio − 30min, fim + 30min]. O endpoint espera UTC ISO.
@@ -1669,7 +1703,7 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
     if (mercadoRegistros.length === 0) return null
     return {
       datasets: [{
-        label: `Preço ${item.moeda}`,
+        label: t('treinamento.price', { coin: item.moeda }),
         data: mercadoRegistros
           .filter((r) => r.horaReferencia && r.precoFechamento != null)
           .map((r) => ({ x: new Date(r.horaReferencia).getTime(), y: r.precoFechamento })),
@@ -1708,11 +1742,11 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: 'rgba(15,15,20,0.95)',
+        backgroundColor: tooltipBg(dk),
         borderColor: 'rgba(255,215,0,0.4)',
         borderWidth: 1,
         titleColor: ACCENT,
-        bodyColor: '#fff',
+        bodyColor: tooltipBody(dk),
         padding: 10,
       },
     },
@@ -1721,12 +1755,12 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
         type: 'time',
         adapters: { date: { locale: ptBR } },
         time: { tooltipFormat: 'dd/MM HH:mm:ss', displayFormats: { minute: 'HH:mm', hour: 'HH:mm' } },
-        ticks: { color: '#aaa', maxRotation: 0, autoSkip: true, maxTicksLimit: 10 },
-        grid: { color: 'rgba(255,255,255,0.05)' },
+        ticks: xTicks(dk),
+        grid: { color: gridColor(dk) },
       },
-      y: { ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+      y: { ticks: { color: tickColor(dk) }, grid: { color: gridColor(dk) } },
     },
-  }), [])
+  }), [dk])
 
   // ── Delta helpers ──
   const delta = (val, avg) => {
@@ -1756,30 +1790,30 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
 
   return (
     <div className="dashboard-container">
-      <Box sx={{ p: { xs: 2, md: 4 }, color: 'white' }}>
+      <Box sx={{ p: { xs: 2, md: 4 }, color: textPrimary(dk) }}>
         {/* ── Header com navegação ── */}
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, flexWrap: 'wrap', gap: 1 }}>
-          <Button startIcon={<MdArrowBack />} onClick={onBack} sx={{ color: 'white' }}>Voltar</Button>
+          <Button startIcon={<MdArrowBack />} onClick={onBack} sx={{ color: textPrimary(dk) }}>{t('treinamento.back')}</Button>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Button
               size="small"
               startIcon={<MdArrowBack size={14} />}
               disabled={!prevItem}
               onClick={() => onNavigate(prevItem.idTreinamentoEpisodio)}
-              sx={{ color: 'white', borderColor: 'rgba(255,255,255,0.3)', fontSize: 12 }}
+              sx={{ color: textPrimary(dk), borderColor: subtleBorder(dk), fontSize: 12 }}
               variant="outlined"
             >
-              Anterior
+              {t('treinamento.previous')}
             </Button>
             <Button
               size="small"
               endIcon={<MdArrowForward size={14} />}
               disabled={!nextItem}
               onClick={() => onNavigate(nextItem.idTreinamentoEpisodio)}
-              sx={{ color: 'white', borderColor: 'rgba(255,255,255,0.3)', fontSize: 12 }}
+              sx={{ color: textPrimary(dk), borderColor: subtleBorder(dk), fontSize: 12 }}
               variant="outlined"
             >
-              Próximo
+              {t('treinamento.next')}
             </Button>
           </Box>
         </Box>
@@ -1788,7 +1822,7 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
         <Box sx={{ mb: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
             <MdPsychology size={28} color={ACCENT} />
-            <Typography variant="h5" sx={{ fontWeight: 700 }}>Episódio #{item.episodio}</Typography>
+            <Typography variant="h5" sx={{ fontWeight: 700 }}>{t('treinamento.episodeNum', { num: item.episodio })}</Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
             <Chip
@@ -1818,7 +1852,7 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
             {ranking.position && (
               <Chip
                 icon={<MdLeaderboard size={14} />}
-                label={`#${ranking.position} de ${ranking.total} geral`}
+                label={t('treinamento.rankGeneral', { pos: ranking.position, total: ranking.total })}
                 size="small"
                 sx={{
                   background: 'rgba(167,139,250,0.15)',
@@ -1833,7 +1867,7 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
             {rankingCoin.position && (
               <Chip
                 icon={<MdEmojiEvents size={14} />}
-                label={`#${rankingCoin.position} de ${rankingCoin.total} em ${item.moeda}`}
+                label={t('treinamento.rankCoin', { pos: rankingCoin.position, total: rankingCoin.total, coin: item.moeda })}
                 size="small"
                 sx={{
                   background: coinColor(item.moeda) + '15',
@@ -1853,116 +1887,116 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
           <Grid size={{ xs: 6, sm: 4, md: 2 }}>
             <Paper sx={{
               p: 2, height: '100%',
-              background: 'linear-gradient(135deg, rgba(255,215,0,0.08), rgba(255,255,255,0.03))',
+              background: `linear-gradient(135deg, rgba(255,215,0,0.08), ${gradientEnd(dk)})`,
               border: '1px solid rgba(255,215,0,0.15)',
-              backdropFilter: 'blur(10px)', color: 'white',
+              backdropFilter: 'blur(10px)', color: textPrimary(dk),
               display: 'flex', flexDirection: 'column', gap: 0.5,
             }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, opacity: 0.85 }}>
                 <MdTrendingUp size={16} color={ACCENT} />
-                <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.8, fontSize: 10 }}>Reward Médio</Typography>
+                <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.8, fontSize: 10 }}>{t('treinamento.rewardMedio')}</Typography>
               </Box>
               <Typography variant="h5" sx={{ fontWeight: 700, color: ACCENT, lineHeight: 1.2 }}>{formatNumber(item.rewardMedio)}</Typography>
               <Typography variant="caption" sx={{ color: deltaColor(rewardDelta), fontWeight: 600 }}>
-                {deltaSign(rewardDelta)}{formatNumber(rewardDelta)} vs média da janela
+                {deltaSign(rewardDelta)}{formatNumber(rewardDelta)} {t('treinamento.vsWindowAvg')}
               </Typography>
             </Paper>
           </Grid>
           <Grid size={{ xs: 6, sm: 4, md: 2 }}>
             <Paper sx={{
               p: 2, height: '100%',
-              background: 'linear-gradient(135deg, rgba(20,241,149,0.08), rgba(255,255,255,0.03))',
+              background: `linear-gradient(135deg, rgba(20,241,149,0.08), ${gradientEnd(dk)})`,
               border: '1px solid rgba(20,241,149,0.15)',
-              backdropFilter: 'blur(10px)', color: 'white',
+              backdropFilter: 'blur(10px)', color: textPrimary(dk),
               display: 'flex', flexDirection: 'column', gap: 0.5,
             }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, opacity: 0.85 }}>
                 <MdShowChart size={16} color="#14F195" />
-                <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.8, fontSize: 10 }}>Win Rate</Typography>
+                <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.8, fontSize: 10 }}>{t('treinamento.winRate')}</Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
                 <Typography variant="h5" sx={{ fontWeight: 700, color: winRateGaugeColor, lineHeight: 1.2 }}>{formatPercent(item.winRate)}</Typography>
               </Box>
-              <Box sx={{ width: '100%', height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.1)', mt: 0.5 }}>
+              <Box sx={{ width: '100%', height: 4, borderRadius: 2, background: gaugeTrack(dk), mt: 0.5 }}>
                 <Box sx={{ width: `${Math.min(100, winRatePct)}%`, height: '100%', borderRadius: 2, background: winRateGaugeColor, transition: 'width 0.5s ease' }} />
               </Box>
               <Typography variant="caption" sx={{ color: deltaColor(winRateDelta), fontWeight: 600 }}>
-                {deltaSign(winRateDelta)}{(winRateDelta * 100).toFixed(2)}pp vs média da janela
+                {deltaSign(winRateDelta)}{(winRateDelta * 100).toFixed(2)}pp {t('treinamento.vsWindowAvg')}
               </Typography>
             </Paper>
           </Grid>
           <Grid size={{ xs: 6, sm: 4, md: 2 }}>
             <Paper sx={{
               p: 2, height: '100%',
-              background: 'linear-gradient(135deg, rgba(255,92,124,0.08), rgba(255,255,255,0.03))',
+              background: `linear-gradient(135deg, rgba(255,92,124,0.08), ${gradientEnd(dk)})`,
               border: '1px solid rgba(255,92,124,0.15)',
-              backdropFilter: 'blur(10px)', color: 'white',
+              backdropFilter: 'blur(10px)', color: textPrimary(dk),
               display: 'flex', flexDirection: 'column', gap: 0.5,
             }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, opacity: 0.85 }}>
                 <MdTrendingDown size={16} color="#FF5C7C" />
-                <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.8, fontSize: 10 }}>Loss Média</Typography>
+                <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.8, fontSize: 10 }}>{t('treinamento.lossMedia')}</Typography>
               </Box>
               <Typography variant="h5" sx={{ fontWeight: 700, color: '#FF5C7C', lineHeight: 1.2 }}>{formatNumber(item.lossMedia)}</Typography>
               <Typography variant="caption" sx={{ color: deltaColor(lossDelta, true), fontWeight: 600 }}>
-                {deltaSign(lossDelta)}{formatNumber(lossDelta)} vs média da janela
+                {deltaSign(lossDelta)}{formatNumber(lossDelta)} {t('treinamento.vsWindowAvg')}
               </Typography>
             </Paper>
           </Grid>
           <Grid size={{ xs: 6, sm: 4, md: 2 }}>
             <Paper sx={{
               p: 2, height: '100%',
-              background: 'linear-gradient(135deg, rgba(92,184,255,0.08), rgba(255,255,255,0.03))',
+              background: `linear-gradient(135deg, rgba(92,184,255,0.08), ${gradientEnd(dk)})`,
               border: '1px solid rgba(92,184,255,0.15)',
-              backdropFilter: 'blur(10px)', color: 'white',
+              backdropFilter: 'blur(10px)', color: textPrimary(dk),
               display: 'flex', flexDirection: 'column', gap: 0.5,
             }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, opacity: 0.85 }}>
                 <MdSpeed size={16} color="#5CB8FF" />
-                <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.8, fontSize: 10 }}>Epsilon</Typography>
+                <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.8, fontSize: 10 }}>{t('treinamento.epsilon')}</Typography>
               </Box>
               <Typography variant="h5" sx={{ fontWeight: 700, color: '#5CB8FF', lineHeight: 1.2 }}>{formatNumber(item.epsilon)}</Typography>
-              <Box sx={{ width: '100%', height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.1)', mt: 0.5 }}>
+              <Box sx={{ width: '100%', height: 4, borderRadius: 2, background: gaugeTrack(dk), mt: 0.5 }}>
                 <Box sx={{ width: `${Math.min(100, (item.epsilon ?? 0) * 100)}%`, height: '100%', borderRadius: 2, background: '#5CB8FF', transition: 'width 0.5s ease' }} />
               </Box>
-              <Typography variant="caption" sx={{ opacity: 0.6 }}>exploração</Typography>
+              <Typography variant="caption" sx={{ opacity: 0.6 }}>{t('treinamento.exploration')}</Typography>
             </Paper>
           </Grid>
           <Grid size={{ xs: 6, sm: 4, md: 2 }}>
             <Paper sx={{
               p: 2, height: '100%',
-              background: 'linear-gradient(135deg, rgba(255,181,71,0.08), rgba(255,255,255,0.03))',
+              background: `linear-gradient(135deg, rgba(255,181,71,0.08), ${gradientEnd(dk)})`,
               border: '1px solid rgba(255,181,71,0.15)',
-              backdropFilter: 'blur(10px)', color: 'white',
+              backdropFilter: 'blur(10px)', color: textPrimary(dk),
               display: 'flex', flexDirection: 'column', gap: 0.5,
             }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, opacity: 0.85 }}>
                 <MdTimer size={16} color="#FFB547" />
-                <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.8, fontSize: 10 }}>Duração</Typography>
+                <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.8, fontSize: 10 }}>{t('treinamento.duration')}</Typography>
               </Box>
               <Typography variant="h5" sx={{ fontWeight: 700, color: '#FFB547', lineHeight: 1.2 }}>{formatNumber(item.duracaoSegundos, 1)}s</Typography>
               <Typography variant="caption" sx={{ color: deltaColor(duracaoDelta, true), fontWeight: 600 }}>
-                {deltaSign(duracaoDelta)}{formatNumber(duracaoDelta, 1)}s vs média da janela
+                {deltaSign(duracaoDelta)}{formatNumber(duracaoDelta, 1)}s {t('treinamento.vsWindowAvg')}
               </Typography>
             </Paper>
           </Grid>
           <Grid size={{ xs: 6, sm: 4, md: 2 }}>
             <Paper sx={{
               p: 2, height: '100%',
-              background: 'linear-gradient(135deg, rgba(167,139,250,0.08), rgba(255,255,255,0.03))',
+              background: `linear-gradient(135deg, rgba(167,139,250,0.08), ${gradientEnd(dk)})`,
               border: '1px solid rgba(167,139,250,0.15)',
-              backdropFilter: 'blur(10px)', color: 'white',
+              backdropFilter: 'blur(10px)', color: textPrimary(dk),
               display: 'flex', flexDirection: 'column', gap: 0.5,
             }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, opacity: 0.85 }}>
                 <MdCompareArrows size={16} color="#A78BFA" />
-                <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.8, fontSize: 10 }}>Eficiência</Typography>
+                <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 0.8, fontSize: 10 }}>{t('treinamento.efficiency')}</Typography>
               </Box>
               <Typography variant="h5" sx={{ fontWeight: 700, color: '#A78BFA', lineHeight: 1.2 }}>{formatNumber(eficiencia, 6)}</Typography>
               <Typography variant="caption" sx={{ color: deltaColor(eficienciaDelta), fontWeight: 600 }}>
-                {deltaSign(eficienciaDelta)}{formatNumber(eficienciaDelta, 6)} vs média da janela
+                {deltaSign(eficienciaDelta)}{formatNumber(eficienciaDelta, 6)} {t('treinamento.vsWindowAvg')}
               </Typography>
-              <Typography variant="caption" sx={{ opacity: 0.5, fontSize: 9 }}>reward / segundo</Typography>
+              <Typography variant="caption" sx={{ opacity: 0.5, fontSize: 9 }}>{t('treinamento.rewardPerSecond')}</Typography>
             </Paper>
           </Grid>
         </Grid>
@@ -1972,14 +2006,14 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
           <Grid size={{ xs: 12, md: 5 }}>
             <Paper sx={{
               p: 2.5, height: { xs: 340, md: 380 },
-              background: CHART_BG, border: `1px solid ${CHART_BORDER}`,
-              backdropFilter: 'blur(10px)', color: 'white',
+              background: chartBg(dk), border: `1px solid ${chartBorder(dk)}`,
+              backdropFilter: 'blur(10px)', color: textPrimary(dk),
               display: 'flex', flexDirection: 'column',
             }}>
               <Box sx={{ mb: 1 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Perfil do episódio</Typography>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{t('treinamento.episodeProfile')}</Typography>
                 <Typography variant="caption" sx={{ opacity: 0.6 }}>
-                  Comparação normalizada vs média de {item.moeda} (episódios carregados)
+                  {t('treinamento.profileSubtitle', { coin: item.moeda })}
                 </Typography>
               </Box>
               <Box sx={{ flex: 1, position: 'relative', minHeight: 0 }}>
@@ -1990,12 +2024,12 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
           <Grid size={{ xs: 12, sm: 6, md: 3.5 }}>
             <Paper sx={{
               p: 2.5, height: { xs: 340, md: 380 },
-              background: CHART_BG, border: `1px solid ${CHART_BORDER}`,
-              backdropFilter: 'blur(10px)', color: 'white',
+              background: chartBg(dk), border: `1px solid ${chartBorder(dk)}`,
+              backdropFilter: 'blur(10px)', color: textPrimary(dk),
               display: 'flex', flexDirection: 'column',
             }}>
               <Box sx={{ mb: 1 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Distribuição de ações</Typography>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{t('treinamento.actionDistDetail')}</Typography>
                 <Typography variant="caption" sx={{ opacity: 0.6 }}>Total: {totalAcoes} ações em {item.totalSteps ?? '-'} steps</Typography>
               </Box>
               <Box sx={{ flex: 1, position: 'relative', minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -2006,26 +2040,26 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
           <Grid size={{ xs: 12, sm: 6, md: 3.5 }}>
             <Paper sx={{
               p: 2.5, height: { xs: 340, md: 380 },
-              background: CHART_BG, border: `1px solid ${CHART_BORDER}`,
-              backdropFilter: 'blur(10px)', color: 'white',
+              background: chartBg(dk), border: `1px solid ${chartBorder(dk)}`,
+              backdropFilter: 'blur(10px)', color: textPrimary(dk),
               display: 'flex', flexDirection: 'column',
             }}>
               <Box sx={{ mb: 1.5 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Detalhes completos</Typography>
-                <Typography variant="caption" sx={{ opacity: 0.6 }}>Todos os campos do episódio</Typography>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{t('treinamento.fullDetails')}</Typography>
+                <Typography variant="caption" sx={{ opacity: 0.6 }}>{t('treinamento.allFields')}</Typography>
               </Box>
               <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                 {[
-                  ['Episódio', `#${item.episodio}`, null, null],
-                  ['Versão do modelo', item.versaoModelo ?? '-', { color: '#A78BFA' }, null],
-                  ['Data/Hora', formatDate(item.dataHora), null, null],
-                  ['Reward Total', formatNumber(item.rewardTotal, 2), { color: (item.rewardTotal ?? 0) >= 0 ? '#14F195' : '#FF5C7C' }, null],
-                  ['Ações Hold', item.acoesHold ?? 0, { color: 'rgba(160,160,160,0.9)' }, totalAcoes > 0 ? `${(((item.acoesHold ?? 0) / totalAcoes) * 100).toFixed(1)}%` : null],
-                  ['Ações Compra', item.acoesCompra ?? 0, { color: '#14F195' }, totalAcoes > 0 ? `${(((item.acoesCompra ?? 0) / totalAcoes) * 100).toFixed(1)}%` : null],
-                  ['Ações Venda', item.acoesVenda ?? 0, { color: '#FF5C7C' }, totalAcoes > 0 ? `${(((item.acoesVenda ?? 0) / totalAcoes) * 100).toFixed(1)}%` : null],
-                  ['Total Steps', item.totalSteps ?? '-', null, null],
+                  [t('treinamento.episode'), `#${item.episodio}`, null, null],
+                  [t('treinamento.modelVersionLabel'), item.versaoModelo ?? '-', { color: '#A78BFA' }, null],
+                  [t('treinamento.dateTime'), formatDate(item.dataHora), null, null],
+                  [t('treinamento.rewardTotal'), formatNumber(item.rewardTotal, 2), { color: (item.rewardTotal ?? 0) >= 0 ? '#14F195' : '#FF5C7C' }, null],
+                  [t('treinamento.actionsHold'), item.acoesHold ?? 0, { color: 'rgba(160,160,160,0.9)' }, totalAcoes > 0 ? `${(((item.acoesHold ?? 0) / totalAcoes) * 100).toFixed(1)}%` : null],
+                  [t('treinamento.actionsBuy'), item.acoesCompra ?? 0, { color: '#14F195' }, totalAcoes > 0 ? `${(((item.acoesCompra ?? 0) / totalAcoes) * 100).toFixed(1)}%` : null],
+                  [t('treinamento.actionsSell'), item.acoesVenda ?? 0, { color: '#FF5C7C' }, totalAcoes > 0 ? `${(((item.acoesVenda ?? 0) / totalAcoes) * 100).toFixed(1)}%` : null],
+                  [t('treinamento.totalSteps'), item.totalSteps ?? '-', null, null],
                 ].map(([label, value, style, extra]) => (
-                  <Box key={label} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1, py: 0.25, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  <Box key={label} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1, py: 0.25, borderBottom: `1px solid ${chartBorder(dk)}` }}>
                     <Typography variant="caption" sx={{ opacity: 0.65, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: 10, whiteSpace: 'nowrap' }}>{label}</Typography>
                     <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75, minWidth: 0 }}>
                       <Typography variant="body2" noWrap sx={{ fontWeight: 600, ...style }}>{value}</Typography>
@@ -2049,14 +2083,14 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
           <Box sx={{ mb: 3 }}>
             <Paper sx={{
               p: 2.5, height: { xs: 280, md: 320 },
-              background: CHART_BG, border: `1px solid ${CHART_BORDER}`,
-              backdropFilter: 'blur(10px)', color: 'white',
+              background: chartBg(dk), border: `1px solid ${chartBorder(dk)}`,
+              backdropFilter: 'blur(10px)', color: textPrimary(dk),
               display: 'flex', flexDirection: 'column',
             }}>
               <Box sx={{ mb: 1 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Contexto temporal</Typography>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{t('treinamento.temporalContext')}</Typography>
                 <Typography variant="caption" sx={{ opacity: 0.6 }}>
-                  Episódios vizinhos de {item.moeda} · ponto destacado = episódio atual
+                  {t('treinamento.neighborEpisodes', { coin: item.moeda })}
                 </Typography>
               </Box>
               <Box sx={{ flex: 1, position: 'relative', minHeight: 0 }}>
@@ -2071,47 +2105,47 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
           <Box sx={{ mb: 3 }}>
             <Paper sx={{
               p: 2.5,
-              background: CHART_BG, border: `1px solid ${CHART_BORDER}`,
-              backdropFilter: 'blur(10px)', color: 'white',
+              background: chartBg(dk), border: `1px solid ${chartBorder(dk)}`,
+              backdropFilter: 'blur(10px)', color: textPrimary(dk),
             }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.5, flexWrap: 'wrap', gap: 1 }}>
                 <Box>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Contexto de mercado</Typography>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{t('treinamento.marketContext')}</Typography>
                   <Typography variant="caption" sx={{ opacity: 0.6 }}>
-                    Preço de {item.moeda} ±{mercado?.margemHoras === 12 ? '12h' : '30min'} do episódio · faixa amarela = período do treinamento
+                    {t('treinamento.marketSubtitle', { coin: item.moeda, range: mercado?.margemHoras === 12 ? '12h' : '30min' })}
                   </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', gap: 2.5, flexWrap: 'wrap' }}>
                   {[
-                    ['Variação no período', `${mercadoStats.variacao >= 0 ? '+' : ''}${(mercadoStats.variacao * 100).toFixed(2)}%`, mercadoStats.variacao >= 0 ? '#14F195' : '#FF5C7C'],
-                    ['Faixa de preço', `${formatNumber(mercadoStats.precoMin, mercadoStats.digits)} – ${formatNumber(mercadoStats.precoMax, mercadoStats.digits)}`, null],
+                    [t('treinamento.periodVariation'), `${mercadoStats.variacao >= 0 ? '+' : ''}${(mercadoStats.variacao * 100).toFixed(2)}%`, mercadoStats.variacao >= 0 ? '#14F195' : '#FF5C7C'],
+                    [t('treinamento.priceRange'), `${formatNumber(mercadoStats.precoMin, mercadoStats.digits)} – ${formatNumber(mercadoStats.precoMax, mercadoStats.digits)}`, null],
                     ...(mercadoStats.dominanciaCompradora != null
-                      ? [['Dominância compradora', `${mercadoStats.dominanciaCompradora.toFixed(1)}%`, mercadoStats.dominanciaCompradora >= 50 ? '#14F195' : '#FF5C7C']]
+                      ? [[t('treinamento.buyerDominance'), `${mercadoStats.dominanciaCompradora.toFixed(1)}%`, mercadoStats.dominanciaCompradora >= 50 ? '#14F195' : '#FF5C7C']]
                       : []),
                     ...(mercadoStats.longShort != null
-                      ? [['Long/Short médio', formatNumber(mercadoStats.longShort, 2), null]]
+                      ? [[t('treinamento.longShortAvg'), formatNumber(mercadoStats.longShort, 2), null]]
                       : []),
                     ...(sentimento?.fear?.valor != null
                       ? [[
-                          'Fear & Greed',
+                          t('treinamento.fearGreed'),
                           `${sentimento.fear.valor}${sentimento.fear.classificacao ? ` · ${sentimento.fear.classificacao}` : ''}`,
                           sentimento.fear.valor >= 55 ? '#14F195' : sentimento.fear.valor >= 45 ? '#FFB547' : '#FF5C7C',
                         ]]
                       : []),
                     ...(sentimento?.trend?.valorAtual != null
                       ? [[
-                          'Trend (busca)',
+                          t('treinamento.trendSearch'),
                           `${sentimento.trend.valorAtual}${sentimento.trend.delta15 != null ? ` (${sentimento.trend.delta15 >= 0 ? '▲' : '▼'}${Math.abs(sentimento.trend.delta15)} /15min)` : ''}`,
                           sentimento.trend.delta15 != null ? (sentimento.trend.delta15 >= 0 ? '#14F195' : '#FF5C7C') : null,
                         ]]
                       : []),
                     ...(sentimento?.trend?.geoTop1Code
-                      ? [['Top região', sentimento.trend.geoTop1Code, null]]
+                      ? [[t('treinamento.topRegion'), sentimento.trend.geoTop1Code, null]]
                       : []),
                   ].map(([label, value, color]) => (
                     <Box key={label} sx={{ textAlign: 'right' }}>
                       <Typography variant="caption" sx={{ opacity: 0.6, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: 9, display: 'block' }}>{label}</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 700, color: color || 'white' }}>{value}</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 700, color: color || textPrimary(dk) }}>{value}</Typography>
                     </Box>
                   ))}
                 </Box>
@@ -2128,27 +2162,27 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
           <Box sx={{ mb: 3 }}>
             <Paper sx={{
               p: 2.5,
-              background: CHART_BG, border: `1px solid ${CHART_BORDER}`,
-              backdropFilter: 'blur(10px)', color: 'white',
+              background: chartBg(dk), border: `1px solid ${chartBorder(dk)}`,
+              backdropFilter: 'blur(10px)', color: textPrimary(dk),
             }}>
               <Box sx={{ mb: 2 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Comparação com episódio anterior</Typography>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{t('treinamento.prevComparison')}</Typography>
                 <Typography variant="caption" sx={{ opacity: 0.6 }}>
                   #{prevItem.episodio} ({formatDate(prevItem.dataHora)}) → #{item.episodio} ({formatDate(item.dataHora)})
                 </Typography>
               </Box>
               <Grid container spacing={2}>
                 {[
-                  { label: 'Reward Médio', prev: prevItem.rewardMedio, curr: item.rewardMedio, fmt: (v) => formatNumber(v), inverted: false },
-                  { label: 'Win Rate', prev: prevItem.winRate, curr: item.winRate, fmt: (v) => formatPercent(v), inverted: false },
-                  { label: 'Loss Média', prev: prevItem.lossMedia, curr: item.lossMedia, fmt: (v) => formatNumber(v), inverted: true },
-                  { label: 'Epsilon', prev: prevItem.epsilon, curr: item.epsilon, fmt: (v) => formatNumber(v), inverted: true },
-                  { label: 'Duração (s)', prev: prevItem.duracaoSegundos, curr: item.duracaoSegundos, fmt: (v) => formatNumber(v, 1), inverted: true },
-                ].map(({ label, prev, curr, fmt, inverted }) => {
+                  { label: t('treinamento.rewardMedio'), prev: prevItem.rewardMedio, curr: item.rewardMedio, fmt: (v) => formatNumber(v), inverted: false, key: 'reward' },
+                  { label: t('treinamento.winRate'), prev: prevItem.winRate, curr: item.winRate, fmt: (v) => formatPercent(v), inverted: false, key: 'winrate' },
+                  { label: t('treinamento.lossLabel'), prev: prevItem.lossMedia, curr: item.lossMedia, fmt: (v) => formatNumber(v), inverted: true, key: 'loss' },
+                  { label: t('treinamento.epsilon'), prev: prevItem.epsilon, curr: item.epsilon, fmt: (v) => formatNumber(v), inverted: true, key: 'epsilon' },
+                  { label: t('treinamento.durationLabel'), prev: prevItem.duracaoSegundos, curr: item.duracaoSegundos, fmt: (v) => formatNumber(v, 1), inverted: true, key: 'duration' },
+                ].map(({ label, prev, curr, fmt, inverted, key }) => {
                   const d = (curr ?? 0) - (prev ?? 0)
                   return (
-                    <Grid size={{ xs: 6, sm: 4, md: 2.4 }} key={label}>
-                      <Box sx={{ textAlign: 'center', p: 1.5, borderRadius: 1, background: 'rgba(255,255,255,0.03)' }}>
+                    <Grid size={{ xs: 6, sm: 4, md: 2.4 }} key={key}>
+                      <Box sx={{ textAlign: 'center', p: 1.5, borderRadius: 1, background: subtleBg(dk) }}>
                         <Typography variant="caption" sx={{ opacity: 0.65, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: 10, display: 'block', mb: 0.5 }}>{label}</Typography>
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
                           <Typography variant="body2" sx={{ opacity: 0.5 }}>{fmt(prev)}</Typography>
@@ -2156,7 +2190,7 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
                           <Typography variant="body2" sx={{ fontWeight: 600 }}>{fmt(curr)}</Typography>
                         </Box>
                         <Typography variant="caption" sx={{ color: deltaColor(d, inverted), fontWeight: 700, fontSize: 12 }}>
-                          {d >= 0 ? '▲' : '▼'} {deltaSign(d)}{label === 'Win Rate' ? `${(d * 100).toFixed(2)}pp` : formatNumber(d, label === 'Duração (s)' ? 1 : 4)}
+                          {d >= 0 ? '▲' : '▼'} {deltaSign(d)}{key === 'winrate' ? `${(d * 100).toFixed(2)}pp` : formatNumber(d, key === 'duration' ? 1 : 4)}
                         </Typography>
                       </Box>
                     </Grid>
@@ -2173,6 +2207,7 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
 }
 
 export default function TreinamentoEpisodios() {
+  const { t } = useTranslation()
   const { id } = useParams()
   const navigate = useNavigate()
   // Filtros persistidos na URL (?moedas=BTC,ETH&versao=x): sobrevivem a refresh,
@@ -2260,7 +2295,7 @@ export default function TreinamentoEpisodios() {
         buckets.forEach((b) => fetchedBucketsRef.current.add(b))
         setItems(mergeItems(janelas[0], janelas.slice(1).flat()))
       } catch (e) {
-        if (!canceled) setError(e?.message || 'Falha ao carregar episódios')
+        if (!canceled) setError(e?.message || t('treinamento.loadError'))
       } finally {
         if (!canceled) setLoading(false)
       }
