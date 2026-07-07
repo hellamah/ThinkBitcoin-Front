@@ -36,7 +36,8 @@ import { ptBR } from 'date-fns/locale'
 import zoomPlugin from 'chartjs-plugin-zoom'
 import { Line, Bar, Scatter, Doughnut, Radar } from 'react-chartjs-2'
 import ErrorMessage from '../components/ErrorMessage'
-import { apiRequest, TreinamentoEpisodioEndpoint } from '../utils/apiClient'
+import { apiRequest, TreinamentoEpisodioEndpoint, MarketEndpoint, VariavelExternaEndpoint } from '../utils/apiClient'
+import { toUTCISO } from '../utils/dateUtils'
 
 ChartJS.register(
   CategoryScale, LinearScale, PointElement, LineElement, BarElement,
@@ -122,10 +123,11 @@ const extractLista = (resp) =>
       : []
 
 // Busca TODOS os episódios de uma janela [inicioMs, fimMs), paginando se preciso.
-const fetchWindow = async (moeda, inicioMs, fimMs) => {
+const fetchWindow = async (moeda, versaoModelo, inicioMs, fimMs) => {
   const QTD = 1000
   const params = (pagina) => ({
     moeda: moeda || undefined,
+    versaoModelo: versaoModelo || undefined,
     dataInicio: formatBackendDateTime(inicioMs),
     dataFim: formatBackendDateTime(fimMs),
     quantidade: QTD,
@@ -165,6 +167,7 @@ const COLUMNS = [
   { id: 'episodio', label: 'Episódio', numeric: true },
   { id: 'dataHora', label: 'Data/Hora', numeric: false },
   { id: 'moeda', label: 'Moeda', numeric: false },
+  { id: 'versaoModelo', label: 'Versão', numeric: false },
   { id: 'rewardMedio', label: 'Reward Médio', numeric: true },
   { id: 'rewardTotal', label: 'Reward Total', numeric: true },
   { id: 'lossMedia', label: 'Loss Média', numeric: true },
@@ -445,7 +448,7 @@ function ChartCard({ title, subtitle, children, height = { xs: 280, md: 320 }, a
   )
 }
 
-function ListView({ items, resumo, serie, loading, loadingRange, error, onRefresh, onOpen, selectedCoins, setSelectedCoins, visibleRange, setVisibleRange }) {
+function ListView({ items, resumo, serie, loading, loadingRange, error, onRefresh, onOpen, selectedCoins, setSelectedCoins, selectedVersao, setSelectedVersao, visibleRange, setVisibleRange }) {
   const [orderBy, setOrderBy] = useState('episodio')
   const [order, setOrder] = useState('desc')
   const [page, setPage] = useState(0)
@@ -497,6 +500,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
             const p = ctx.raw
             return [
               `Data: ${new Date(p.x).toLocaleString()}`,
+              ...(p.versaoModelo ? [`Versão: ${p.versaoModelo}`] : []),
               `Duração: ${p.duracao.toFixed(1)}s`,
               `Reward: ${p.rewardMedio.toFixed(4)}`,
               `Win rate: ${(p.winRate * 100).toFixed(2)}%`,
@@ -555,6 +559,14 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
     const set = new Set(items.map((i) => i.moeda).filter(Boolean))
     return Array.from(set).sort()
   }, [items, resumo])
+
+  // Versões de modelo vistas nos dados carregados. Com filtro ativo o servidor
+  // só devolve a versão selecionada, então a mantemos sempre presente na lista.
+  const versoesDisponiveis = useMemo(() => {
+    const set = new Set(items.map((i) => i.versaoModelo).filter(Boolean))
+    if (selectedVersao) set.add(selectedVersao)
+    return Array.from(set).sort()
+  }, [items, selectedVersao])
 
   // Quando exatamente 1 moeda está selecionada, o servidor já devolveu só ela.
   // Caso contrário (0 ou >1), filtramos client-side.
@@ -955,6 +967,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
         duracao: r.duracaoSegundos ?? 0,
         rewardMedio: r.rewardMedio ?? 0,
         winRate: r.winRate ?? 0,
+        versaoModelo: r.versaoModelo ?? null,
         id: r.idTreinamentoEpisodio,
       })
       return acc
@@ -1064,6 +1077,37 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
               })}
               {selectedCoins.length > 0 && (
                 <Button size="small" onClick={() => setSelectedCoins([])} sx={{ color: 'rgba(255,255,255,0.7)' }}>
+                  limpar
+                </Button>
+              )}
+            </Box>
+          )}
+
+          {/* Filtro de versão do modelo (server-side) */}
+          {versoesDisponiveis.length > 0 && (
+            <Box sx={{ mb: 3, mt: -1.5, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+              <Typography variant="caption" sx={{ opacity: 0.7, mr: 1 }}>VERSÃO DO MODELO:</Typography>
+              {versoesDisponiveis.map((versao) => {
+                const active = selectedVersao === versao
+                return (
+                  <Chip
+                    key={versao}
+                    label={versao}
+                    onClick={() => { setSelectedVersao(active ? null : versao); setPage(0) }}
+                    size="small"
+                    sx={{
+                      cursor: 'pointer',
+                      background: active ? '#A78BFA' : 'rgba(255,255,255,0.08)',
+                      color: active ? '#000' : 'white',
+                      fontWeight: active ? 700 : 400,
+                      border: `1px solid ${active ? '#A78BFA' : 'rgba(255,255,255,0.15)'}`,
+                      '&:hover': { background: active ? '#A78BFA' : 'rgba(255,255,255,0.15)' },
+                    }}
+                  />
+                )
+              })}
+              {selectedVersao && (
+                <Button size="small" onClick={() => setSelectedVersao(null)} sx={{ color: 'rgba(255,255,255,0.7)' }}>
                   limpar
                 </Button>
               )}
@@ -1234,6 +1278,9 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
                             fontWeight: 600,
                           }}
                         />
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="caption" sx={{ opacity: 0.8 }}>{row.versaoModelo ?? '-'}</Typography>
                       </TableCell>
                       <TableCell align="right">{formatNumber(row.rewardMedio)}</TableCell>
                       <TableCell align="right">{formatNumber(row.rewardTotal, 2)}</TableCell>
@@ -1504,6 +1551,163 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
     },
   }), [miniTimeline])
 
+  // ── Contexto de mercado: candles da moeda em torno do episódio ──
+  // Janela: [início do episódio − 30min, fim + 30min]. O endpoint espera UTC ISO.
+  const MERCADO_MARGEM_MS = 30 * 60 * 1000
+  const epFimMs = new Date(item.dataHora).getTime()
+  const epInicioMs = epFimMs - (item.duracaoSegundos ?? 0) * 1000
+  const [mercado, setMercado] = useState(null)
+  const [sentimento, setSentimento] = useState(null) // { fear, trend } — registro mais próximo do fim do episódio
+  useEffect(() => {
+    if (!item.moeda || Number.isNaN(epFimMs)) { setMercado(null); setSentimento(null); return undefined }
+    let canceled = false
+    // Sentimento (fear-greed/trend) costuma ter granularidade maior que preço:
+    // busca numa janela ampla e escolhe o registro mais próximo do episódio.
+    const dataInicio = toUTCISO(new Date(epInicioMs - 12 * 60 * 60 * 1000))
+    const dataFim = toUTCISO(new Date(epFimMs + 12 * 60 * 60 * 1000))
+
+    // Janela curta primeiro; se a base não tiver granularidade suficiente
+    // (menos de 2 pontos), amplia para ±12h pra ainda dar contexto.
+    const MARGEM_AMPLA_MS = 12 * 60 * 60 * 1000
+    const fetchValor = (margemMs) =>
+      apiRequest(MarketEndpoint.COIN_VALUE(item.moeda.toLowerCase(), {
+        dataInicio: toUTCISO(new Date(epInicioMs - margemMs)),
+        dataFim: toUTCISO(new Date(epFimMs + margemMs)),
+        quantidade: 500,
+        ordemAsc: true,
+      })).then((resp) => {
+        const regs = resp?.resultado?.registros
+        return Array.isArray(regs) ? regs : []
+      })
+    fetchValor(MERCADO_MARGEM_MS)
+      .then(async (regs) => {
+        if (regs.length >= 2) return { registros: regs, margemHoras: 0.5 }
+        return { registros: await fetchValor(MARGEM_AMPLA_MS), margemHoras: 12 }
+      })
+      .then((res) => { if (!canceled) setMercado(res) })
+      .catch(() => { if (!canceled) setMercado({ registros: [], margemHoras: 0.5 }) })
+
+    // Fear & Greed e Trend exigem idMoeda: resolve a sigla via /moedas.
+    // São complementares — qualquer falha só oculta os indicadores.
+    const maisProximo = (regs) => {
+      const lista = Array.isArray(regs) ? regs : []
+      const comHora = lista.filter((r) => r.horaReferencia)
+      if (comHora.length === 0) return lista[0] ?? null
+      return comHora.reduce((best, r) =>
+        Math.abs(new Date(r.horaReferencia).getTime() - epFimMs) <
+        Math.abs(new Date(best.horaReferencia).getTime() - epFimMs) ? r : best)
+    }
+    apiRequest(MarketEndpoint.COIN_LIST)
+      .then((resp) => {
+        const moedas = Array.isArray(resp?.resultado) ? resp.resultado : []
+        const idMoeda = moedas.find((m) => (m.sigla || '').toUpperCase() === item.moeda.toUpperCase())?.id
+        if (!idMoeda) return null
+        const qs = `idMoeda=${idMoeda}&dataInicio=${encodeURIComponent(dataInicio)}&dataFim=${encodeURIComponent(dataFim)}&quantidade=100&ordemAsc=false`
+        return Promise.all([
+          apiRequest(`${VariavelExternaEndpoint.FEAR_GREED}?${qs}`).catch(() => null),
+          apiRequest(`${VariavelExternaEndpoint.TREND}?${qs}`).catch(() => null),
+        ])
+      })
+      .then((results) => {
+        if (canceled || !results) return
+        const [fearResp, trendResp] = results
+        setSentimento({
+          fear: maisProximo(fearResp?.resultado?.registros),
+          trend: maisProximo(trendResp?.resultado?.registros),
+        })
+      })
+      .catch(() => { if (!canceled) setSentimento(null) })
+    return () => { canceled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [item.idTreinamentoEpisodio])
+
+  const mercadoRegistros = mercado?.registros ?? []
+  const mercadoStats = useMemo(() => {
+    if (mercadoRegistros.length === 0) return null
+    const closes = mercadoRegistros.map((r) => r.precoFechamento ?? 0).filter((v) => v > 0)
+    if (closes.length === 0) return null
+    const first = closes[0]
+    const last = closes[closes.length - 1]
+    const avg = (key) => {
+      const vals = mercadoRegistros.map((r) => r[key]).filter((v) => v != null)
+      return vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : null
+    }
+    return {
+      variacao: first > 0 ? (last - first) / first : 0,
+      precoMin: Math.min(...closes),
+      precoMax: Math.max(...closes),
+      precoAtual: last,
+      // casas decimais suficientes pra moedas de preço baixo (ex.: DOGE ~0,16)
+      digits: last >= 100 ? 2 : last >= 1 ? 3 : 5,
+      dominanciaCompradora: avg('dominanciaCompradoraPercentual'),
+      longShort: avg('longShortRatio'),
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mercado])
+
+  const mercadoChartData = useMemo(() => {
+    if (mercadoRegistros.length === 0) return null
+    return {
+      datasets: [{
+        label: `Preço ${item.moeda}`,
+        data: mercadoRegistros
+          .filter((r) => r.horaReferencia && r.precoFechamento != null)
+          .map((r) => ({ x: new Date(r.horaReferencia).getTime(), y: r.precoFechamento })),
+        borderColor: coinColor(item.moeda),
+        backgroundColor: coinColor(item.moeda) + '22',
+        fill: true,
+        tension: 0.25,
+        pointRadius: 0,
+        borderWidth: 2,
+      }],
+    }
+  }, [mercado, item.moeda])
+
+  // Faixa destacando o período em que o episódio rodou
+  const episodioBandPlugin = useMemo(() => ({
+    id: 'episodioBand',
+    beforeDatasetsDraw: (chart) => {
+      const { ctx, chartArea, scales } = chart
+      if (!chartArea || !scales.x) return
+      const x1 = scales.x.getPixelForValue(epInicioMs)
+      const x2 = scales.x.getPixelForValue(epFimMs)
+      ctx.save()
+      ctx.fillStyle = 'rgba(255,215,0,0.10)'
+      ctx.fillRect(x1, chartArea.top, Math.max(2, x2 - x1), chartArea.bottom - chartArea.top)
+      ctx.strokeStyle = 'rgba(255,215,0,0.5)'
+      ctx.setLineDash([4, 4])
+      ctx.strokeRect(x1, chartArea.top, Math.max(2, x2 - x1), chartArea.bottom - chartArea.top)
+      ctx.restore()
+    },
+  }), [epInicioMs, epFimMs])
+
+  const mercadoChartOptions = useMemo(() => ({
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: 'rgba(15,15,20,0.95)',
+        borderColor: 'rgba(255,215,0,0.4)',
+        borderWidth: 1,
+        titleColor: ACCENT,
+        bodyColor: '#fff',
+        padding: 10,
+      },
+    },
+    scales: {
+      x: {
+        type: 'time',
+        adapters: { date: { locale: ptBR } },
+        time: { tooltipFormat: 'dd/MM HH:mm:ss', displayFormats: { minute: 'HH:mm', hour: 'HH:mm' } },
+        ticks: { color: '#aaa', maxRotation: 0, autoSkip: true, maxTicksLimit: 10 },
+        grid: { color: 'rgba(255,255,255,0.05)' },
+      },
+      y: { ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+    },
+  }), [])
+
   // ── Delta helpers ──
   const delta = (val, avg) => {
     if (avg === 0 && val === 0) return 0
@@ -1577,6 +1781,19 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
                 fontWeight: 600,
               }}
             />
+            {item.versaoModelo && (
+              <Chip
+                label={item.versaoModelo}
+                size="small"
+                sx={{
+                  background: 'rgba(167,139,250,0.15)',
+                  color: '#A78BFA',
+                  border: '1px solid rgba(167,139,250,0.3)',
+                  fontWeight: 500,
+                  fontSize: 11,
+                }}
+              />
+            )}
             <Typography variant="body2" sx={{ opacity: 0.7 }}>{formatDate(item.dataHora)}</Typography>
             {ranking.position && (
               <Chip
@@ -1777,23 +1994,28 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
                 <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Detalhes completos</Typography>
                 <Typography variant="caption" sx={{ opacity: 0.6 }}>Todos os campos do episódio</Typography>
               </Box>
-              <Box sx={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                 {[
-                  ['Episódio', item.episodio, null],
-                  ['Reward Total', formatNumber(item.rewardTotal, 2), null],
-                  ['Ações Hold', item.acoesHold ?? 0, { color: 'rgba(160,160,160,0.9)' }],
-                  ['Ações Compra', item.acoesCompra ?? 0, { color: '#14F195' }],
-                  ['Ações Venda', item.acoesVenda ?? 0, { color: '#FF5C7C' }],
-                  ['Total Steps', item.totalSteps ?? '-', null],
-                ].map(([label, value, style]) => (
-                  <Box key={label} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.5, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                    <Typography variant="caption" sx={{ opacity: 0.65, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: 10 }}>{label}</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 600, ...style }}>{value}</Typography>
+                  ['Episódio', `#${item.episodio}`, null, null],
+                  ['Versão do modelo', item.versaoModelo ?? '-', { color: '#A78BFA' }, null],
+                  ['Data/Hora', formatDate(item.dataHora), null, null],
+                  ['Reward Total', formatNumber(item.rewardTotal, 2), { color: (item.rewardTotal ?? 0) >= 0 ? '#14F195' : '#FF5C7C' }, null],
+                  ['Ações Hold', item.acoesHold ?? 0, { color: 'rgba(160,160,160,0.9)' }, totalAcoes > 0 ? `${(((item.acoesHold ?? 0) / totalAcoes) * 100).toFixed(1)}%` : null],
+                  ['Ações Compra', item.acoesCompra ?? 0, { color: '#14F195' }, totalAcoes > 0 ? `${(((item.acoesCompra ?? 0) / totalAcoes) * 100).toFixed(1)}%` : null],
+                  ['Ações Venda', item.acoesVenda ?? 0, { color: '#FF5C7C' }, totalAcoes > 0 ? `${(((item.acoesVenda ?? 0) / totalAcoes) * 100).toFixed(1)}%` : null],
+                  ['Total Steps', item.totalSteps ?? '-', null, null],
+                ].map(([label, value, style, extra]) => (
+                  <Box key={label} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1, py: 0.25, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                    <Typography variant="caption" sx={{ opacity: 0.65, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: 10, whiteSpace: 'nowrap' }}>{label}</Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75, minWidth: 0 }}>
+                      <Typography variant="body2" noWrap sx={{ fontWeight: 600, ...style }}>{value}</Typography>
+                      {extra && <Typography variant="caption" sx={{ opacity: 0.5, fontSize: 10 }}>({extra})</Typography>}
+                    </Box>
                   </Box>
                 ))}
-                <Box sx={{ mt: 'auto', pt: 1 }}>
+                <Box sx={{ pt: 1 }}>
                   <Typography variant="caption" sx={{ opacity: 0.4, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: 9 }}>ID</Typography>
-                  <Typography variant="caption" sx={{ opacity: 0.5, wordBreak: 'break-all', display: 'block', fontSize: 10 }}>
+                  <Typography variant="caption" noWrap sx={{ opacity: 0.5, display: 'block', fontSize: 10 }} title={item.idTreinamentoEpisodio}>
                     {item.idTreinamentoEpisodio}
                   </Typography>
                 </Box>
@@ -1819,6 +2041,63 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
               </Box>
               <Box sx={{ flex: 1, position: 'relative', minHeight: 0 }}>
                 <Line data={miniTimelineData} options={miniTimelineOptions} />
+              </Box>
+            </Paper>
+          </Box>
+        )}
+
+        {/* ── Contexto de mercado (preço da moeda em torno do episódio) ── */}
+        {mercadoChartData && mercadoStats && (
+          <Box sx={{ mb: 3 }}>
+            <Paper sx={{
+              p: 2.5,
+              background: CHART_BG, border: `1px solid ${CHART_BORDER}`,
+              backdropFilter: 'blur(10px)', color: 'white',
+            }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.5, flexWrap: 'wrap', gap: 1 }}>
+                <Box>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Contexto de mercado</Typography>
+                  <Typography variant="caption" sx={{ opacity: 0.6 }}>
+                    Preço de {item.moeda} ±{mercado?.margemHoras === 12 ? '12h' : '30min'} do episódio · faixa amarela = período do treinamento
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', gap: 2.5, flexWrap: 'wrap' }}>
+                  {[
+                    ['Variação no período', `${mercadoStats.variacao >= 0 ? '+' : ''}${(mercadoStats.variacao * 100).toFixed(2)}%`, mercadoStats.variacao >= 0 ? '#14F195' : '#FF5C7C'],
+                    ['Faixa de preço', `${formatNumber(mercadoStats.precoMin, mercadoStats.digits)} – ${formatNumber(mercadoStats.precoMax, mercadoStats.digits)}`, null],
+                    ...(mercadoStats.dominanciaCompradora != null
+                      ? [['Dominância compradora', `${mercadoStats.dominanciaCompradora.toFixed(1)}%`, mercadoStats.dominanciaCompradora >= 50 ? '#14F195' : '#FF5C7C']]
+                      : []),
+                    ...(mercadoStats.longShort != null
+                      ? [['Long/Short médio', formatNumber(mercadoStats.longShort, 2), null]]
+                      : []),
+                    ...(sentimento?.fear?.valor != null
+                      ? [[
+                          'Fear & Greed',
+                          `${sentimento.fear.valor}${sentimento.fear.classificacao ? ` · ${sentimento.fear.classificacao}` : ''}`,
+                          sentimento.fear.valor >= 55 ? '#14F195' : sentimento.fear.valor >= 45 ? '#FFB547' : '#FF5C7C',
+                        ]]
+                      : []),
+                    ...(sentimento?.trend?.valorAtual != null
+                      ? [[
+                          'Trend (busca)',
+                          `${sentimento.trend.valorAtual}${sentimento.trend.delta15 != null ? ` (${sentimento.trend.delta15 >= 0 ? '▲' : '▼'}${Math.abs(sentimento.trend.delta15)} /15min)` : ''}`,
+                          sentimento.trend.delta15 != null ? (sentimento.trend.delta15 >= 0 ? '#14F195' : '#FF5C7C') : null,
+                        ]]
+                      : []),
+                    ...(sentimento?.trend?.geoTop1Code
+                      ? [['Top região', sentimento.trend.geoTop1Code, null]]
+                      : []),
+                  ].map(([label, value, color]) => (
+                    <Box key={label} sx={{ textAlign: 'right' }}>
+                      <Typography variant="caption" sx={{ opacity: 0.6, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: 9, display: 'block' }}>{label}</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 700, color: color || 'white' }}>{value}</Typography>
+                    </Box>
+                  ))}
+                </Box>
+              </Box>
+              <Box sx={{ height: { xs: 220, md: 260 }, position: 'relative' }}>
+                <Line data={mercadoChartData} options={mercadoChartOptions} plugins={[episodioBandPlugin]} />
               </Box>
             </Paper>
           </Box>
@@ -1883,6 +2162,7 @@ export default function TreinamentoEpisodios() {
   const [loadingRange, setLoadingRange] = useState(false)
   const [error, setError] = useState(null)
   const [selectedCoins, setSelectedCoins] = useState([])
+  const [selectedVersao, setSelectedVersao] = useState(null)
   const [refreshKey, setRefreshKey] = useState(0)
   const [visibleRange, setVisibleRange] = useState({ min: null, max: null })
   // Buckets (janelas de 4h) já buscados, identificados pelo timestamp de início
@@ -1907,8 +2187,8 @@ export default function TreinamentoEpisodios() {
       setError(null)
       try {
         const [probeResp, resumoResp] = await Promise.all([
-          apiRequest(TreinamentoEpisodioEndpoint.LIST({ moeda: moedaServerFilter || undefined, quantidade: 1, ordenarAscendente: false })),
-          apiRequest(TreinamentoEpisodioEndpoint.RESUMO()),
+          apiRequest(TreinamentoEpisodioEndpoint.LIST({ moeda: moedaServerFilter || undefined, versaoModelo: selectedVersao || undefined, quantidade: 1, ordenarAscendente: false })),
+          apiRequest(TreinamentoEpisodioEndpoint.RESUMO({ versaoModelo: selectedVersao || undefined })),
         ])
         if (canceled) return
         const res = Array.isArray(resumoResp?.resultado)
@@ -1922,7 +2202,7 @@ export default function TreinamentoEpisodios() {
         const bucketAtual = bucketStartOf(new Date(maisRecente.dataHora).getTime())
         const inicio = bucketAtual - FOUR_HOURS_MS      // janela anterior
         const fim = bucketAtual + FOUR_HOURS_MS          // fim da janela atual
-        const dados = await fetchWindow(moedaServerFilter, inicio, fim)
+        const dados = await fetchWindow(moedaServerFilter, selectedVersao, inicio, fim)
         if (canceled) return
         fetchedBucketsRef.current.add(bucketAtual)
         fetchedBucketsRef.current.add(bucketAtual - FOUR_HOURS_MS)
@@ -1935,7 +2215,7 @@ export default function TreinamentoEpisodios() {
     }
     load()
     return () => { canceled = true }
-  }, [moedaServerFilter, refreshKey])
+  }, [moedaServerFilter, selectedVersao, refreshKey])
 
   // Ao navegar o scatter (pan/zoom), carrega as janelas de 4h visíveis ainda não
   // buscadas. Cada bucket é buscado uma única vez; tudo que chega é mesclado.
@@ -1955,7 +2235,7 @@ export default function TreinamentoEpisodios() {
     inflightRef.current += buckets.length
     setLoadingRange(true)
 
-    Promise.all(buckets.map((b) => fetchWindow(moedaServerFilter, b, b + FOUR_HOURS_MS)))
+    Promise.all(buckets.map((b) => fetchWindow(moedaServerFilter, selectedVersao, b, b + FOUR_HOURS_MS)))
       .then((results) => {
         if (genRef.current !== gen) return   // filtro/refresh mudou → descarta
         setItems((prev) => mergeItems(prev, results.flat()))
@@ -1968,7 +2248,7 @@ export default function TreinamentoEpisodios() {
         inflightRef.current = Math.max(0, inflightRef.current - buckets.length)
         if (inflightRef.current === 0) setLoadingRange(false)
       })
-  }, [visibleRange, moedaServerFilter])
+  }, [visibleRange, moedaServerFilter, selectedVersao])
 
   // /serie só faz sentido com 1 moeda. Cancela quando muda.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1978,7 +2258,7 @@ export default function TreinamentoEpisodios() {
       return
     }
     let canceled = false
-    apiRequest(TreinamentoEpisodioEndpoint.SERIE({ moeda: moedaServerFilter, janela: 5 }))
+    apiRequest(TreinamentoEpisodioEndpoint.SERIE({ moeda: moedaServerFilter, versaoModelo: selectedVersao || undefined, janela: 5 }))
       .then((resp) => {
         if (canceled) return
         const data = Array.isArray(resp?.resultado)
@@ -1988,7 +2268,7 @@ export default function TreinamentoEpisodios() {
       })
       .catch(() => { if (!canceled) setSerie(null) })
     return () => { canceled = true }
-  }, [moedaServerFilter, refreshKey])
+  }, [moedaServerFilter, selectedVersao, refreshKey])
 
   const refresh = () => setRefreshKey((k) => k + 1)
 
@@ -2001,7 +2281,14 @@ export default function TreinamentoEpisodios() {
         </Box>
       )
     }
-    return <DetailView item={item} onBack={() => navigate('/treinamento-episodios')} />
+    return (
+      <DetailView
+        item={item}
+        allItems={items}
+        onBack={() => navigate('/treinamento-episodios')}
+        onNavigate={(navId) => navigate(`/treinamento-episodios/${navId}`)}
+      />
+    )
   }
 
   return (
@@ -2016,6 +2303,8 @@ export default function TreinamentoEpisodios() {
       onOpen={(rowId) => navigate(`/treinamento-episodios/${rowId}`)}
       selectedCoins={selectedCoins}
       setSelectedCoins={setSelectedCoins}
+      selectedVersao={selectedVersao}
+      setSelectedVersao={setSelectedVersao}
       visibleRange={visibleRange}
       setVisibleRange={setVisibleRange}
     />

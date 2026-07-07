@@ -31,7 +31,16 @@ export const ApiEndpoint = Object.freeze({
   }),
   MARKET: Object.freeze({
     COIN_LIST: '/ThinkBitcoin/moedas',
-    COIN_VALUE: (symbol) => `/ThinkBitcoin/moeda/${symbol}/valor`,
+    COIN_VALUE: (symbol, { dataInicio, dataFim, pagina, quantidade, ordemAsc } = {}) => {
+      const params = new URLSearchParams()
+      if (dataInicio) params.set('dataInicio', dataInicio)
+      if (dataFim) params.set('dataFim', dataFim)
+      if (pagina != null) params.set('pagina', String(pagina))
+      if (quantidade != null) params.set('quantidade', String(quantidade))
+      if (ordemAsc != null) params.set('ordemAsc', String(ordemAsc))
+      const qs = params.toString()
+      return qs ? `/ThinkBitcoin/moeda/${symbol}/valor?${qs}` : `/ThinkBitcoin/moeda/${symbol}/valor`
+    },
     SCRIPT_COMMON: '/ThinkBitcoin/AtivadorScript/ScriptComum',
     RETURN_SEQUENCE: (id = '') => `/ThinkBitcoin/sequenciasRetorno/${id}`,
     EXCHANGES: '/ThinkBitcoin/exchanges',
@@ -53,9 +62,10 @@ export const ApiEndpoint = Object.freeze({
     MIGRATE: '/ThinkBitcoin/planos-pagamento/migrar',
   }),
   TREINAMENTO_EPISODIO: Object.freeze({
-    LIST: ({ moeda, dataInicio, dataFim, pagina, quantidade, ordenarAscendente } = {}) => {
+    LIST: ({ moeda, versaoModelo, dataInicio, dataFim, pagina, quantidade, ordenarAscendente } = {}) => {
       const params = new URLSearchParams()
       if (moeda) params.set('moeda', moeda)
+      if (versaoModelo) params.set('versaoModelo', versaoModelo)
       if (dataInicio) params.set('dataInicio', dataInicio)
       if (dataFim) params.set('dataFim', dataFim)
       if (pagina != null) params.set('pagina', String(pagina))
@@ -64,17 +74,19 @@ export const ApiEndpoint = Object.freeze({
       const qs = params.toString()
       return qs ? `/api/TreinamentoEpisodio?${qs}` : '/api/TreinamentoEpisodio'
     },
-    RESUMO: ({ moeda, dataInicio, dataFim } = {}) => {
+    RESUMO: ({ moeda, versaoModelo, dataInicio, dataFim } = {}) => {
       const params = new URLSearchParams()
       if (moeda) params.set('moeda', moeda)
+      if (versaoModelo) params.set('versaoModelo', versaoModelo)
       if (dataInicio) params.set('dataInicio', dataInicio)
       if (dataFim) params.set('dataFim', dataFim)
       const qs = params.toString()
       return qs ? `/api/TreinamentoEpisodio/resumo?${qs}` : '/api/TreinamentoEpisodio/resumo'
     },
-    SERIE: ({ moeda, dataInicio, dataFim, janela, limite } = {}) => {
+    SERIE: ({ moeda, versaoModelo, dataInicio, dataFim, janela, limite } = {}) => {
       const params = new URLSearchParams()
       if (moeda) params.set('moeda', moeda)
+      if (versaoModelo) params.set('versaoModelo', versaoModelo)
       if (dataInicio) params.set('dataInicio', dataInicio)
       if (dataFim) params.set('dataFim', dataFim)
       if (janela != null) params.set('janela', String(janela))
