@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import CircularProgress from '@mui/material/CircularProgress'
@@ -106,11 +106,6 @@ const ONE_HOUR_MS = 60 * 60 * 1000
 const FOUR_HOURS_MS = 4 * 60 * 60 * 1000
 const FIVE_HOURS_MS = 5 * 60 * 60 * 1000
 
-// Range inicial estável para o scatter (calculado uma vez no carregamento do módulo).
-// Valores no nível do módulo garantem que scatterOptions nunca mude de referência,
-// preservando o estado de zoom/pan do chartjs-plugin-zoom entre re-renders.
-const _SCATTER_INIT_MAX = Date.now()
-const _SCATTER_INIT_MIN = _SCATTER_INIT_MAX - FOUR_HOURS_MS
 const bucketStartOf = (ts) => {
   const d = new Date(ts)
   d.setHours(Math.floor(d.getHours() / 4) * 4, 0, 0, 0)
@@ -248,10 +243,16 @@ function KpiCard({ icon, label, value, sub }) {
   )
 }
 
-function ZoomableChartCard({ title, subtitle, height, ChartComp, data, options, plugins, onReset }) {
+function ZoomableChartCard({ title, subtitle, height, ChartComp, data, options, plugins, onReset, resetRange }) {
   const ref = useRef(null)
   const reset = () => {
-    ref.current?.resetZoom?.()
+    const chart = ref.current
+    const range = resetRange?.()
+    if (chart && range && typeof chart.zoomScale === 'function') {
+      chart.zoomScale('x', range, 'default')
+    } else {
+      chart?.resetZoom?.()
+    }
     onReset?.()
   }
   return (
@@ -459,6 +460,24 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
     setVisibleRange({ min, max })
   }, [setVisibleRange])
 
+  // Range inicial do scatter fixado no mount (estável para não resetar o zoom
+  // do chartjs-plugin-zoom a cada re-render; ver comentário de scatterOptions).
+  const scatterInitRange = useRef({ min: Date.now() - FOUR_HOURS_MS, max: Date.now() }).current
+
+  // Range do botão "reset": ancora na última janela de 4h COM DADOS, não no
+  // horário de abertura da tela (que fica obsoleto com a aba aberta há horas).
+  const latestDataMs = useMemo(() => {
+    let max = null
+    for (const r of items) {
+      const t = new Date(r.dataHora).getTime()
+      if (!Number.isNaN(t) && (max === null || t > max)) max = t
+    }
+    return max
+  }, [items])
+  const scatterResetRange = useCallback(() => (
+    latestDataMs != null ? { min: latestDataMs - FOUR_HOURS_MS, max: latestDataMs + 5 * 60 * 1000 } : null
+  ), [latestDataMs])
+
   const resetVisibleRange = useCallback(() => setVisibleRange({ min: null, max: null }), [setVisibleRange])
 
   // Opções memoizadas: o react-chartjs-2 reaplica `options` (Object.assign) a cada
@@ -470,8 +489,8 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
         type: 'time',
         adapters: { date: { locale: ptBR } },
         time: { tooltipFormat: 'dd/MM HH:mm:ss', displayFormats: { minute: 'HH:mm', hour: 'HH:mm', day: 'dd/MM' } },
-        min: _SCATTER_INIT_MIN,
-        max: _SCATTER_INIT_MAX,
+        min: scatterInitRange.min,
+        max: scatterInitRange.max,
         ticks: { color: '#aaa' },
         grid: { color: 'rgba(255,255,255,0.05)' },
       },
@@ -515,7 +534,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
         pan: { ...ZOOM_CONFIG.pan, onPan: ({ chart }) => handleRangeChange(chart) },
       },
     },
-  }), [handleRangeChange])
+  }), [handleRangeChange, scatterInitRange])
 
   const defaultChartOptions = useMemo(() => baseChartOptions(), [])
   const lossEpsilonOptions = useMemo(() => baseChartOptions({
@@ -1020,7 +1039,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
           <MdPsychology size={28} color={ACCENT} />
           <Box>
             <Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>Treinamento de IA</Typography>
-            <Typography variant="caption" sx={{ opacity: 0.65 }}>Curva de aprendizado e métricas por episódio</Typography>
+            <Typography variant="caption" sx={{ opacity: 0.65 }}>Curva de aprendizado e métricas por episódio · atualiza a cada 60s</Typography>
           </Box>
         </Box>
         <Button
@@ -1086,7 +1105,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
           {/* Filtro de versão do modelo (server-side) */}
           {versoesDisponiveis.length > 0 && (
             <Box sx={{ mb: 3, mt: -1.5, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-              <Typography variant="caption" sx={{ opacity: 0.7, mr: 1 }}>VERSÃO DO MODELO:</Typography>
+              <Typography variant="caption" sx={{ opacity: 0.7, mr: 1 }} title="Versões vistas nos episódios carregados">VERSÃO DO MODELO:</Typography>
               {versoesDisponiveis.map((versao) => {
                 const active = selectedVersao === versao
                 return (
@@ -1153,6 +1172,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
               data={timelineData}
               plugins={[cycleBandsPlugin]}
               onReset={resetVisibleRange}
+              resetRange={scatterResetRange}
               options={scatterOptions}
             />
           </Box>
@@ -1844,7 +1864,7 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
               </Box>
               <Typography variant="h5" sx={{ fontWeight: 700, color: ACCENT, lineHeight: 1.2 }}>{formatNumber(item.rewardMedio)}</Typography>
               <Typography variant="caption" sx={{ color: deltaColor(rewardDelta), fontWeight: 600 }}>
-                {deltaSign(rewardDelta)}{formatNumber(rewardDelta)} vs média
+                {deltaSign(rewardDelta)}{formatNumber(rewardDelta)} vs média da janela
               </Typography>
             </Paper>
           </Grid>
@@ -1867,7 +1887,7 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
                 <Box sx={{ width: `${Math.min(100, winRatePct)}%`, height: '100%', borderRadius: 2, background: winRateGaugeColor, transition: 'width 0.5s ease' }} />
               </Box>
               <Typography variant="caption" sx={{ color: deltaColor(winRateDelta), fontWeight: 600 }}>
-                {deltaSign(winRateDelta)}{(winRateDelta * 100).toFixed(2)}pp vs média
+                {deltaSign(winRateDelta)}{(winRateDelta * 100).toFixed(2)}pp vs média da janela
               </Typography>
             </Paper>
           </Grid>
@@ -1885,7 +1905,7 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
               </Box>
               <Typography variant="h5" sx={{ fontWeight: 700, color: '#FF5C7C', lineHeight: 1.2 }}>{formatNumber(item.lossMedia)}</Typography>
               <Typography variant="caption" sx={{ color: deltaColor(lossDelta, true), fontWeight: 600 }}>
-                {deltaSign(lossDelta)}{formatNumber(lossDelta)} vs média
+                {deltaSign(lossDelta)}{formatNumber(lossDelta)} vs média da janela
               </Typography>
             </Paper>
           </Grid>
@@ -1922,7 +1942,7 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
               </Box>
               <Typography variant="h5" sx={{ fontWeight: 700, color: '#FFB547', lineHeight: 1.2 }}>{formatNumber(item.duracaoSegundos, 1)}s</Typography>
               <Typography variant="caption" sx={{ color: deltaColor(duracaoDelta, true), fontWeight: 600 }}>
-                {deltaSign(duracaoDelta)}{formatNumber(duracaoDelta, 1)}s vs média
+                {deltaSign(duracaoDelta)}{formatNumber(duracaoDelta, 1)}s vs média da janela
               </Typography>
             </Paper>
           </Grid>
@@ -1940,7 +1960,7 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
               </Box>
               <Typography variant="h5" sx={{ fontWeight: 700, color: '#A78BFA', lineHeight: 1.2 }}>{formatNumber(eficiencia, 6)}</Typography>
               <Typography variant="caption" sx={{ color: deltaColor(eficienciaDelta), fontWeight: 600 }}>
-                {deltaSign(eficienciaDelta)}{formatNumber(eficienciaDelta, 6)} vs média
+                {deltaSign(eficienciaDelta)}{formatNumber(eficienciaDelta, 6)} vs média da janela
               </Typography>
               <Typography variant="caption" sx={{ opacity: 0.5, fontSize: 9 }}>reward / segundo</Typography>
             </Paper>
@@ -1959,7 +1979,7 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
               <Box sx={{ mb: 1 }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Perfil do episódio</Typography>
                 <Typography variant="caption" sx={{ opacity: 0.6 }}>
-                  Comparação normalizada vs média de {item.moeda}
+                  Comparação normalizada vs média de {item.moeda} (episódios carregados)
                 </Typography>
               </Box>
               <Box sx={{ flex: 1, position: 'relative', minHeight: 0 }}>
@@ -2155,14 +2175,18 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
 export default function TreinamentoEpisodios() {
   const { id } = useParams()
   const navigate = useNavigate()
+  // Filtros persistidos na URL (?moedas=BTC,ETH&versao=x): sobrevivem a refresh,
+  // geram link compartilhável e atravessam a navegação lista ⇄ detalhe.
+  const [searchParams, setSearchParams] = useSearchParams()
   const [items, setItems] = useState([])
   const [resumo, setResumo] = useState([])
   const [serie, setSerie] = useState(null)
   const [loading, setLoading] = useState(true)
   const [loadingRange, setLoadingRange] = useState(false)
   const [error, setError] = useState(null)
-  const [selectedCoins, setSelectedCoins] = useState([])
-  const [selectedVersao, setSelectedVersao] = useState(null)
+  const [selectedCoins, setSelectedCoins] = useState(() =>
+    (searchParams.get('moedas') || '').split(',').map((s) => s.trim().toUpperCase()).filter(Boolean))
+  const [selectedVersao, setSelectedVersao] = useState(() => searchParams.get('versao') || null)
   const [refreshKey, setRefreshKey] = useState(0)
   const [visibleRange, setVisibleRange] = useState({ min: null, max: null })
   // Buckets (janelas de 4h) já buscados, identificados pelo timestamp de início
@@ -2171,6 +2195,22 @@ export default function TreinamentoEpisodios() {
   const inflightRef = useRef(0)  // conta buscas de janela em andamento
 
   const moedaServerFilter = selectedCoins.length === 1 ? selectedCoins[0] : null
+
+  const filterQuery = useCallback((extra = {}) => {
+    const p = new URLSearchParams()
+    if (selectedCoins.length > 0) p.set('moedas', selectedCoins.join(','))
+    if (selectedVersao) p.set('versao', selectedVersao)
+    Object.entries(extra).forEach(([k, v]) => { if (v) p.set(k, v) })
+    return p.toString()
+  }, [selectedCoins, selectedVersao])
+
+  // Mantém a URL da lista espelhando os filtros (replace pra não poluir o histórico)
+  useEffect(() => {
+    if (id) return
+    const qs = filterQuery()
+    if (qs !== searchParams.toString()) setSearchParams(qs, { replace: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, filterQuery])
 
   // Carga inicial em grupos de 4h: descobre o episódio mais recente e carrega as
   // duas janelas de 4h mais recentes. Refetcha quando filtro ou refresh muda.
@@ -2200,13 +2240,25 @@ export default function TreinamentoEpisodios() {
         if (!maisRecente) { setItems([]); return }
 
         const bucketAtual = bucketStartOf(new Date(maisRecente.dataHora).getTime())
-        const inicio = bucketAtual - FOUR_HOURS_MS      // janela anterior
-        const fim = bucketAtual + FOUR_HOURS_MS          // fim da janela atual
-        const dados = await fetchWindow(moedaServerFilter, selectedVersao, inicio, fim)
+        const buckets = [bucketAtual - FOUR_HOURS_MS, bucketAtual]
+
+        // Deep link de detalhe (?dt=dataHora do episódio): garante que a janela
+        // do episódio também seja carregada, mesmo sendo antiga.
+        const dtParam = searchParams.get('dt')
+        const alvoMs = dtParam ? new Date(dtParam).getTime() : NaN
+        if (!Number.isNaN(alvoMs)) {
+          const bucketAlvo = bucketStartOf(alvoMs)
+          for (const b of [bucketAlvo - FOUR_HOURS_MS, bucketAlvo]) {
+            if (!buckets.includes(b)) buckets.push(b)
+          }
+        }
+
+        const janelas = await Promise.all(
+          buckets.map((b) => fetchWindow(moedaServerFilter, selectedVersao, b, b + FOUR_HOURS_MS))
+        )
         if (canceled) return
-        fetchedBucketsRef.current.add(bucketAtual)
-        fetchedBucketsRef.current.add(bucketAtual - FOUR_HOURS_MS)
-        setItems(dados)
+        buckets.forEach((b) => fetchedBucketsRef.current.add(b))
+        setItems(mergeItems(janelas[0], janelas.slice(1).flat()))
       } catch (e) {
         if (!canceled) setError(e?.message || 'Falha ao carregar episódios')
       } finally {
@@ -2250,6 +2302,24 @@ export default function TreinamentoEpisodios() {
       })
   }, [visibleRange, moedaServerFilter, selectedVersao])
 
+  // Polling leve: a cada 60s busca só o bucket de 4h atual e mescla, mantendo
+  // KPIs e curvas vivos durante um treino ativo. Pausa com a aba em segundo plano.
+  useEffect(() => {
+    const gen = genRef.current
+    const tick = async () => {
+      if (document.hidden) return
+      const bucket = bucketStartOf(Date.now())
+      try {
+        const novos = await fetchWindow(moedaServerFilter, selectedVersao, bucket, bucket + FOUR_HOURS_MS)
+        if (genRef.current !== gen) return
+        fetchedBucketsRef.current.add(bucket)
+        setItems((prev) => mergeItems(prev, novos))
+      } catch { /* silencioso: próxima rodada tenta de novo */ }
+    }
+    const intervalId = setInterval(tick, 60_000)
+    return () => clearInterval(intervalId)
+  }, [moedaServerFilter, selectedVersao, refreshKey])
+
   // /serie só faz sentido com 1 moeda. Cancela quando muda.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -2272,6 +2342,14 @@ export default function TreinamentoEpisodios() {
 
   const refresh = () => setRefreshKey((k) => k + 1)
 
+  // Navegações levam filtros junto e, no detalhe, a data do episódio (?dt=)
+  // pra permitir recarregar/compartilhar o link mesmo de episódios antigos.
+  const openEpisodio = useCallback((epId) => {
+    const alvo = items.find((i) => i.idTreinamentoEpisodio === epId)
+    const qs = filterQuery({ dt: alvo?.dataHora })
+    navigate(`/treinamento-episodios/${epId}${qs ? `?${qs}` : ''}`)
+  }, [items, filterQuery, navigate])
+
   if (id) {
     const item = items.find((i) => i.idTreinamentoEpisodio === id)
     if (loading && !item) {
@@ -2285,8 +2363,8 @@ export default function TreinamentoEpisodios() {
       <DetailView
         item={item}
         allItems={items}
-        onBack={() => navigate('/treinamento-episodios')}
-        onNavigate={(navId) => navigate(`/treinamento-episodios/${navId}`)}
+        onBack={() => { const qs = filterQuery(); navigate(`/treinamento-episodios${qs ? `?${qs}` : ''}`) }}
+        onNavigate={openEpisodio}
       />
     )
   }
@@ -2300,7 +2378,7 @@ export default function TreinamentoEpisodios() {
       loadingRange={loadingRange}
       error={error}
       onRefresh={refresh}
-      onOpen={(rowId) => navigate(`/treinamento-episodios/${rowId}`)}
+      onOpen={openEpisodio}
       selectedCoins={selectedCoins}
       setSelectedCoins={setSelectedCoins}
       selectedVersao={selectedVersao}
