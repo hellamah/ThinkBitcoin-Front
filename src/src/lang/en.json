@@ -209,10 +209,6 @@
     "migrateSuccess": "Plan upgraded successfully!",
     "migrateError": "Failed to upgrade plan. Please try again."
   },
-  "taxaFinanciamento": "Funding Rate",
-  "contratosAberto": "Open Interest",
-  "longAccount": "Long Accounts",
-  "longShortRatio": "L/S Ratio",
   "shortAccount": "Short Accounts",
   "treinamento": {
     "title": "AI Training",

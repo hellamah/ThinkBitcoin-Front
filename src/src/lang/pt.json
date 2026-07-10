@@ -209,10 +209,6 @@
     "migrateSuccess": "Plano migrado com sucesso!",
     "migrateError": "Falha ao migrar plano. Tente novamente."
   },
-  "taxaFinanciamento": "Taxa de Financiamento",
-  "contratosAberto": "Contratos em Aberto",
-  "longAccount": "Contas Long",
-  "longShortRatio": "L/S Ratio",
   "shortAccount": "Contas Short",
   "treinamento": {
     "title": "Treinamento de IA",
