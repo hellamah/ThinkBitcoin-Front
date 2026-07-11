@@ -283,6 +283,62 @@ let mockPatrimonio = generateMockPatrimonio()
 
 let mockPlanoAtivoId = 1 // Minerador (Acesso a IA) por padrão
 
+// ---- Cobrança Pix simulada (fluxo de checkout de planos) ----
+// No modo demo a cobrança "se paga sozinha" após alguns segundos, simulando
+// o webhook do gateway confirmando o pagamento no backend.
+const MOCK_COBRANCA_AUTO_PAGAR_MS = 10000
+const MOCK_COBRANCA_EXPIRAR_MS = 30 * 60 * 1000
+
+let mockCobranca = null
+
+const mockPixQrCodeSvg = () => {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="220" height="220" viewBox="0 0 220 220"><rect width="220" height="220" fill="#fff"/><g fill="#000">${
+    Array.from({ length: 120 }, (_, i) => {
+      const x = 10 + (i * 37) % 200
+      const y = 10 + Math.floor((i * 53) % 200 / 10) * 10
+      return `<rect x="${x - x % 10}" y="${y}" width="10" height="10"/>`
+    }).join('')
+  }</g><rect x="70" y="95" width="80" height="30" fill="#fff"/><text x="110" y="115" font-family="monospace" font-size="12" text-anchor="middle" fill="#000">PIX DEMO</text></svg>`
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`
+}
+
+// Atualiza o status da cobrança em função do tempo decorrido e aplica o
+// efeito colateral do "webhook" (ativar o plano) quando ela é paga.
+const resolveMockCobranca = () => {
+  if (!mockCobranca) return null
+  if (mockCobranca.status === 'PENDENTE') {
+    const idade = Date.now() - mockCobranca._criadaEmMs
+    if (idade >= MOCK_COBRANCA_EXPIRAR_MS) {
+      mockCobranca.status = 'EXPIRADO'
+    } else if (idade >= MOCK_COBRANCA_AUTO_PAGAR_MS) {
+      mockCobranca.status = 'PAGO'
+      mockCobranca.pagaEm = new Date().toISOString()
+      mockPlanoAtivoId = mockCobranca.tipoPlano
+    }
+  }
+  return mockCobranca
+}
+
+const criarMockCobranca = (body) => {
+  const criadaEmMs = Date.now()
+  mockCobranca = {
+    idCobranca: crypto.randomUUID?.() || Math.random().toString(36).substring(2, 15),
+    idUsuarioTB: body?.idUsuarioTB || 'b282e124-4dd8-4ccd-a9c6-5b6b0c324a50',
+    tipoPlano: parseInt(body?.tipoPlano ?? 0),
+    nomePlano: body?.nomePlano || '',
+    valor: parseFloat(body?.valor ?? 0),
+    status: 'PENDENTE',
+    pixCopiaECola:
+      '00020126580014BR.GOV.BCB.PIX0136demo-thinkbitcoin-cobranca-simulada5204000053039865802BR5913ThinkBitcoin6009SAO PAULO62070503***6304DEMO',
+    qrCodeBase64: mockPixQrCodeSvg(),
+    criadaEm: new Date(criadaEmMs).toISOString(),
+    expiraEm: new Date(criadaEmMs + MOCK_COBRANCA_EXPIRAR_MS).toISOString(),
+    pagaEm: null,
+    _criadaEmMs: criadaEmMs,
+  }
+  return mockCobranca
+}
+
 const mockHandlers = [
   {
     method: 'POST',
@@ -661,6 +717,49 @@ const mockHandlers = [
         mensagem: 'Planos de pagamento retornados com sucesso',
         resultado: { planos }
       }
+    }
+  },
+  {
+    method: 'POST',
+    match: (endpoint) => endpoint === '/ThinkBitcoin/planos-pagamento/checkout',
+    response: (endpoint, body) => {
+      console.log('Mock POST Checkout Plano:', body)
+      const pendente = resolveMockCobranca()
+      // Idempotência: reaproveita cobrança pendente do mesmo plano em vez de
+      // gerar uma nova a cada clique.
+      const cobranca =
+        pendente && pendente.status === 'PENDENTE' && pendente.tipoPlano === parseInt(body?.tipoPlano ?? -1)
+          ? pendente
+          : criarMockCobranca(body)
+      return {
+        mensagem: 'Cobrança Pix gerada com sucesso',
+        resultado: { cobranca }
+      }
+    }
+  },
+  {
+    method: 'GET',
+    match: (endpoint) => endpoint === '/ThinkBitcoin/planos-pagamento/cobranca/pendente',
+    response: () => {
+      const cobranca = resolveMockCobranca()
+      return {
+        mensagem: 'Consulta de cobrança pendente',
+        resultado: { cobranca: cobranca && cobranca.status === 'PENDENTE' ? cobranca : null }
+      }
+    }
+  },
+  {
+    method: 'GET',
+    match: (endpoint) =>
+      endpoint.startsWith('/ThinkBitcoin/planos-pagamento/cobranca/') &&
+      !endpoint.endsWith('/pendente'),
+    response: (endpoint) => {
+      const id = endpoint.split('/').pop()
+      const cobranca = resolveMockCobranca()
+      if (!cobranca || cobranca.idCobranca !== id) {
+        return { mensagem: 'Cobrança não encontrada', resultado: { cobranca: null } }
+      }
+      return { mensagem: 'Status da cobrança', resultado: { cobranca } }
     }
   },
   {

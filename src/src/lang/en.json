@@ -207,7 +207,22 @@
     "upgrade": "Migrate",
     "migrateConfirm": "Are you sure you want to upgrade to the {{nome}} plan?",
     "migrateSuccess": "Plan upgraded successfully!",
-    "migrateError": "Failed to upgrade plan. Please try again."
+    "migrateError": "Failed to upgrade plan. Please try again.",
+    "confirmTitle": "Confirm migration",
+    "confirmPaid": "Upon confirmation, a Pix charge of {{valor}} will be generated to activate the {{nome}} plan. The plan is only activated after payment confirmation.",
+    "confirmFree": "Do you want to switch to the free {{nome}} plan?",
+    "confirm": "Confirm",
+    "back": "Back",
+    "generatePix": "Generate Pix charge",
+    "checkoutTitle": "Pix payment",
+    "pixInstructions": "Scan the QR code in your banking app or copy the Pix code below.",
+    "copyCode": "Copy Pix code",
+    "copied": "Code copied!",
+    "awaitingPayment": "Awaiting payment confirmation…",
+    "expiresAt": "Charge valid until {{hora}}",
+    "paymentSuccess": "Payment confirmed! Your plan has been activated.",
+    "paymentExpired": "The charge has expired. Select the plan again to generate a new one.",
+    "checkoutError": "Failed to generate the Pix charge. Please try again."
   },
   "shortAccount": "Short Accounts",
   "treinamento": {

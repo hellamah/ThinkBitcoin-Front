@@ -60,6 +60,12 @@ export const ApiEndpoint = Object.freeze({
   PLANOS_PAGAMENTO: Object.freeze({
     LIST: '/ThinkBitcoin/planos-pagamento',
     MIGRATE: '/ThinkBitcoin/planos-pagamento/migrar',
+    // Fluxo de pagamento Pix: o checkout cria uma cobrança no gateway (via
+    // backend), o front exibe o QR code e faz polling do status. A ativação
+    // do plano acontece no backend, via webhook do gateway — nunca aqui.
+    CHECKOUT: '/ThinkBitcoin/planos-pagamento/checkout',
+    COBRANCA: (id) => `/ThinkBitcoin/planos-pagamento/cobranca/${id}`,
+    COBRANCA_PENDENTE: '/ThinkBitcoin/planos-pagamento/cobranca/pendente',
   }),
   TREINAMENTO_EPISODIO: Object.freeze({
     LIST: ({ moeda, versaoModelo, dataInicio, dataFim, pagina, quantidade, ordenarAscendente } = {}) => {
