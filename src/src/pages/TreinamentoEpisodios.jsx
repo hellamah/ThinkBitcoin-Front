@@ -58,11 +58,25 @@ const ZOOM_CONFIG = {
   limits: { x: { minRange: 1 } },
 }
 
+// Paleta categórica validada (OKLCH L 0,48–0,67, croma ≥ 0,10, ΔE ≥ piso entre
+// vizinhos sob simulação de daltonismo, contraste ≥ 3:1 no tema escuro). As cores
+// de marca originais eram ilegíveis no fundo escuro: XRP quase preto, ADA/LINK/LTC
+// azuis-escuros iguais e BNB/DOGE/PAXG dourados iguais.
 const COIN_COLORS = {
-  BTC: '#F7931A', ETH: '#627EEA', BNB: '#F3BA2F', SOL: '#14F195',
-  XRP: '#23292F', ADA: '#0033AD', DOGE: '#C2A633', LTC: '#345D9D',
-  LINK: '#2A5ADA', PAXG: '#DBB43E',
+  BTC: '#A35303', ETH: '#7C8AE1', BNB: '#A89207', SOL: '#17A478',
+  XRP: '#0E8BA8', ADA: '#966CD7', DOGE: '#79953E', LTC: '#419BD4',
+  LINK: '#3065CC', PAXG: '#8E710F',
 }
+// Forma do ponto por moeda no scatter: segundo canal além da cor (daltonismo).
+// Cada forma emparelha uma cor quente com uma fria.
+const COIN_POINT_STYLES = {
+  BTC: 'circle', XRP: 'circle',
+  ETH: 'rect', PAXG: 'rect',
+  BNB: 'triangle', LINK: 'triangle',
+  SOL: 'rectRot', ADA: 'rectRot',
+  DOGE: 'rectRounded', LTC: 'rectRounded',
+}
+const coinPointStyle = (coin) => COIN_POINT_STYLES[coin] || 'circle'
 const ACCENT = '#FFD700'
 
 const chartBg = (dk) => dk ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)'
@@ -259,11 +273,12 @@ function KpiCard({ icon, label, value, sub }) {
   )
 }
 
-function ZoomableChartCard({ title, subtitle, height, ChartComp, data, options, plugins, onReset, resetRange }) {
+function ZoomableChartCard({ title, subtitle, height, ChartComp, data, options, plugins, onReset, resetRange, chartRef }) {
   const { palette } = useTheme()
   const dk = palette.mode === 'dark'
   const { t } = useTranslation()
-  const ref = useRef(null)
+  const localRef = useRef(null)
+  const ref = chartRef || localRef
   const reset = () => {
     const chart = ref.current
     const range = resetRange?.()
@@ -486,14 +501,22 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(25)
 
+  // Throttle por frame: onPan/onZoom disparam dezenas de vezes por gesto e cada
+  // setVisibleRange recalcula KPIs, curvas e tabela — sem isso o pan engasga.
+  const rangeRafRef = useRef(null)
   const handleRangeChange = useCallback((chart) => {
-    const { min, max } = chart.scales.x
-    setVisibleRange({ min, max })
+    if (rangeRafRef.current) return
+    rangeRafRef.current = requestAnimationFrame(() => {
+      rangeRafRef.current = null
+      const { min, max } = chart.scales.x
+      setVisibleRange({ min, max })
+    })
   }, [setVisibleRange])
+  useEffect(() => () => cancelAnimationFrame(rangeRafRef.current), [])
 
   // Range inicial do scatter fixado no mount (estável para não resetar o zoom
   // do chartjs-plugin-zoom a cada re-render; ver comentário de scatterOptions).
-  const scatterInitRange = useRef({ min: Date.now() - FOUR_HOURS_MS, max: Date.now() }).current
+  const scatterInitRange = useRef({ min: Date.now() - ONE_HOUR_MS, max: Date.now() }).current
 
   // Range do botão "reset": ancora na última janela de 4h COM DADOS, não no
   // horário de abertura da tela (que fica obsoleto com a aba aberta há horas).
@@ -505,11 +528,35 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
     }
     return max
   }, [items])
+  // Janela padrão: a última HORA com dados (+ folga de 5min à direita)
   const scatterResetRange = useCallback(() => (
-    latestDataMs != null ? { min: latestDataMs - FOUR_HOURS_MS, max: latestDataMs + 5 * 60 * 1000 } : null
+    latestDataMs != null ? { min: latestDataMs - ONE_HOUR_MS, max: latestDataMs + 5 * 60 * 1000 } : null
   ), [latestDataMs])
 
-  const resetVisibleRange = useCallback(() => setVisibleRange({ min: null, max: null }), [setVisibleRange])
+  // Reset sincroniza a janela dos demais gráficos com a mesma faixa do scatter
+  // (antes limpava pra null = "tudo", divergindo do que o scatter mostrava).
+  const resetVisibleRange = useCallback(() => {
+    setVisibleRange(scatterResetRange() ?? { min: null, max: null })
+  }, [scatterResetRange, setVisibleRange])
+
+  // Ao terminar uma carga (inicial ou por troca de filtro), alinha a janela do
+  // scatter à última hora COM DADOS — o range de mount usa Date.now() e deixa
+  // espaço morto à direita quando o treino parou antes da tela abrir. Roda uma
+  // única vez por carga pra não brigar com o pan/zoom do usuário (o polling de
+  // 60s não passa por aqui). Também propaga a janela pros demais gráficos.
+  const timelineChartRef = useRef(null)
+  const didAutoFitRef = useRef(false)
+  useEffect(() => {
+    if (loading) { didAutoFitRef.current = false; return }
+    if (didAutoFitRef.current || latestDataMs == null) return
+    const chart = timelineChartRef.current
+    if (chart && typeof chart.zoomScale === 'function') {
+      const range = { min: latestDataMs - ONE_HOUR_MS, max: latestDataMs + 5 * 60 * 1000 }
+      chart.zoomScale('x', range, 'none')
+      setVisibleRange(range)
+      didAutoFitRef.current = true
+    }
+  }, [loading, latestDataMs, setVisibleRange])
 
   // Opções memoizadas: o react-chartjs-2 reaplica `options` (Object.assign) a cada
   // mudança de referência, sobrescrevendo scales.x.min/max que o plugin de zoom usa —
@@ -522,7 +569,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
         time: { tooltipFormat: 'dd/MM HH:mm:ss', displayFormats: { minute: 'HH:mm', hour: 'HH:mm', day: 'dd/MM' } },
         min: scatterInitRange.min,
         max: scatterInitRange.max,
-        ticks: { color: tickColor(dk) },
+        ticks: { color: tickColor(dk), maxRotation: 0, autoSkip: true, maxTicksLimit: 8 },
         grid: { color: gridColor(dk) },
       },
       y: {
@@ -560,7 +607,8 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
       },
       zoom: {
         ...ZOOM_CONFIG,
-        limits: { x: { minRange: ONE_HOUR_MS, maxRange: FIVE_HOURS_MS } },
+        // mínimo de 10min: com a janela padrão de 1h ainda dá pra aproximar
+        limits: { x: { minRange: 10 * 60 * 1000, maxRange: FIVE_HOURS_MS } },
         zoom: { ...ZOOM_CONFIG.zoom, onZoom: ({ chart }) => handleRangeChange(chart) },
         pan: { ...ZOOM_CONFIG.pan, onPan: ({ chart }) => handleRangeChange(chart) },
       },
@@ -848,8 +896,13 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
       const cur = new Date(timeline[i].dataHora).getTime()
       gaps.push(cur - prev)
     }
-    const avgGap = gaps.reduce((a, b) => a + b, 0) / gaps.length
-    const gapThreshold = Math.max(60_000, avgGap * 3)
+    // O sinal forte de novo ciclo é o reset da numeração; o gap temporal só cobre
+    // retomadas sem reset. Piso de 30min: com média×3 qualquer episódio lento
+    // (>60s) virava um "ciclo" espúrio. Mediana em vez de média porque os gaps
+    // entre ciclos reais distorcem a média pra cima.
+    const sortedGaps = [...gaps].sort((a, b) => a - b)
+    const medianGap = sortedGaps[Math.floor(sortedGaps.length / 2)] ?? 0
+    const gapThreshold = Math.max(30 * 60_000, medianGap * 12)
     const result = []
     let startIdx = 0
     for (let i = 1; i < timeline.length; i++) {
@@ -880,39 +933,50 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
     return result
   }, [timeline])
 
-  // Plugin para desenhar bandas de ciclo no fundo do gráfico de timeline
+  // Plugin para desenhar bandas de ciclo no fundo do gráfico de timeline.
+  // Tudo recortado à área de plotagem (sem clip, as bandas pintavam por cima dos
+  // eixos ao arrastar) e com preenchimento sutil pra não competir com os pontos.
   const cycleBandsPlugin = useMemo(() => ({
     id: 'cycleBands',
     beforeDatasetsDraw: (chart) => {
       if (cycles.length <= 1) return
       const { ctx, chartArea, scales } = chart
       if (!chartArea || !scales.x) return
+      const { left, right, top, bottom } = chartArea
       ctx.save()
+      ctx.beginPath()
+      ctx.rect(left, top, right - left, bottom - top)
+      ctx.clip()
+      ctx.font = 'bold 11px sans-serif'
       cycles.forEach((c, idx) => {
-        const color = idx % 2 === 0 ? [255, 215, 0] : [92, 184, 255]
+        const color = idx % 2 === 0 ? '255,215,0' : '92,184,255'
         const x1 = scales.x.getPixelForValue(c.start)
         const x2 = scales.x.getPixelForValue(c.end)
-        const w = Math.max(2, x2 - x1)
-        // banda
-        ctx.fillStyle = `rgba(${color.join(',')},0.18)`
-        ctx.fillRect(x1, chartArea.top, w, chartArea.bottom - chartArea.top)
-        // borda inicial vertical
-        ctx.strokeStyle = `rgba(${color.join(',')},0.5)`
+        if (x2 < left || x1 > right) return
+        ctx.fillStyle = `rgba(${color},0.07)`
+        ctx.fillRect(x1, top, Math.max(2, x2 - x1), bottom - top)
+        // fronteiras de início e fim
+        ctx.strokeStyle = `rgba(${color},0.4)`
         ctx.lineWidth = 1
         ctx.setLineDash([4, 4])
         ctx.beginPath()
-        ctx.moveTo(x1, chartArea.top)
-        ctx.lineTo(x1, chartArea.bottom)
+        ctx.moveTo(x1, top)
+        ctx.lineTo(x1, bottom)
+        ctx.moveTo(x2, top)
+        ctx.lineTo(x2, bottom)
         ctx.stroke()
         ctx.setLineDash([])
-        // rótulo do ciclo
-        ctx.fillStyle = `rgba(${color.join(',')},0.95)`
-        ctx.font = 'bold 12px sans-serif'
-        ctx.fillText(t('treinamento.cycleLabel', { num: idx + 1, count: c.count }), x1 + 6, chartArea.top + 16)
+        // rótulo preso à borda visível (acompanha o pan) e omitido se não couber
+        const label = t('treinamento.cycleLabel', { num: idx + 1, count: c.count })
+        const lx = Math.max(x1, left) + 6
+        if (lx + ctx.measureText(label).width <= Math.min(x2, right) - 6) {
+          ctx.fillStyle = `rgba(${color},0.9)`
+          ctx.fillText(label, lx, top + 14)
+        }
       })
       ctx.restore()
     },
-  }), [cycles])
+  }), [cycles, t])
 
   // Reward acumulado por episódio (soma cumulativa do rewardTotal)
   const cumulativeRewardData = useMemo(() => {
@@ -1008,39 +1072,44 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
   // Linha do tempo: scatter X=dataHora, Y=episódio, ponto colorido por moeda,
   // raio proporcional à duração do treinamento.
   const timelineData = useMemo(() => {
-    const byCoin = filtered.reduce((acc, r) => {
-      if (!r.moeda || !r.dataHora) return acc
-      acc[r.moeda] = acc[r.moeda] || []
-      acc[r.moeda].push({
+    const byCoin = {}
+    // min/max em laço: Math.min(...arr) estoura a pilha com dezenas de milhares
+    // de episódios carregados via pan.
+    let dMin = Infinity
+    let dMax = -Infinity
+    for (const r of filtered) {
+      if (!r.moeda || !r.dataHora) continue
+      const duracao = r.duracaoSegundos ?? 0
+      if (duracao < dMin) dMin = duracao
+      if (duracao > dMax) dMax = duracao
+      ;(byCoin[r.moeda] = byCoin[r.moeda] || []).push({
         x: new Date(r.dataHora).getTime(),
         y: r.episodio ?? 0,
-        duracao: r.duracaoSegundos ?? 0,
+        duracao,
         rewardMedio: r.rewardMedio ?? 0,
         winRate: r.winRate ?? 0,
         versaoModelo: r.versaoModelo ?? null,
         id: r.idTreinamentoEpisodio,
       })
-      return acc
-    }, {})
-    const duracoes = filtered.map((r) => r.duracaoSegundos ?? 0)
-    const dMin = Math.min(...duracoes)
-    const dMax = Math.max(...duracoes)
-    const scale = (d) => {
-      if (dMax === dMin) return 5
-      return 3 + ((d - dMin) / (dMax - dMin)) * 9
     }
+    // Raio 4–9px: mínimo pra forma do ponto ser legível, máximo antes de os
+    // pontos densos virarem uma "corda" contínua.
+    const scale = (d) => (dMax === dMin ? 5 : 4 + ((d - dMin) / (dMax - dMin)) * 5)
+    // Anel da cor da superfície separa pontos sobrepostos entre si
+    const ring = dk ? 'rgba(18,18,24,0.9)' : 'rgba(255,255,255,0.9)'
     return {
       datasets: Object.entries(byCoin).sort(([a], [b]) => a.localeCompare(b)).map(([coin, pts]) => ({
         label: coin,
         data: pts,
-        backgroundColor: coinColor(coin) + 'CC',
-        borderColor: coinColor(coin),
-        borderWidth: 1,
+        backgroundColor: coinColor(coin) + 'E6',
+        borderColor: ring,
+        borderWidth: 1.5,
+        pointStyle: coinPointStyle(coin),
         pointRadius: pts.map((p) => scale(p.duracao)),
         pointHoverRadius: pts.map((p) => scale(p.duracao) + 2),
       })),
     }
-  }, [filtered])
+  }, [filtered, dk])
 
   const sorted = useMemo(() => {
     const copy = [...visibleFiltered]
@@ -1060,6 +1129,13 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
   }
 
   const pageItems = sorted.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+
+  // Faixa horária visível no scatter, exibida no subtítulo (deixa claro que os
+  // demais gráficos, KPIs e tabela seguem essa janela)
+  const fmtHM = (ms) => new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  const visibleWindowLabel = visibleRange.min != null && visibleRange.max != null
+    ? `${fmtHM(visibleRange.min)}–${fmtHM(visibleRange.max)}`
+    : null
 
   return (
     <div className="dashboard-container">
@@ -1197,7 +1273,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
           <Box sx={{ mb: 2 }}>
             <ZoomableChartCard
               title={t('treinamento.timelineTitle')}
-              subtitle={`${t('treinamento.dragScrollZoom')} · ${t('treinamento.cyclesDetected', { count: cycles.length })}`}
+              subtitle={`${t('treinamento.dragScrollZoom')} · ${t('treinamento.cyclesDetected', { count: cycles.length })} · ${t('treinamento.followsWindow')}${visibleWindowLabel ? `: ${visibleWindowLabel}` : ''}`}
               height={{ xs: 320, md: 420 }}
               ChartComp={Scatter}
               data={timelineData}
@@ -1205,6 +1281,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
               onReset={resetVisibleRange}
               resetRange={scatterResetRange}
               options={scatterOptions}
+              chartRef={timelineChartRef}
             />
           </Box>
 
@@ -1343,7 +1420,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
                   ))}
                   {pageItems.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={COLUMNS.length} align="center" sx={{ py: 4 }}>
+                      <TableCell colSpan={columns.length} align="center" sx={{ py: 4 }}>
                         {t('treinamento.noEpisodes')}
                       </TableCell>
                     </TableRow>

@@ -238,6 +238,7 @@
     "timelineTitle": "Linha do tempo dos treinamentos",
     "dragScrollZoom": "Arraste para deslocar · scroll para zoom",
     "cyclesDetected": "{{count}} ciclo(s) detectado(s) (faixas verticais)",
+    "followsWindow": "os demais gráficos seguem esta janela",
     "learningCurve": "Curva de aprendizado",
     "backendSmoothing": "Suavização do backend (janela 5) para {{coin}} · arraste/scroll",
     "rewardPerEpMA": "Reward médio por episódio + média móvel (5) · arraste/scroll",

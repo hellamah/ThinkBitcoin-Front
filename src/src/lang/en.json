@@ -238,6 +238,7 @@
     "timelineTitle": "Training Timeline",
     "dragScrollZoom": "Drag to pan · scroll to zoom",
     "cyclesDetected": "{{count}} cycle(s) detected (vertical bands)",
+    "followsWindow": "other charts follow this window",
     "learningCurve": "Learning Curve",
     "backendSmoothing": "Backend smoothing (window 5) for {{coin}} · drag/scroll",
     "rewardPerEpMA": "Avg reward per episode + moving average (5) · drag/scroll",
