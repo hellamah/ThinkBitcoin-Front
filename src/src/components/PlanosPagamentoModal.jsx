@@ -98,7 +98,11 @@ export default function PlanosPagamentoModal({ visible, onClose, token, user, on
     ;(async () => {
       const lista = await carregarPlanos()
       try {
-        const res = await apiRequest(PlanosPagamentoEndpoint.COBRANCA_PENDENTE)
+        // suppressAuthRedirect: enquanto o backend não implementar este
+        // endpoint, um 401/404 aqui não pode derrubar a sessão do usuário.
+        const res = await apiRequest(PlanosPagamentoEndpoint.COBRANCA_PENDENTE, {
+          suppressAuthRedirect: true,
+        })
         const pendente = res?.resultado?.cobranca
         if (ativo && pendente?.status === CobrancaStatus.PENDENTE) {
           setCobranca(pendente)
@@ -137,7 +141,7 @@ export default function PlanosPagamentoModal({ visible, onClose, token, user, on
       try {
         const res = await apiRequest(
           PlanosPagamentoEndpoint.COBRANCA(cobranca.idCobranca),
-          { forceRefresh: true }
+          { forceRefresh: true, suppressAuthRedirect: true }
         )
         const atual = res?.resultado?.cobranca
         if (!atual) return
