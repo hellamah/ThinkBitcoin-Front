@@ -38,6 +38,9 @@ Mesmo com backend privado, a experiência visual do produto pode ser avaliada po
 - Utilização de *hooks* customizados para preços (`useCoinPrices`) e tradução (`useTranslation`).
 - Planejamento evolutivo documentado no arquivo `ROADMAP.md`.
 
+## Fluxo de Pagamento (Pix)
+- O contrato entre o front e o backend para pagamento de planos via Pix (checkout, polling, webhook e regras de segurança) está documentado em [`PAGAMENTOS.md`](./PAGAMENTOS.md). No modo demo os endpoints são mockados e a cobrança se confirma sozinha em ~10s.
+
 ## Roadmap
 - O roadmap completo de evolução do produto está em [`ROADMAP.md`](./ROADMAP.md), organizado em quatro fases:
   - Base do projeto e pipeline de entrega.
