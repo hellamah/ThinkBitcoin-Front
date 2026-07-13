@@ -1,6 +1,10 @@
 # Fluxo de Pagamento de Planos (Pix)
 
-Este documento especifica o contrato entre o **ThinkBitcoin-Front** e o backend para o fluxo de pagamento de planos via Pix (gateway sugerido: [AbacatePay](https://www.abacatepay.com)). O front já está implementado contra este contrato — em modo demo (`VITE_USE_MOCK=true`) os endpoints são mockados e a cobrança "se paga sozinha" em ~10 segundos.
+Este documento especifica o contrato entre o **ThinkBitcoin-Front** e o backend para o fluxo de pagamento de planos via Pix (gateway: [AbacatePay](https://www.abacatepay.com)). Em modo demo (`VITE_USE_MOCK=true`) os endpoints são mockados e a cobrança "se paga sozinha" em ~10 segundos.
+
+> **Status:** o contrato está implementado dos dois lados. O detalhamento do
+> lado do backend (entidades, webhook, configuração do gateway, cargos) vive
+> em `docs/planos-pagamento-README.md` no repositório `ThinkBitcoin-Back-DotNet`.
 
 ## Visão geral
 
@@ -117,3 +121,25 @@ Implementado em `src/src/components/PlanosPagamentoModal.jsx`:
 - Segredos do gateway **não existem no front** — apenas no backend.
 
 Os mocks correspondentes estão em `src/src/utils/mockApi.js` (cobrança auto-paga em 10s, expira em 30min) e mantêm o modo demo funcional sem backend.
+
+## Permissões (cargo) e renovação de token
+
+A assinatura controla o que o usuário pode acessar: ao ativar um plano, o
+backend sincroniza o cargo do usuário (`TbCargoUsuarioTB`) com o cargo
+definido no catálogo — plano gratuito concede `Consultor` (funções básicas),
+planos pagos concedem `Minerador` (funções de IA do robô). O cargo viaja como
+claim de `Role` no token JWT, então o front fecha o ciclo em dois pontos:
+
+1. **Renovação de token pós-ativação** — ao concluir migração ou pagamento,
+   o `PlanosPagamentoModal` chama `POST /ThinkBitcoin/gerarTokenBearer/renovar`
+   (autenticado, sem senha) e aplica o token novo via `login()` do
+   `AuthContext`: as permissões novas valem na hora, sem relogin. Se a
+   renovação falhar, o fluxo segue e as permissões entram no próximo login.
+
+2. **Upsell no 403** — quando a API responde `403` (autenticado, mas sem o
+   cargo exigido), o `apiClient` dispara o evento global
+   `subscription-required`; o `Layout` exibe um convite único para conhecer
+   os planos, cujo botão navega para `/settings?planos=1` — rota que o
+   `Settings` reconhece para abrir o modal de planos direto (e limpa o
+   parâmetro da URL). Assim, recurso bloqueado vira funil de migração em vez
+   de tela de erro.
