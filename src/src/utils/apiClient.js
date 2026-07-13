@@ -13,6 +13,8 @@ export const HttpMethod = Object.freeze({
 export const ApiEndpoint = Object.freeze({
   AUTHENTICATION: Object.freeze({
     LOGIN: '/ThinkBitcoin/gerarTokenBearer',
+    // Reemite o token com os claims atuais (o cargo muda ao trocar de plano).
+    RENOVAR: '/ThinkBitcoin/gerarTokenBearer/renovar',
   }),
   USER: Object.freeze({
     ME: (id) => `/ThinkBitcoin/usuariosTB/${id}`,
@@ -202,6 +204,11 @@ export const apiRequest = async (
   if (!response.ok) {
     if (response.status === 401 && !suppressAuthRedirect && typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('auth-expired'))
+    }
+    // 403 = autenticado mas sem o cargo exigido: recurso de assinatura paga.
+    // O Layout escuta este evento e exibe o convite para migrar de plano.
+    if (response.status === 403 && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('subscription-required', { detail: { endpoint } }))
     }
     const backendMessage = await extractErrorMessage(response)
     const error = new Error(backendMessage || 'Falha na requisição à API')

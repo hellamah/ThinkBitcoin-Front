@@ -342,7 +342,9 @@ const criarMockCobranca = (body) => {
 const mockHandlers = [
   {
     method: 'POST',
-    match: (endpoint) => endpoint === '/ThinkBitcoin/gerarTokenBearer',
+    match: (endpoint) =>
+      endpoint === '/ThinkBitcoin/gerarTokenBearer' ||
+      endpoint === '/ThinkBitcoin/gerarTokenBearer/renovar',
     response: () => {
       // Cria um payload mock no padrão JWT para o decode da aplicação
       const payload = {

@@ -224,6 +224,10 @@
     "paymentExpired": "A cobrança expirou. Selecione o plano novamente para gerar uma nova.",
     "checkoutError": "Falha ao gerar a cobrança Pix. Tente novamente."
   },
+  "upsell": {
+    "mensagem": "Este recurso faz parte dos planos pagos. Migre de plano para desbloquear as funções de IA do robô.",
+    "verPlanos": "Ver planos"
+  },
   "shortAccount": "Contas Short",
   "treinamento": {
     "title": "Treinamento de IA",

@@ -224,6 +224,10 @@
     "paymentExpired": "The charge has expired. Select the plan again to generate a new one.",
     "checkoutError": "Failed to generate the Pix charge. Please try again."
   },
+  "upsell": {
+    "mensagem": "This feature is part of the paid plans. Upgrade your plan to unlock the robot's AI features.",
+    "verPlanos": "View plans"
+  },
   "shortAccount": "Short Accounts",
   "treinamento": {
     "title": "AI Training",

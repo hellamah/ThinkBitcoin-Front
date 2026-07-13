@@ -1,5 +1,5 @@
-import { NavLink, useLocation } from 'react-router-dom'
-import { MdHome, MdLogin, MdDashboard, MdLogout, MdSettings, MdPublic, MdPsychology } from 'react-icons/md'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { MdHome, MdLogin, MdDashboard, MdLogout, MdSettings, MdPublic, MdPsychology, MdWorkspacePremium, MdClose } from 'react-icons/md'
 import AppBar from '@mui/material/AppBar'
 import Toolbar from '@mui/material/Toolbar'
 import IconButton from '@mui/material/IconButton'
@@ -10,12 +10,30 @@ import logoLight from '../../logo-light.svg'
 import '../App.css'
 import { useAuth } from '../context/AuthContext'
 import useTranslation from '../hooks/useTranslation'
-import { useRef } from 'react'
+import { useRef, useState, useEffect } from 'react'
 function Layout({ children }) {
   const { token, user, logout } = useAuth()
   const { t } = useTranslation()
   const location = useLocation()
+  const navigate = useNavigate()
   const containerRef = useRef(null)
+  const [upsellVisivel, setUpsellVisivel] = useState(false)
+
+  // Um 403 da API significa "autenticado, mas sem o cargo exigido" — recurso
+  // de assinatura paga. Em vez de cada página tratar o erro, o convite para
+  // migrar de plano aparece aqui, uma única vez por navegação.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const aoRequererAssinatura = () => {
+      if (token) setUpsellVisivel(true)
+    }
+    window.addEventListener('subscription-required', aoRequererAssinatura)
+    return () => window.removeEventListener('subscription-required', aoRequererAssinatura)
+  }, [token])
+
+  useEffect(() => {
+    setUpsellVisivel(false)
+  }, [location.pathname])
   
   const handleMouseMove = (e) => {
     if (!containerRef.current) return
@@ -212,6 +230,45 @@ function Layout({ children }) {
       </AppBar>
       
       <main className="main-content-premium" key={location.pathname}>
+        {upsellVisivel && (
+          <Box
+            role="status"
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.5,
+              flexWrap: 'wrap',
+              mb: 3,
+              p: 2,
+              borderRadius: '12px',
+              border: '1px solid rgba(255, 215, 0, 0.35)',
+              bgcolor: 'rgba(255, 215, 0, 0.08)',
+            }}
+          >
+            <MdWorkspacePremium style={{ color: '#ffd700', fontSize: '1.4rem', flexShrink: 0 }} />
+            <span style={{ flex: 1, minWidth: '200px', fontSize: '0.9rem' }}>
+              {t('upsell.mensagem')}
+            </span>
+            <Button
+              variant="contained"
+              size="small"
+              onClick={() => {
+                setUpsellVisivel(false)
+                navigate('/settings?planos=1')
+              }}
+            >
+              {t('upsell.verPlanos')}
+            </Button>
+            <IconButton
+              size="small"
+              aria-label={t('close')}
+              onClick={() => setUpsellVisivel(false)}
+              sx={{ color: 'inherit' }}
+            >
+              <MdClose />
+            </IconButton>
+          </Box>
+        )}
         {children}
       </main>
       <nav className="bottom-nav">{links}</nav>

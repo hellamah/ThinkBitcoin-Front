@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   MdBrightness4,
   MdLanguage,
@@ -58,6 +59,17 @@ function Settings() {
   const [planoAtivo, setPlanoAtivo] = useState(null)
   const [loadingPlano, setLoadingPlano] = useState(true)
   const [modalPlanosOpen, setModalPlanosOpen] = useState(false)
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  // ?planos=1 abre o modal de planos direto (usado pelo convite de upsell
+  // do Layout quando a API responde 403 em recurso de assinatura paga).
+  useEffect(() => {
+    if (searchParams.get('planos') === '1') {
+      setModalPlanosOpen(true)
+      searchParams.delete('planos')
+      setSearchParams(searchParams, { replace: true })
+    }
+  }, [searchParams, setSearchParams])
 
   const carregarPlanoAtivo = async () => {
     if (!token) return

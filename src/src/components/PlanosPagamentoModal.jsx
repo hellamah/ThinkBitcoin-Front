@@ -15,7 +15,8 @@ import {
 } from 'react-icons/md'
 
 import Modal from './Modal'
-import { apiRequest, PlanosPagamentoEndpoint, HttpMethod } from '../utils/apiClient'
+import { apiRequest, PlanosPagamentoEndpoint, AuthenticationEndpoint, HttpMethod } from '../utils/apiClient'
+import { useAuth } from '../context/AuthContext'
 import useTranslation from '../hooks/useTranslation'
 
 const POLL_INTERVAL_MS = 4000
@@ -62,6 +63,7 @@ const buildMigrarBody = (plano, user) => ({
 
 export default function PlanosPagamentoModal({ visible, onClose, token, user, onRefresh }) {
   const { t } = useTranslation()
+  const { login } = useAuth()
   const [planos, setPlanos] = useState([])
   const [loading, setLoading] = useState(true)
   const [step, setStep] = useState(Step.LISTA)
@@ -131,7 +133,20 @@ export default function PlanosPagamentoModal({ visible, onClose, token, user, on
     setCobranca(null)
     await carregarPlanos()
     if (onRefresh) await onRefresh()
-  }, [carregarPlanos, onRefresh])
+    // O cargo (permissões) acompanha a assinatura, mas viaja no token:
+    // renova o token para as permissões novas valerem sem relogin.
+    try {
+      const res = await apiRequest(AuthenticationEndpoint.RENOVAR, {
+        method: HttpMethod.POST,
+        suppressAuthRedirect: true,
+      })
+      const novoToken = res?.resultado?.tokenAutenticado
+      if (novoToken) await login(novoToken)
+    } catch (err) {
+      // Sem renovação, as permissões novas valem no próximo login.
+      console.error('Erro ao renovar token após troca de plano:', err)
+    }
+  }, [carregarPlanos, onRefresh, login])
 
   // Polling do status da cobrança enquanto o QR code está na tela. Quem
   // ativa o plano é o backend (webhook do gateway); aqui só refletimos.
