@@ -331,37 +331,57 @@ export default function PlanosPagamentoModal({ visible, onClose, token, user, on
     if (!plano) return null
     const pago = plano.valor > 0
     return (
-      <Box sx={{ maxWidth: 480, mx: 'auto' }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
+      <Box sx={{ maxWidth: 520, mx: 'auto', width: '100%' }}>
+        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3, textAlign: 'center' }}>
           {t('planos.confirmTitle')}
         </Typography>
-        <Box sx={{ border: '1px solid rgba(255,255,255,0.12)', borderRadius: '12px', p: 2.5, mb: 3 }}>
-          <Typography sx={{ fontWeight: 800, color: 'var(--color-primary)', textTransform: 'uppercase', fontFamily: "'Share Tech Mono', monospace", mb: 1 }}>
+        <Box sx={{
+          border: '1px solid rgba(255,255,255,0.12)',
+          borderRadius: '16px',
+          p: 3,
+          mb: 3,
+          background: 'rgba(255,255,255,0.03)',
+        }}>
+          <Typography sx={{ fontWeight: 800, color: 'var(--color-primary)', textTransform: 'uppercase', fontFamily: "'Share Tech Mono', monospace", mb: 0.5, fontSize: '1rem' }}>
             {plano.nome}
           </Typography>
-          <Typography sx={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.6)', mb: 2 }}>
+          <Typography sx={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)', mb: 2 }}>
             {plano.descricao}
           </Typography>
-          <Typography sx={{ fontSize: '0.9rem', mb: 0.5 }}>
-            {t('planos.duration')}: {plano.duracaoDias} {t('planos.days')}
-          </Typography>
-          <Typography sx={{ fontSize: '0.9rem', mb: 0.5 }}>
-            {t('planos.taxaSaque')}: {plano.taxaSaqueAntecipado}% · {t('planos.taxaResgate')}: {plano.taxaResgate}%
-          </Typography>
-          <Typography sx={{ fontSize: '1.1rem', fontWeight: 800, mt: 1.5 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, mb: 2 }}>
+            <Typography sx={{ fontSize: '0.88rem', color: 'rgba(255,255,255,0.75)' }}>
+              {t('planos.duration')}: {plano.duracaoDias} {t('planos.days')}
+            </Typography>
+            <Typography sx={{ fontSize: '0.88rem', color: 'rgba(255,255,255,0.75)' }}>
+              {t('planos.taxaSaque')}: {plano.taxaSaqueAntecipado}%&nbsp;&nbsp;·&nbsp;&nbsp;{t('planos.taxaResgate')}: {plano.taxaResgate}%
+            </Typography>
+          </Box>
+          <Typography sx={{ fontSize: '1.4rem', fontWeight: 800, color: '#fff', mt: 1 }}>
             {plano.valor === 0 ? t('planos.free') : formatBRL(plano.valor)}
           </Typography>
         </Box>
-        <Typography sx={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.6)', mb: 3 }}>
+        <Typography sx={{ fontSize: '0.88rem', color: 'rgba(255,255,255,0.55)', mb: 3, lineHeight: 1.6, textAlign: 'center' }}>
           {pago
             ? t('planos.confirmPaid', { valor: formatBRL(plano.valor), nome: plano.nome })
             : t('planos.confirmFree', { nome: plano.nome })}
         </Typography>
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button variant="outlined" startIcon={<MdArrowBack />} onClick={voltarParaLista} disabled={processando} fullWidth>
+        <Box sx={{ display: 'flex', gap: 2, width: '100%' }}>
+          <Button
+            variant="outlined"
+            startIcon={<MdArrowBack />}
+            onClick={voltarParaLista}
+            disabled={processando}
+            sx={{ flex: 1, py: 1.4, borderRadius: '12px', fontWeight: 700 }}
+          >
             {t('planos.back')}
           </Button>
-          <Button variant="contained" startIcon={pago ? <MdQrCode2 /> : <MdCheck />} onClick={confirmarSelecao} disabled={processando} fullWidth>
+          <Button
+            variant="contained"
+            startIcon={pago ? <MdQrCode2 /> : <MdCheck />}
+            onClick={confirmarSelecao}
+            disabled={processando}
+            sx={{ flex: 1, py: 1.4, borderRadius: '12px', fontWeight: 700 }}
+          >
             {processando ? <CircularProgress size={20} color="inherit" /> : (pago ? t('planos.generatePix') : t('planos.confirm'))}
           </Button>
         </Box>
