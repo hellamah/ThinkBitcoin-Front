@@ -482,8 +482,14 @@ export default function PlanosPagamentoModal({ visible, onClose, token, user, on
     </Box>
   )
 
+  const getModalSizeClass = () => {
+    // Para a lista de planos (que tem vários cards em grid), mantemos modal-lg (1100px)
+    // Para confirmar, pagar (QR code) ou sucesso, usamos modal-md (720px) para não sobrar espaço
+    return step === Step.LISTA ? 'modal-lg' : 'modal-md'
+  }
+
   return (
-    <Modal visible={visible} onClose={onClose} className="modal-lg">
+    <Modal visible={visible} onClose={onClose} className={getModalSizeClass()}>
       <Box sx={{ p: 1, maxWidth: '100%' }}>
         <Typography variant="h5" className="patrimonio-title-glow" sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <MdPayment style={{ fontSize: '1.8rem' }} /> {t('planos.viewPlans')}
