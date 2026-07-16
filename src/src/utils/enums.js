@@ -44,5 +44,16 @@ export const ThemeVariant = Object.freeze({
 export const ExportFormat = Object.freeze({
   CSV: 'csv',
   JSON: 'json',
+  PNG: 'png',
+});
+
+/**
+ * Métrica usada para colorir o mapa geopolítico.
+ * LIDERANCA – nº de vezes que o país liderou as buscas no período.
+ * INTENSIDADE – intensidade média de busca (0-100).
+ */
+export const MapMetric = Object.freeze({
+  LIDERANCA: 'lideranca',
+  INTENSIDADE: 'intensidade',
 });
 

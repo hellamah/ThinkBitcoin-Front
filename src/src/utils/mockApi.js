@@ -466,6 +466,7 @@ const mockHandlers = [
           {
             valor: 75,
             classificacao: 'Greed',
+            timeUntilUpdateSeg: 1800,
             horaReferencia: new Date().toISOString(),
           }
         ]
@@ -475,7 +476,16 @@ const mockHandlers = [
   {
     method: 'GET',
     match: (endpoint) => !!endpoint.match(/^\/ThinkBitcoin\/variavel-externa\/trend(\?.*)?$/i),
-    response: () => ({
+    response: (endpoint) => {
+      // País líder varia por moeda para exercitar o filtro real do carrossel
+      // (clicar num país do mapa filtra por trend.geoTop1Code).
+      const urlQuery = endpoint.includes('?') ? new URLSearchParams(endpoint.split('?')[1]) : null
+      const idMoedaStr = urlQuery?.get('idMoeda') || ''
+      const hash = idMoedaStr.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+      const paisesLideres = ['US', 'BR', 'CH', 'DE', 'JP']
+      const geoTop1Code = paisesLideres[hash % paisesLideres.length]
+
+      return {
       mensagem: 'Trend mock retornado com sucesso',
       resultado: {
         totalRegistros: 1,
@@ -484,6 +494,7 @@ const mockHandlers = [
         registros: [
           {
             valorAtual: 130,
+            mediaPeriodo: 96.4,
             mA5: 120,
             mA15: 121,
             delta5: 19,
@@ -491,12 +502,19 @@ const mockHandlers = [
             volatilidade15: 30.45,
             minutosDesdePico: 115,
             rankNoMinuto: 6,
-            geoTop1Code: 'CH',
+            spreadTop2: 12.5,
+            geoTop1Code,
             geoTop1Value: 100,
+            geoTop5Std: 14.2,
+            geoHHI: 0.31,
+            isTimeseriesOk: true,
+            isGeoOk: true,
+            horaReferencia: new Date().toISOString(),
           }
         ]
       }
-    })
+      }
+    }
   },
   {
     method: 'GET',
@@ -585,6 +603,13 @@ const mockHandlers = [
           { geoTop1Code: 'KR', frequenciaLideranca: Math.round(5 - (factor % 2)) }
         ]
       }
+
+      // Intensidade média derivada da frequência para exercitar o toggle
+      // Liderança × Intensidade e o tooltip enriquecido.
+      registros = registros.map((r, idx) => ({
+        ...r,
+        mediaIntensidade: Math.max(5, Math.min(100, Math.round(r.frequenciaLideranca * 0.75 + ((idx * 7) % 20)))),
+      }))
 
       return {
         mensagem: 'Heatmap mock retornado com sucesso',
