@@ -514,10 +514,6 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
   }, [setVisibleRange])
   useEffect(() => () => cancelAnimationFrame(rangeRafRef.current), [])
 
-  // Range inicial do scatter fixado no mount (estável para não resetar o zoom
-  // do chartjs-plugin-zoom a cada re-render; ver comentário de scatterOptions).
-  const scatterInitRange = useRef({ min: Date.now() - ONE_HOUR_MS, max: Date.now() }).current
-
   // Range do botão "reset": ancora na última janela de 4h COM DADOS, não no
   // horário de abertura da tela (que fica obsoleto com a aba aberta há horas).
   const latestDataMs = useMemo(() => {
@@ -539,36 +535,25 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
     setVisibleRange(scatterResetRange() ?? { min: null, max: null })
   }, [scatterResetRange, setVisibleRange])
 
-  // Ao terminar uma carga (inicial ou por troca de filtro), alinha a janela do
-  // scatter à última hora COM DADOS — o range de mount usa Date.now() e deixa
-  // espaço morto à direita quando o treino parou antes da tela abrir. Roda uma
-  // única vez por carga pra não brigar com o pan/zoom do usuário (o polling de
-  // 60s não passa por aqui). Também propaga a janela pros demais gráficos.
+  // Ref do scatter usada pelo botão "reset" (foca a última hora COM DADOS).
+  // Não fazemos auto-zoom imperativo no carregamento: o scatter abre mostrando
+  // TODA a linha do tempo carregada (o Chart.js ajusta o eixo à extensão dos
+  // dados). Tentar estreitar via zoomScale num efeito era frágil — o react-chartjs-2
+  // reatribui options/data e reseta o zoom do plugin, e o StrictMode remonta o
+  // gráfico, deixando o scatter numa janela vazia/desalinhada no primeiro load.
   const timelineChartRef = useRef(null)
-  const didAutoFitRef = useRef(false)
-  useEffect(() => {
-    if (loading) { didAutoFitRef.current = false; return }
-    if (didAutoFitRef.current || latestDataMs == null) return
-    const chart = timelineChartRef.current
-    if (chart && typeof chart.zoomScale === 'function') {
-      const range = { min: latestDataMs - ONE_HOUR_MS, max: latestDataMs + 5 * 60 * 1000 }
-      chart.zoomScale('x', range, 'none')
-      setVisibleRange(range)
-      didAutoFitRef.current = true
-    }
-  }, [loading, latestDataMs, setVisibleRange])
 
-  // Opções memoizadas: o react-chartjs-2 reaplica `options` (Object.assign) a cada
-  // mudança de referência, sobrescrevendo scales.x.min/max que o plugin de zoom usa —
-  // o que reseta zoom/pan a cada re-render. Mantê-las estáveis preserva o zoom.
+  // Opções memoizadas e SEM min/max fixo no eixo x: quem controla a janela é o
+  // chartjs-plugin-zoom (via zoomScale no botão reset e no pan/zoom do usuário).
+  // Fixar min/max aqui fazia cada chart.update() re-aplicar a janela e sobrescrever
+  // o zoom; e, quando esse min/max era o [agora-1h, agora] do mount, o scatter abria
+  // numa janela vazia sempre que o último episódio era mais antigo que 1h.
   const scatterOptions = useMemo(() => baseChartOptions(dk, {
     scales: {
       x: {
         type: 'time',
         adapters: { date: { locale: ptBR } },
         time: { tooltipFormat: 'dd/MM HH:mm:ss', displayFormats: { minute: 'HH:mm', hour: 'HH:mm', day: 'dd/MM' } },
-        min: scatterInitRange.min,
-        max: scatterInitRange.max,
         ticks: { color: tickColor(dk), maxRotation: 0, autoSkip: true, maxTicksLimit: 8 },
         grid: { color: gridColor(dk) },
       },
@@ -613,7 +598,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
         pan: { ...ZOOM_CONFIG.pan, onPan: ({ chart }) => handleRangeChange(chart) },
       },
     },
-  }), [handleRangeChange, scatterInitRange, dk, t])
+  }), [handleRangeChange, dk, t])
 
   const defaultChartOptions = useMemo(() => baseChartOptions(dk), [dk])
   const lossEpsilonOptions = useMemo(() => baseChartOptions(dk, {

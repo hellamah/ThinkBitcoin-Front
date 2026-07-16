@@ -339,7 +339,155 @@ const criarMockCobranca = (body) => {
   return mockCobranca
 }
 
+// ─── Mock: Treinamento de IA (episódios) ──────────────────────────────────
+// Espelha o contrato de /api/TreinamentoEpisodio (LIST paginado por janela de
+// datas, RESUMO e SERIE) para que /treinamento-episodios funcione em modo mock
+// como as demais telas. Sem este mock, a página cai no backend real com o token
+// mockado, leva 401 e desloga a sessão inteira. Gera um treino sintético "ao
+// vivo" com 3 ciclos (separados por pausas > 30min, detectadas como ciclos) nas
+// últimas ~4h, moedas alternando. Ancorado no load do módulo (determinístico).
+const TREINO_COINS = ['BTC', 'ETH', 'SOL', 'XRP', 'ADA', 'LINK', 'BNB', 'LTC', 'DOGE']
+const TREINO_VERSAO = 'v3.2.1'
+const TREINO_STEP_MS = 20 * 1000
+const TREINO_CICLOS_MIN = [50, 60, 45] // duração de cada ciclo
+const TREINO_PAUSA_MIN = 40            // pausa entre ciclos (> 30min ⇒ novo ciclo)
+const TREINO_ANCHOR = Date.now()
+
+const treinoPad = (n) => String(n).padStart(2, '0')
+// dataHora local-naive (YYYY-MM-DDTHH:mm:ss), formato que o front compara/parseia.
+const treinoLocalNaive = (ms) => {
+  const d = new Date(ms)
+  return `${d.getFullYear()}-${treinoPad(d.getMonth() + 1)}-${treinoPad(d.getDate())}T${treinoPad(d.getHours())}:${treinoPad(d.getMinutes())}:${treinoPad(d.getSeconds())}`
+}
+
+let treinoCache = null
+const buildTreinoEpisodios = () => {
+  if (treinoCache) return treinoCache
+  const cicloSteps = TREINO_CICLOS_MIN.map((min) => Math.floor((min * 60000) / TREINO_STEP_MS))
+  const totalEps = cicloSteps.reduce((a, b) => a + b, 0)
+  const totalMs = TREINO_CICLOS_MIN.reduce((a, b) => a + b, 0) * 60000 + TREINO_PAUSA_MIN * 60000 * (TREINO_CICLOS_MIN.length - 1)
+  let cursor = TREINO_ANCHOR - totalMs
+  const eps = []
+  let ep = 0
+  for (let c = 0; c < cicloSteps.length; c++) {
+    for (let s = 0; s < cicloSteps[c]; s++) {
+      const ts = cursor + s * TREINO_STEP_MS
+      const prog = ep / totalEps
+      const noise = (Math.sin(ep * 1.3) + Math.cos(ep * 0.7)) * 0.05
+      const reward = 0.1 + prog * 0.6 + noise
+      eps.push({
+        idTreinamentoEpisodio: `mock-treino-${ep}`,
+        episodio: ep + 1,
+        dataHora: treinoLocalNaive(ts),
+        _ms: ts,
+        moeda: TREINO_COINS[ep % TREINO_COINS.length],
+        versaoModelo: TREINO_VERSAO,
+        rewardMedio: reward,
+        rewardTotal: reward * 100,
+        lossMedia: 2.5 * (1 - prog) + 0.2 + Math.abs(noise),
+        epsilon: Math.max(0.05, 1 - prog),
+        winRate: Math.min(0.65, 0.15 + prog * 0.45 + noise * 0.3),
+        duracaoSegundos: 8 + (ep % 7) * 1.5,
+        acoesHold: 40 + (ep % 20),
+        acoesCompra: 20 + (ep % 15),
+        acoesVenda: 15 + (ep % 12),
+        totalSteps: 75,
+      })
+      ep++
+    }
+    cursor += cicloSteps[c] * TREINO_STEP_MS + TREINO_PAUSA_MIN * 60000
+  }
+  treinoCache = eps
+  return eps
+}
+
+const treinoQuery = (endpoint) =>
+  endpoint.includes('?') ? new URLSearchParams(endpoint.split('?')[1]) : new URLSearchParams()
+// Remove o campo interno _ms antes de devolver ao front.
+const treinoStrip = ({ _ms, ...rest }) => rest
+
+const mockTreinoList = (endpoint) => {
+  const q = treinoQuery(endpoint)
+  const moeda = q.get('moeda'), versao = q.get('versaoModelo')
+  const dataInicio = q.get('dataInicio'), dataFim = q.get('dataFim')
+  const quantidade = q.get('quantidade') ? parseInt(q.get('quantidade'), 10) : 50
+  const pagina = q.get('pagina') ? parseInt(q.get('pagina'), 10) : 1
+  const asc = q.get('ordenarAscendente') === 'true'
+
+  let lista = buildTreinoEpisodios()
+  if (moeda) lista = lista.filter((e) => e.moeda === moeda)
+  if (versao) lista = lista.filter((e) => e.versaoModelo === versao)
+  if (dataInicio) { const ini = new Date(dataInicio).getTime(); lista = lista.filter((e) => e._ms >= ini) }
+  if (dataFim) { const fim = new Date(dataFim).getTime(); lista = lista.filter((e) => e._ms < fim) }
+  lista = [...lista].sort((a, b) => asc ? a._ms - b._ms : b._ms - a._ms)
+
+  const totalRegistros = lista.length
+  const totalPaginas = Math.max(1, Math.ceil(totalRegistros / quantidade))
+  const inicio = (pagina - 1) * quantidade
+  const pageItems = lista.slice(inicio, inicio + quantidade).map(treinoStrip)
+  return {
+    mensagem: 'Episódios de treinamento (mock)',
+    resultado: { lista: pageItems, pagina, quantidade, totalRegistros, totalPaginas },
+  }
+}
+
+const mockTreinoResumo = (endpoint) => {
+  const versao = treinoQuery(endpoint).get('versaoModelo')
+  let eps = buildTreinoEpisodios()
+  if (versao) eps = eps.filter((e) => e.versaoModelo === versao)
+  const byCoin = {}
+  for (const e of eps) (byCoin[e.moeda] = byCoin[e.moeda] || []).push(e)
+  const resultado = Object.entries(byCoin).map(([moeda, arr]) => ({
+    moeda,
+    episodios: arr.length,
+    rewardInicial: arr[0].rewardMedio,
+    rewardAtual: arr[arr.length - 1].rewardMedio,
+    winRateInicial: arr[0].winRate,
+    winRateAtual: arr[arr.length - 1].winRate,
+    lossMedio: arr.reduce((s, r) => s + r.lossMedia, 0) / arr.length,
+    dataHoraAtual: arr[arr.length - 1].dataHora,
+  }))
+  return { mensagem: 'Resumo de treinamento (mock)', resultado }
+}
+
+const mockTreinoSerie = (endpoint) => {
+  const moeda = treinoQuery(endpoint).get('moeda')
+  let eps = buildTreinoEpisodios()
+  if (moeda) eps = eps.filter((e) => e.moeda === moeda)
+  eps = [...eps].sort((a, b) => a._ms - b._ms)
+  const mm = (arr, i, key) => {
+    const s = Math.max(0, i - 4)
+    const slice = arr.slice(s, i + 1)
+    return slice.reduce((a, r) => a + r[key], 0) / slice.length
+  }
+  const resultado = eps.map((e, i) => ({
+    dataHora: e.dataHora,
+    rewardMedio: e.rewardMedio,
+    rewardMedioMediaMovel: mm(eps, i, 'rewardMedio'),
+    lossMedia: e.lossMedia,
+    epsilon: e.epsilon,
+    winRate: e.winRate,
+    winRateMediaMovel: mm(eps, i, 'winRate'),
+  }))
+  return { mensagem: 'Série de treinamento (mock)', resultado }
+}
+
 const mockHandlers = [
+  {
+    method: 'GET',
+    match: (endpoint) => endpoint.split('?')[0] === '/api/TreinamentoEpisodio/resumo',
+    response: (endpoint) => mockTreinoResumo(endpoint),
+  },
+  {
+    method: 'GET',
+    match: (endpoint) => endpoint.split('?')[0] === '/api/TreinamentoEpisodio/serie',
+    response: (endpoint) => mockTreinoSerie(endpoint),
+  },
+  {
+    method: 'GET',
+    match: (endpoint) => endpoint.split('?')[0] === '/api/TreinamentoEpisodio',
+    response: (endpoint) => mockTreinoList(endpoint),
+  },
   {
     method: 'POST',
     match: (endpoint) =>
