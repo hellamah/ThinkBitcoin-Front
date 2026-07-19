@@ -4,7 +4,7 @@ import { MdArrowForward, MdBolt, MdAutoGraph, MdShield } from 'react-icons/md'
 import useTranslation from '../hooks/useTranslation'
 import { useAuth } from '../context/AuthContext'
 import CadastroConviteOverlay from '../components/CadastroConviteOverlay'
-import CookieBanner from '../components/CookieBanner'
+import CookieBanner from '../components/CookieBanner' 
 import '../App.css'
 
 // Componente para contagem animada de números
