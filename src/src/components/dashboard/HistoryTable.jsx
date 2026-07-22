@@ -134,13 +134,12 @@ export default function HistoryTable({
                     {t('variation') || 'Variação'}
                   </TableSortLabel>
                 </TableCell>
-                <TableCell sx={sortLabelSx}>{t('shortAccount') || 'Short Acc'}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {sortedData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={moedasFiltro.length > 1 ? 5 : 4} align="center" sx={{ color: '#666', py: 8 }}>
+                  <TableCell colSpan={moedasFiltro.length > 1 ? 4 : 3} align="center" sx={{ color: '#666', py: 8 }}>
                     <div style={{ opacity: 0.5, fontSize: '0.9rem' }}>
                       {t('noRecordsFound') || 'Nenhum registro encontrado para os filtros selecionados'}
                     </div>
@@ -151,8 +150,6 @@ export default function HistoryTable({
                   const val = r.precoFechamento ?? r.PrecoFechamento ?? r.valor ?? r.Valor ?? r.valorNegociado ?? r.ValorNegociado ?? 0
                   const dVar = r.precoPercentualVariacao ?? r.PrecoPercentualVariacao ?? r.variacaoPercentual ?? r.VariacaoPercentual ?? r.variacao ?? r.Variacao ?? 0
                   const isUp = dVar >= 0
-
-                  const shortAcc = r.shortAccount ?? r.ShortAccount
 
                   return (
                     <TableRow
@@ -178,9 +175,6 @@ export default function HistoryTable({
                           {isUp ? <MdTrendingUp /> : <MdTrendingDown />}
                           {mathUtils.formatPercent(dVar)}
                         </span>
-                      </TableCell>
-                      <TableCell sx={{ color: '#eee' }}>
-                        {shortAcc !== null && shortAcc !== undefined ? mathUtils.formatPercent(shortAcc * 100, 2, false) : '-'}
                       </TableCell>
                     </TableRow>
                   )

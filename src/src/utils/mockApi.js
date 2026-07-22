@@ -138,8 +138,6 @@ const buildCoinValueResponse = (symbol, urlParams) => {
         taxaFinanciamento: 0.0005 * (Math.random() > 0.5 ? 1 : -1),
         contratosAberto: 2000000 + Math.random() * 500000,
         longShortRatio: 1.0 + Math.random(),
-        longAccount: 0.5 + Math.random() * 0.2,
-        shortAccount: 0.5 - Math.random() * 0.2,
       })
     }
   }

@@ -271,7 +271,6 @@
     "mensagem": "Este recurso faz parte dos planos pagos. Migre de plano para desbloquear as funções de IA do robô.",
     "verPlanos": "Ver planos"
   },
-  "shortAccount": "Contas Short",
   "treinamento": {
     "title": "Treinamento de IA",
     "subtitle": "Curva de aprendizado e métricas por episódio · atualiza a cada 60s",
