@@ -242,7 +242,7 @@ export default function PlanosPagamentoModal({ visible, onClose, token, user, on
   const renderMensagens = () => (
     <>
       {errorMsg && (
-        <Box sx={{ bgcolor: 'rgba(244, 67, 54, 0.1)', color: '#e57373', p: 2, borderRadius: '10px', mb: 3, display: 'flex', alignItems: 'center', gap: 1.5, border: '1px solid rgba(244, 67, 54, 0.2)' }}>
+        <Box sx={{ backgroundColor: 'var(--danger-a10)', color: 'var(--danger-ink)', p: 2, borderRadius: '10px', mb: 3, display: 'flex', alignItems: 'center', gap: 1.5, border: '1px solid rgba(244, 67, 54, 0.2)' }}>
           <MdWarning />
           <Typography sx={{ fontWeight: 600, fontSize: '0.9rem' }}>{errorMsg}</Typography>
         </Box>
@@ -259,7 +259,7 @@ export default function PlanosPagamentoModal({ visible, onClose, token, user, on
             <Typography variant="h6" sx={{ fontWeight: 800, color: isAtivo ? 'var(--color-primary)' : '#fff', mb: 1, textTransform: 'uppercase', fontFamily: "'Share Tech Mono', monospace" }}>
               {plano.nome}
             </Typography>
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)', minHeight: '60px', mb: 2, fontSize: '0.85rem' }}>
+            <Typography variant="body2" sx={{ color: 'var(--text-muted)', minHeight: '60px', mb: 2, fontSize: '0.85rem' }}>
               {plano.descricao}
             </Typography>
 
@@ -303,9 +303,9 @@ export default function PlanosPagamentoModal({ visible, onClose, token, user, on
                 className="pricing-btn-migrate"
                 sx={{
                   borderColor: 'var(--color-primary) !important',
-                  color: 'var(--color-primary) !important',
+                  color: 'var(--accent-ink) !important',
                   opacity: '0.8 !important',
-                  bgcolor: 'rgba(255, 215, 0, 0.05)'
+                  backgroundColor: 'var(--accent-a05)'
                 }}
               >
                 {t('planos.active')}
@@ -336,31 +336,31 @@ export default function PlanosPagamentoModal({ visible, onClose, token, user, on
           {t('planos.confirmTitle')}
         </Typography>
         <Box sx={{
-          border: '1px solid rgba(255,255,255,0.12)',
+          border: '1px solid var(--border-strong)',
           borderRadius: '16px',
           p: 3,
           mb: 3,
-          background: 'rgba(255,255,255,0.03)',
+          backgroundColor: 'var(--surface-subtle)',
         }}>
-          <Typography sx={{ fontWeight: 800, color: 'var(--color-primary)', textTransform: 'uppercase', fontFamily: "'Share Tech Mono', monospace", mb: 0.5, fontSize: '1rem' }}>
+          <Typography sx={{ fontWeight: 800, color: 'var(--accent-ink)', textTransform: 'uppercase', fontFamily: "'Share Tech Mono', monospace", mb: 0.5, fontSize: '1rem' }}>
             {plano.nome}
           </Typography>
-          <Typography sx={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)', mb: 2 }}>
+          <Typography sx={{ fontSize: '0.85rem', color: 'var(--text-muted)', mb: 2 }}>
             {plano.descricao}
           </Typography>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, mb: 2 }}>
-            <Typography sx={{ fontSize: '0.88rem', color: 'rgba(255,255,255,0.75)' }}>
+            <Typography sx={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
               {t('planos.duration')}: {plano.duracaoDias} {t('planos.days')}
             </Typography>
-            <Typography sx={{ fontSize: '0.88rem', color: 'rgba(255,255,255,0.75)' }}>
+            <Typography sx={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
               {t('planos.taxaSaque')}: {plano.taxaSaqueAntecipado}%&nbsp;&nbsp;·&nbsp;&nbsp;{t('planos.taxaResgate')}: {plano.taxaResgate}%
             </Typography>
           </Box>
-          <Typography sx={{ fontSize: '1.4rem', fontWeight: 800, color: '#fff', mt: 1 }}>
+          <Typography sx={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)', mt: 1 }}>
             {plano.valor === 0 ? t('planos.free') : formatBRL(plano.valor)}
           </Typography>
         </Box>
-        <Typography sx={{ fontSize: '0.88rem', color: 'rgba(255,255,255,0.55)', mb: 3, lineHeight: 1.6, textAlign: 'center' }}>
+        <Typography sx={{ fontSize: '0.88rem', color: 'var(--text-muted)', mb: 3, lineHeight: 1.6, textAlign: 'center' }}>
           {pago
             ? t('planos.confirmPaid', { valor: formatBRL(plano.valor), nome: plano.nome })
             : t('planos.confirmFree', { nome: plano.nome })}
@@ -400,11 +400,11 @@ export default function PlanosPagamentoModal({ visible, onClose, token, user, on
           {t('planos.checkoutTitle')}
         </Typography>
         {planoSelecionado && (
-          <Typography sx={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.6)', mb: 2 }}>
+          <Typography sx={{ fontSize: '0.9rem', color: 'var(--text-muted)', mb: 2 }}>
             {planoSelecionado.nome} · {formatBRL(cobranca.valor)}
           </Typography>
         )}
-        <Typography sx={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.6)', mb: 2 }}>
+        <Typography sx={{ fontSize: '0.9rem', color: 'var(--text-muted)', mb: 2 }}>
           {t('planos.pixInstructions')}
         </Typography>
 
@@ -427,7 +427,7 @@ export default function PlanosPagamentoModal({ visible, onClose, token, user, on
             fontFamily: "'Share Tech Mono', monospace",
             fontSize: '0.72rem',
             wordBreak: 'break-all',
-            color: 'rgba(255,255,255,0.7)',
+            color: 'var(--text-secondary)',
             textAlign: 'left',
           }}
         >
@@ -445,18 +445,18 @@ export default function PlanosPagamentoModal({ visible, onClose, token, user, on
         </Button>
 
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5, mb: 1 }}>
-          <CircularProgress size={16} sx={{ color: 'var(--color-primary)' }} />
-          <Typography sx={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)' }}>
+          <CircularProgress size={16} sx={{ color: 'var(--accent-ink)' }} />
+          <Typography sx={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
             {t('planos.awaitingPayment')}
           </Typography>
         </Box>
         {expiraEm && (
-          <Typography sx={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.4)', mb: 2 }}>
+          <Typography sx={{ fontSize: '0.78rem', color: 'var(--text-faint)', mb: 2 }}>
             {t('planos.expiresAt', { hora: expiraEm })}
           </Typography>
         )}
 
-        <Button variant="text" startIcon={<MdArrowBack />} onClick={voltarParaLista} sx={{ color: 'rgba(255,255,255,0.5)' }}>
+        <Button variant="text" startIcon={<MdArrowBack />} onClick={voltarParaLista} sx={{ color: 'var(--text-muted)' }}>
           {t('planos.back')}
         </Button>
       </Box>
@@ -465,14 +465,14 @@ export default function PlanosPagamentoModal({ visible, onClose, token, user, on
 
   const renderSucesso = () => (
     <Box sx={{ maxWidth: 440, mx: 'auto', textAlign: 'center', py: 4 }}>
-      <Box sx={{ fontSize: '3rem', color: '#81c784', mb: 2 }}>
+      <Box sx={{ fontSize: '3rem', color: 'var(--success-ink)', mb: 2 }}>
         <MdCheck />
       </Box>
       <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
         {t('planos.paymentSuccess')}
       </Typography>
       {planoSelecionado && (
-        <Typography sx={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.6)', mb: 3 }}>
+        <Typography sx={{ fontSize: '0.9rem', color: 'var(--text-muted)', mb: 3 }}>
           {planoSelecionado.nome}
         </Typography>
       )}
@@ -494,13 +494,13 @@ export default function PlanosPagamentoModal({ visible, onClose, token, user, on
         <Typography variant="h5" className="patrimonio-title-glow" sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <MdPayment style={{ fontSize: '1.8rem' }} /> {t('planos.viewPlans')}
         </Typography>
-        <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.9rem', mb: 4, fontFamily: "'Share Tech Mono', monospace" }}>
+        <Typography sx={{ color: 'var(--text-faint)', fontSize: '0.9rem', mb: 4, fontFamily: "'Share Tech Mono', monospace" }}>
           MIGRATION_CONTROL // SELEÇÃO_DE_TARIFA_E_LIQUIDEZ
         </Typography>
 
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-            <CircularProgress size={40} sx={{ color: 'var(--color-primary)' }} />
+            <CircularProgress size={40} sx={{ color: 'var(--accent-ink)' }} />
           </Box>
         ) : (
           <>

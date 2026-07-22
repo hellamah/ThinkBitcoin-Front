@@ -13,7 +13,9 @@ import Alert from '@mui/material/Alert'
 import Menu from '@mui/material/Menu'
 import MenuItem from '@mui/material/MenuItem'
 import Tooltip from '@mui/material/Tooltip'
+import { useTheme } from '@mui/material/styles'
 import { Joyride, STATUS } from 'react-joyride'
+import { readToken } from '../utils/themeTokens'
 import {
   MdPublic,
   MdAnalytics,
@@ -143,6 +145,7 @@ const NativeGeoChart = ({ data, options, onSelect, onChartReady }) => {
 // Componente principal
 // ---------------------------------------------------------------------------
 export default function GeoHeatmapView() {
+  const { palette } = useTheme()
   const { token, user: usuario, prefs } = useAuth()
   const { refreshTrigger, moedaSelecionada, setMoedaSelecionada } = useDashboard()
   const { t } = useTranslation()
@@ -637,17 +640,26 @@ export default function GeoHeatmapView() {
     }
   ], [handleChartSelect])
 
-  const chartOptions = useMemo(() => ({
-    backgroundColor: 'transparent',
-    datalessRegionColor: '#1a1a1a',
-    defaultColor: '#252525',
-    colorAxis: { colors: ['#282208', '#cca92c', '#ffd700'] },
-    // Legenda da escala de cores (min → max), legível sobre fundo escuro.
-    legend: { textStyle: { color: 'rgba(255,255,255,0.75)', fontSize: 12, fontName: 'Outfit' } },
-    keepAspectRatio: true,
-    region: regionSelecionada,
-    tooltip: { isHtml: true, trigger: 'focus' }
-  }), [regionSelecionada])
+  // O GeoChart pinta atributos SVG via JS: precisa de cor resolvida, var() não
+  // funciona aqui. Os tons de "sem dado" e a rampa da escala também invertem —
+  // no claro, o cinza-chumbo original virava uma mancha preta sobre o mapa.
+  const chartOptions = useMemo(() => {
+    const claro = palette.mode === 'light'
+    return {
+      backgroundColor: 'transparent',
+      datalessRegionColor: claro ? '#e4e6ea' : '#1a1a1a',
+      defaultColor: claro ? '#d8dbe0' : '#252525',
+      colorAxis: {
+        colors: claro
+          ? ['#f2e6c2', '#c9a227', '#6f5400']
+          : ['#282208', '#cca92c', '#ffd700'],
+      },
+      legend: { textStyle: { color: readToken('--text-secondary'), fontSize: 12, fontName: 'Outfit' } },
+      keepAspectRatio: true,
+      region: regionSelecionada,
+      tooltip: { isHtml: true, trigger: 'focus' },
+    }
+  }, [regionSelecionada, palette.mode])
 
   const optionsFinal = useMemo(() => ({
     ...chartOptions,
@@ -724,7 +736,7 @@ export default function GeoHeatmapView() {
         .__floater__open { z-index: 9999 !important; }
         .react-joyride__tooltip {
           background: rgba(15,15,15,0.97) !important;
-          border: 1px solid rgba(255,215,0,0.35) !important;
+          border: 1px solid var(--accent-a30) !important;
           border-radius: 16px !important;
           color: #fff !important;
           font-family: 'Outfit', sans-serif !important;
@@ -762,16 +774,16 @@ export default function GeoHeatmapView() {
           dismissKeyAction: false,
           primaryColor: '#ffd700',
           textColor: '#fff',
-          backgroundColor: 'rgba(15,15,15,0.97)',
+          backgroundColor: 'var(--surface-overlay)',
           arrowColor: 'rgba(15,15,15,0.97)',
           zIndex: 9999,
         }}
         styles={{
-          tooltipTitle: { color: '#ffd700', fontWeight: 800, fontSize: '1rem' },
-          tooltipContent: { color: 'rgba(255,255,255,0.8)', fontSize: '0.88rem' },
-          buttonPrimary: { background: '#ffd700', color: '#000', fontWeight: 700, borderRadius: '8px' },
-          buttonBack: { color: 'rgba(255,255,255,0.6)' },
-          buttonSkip: { color: 'rgba(255,255,255,0.4)', fontSize: '0.78rem' },
+          tooltipTitle: { color: 'var(--accent-ink)', fontWeight: 800, fontSize: '1rem' },
+          tooltipContent: { color: 'var(--text-secondary)', fontSize: '0.88rem' },
+          buttonPrimary: { backgroundColor: 'var(--accent)', color: 'var(--text-on-accent)', fontWeight: 700, borderRadius: '8px' },
+          buttonBack: { color: 'var(--text-muted)' },
+          buttonSkip: { color: 'var(--text-faint)', fontSize: '0.78rem' },
         }}
       />
       )}
@@ -790,8 +802,8 @@ export default function GeoHeatmapView() {
           sx={{
             fontFamily: 'Outfit, sans-serif',
             background: snackbarSeveridade === 'success' ? 'rgba(20,20,20,0.97)' : undefined,
-            border: '1px solid rgba(255,215,0,0.3)',
-            color: '#fff',
+            border: '1px solid var(--accent-a30)',
+            color: 'var(--text-primary)',
           }}
         >
           {snackbarMensagem}
@@ -814,12 +826,12 @@ export default function GeoHeatmapView() {
         />
       </div>
 
-      <section className="panel" style={{ marginTop: '20px', minHeight: '550px', backdropFilter: 'blur(16px)', background: 'rgba(20, 20, 20, 0.45)' }}>
+      <section className="panel" style={{ marginTop: '20px', minHeight: '550px', backdropFilter: 'blur(16px)', backgroundColor: 'var(--surface-panel)' }}>
 
         {/* Cabeçalho do painel */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 4 }}>
           <Box>
-            <Typography variant="h4" sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1.5, fontFamily: 'Outfit, sans-serif', fontWeight: 800, color: 'var(--color-primary)' }}>
+            <Typography variant="h4" sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1.5, fontFamily: 'Outfit, sans-serif', fontWeight: 800, color: 'var(--accent-ink)' }}>
               <MdPublic /> {t('globalHotspot') || 'Geopolítica de Mercado'}
             </Typography>
             <Typography variant="body1" sx={{ opacity: 0.7, fontSize: '0.95rem' }}>
@@ -879,8 +891,8 @@ export default function GeoHeatmapView() {
                   onClick={handleCompartilhar}
                   startIcon={<MdShare />}
                   sx={{
-                    color: 'var(--color-primary)',
-                    borderColor: 'rgba(255,215,0,0.3)',
+                    color: 'var(--accent-ink)',
+                    borderColor: 'var(--accent-a30)',
                     textTransform: 'none',
                     fontFamily: 'Outfit, sans-serif',
                     fontWeight: 600,
@@ -905,8 +917,8 @@ export default function GeoHeatmapView() {
                   startIcon={<MdFileDownload />}
                   disabled={!heatmapData}
                   sx={{
-                    color: 'var(--color-primary)',
-                    borderColor: 'rgba(255,215,0,0.3)',
+                    color: 'var(--accent-ink)',
+                    borderColor: 'var(--accent-a30)',
                     textTransform: 'none',
                     fontFamily: 'Outfit, sans-serif',
                     fontWeight: 600,
@@ -916,8 +928,8 @@ export default function GeoHeatmapView() {
                       borderColor: 'var(--color-primary)',
                     },
                     '&.Mui-disabled': {
-                      borderColor: 'rgba(255,255,255,0.1)',
-                      color: 'rgba(255,255,255,0.2)',
+                      borderColor: 'var(--border-strong)',
+                      color: 'var(--text-faint)',
                     }
                   }}
                 >
@@ -930,30 +942,30 @@ export default function GeoHeatmapView() {
                 onClose={handleFecharExportar}
                 PaperProps={{
                   sx: {
-                    background: 'rgba(15,15,15,0.97)',
-                    border: '1px solid rgba(255,215,0,0.25)',
+                    backgroundColor: 'var(--surface-overlay)',
+                    border: '1px solid var(--accent-a30)',
                     borderRadius: '12px',
                     backdropFilter: 'blur(16px)',
-                    boxShadow: '0 12px 40px rgba(0,0,0,0.7)',
+                    boxShadow: '0 12px 40px var(--scrim-strong)',
                     mt: 0.5,
                   }
                 }}
               >
                 <MenuItem
                   onClick={() => handleExportar(ExportFormat.CSV)}
-                  sx={{ color: '#fff', fontFamily: 'Outfit, sans-serif', fontSize: '0.88rem', '&:hover': { background: 'rgba(255,215,0,0.08)' } }}
+                  sx={{ color: 'var(--text-primary)', fontFamily: 'Outfit, sans-serif', fontSize: '0.88rem', '&:hover': { backgroundColor: 'var(--accent-a08)' } }}
                 >
                   📄 {t('heatmap.exportarCSV') || 'Exportar CSV'}
                 </MenuItem>
                 <MenuItem
                   onClick={() => handleExportar(ExportFormat.JSON)}
-                  sx={{ color: '#fff', fontFamily: 'Outfit, sans-serif', fontSize: '0.88rem', '&:hover': { background: 'rgba(255,215,0,0.08)' } }}
+                  sx={{ color: 'var(--text-primary)', fontFamily: 'Outfit, sans-serif', fontSize: '0.88rem', '&:hover': { backgroundColor: 'var(--accent-a08)' } }}
                 >
                   🗂 {t('heatmap.exportarJSON') || 'Exportar JSON'}
                 </MenuItem>
                 <MenuItem
                   onClick={() => handleExportar(ExportFormat.PNG)}
-                  sx={{ color: '#fff', fontFamily: 'Outfit, sans-serif', fontSize: '0.88rem', '&:hover': { background: 'rgba(255,215,0,0.08)' } }}
+                  sx={{ color: 'var(--text-primary)', fontFamily: 'Outfit, sans-serif', fontSize: '0.88rem', '&:hover': { backgroundColor: 'var(--accent-a08)' } }}
                 >
                   🖼 {t('heatmap.exportarPNG') || 'Exportar PNG'}
                 </MenuItem>
@@ -967,10 +979,10 @@ export default function GeoHeatmapView() {
                   size="small"
                   onClick={() => setTourRodando(true)}
                   sx={{
-                    color: 'rgba(255,255,255,0.4)',
+                    color: 'var(--text-faint)',
                     minWidth: 'auto',
                     p: '6px',
-                    '&:hover': { color: 'var(--color-primary)', background: 'rgba(255,215,0,0.06)' }
+                    '&:hover': { color: 'var(--accent-ink)', background: 'rgba(255,215,0,0.06)' }
                   }}
                 >
                   <MdTour size={18} />
@@ -986,11 +998,11 @@ export default function GeoHeatmapView() {
             <Box sx={{
               display: 'inline-flex', alignItems: 'center', gap: 0.8,
               px: 1.5, py: 0.5, mb: 2,
-              background: 'rgba(255,215,0,0.05)',
-              border: '1px solid rgba(255,215,0,0.15)',
+              backgroundColor: 'var(--accent-a05)',
+              border: '1px solid var(--accent-a15)',
               borderRadius: '20px',
               fontSize: '0.75rem',
-              color: 'rgba(255,255,255,0.5)',
+              color: 'var(--text-muted)',
               fontFamily: 'Outfit, sans-serif',
             }}>
               ⚡ {t('heatmap.cacheAtivo') || 'Dados em cache (< 5 min)'}
@@ -1011,11 +1023,11 @@ export default function GeoHeatmapView() {
         {paisSelecionado && (
           <Box sx={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            background: 'rgba(255, 215, 0, 0.08)', border: '1px solid rgba(255, 215, 0, 0.25)',
+            backgroundColor: 'var(--accent-a08)', border: '1px solid var(--accent-a30)',
             borderRadius: '12px', px: 2, py: 1, mb: 3, backdropFilter: 'blur(8px)',
             animation: 'fadeIn 0.4s ease'
           }}>
-            <Typography variant="body2" sx={{ color: '#fff', fontSize: '0.88rem', fontFamily: 'Outfit, sans-serif' }}>
+            <Typography variant="body2" sx={{ color: 'var(--text-primary)', fontSize: '0.88rem', fontFamily: 'Outfit, sans-serif' }}>
               🔍 {t('heatmap.filtrandoPor') || 'Exibindo ativos cuja busca é liderada por:'} <strong>{nomePais(paisSelecionado)}</strong>
             </Typography>
             <Button
@@ -1023,7 +1035,7 @@ export default function GeoHeatmapView() {
               onClick={() => { setPaisSelecionado(null); setRegionSelecionada(MapRegion.WORLD) }}
               startIcon={<MdClose />}
               sx={{
-                color: 'var(--color-primary)', textTransform: 'none', fontWeight: 'bold', fontSize: '0.8rem',
+                color: 'var(--accent-ink)', textTransform: 'none', fontWeight: 'bold', fontSize: '0.8rem',
                 '&:hover': { background: 'rgba(255, 215, 0, 0.12)' }
               }}
             >
@@ -1034,7 +1046,7 @@ export default function GeoHeatmapView() {
 
         {/* Barra de Zoom Regional */}
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 3, alignItems: 'center' }} data-tour="zoom" ref={refZoom}>
-          <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)', mr: 1, textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>
+          <Typography variant="caption" sx={{ color: 'var(--text-muted)', mr: 1, textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>
             {t('heatmap.zoomGeografico') || 'Zoom Geográfico:'}
           </Typography>
           {Object.entries(MapRegion).map(([key, value]) => {
@@ -1062,16 +1074,16 @@ export default function GeoHeatmapView() {
                 sx={{
                   px: 2, py: 0.6, borderRadius: '20px', fontSize: '0.78rem', fontWeight: 600,
                   cursor: isActive ? 'pointer' : 'not-allowed', fontFamily: 'Outfit, sans-serif',
-                  background: isSelected ? 'var(--color-primary)' : 'rgba(255, 255, 255, 0.04)',
-                  color: isSelected ? '#000' : (isActive ? 'rgba(255, 255, 255, 0.7)' : 'rgba(255, 255, 255, 0.2)'),
-                  border: '1px solid', borderColor: isSelected ? 'var(--color-primary)' : (isActive ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.02)'),
+                  background: isSelected ? 'var(--color-primary)' : 'var(--surface-fill)',
+                  color: isSelected ? 'var(--text-on-accent)' : (isActive ? 'var(--text-secondary)' : 'var(--text-faint)'),
+                  border: '1px solid', borderColor: isSelected ? 'var(--color-primary)' : (isActive ? 'var(--surface-fill-strong)' : 'var(--border-subtle)'),
                   opacity: isActive ? 1 : 0.45,
-                  boxShadow: isSelected ? '0 0 12px rgba(255, 215, 0, 0.25)' : 'none',
+                  boxShadow: isSelected ? '0 0 12px var(--accent-a30)' : 'none',
                   transition: 'all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1)',
                   '&:hover': isActive ? {
-                    background: isSelected ? 'var(--color-primary)' : 'rgba(255, 255, 255, 0.08)',
-                    borderColor: isSelected ? 'var(--color-primary)' : 'rgba(255, 215, 0, 0.3)',
-                    color: isSelected ? '#000' : '#fff'
+                    background: isSelected ? 'var(--color-primary)' : 'var(--surface-fill-strong)',
+                    borderColor: isSelected ? 'var(--color-primary)' : 'var(--accent-a30)',
+                    color: isSelected ? 'var(--text-on-accent)' : 'var(--text-primary)'
                   } : {}
                 }}
               >
@@ -1086,16 +1098,16 @@ export default function GeoHeatmapView() {
           // Skeletons para melhor UX durante carregamento
           <Grid container spacing={4}>
             <Grid size={{ xs: 12, md: 8 }}>
-              <Skeleton variant="rounded" width="100%" height={450} sx={{ bgcolor: 'rgba(255,255,255,0.04)', borderRadius: '16px' }} />
+              <Skeleton variant="rounded" width="100%" height={450} sx={{ backgroundColor: 'var(--surface-hover)', borderRadius: '16px' }} />
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <Skeleton variant="text" width="60%" height={32} sx={{ bgcolor: 'rgba(255,255,255,0.04)' }} />
-                <Skeleton variant="text" width="90%" height={20} sx={{ bgcolor: 'rgba(255,255,255,0.04)' }} />
+                <Skeleton variant="text" width="60%" height={32} sx={{ backgroundColor: 'var(--surface-hover)' }} />
+                <Skeleton variant="text" width="90%" height={20} sx={{ backgroundColor: 'var(--surface-hover)' }} />
                 {[...Array(5)].map((_, i) => (
                   <Box key={i} sx={{ display: 'flex', flexDirection: 'column', gap: 0.8 }}>
-                    <Skeleton variant="text" width="80%" height={22} sx={{ bgcolor: 'rgba(255,255,255,0.04)' }} />
-                    <Skeleton variant="rounded" width="100%" height={6} sx={{ bgcolor: 'rgba(255,255,255,0.04)', borderRadius: '3px' }} />
+                    <Skeleton variant="text" width="80%" height={22} sx={{ backgroundColor: 'var(--surface-hover)' }} />
+                    <Skeleton variant="rounded" width="100%" height={6} sx={{ backgroundColor: 'var(--surface-hover)', borderRadius: '3px' }} />
                   </Box>
                 ))}
               </Box>
@@ -1109,11 +1121,11 @@ export default function GeoHeatmapView() {
                 <Box sx={{
                   height: { xs: 'auto', md: '100%' }, display: 'flex', flexDirection: 'column',
                   borderRadius: '16px', overflow: 'hidden',
-                  background: 'rgba(10, 10, 10, 0.45)',
-                  border: '1px solid rgba(255, 255, 255, 0.06)',
-                  boxShadow: '0 12px 40px rgba(0,0,0,0.6)', p: 2, backdropFilter: 'blur(8px)',
+                  backgroundColor: 'var(--surface-panel)',
+                  border: '1px solid var(--border)',
+                  boxShadow: '0 12px 40px var(--scrim)', p: 2, backdropFilter: 'blur(8px)',
                   position: 'relative', transition: 'all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1)',
-                  '&:hover': { transform: 'translateY(-4px)', borderColor: 'var(--color-primary)', boxShadow: '0 18px 48px rgba(0,0,0,0.7), 0 0 20px rgba(255, 215, 0, 0.08)' }
+                  '&:hover': { transform: 'translateY(-4px)', borderColor: 'var(--color-primary)', boxShadow: '0 18px 48px var(--scrim-strong), 0 0 20px var(--accent-a08)' }
                 }}>
                   <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: chartHeight }}>
                     <NativeGeoChart
@@ -1134,16 +1146,16 @@ export default function GeoHeatmapView() {
                   sx={{
                     display: 'flex', flexDirection: 'column', gap: 2,
                     height: { xs: 'auto', md: '100%' },
-                    background: 'rgba(12, 12, 12, 0.65)',
-                    border: '1px solid rgba(255, 255, 255, 0.06)',
+                    backgroundColor: 'var(--surface-panel)',
+                    border: '1px solid var(--border)',
                     borderRadius: '16px', p: 3,
-                    boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
+                    boxShadow: '0 12px 40px var(--scrim)',
                     backdropFilter: 'blur(12px)',
                     transition: 'all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1)',
-                    '&:hover': { transform: 'translateY(-4px)', borderColor: 'var(--color-primary)', boxShadow: '0 18px 48px rgba(0,0,0,0.7), 0 0 20px rgba(255, 215, 0, 0.08)' }
+                    '&:hover': { transform: 'translateY(-4px)', borderColor: 'var(--color-primary)', boxShadow: '0 18px 48px var(--scrim-strong), 0 0 20px var(--accent-a08)' }
                   }}
                 >
-                  <Typography variant="h6" sx={{ color: 'var(--color-primary)', fontWeight: 800, fontFamily: 'Outfit, sans-serif', fontSize: '1.05rem', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
+                  <Typography variant="h6" sx={{ color: 'var(--accent-ink)', fontWeight: 800, fontFamily: 'Outfit, sans-serif', fontSize: '1.05rem', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
                     {t('heatmap.centralInteligencia') || 'Central de Inteligência'}
                   </Typography>
                   <Typography variant="body2" sx={{ opacity: 0.6, fontSize: '0.85rem', lineHeight: 1.4 }}>
@@ -1167,28 +1179,28 @@ export default function GeoHeatmapView() {
                             background: paisSelecionado === reg.country ? 'rgba(255, 215, 0, 0.04)' : 'transparent',
                             border: '1px solid',
                             borderLeft: paisSelecionado === reg.country ? '4px solid var(--color-primary)' : '1px solid transparent',
-                            borderColor: paisSelecionado === reg.country ? 'rgba(255, 215, 0, 0.25)' : 'transparent',
-                            '&:hover': { background: 'rgba(255, 255, 255, 0.03)' }
+                            borderColor: paisSelecionado === reg.country ? 'var(--accent-a30)' : 'transparent',
+                            '&:hover': { backgroundColor: 'var(--surface-subtle)' }
                           }}
                         >
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                               <Box sx={{
                                 width: '26px', height: '26px', borderRadius: '50%',
-                                background: paisSelecionado === reg.country ? 'var(--color-primary)' : 'rgba(255, 215, 0, 0.08)',
-                                border: '1px solid rgba(255, 215, 0, 0.25)',
+                                background: paisSelecionado === reg.country ? 'var(--color-primary)' : 'var(--accent-a08)',
+                                border: '1px solid var(--accent-a30)',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 fontSize: '0.75rem', fontWeight: 800,
-                                color: paisSelecionado === reg.country ? '#000' : 'var(--color-primary)',
+                                color: paisSelecionado === reg.country ? 'var(--text-on-accent)' : 'var(--color-primary)',
                                 fontFamily: 'Outfit, sans-serif'
                               }}>
                                 {idx + 1}
                               </Box>
-                              <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#fff', fontSize: '0.88rem', fontFamily: 'Outfit, sans-serif' }}>
+                              <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.88rem', fontFamily: 'Outfit, sans-serif' }}>
                                 {nomePais(reg.country)}
                               </Typography>
                             </Box>
-                            <Typography variant="body2" sx={{ fontWeight: 700, color: 'var(--color-primary)', fontSize: '0.88rem', fontFamily: 'Share Tech Mono, monospace' }}>
+                            <Typography variant="body2" sx={{ fontWeight: 700, color: 'var(--accent-ink)', fontSize: '0.88rem', fontFamily: 'Share Tech Mono, monospace' }}>
                               {reg.displayVal}%
                             </Typography>
                           </Box>
@@ -1197,11 +1209,11 @@ export default function GeoHeatmapView() {
                             value={reg.displayVal}
                             sx={{
                               height: '5px', borderRadius: '3px',
-                              background: 'rgba(255,255,255,0.03)',
+                              backgroundColor: 'var(--surface-subtle)',
                               '& .MuiLinearProgress-bar': {
-                                background: 'linear-gradient(90deg, #cca92c 0%, #ffd700 100%)',
+                                background: 'linear-gradient(90deg, #cca92c 0%, var(--accent) 100%)',
                                 borderRadius: '3px',
-                                boxShadow: '0 0 6px rgba(255, 215, 0, 0.35)'
+                                boxShadow: '0 0 6px var(--accent-a30)'
                               }
                             }}
                           />
@@ -1218,8 +1230,8 @@ export default function GeoHeatmapView() {
             </Grid>
           </Fade>
         ) : (
-          <Box sx={{ p: 6, textAlign: 'center', opacity: 0.5, background: 'rgba(10, 10, 10, 0.3)', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-            <MdAnalytics size={48} style={{ color: 'var(--color-primary)', marginBottom: '12px' }} />
+          <Box sx={{ p: 6, textAlign: 'center', opacity: 0.5, backgroundColor: 'var(--surface-panel)', borderRadius: '16px', border: '1px solid var(--border)' }}>
+            <MdAnalytics size={48} style={{ color: 'var(--accent-ink)', marginBottom: '12px' }} />
             <Typography sx={{ fontFamily: 'Outfit, sans-serif' }}>{t('heatmap.semDados') || 'Dados de mapa não disponíveis para o ativo selecionado no período.'}</Typography>
           </Box>
         )}

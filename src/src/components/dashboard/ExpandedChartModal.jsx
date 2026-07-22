@@ -2,6 +2,7 @@ import React, { useMemo, useState, useRef } from 'react';
 import { Line, getElementAtEvent } from 'react-chartjs-2';
 import { MdClose, MdAnalytics, MdTimeline, MdSpeed, MdUpdate, MdPublic } from 'react-icons/md';
 import { ChartType } from '../../utils/enums';
+import { readToken } from '../../utils/themeTokens';
 
 /**
  * Modal expandido para exibir o gráfico selecionado junto a um painel de inteligência
@@ -150,7 +151,7 @@ const ExpandedChartModal = ({
                 tooltip: {
                   ...chartOptions.plugins?.tooltip,
                   enabled: true,
-                  backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                  backgroundColor: readToken('--scrim-strong'),
                   titleFont: { size: 14, weight: 'bold' },
                   padding: 12,
                   cornerRadius: 8,
@@ -166,14 +167,14 @@ const ExpandedChartModal = ({
                   ...chartOptions.scales?.x,
                   grid: {
                     display: true,
-                    color: 'rgba(255, 255, 255, 0.05)',
+                    color: 'var(--text-faint)',
                   }
                 },
                 y: {
                   ...chartOptions.scales?.y,
                   grid: {
                     display: true,
-                    color: 'rgba(255, 255, 255, 0.05)',
+                    color: 'var(--text-faint)',
                   }
                 }
               }
@@ -199,7 +200,7 @@ const ExpandedChartModal = ({
                         {intelFromChart.datasets.map((ds, i) => (
                           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <div style={{ width: '10px', height: '10px', borderRadius: '2px', backgroundColor: ds.color }}></div>
-                            <span style={{ color: '#aaa', minWidth: '40px' }}>{ds.label}:</span>
+                            <span style={{ color: 'var(--text-muted)', minWidth: '40px' }}>{ds.label}:</span>
                             <span>{ds.lastValue != null ? Number(ds.lastValue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 }) : '-'}</span>
                           </div>
                         ))}
@@ -214,7 +215,7 @@ const ExpandedChartModal = ({
                         {intelFromChart.datasets.map((ds, i) => (
                           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <div style={{ width: '10px', height: '10px', borderRadius: '2px', backgroundColor: ds.color }}></div>
-                            <span style={{ color: '#aaa', minWidth: '40px' }}>{ds.label}:</span>
+                            <span style={{ color: 'var(--text-muted)', minWidth: '40px' }}>{ds.label}:</span>
                             <span className={ds.changePercent !== null && ds.changePercent >= 0 ? 'up' : 'down'}>
                               {ds.changePercent !== null ? `${ds.changePercent > 0 ? '+' : ''}${ds.changePercent.toFixed(2)}%` : '-'}
                             </span>

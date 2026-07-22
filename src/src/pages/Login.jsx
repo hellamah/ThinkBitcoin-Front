@@ -79,20 +79,20 @@ function Login() {
   const inputSx = {
     mb: 2,
     '& .MuiFilledInput-root': {
-      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      backgroundColor: 'var(--surface-fill)',
       borderRadius: '12px',
-      border: '1px solid rgba(255, 255, 255, 0.1)',
+      border: '1px solid var(--border-strong)',
       '&:hover': {
-        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+        backgroundColor: 'var(--surface-fill-strong)',
         borderColor: 'var(--color-primary)',
       },
       '&.Mui-focused': {
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        backgroundColor: 'var(--surface-fill-strong)',
         borderColor: 'var(--color-primary)',
       }
     },
-    '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.6)' },
-    '& .MuiInputLabel-root.Mui-focused': { color: 'var(--color-primary)' }
+    '& .MuiInputLabel-root': { color: 'var(--text-muted)' },
+    '& .MuiInputLabel-root.Mui-focused': { color: 'var(--accent-ink)' }
   }
 
   return (
@@ -104,20 +104,20 @@ function Login() {
           maxWidth: '440px',
           width: '95%',
           p: { xs: 4, md: 6 },
-          background: 'rgba(20, 20, 20, 0.85)',
+          backgroundColor: 'var(--surface-overlay)',
           backdropFilter: 'blur(20px)',
           borderRadius: '24px',
-          border: '1px solid rgba(255, 215, 0, 0.15)',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+          border: '1px solid var(--accent-a15)',
+          boxShadow: '0 25px 50px -12px var(--scrim)',
           transition: 'all 0.4s ease-in-out'
         }}
       >
         <Box sx={{ textAlign: 'center', mb: 4 }}>
           <img src={logo} alt="ThinkBitcoin Logo" style={{ height: '70px', marginBottom: '16px' }} />
-          <Typography variant="h4" sx={{ fontWeight: 800, color: 'var(--color-primary)', letterSpacing: '-0.5px' }}>
+          <Typography variant="h4" sx={{ fontWeight: 800, color: 'var(--accent-ink)', letterSpacing: '-0.5px' }}>
             {t('login')}
           </Typography>
-          <Typography sx={{ color: 'rgba(255,255,255,0.6)', mt: 1 }}>
+          <Typography sx={{ color: 'var(--text-muted)', mt: 1 }}>
             Configure seu perfil de investimento profissional
           </Typography>
         </Box>
@@ -136,7 +136,7 @@ function Login() {
               InputProps={{
                 disableUnderline: true,
                 startAdornment: (
-                  <Box sx={{ mr: 1, color: 'rgba(255,255,255,0.4)', display: 'flex' }}><MdEmail /></Box>
+                  <Box sx={{ mr: 1, color: 'var(--text-faint)', display: 'flex' }}><MdEmail /></Box>
                 )
               }}
             />
@@ -152,7 +152,7 @@ function Login() {
               InputProps={{
                 disableUnderline: true,
                 startAdornment: (
-                  <Box sx={{ mr: 1, color: 'rgba(255,255,255,0.4)', display: 'flex' }}><MdLock /></Box>
+                  <Box sx={{ mr: 1, color: 'var(--text-faint)', display: 'flex' }}><MdLock /></Box>
                 )
               }}
              />
@@ -162,10 +162,10 @@ function Login() {
                 component="span"
                 onClick={abrirModalRecuperacao}
                 sx={{
-                  color: 'rgba(255,255,255,0.5)',
+                  color: 'var(--text-muted)',
                   fontSize: '0.8rem',
                   cursor: 'pointer',
-                  '&:hover': { color: 'var(--color-primary)' },
+                  '&:hover': { color: 'var(--accent-ink)' },
                   transition: 'color 0.2s',
                 }}
               >
@@ -174,7 +174,7 @@ function Login() {
             </Box>
 
             <ErrorMessage message={erro} onClose={() => setErro('')} />
-            {mensagem && <Typography sx={{ textAlign: 'center', color: 'var(--color-primary)', mb: 2 }}>{mensagem}</Typography>}
+            {mensagem && <Typography sx={{ textAlign: 'center', color: 'var(--accent-ink)', mb: 2 }}>{mensagem}</Typography>}
 
             <Button
                 variant="contained" type="submit" disabled={carregando} fullWidth size="large"
@@ -184,9 +184,9 @@ function Login() {
                     borderRadius: '12px',
                     fontSize: '1rem',
                     fontWeight: 700,
-                    bgcolor: 'var(--color-primary)',
-                    color: '#000',
-                    boxShadow: '0 8px 20px -8px rgba(255, 215, 0, 0.5)',
+                    backgroundColor: 'var(--accent)',
+                    color: 'var(--text-on-accent)',
+                    boxShadow: '0 8px 20px -8px var(--accent-a50)',
                     transition: 'all 0.3s ease',
                     '&:hover': { transform: 'translateY(-2px)', bgcolor: '#e0c200', boxShadow: '0 12px 25px -10px rgba(255, 215, 0, 0.6)' },
                     '&:active': { transform: 'scale(0.98)' }
@@ -196,7 +196,7 @@ function Login() {
             </Button>
 
             <Box sx={{ mt: 3, textAlign: 'center' }}>
-               <Typography sx={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.8rem', fontStyle: 'italic' }}>
+               <Typography sx={{ color: 'var(--text-faint)', fontSize: '0.8rem', fontStyle: 'italic' }}>
                    {t('exclusiveAccess')}
                </Typography>
             </Box>
@@ -209,22 +209,22 @@ function Login() {
           position: 'absolute', top: '50%', left: '50%',
           transform: 'translate(-50%, -50%)',
           width: { xs: '90%', sm: '400px' },
-          background: 'rgba(20, 20, 20, 0.97)',
+          backgroundColor: 'var(--surface-overlay)',
           backdropFilter: 'blur(20px)',
           borderRadius: '20px',
-          border: '1px solid rgba(255, 215, 0, 0.2)',
-          boxShadow: '0 25px 50px rgba(0,0,0,0.6)',
+          border: '1px solid var(--accent-a20)',
+          boxShadow: '0 25px 50px var(--scrim)',
           p: 4,
         }}>
-          <Typography variant="h6" sx={{ fontWeight: 700, color: 'var(--color-primary)', mb: 1 }}>
+          <Typography variant="h6" sx={{ fontWeight: 700, color: 'var(--accent-ink)', mb: 1 }}>
             Recuperar senha
           </Typography>
-          <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.875rem', mb: 3 }}>
+          <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.875rem', mb: 3 }}>
             Informe seu email e enviaremos um link para redefinir sua senha.
           </Typography>
 
           {mensagemRecuperacao ? (
-            <Typography sx={{ color: '#4caf50', fontSize: '0.9rem', textAlign: 'center', py: 2 }}>
+            <Typography sx={{ color: 'var(--success)', fontSize: '0.9rem', textAlign: 'center', py: 2 }}>
               {mensagemRecuperacao}
             </Typography>
           ) : (
@@ -241,29 +241,29 @@ function Login() {
                 InputProps={{
                   disableUnderline: true,
                   startAdornment: (
-                    <Box sx={{ mr: 1, color: 'rgba(255,255,255,0.4)', display: 'flex' }}><MdEmail /></Box>
+                    <Box sx={{ mr: 1, color: 'var(--text-faint)', display: 'flex' }}><MdEmail /></Box>
                   )
                 }}
               />
               {erroRecuperacao && (
-                <Typography sx={{ color: '#f44336', fontSize: '0.8rem', mb: 2 }}>{erroRecuperacao}</Typography>
+                <Typography sx={{ color: 'var(--danger)', fontSize: '0.8rem', mb: 2 }}>{erroRecuperacao}</Typography>
               )}
               <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
                 <Button
                   fullWidth variant="outlined"
                   onClick={() => setModalAberto(false)}
-                  sx={{ borderColor: 'rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.6)', borderRadius: '10px' }}
+                  sx={{ borderColor: 'var(--border-strong)', color: 'var(--text-muted)', borderRadius: '10px' }}
                 >
                   Cancelar
                 </Button>
                 <Button
                   fullWidth variant="contained" type="submit" disabled={enviandoRecuperacao}
                   sx={{
-                    bgcolor: 'var(--color-primary)', color: '#000', borderRadius: '10px', fontWeight: 700,
+                    backgroundColor: 'var(--accent)', color: 'var(--text-on-accent)', borderRadius: '10px', fontWeight: 700,
                     '&:hover': { bgcolor: '#e0c200' }
                   }}
                 >
-                  {enviandoRecuperacao ? <CircularProgress size={20} sx={{ color: '#000' }} /> : 'Enviar'}
+                  {enviandoRecuperacao ? <CircularProgress size={20} sx={{ color: 'var(--text-on-accent)' }} /> : 'Enviar'}
                 </Button>
               </Box>
             </form>

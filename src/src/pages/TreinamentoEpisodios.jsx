@@ -39,6 +39,7 @@ import { useTheme } from '@mui/material/styles'
 import ErrorMessage from '../components/ErrorMessage'
 import { apiRequest, TreinamentoEpisodioEndpoint, MarketEndpoint, VariavelExternaEndpoint } from '../utils/apiClient'
 import { toUTCISO } from '../utils/dateUtils'
+import { readToken } from '../utils/themeTokens'
 import useTranslation from '../hooks/useTranslation'
 
 ChartJS.register(
@@ -78,6 +79,9 @@ const COIN_POINT_STYLES = {
 }
 const coinPointStyle = (coin) => COIN_POINT_STYLES[coin] || 'circle'
 const ACCENT = '#FFD700'
+// Versão para DOM/CSS: escurece no tema claro (canvas do Chart.js não
+// resolve var(), por isso ACCENT continua literal para os gráficos).
+const ACCENT_DOM = 'var(--accent-ink)'
 
 const chartBg = (dk) => dk ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)'
 const chartBorder = (dk) => dk ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'
@@ -97,6 +101,17 @@ const gaugeTrack = (dk) => dk ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'
 // Cor da moeda: usa a cor de marca quando existe; senão gera um HEX estável a
 // partir do nome (moedas que só aparecem ao carregar janelas antigas, ex.: PAXG).
 // Retorna sempre HEX de 6 dígitos para permitir sufixo de alpha (ex.: +'33').
+// Escurece uma cor hex por um fator (0-1). As cores de marca das moedas são
+// tons médios: ótimas como preenchimento, mas reprovam em contraste quando
+// viram texto sobre fundo claro (LTC #419BD4 sobre o chip dá 2.2:1).
+const escurecer = (hex, fator) => {
+  const h = hex.replace('#', '')
+  const n = parseInt(h.length === 3 ? h.split('').map((c) => c + c).join('') : h, 16)
+  const ch = (shift) => Math.round(((n >> shift) & 0xff) * fator)
+  const to2 = (v) => v.toString(16).padStart(2, '0')
+  return `#${to2(ch(16))}${to2(ch(8))}${to2(ch(0))}`
+}
+
 const coinColor = (coin) => {
   if (COIN_COLORS[coin]) return COIN_COLORS[coin]
   if (!coin) return '#888888'
@@ -106,6 +121,10 @@ const coinColor = (coin) => {
   const hex = (n) => n.toString(16).padStart(2, '0')
   return `#${hex(ch(0))}${hex(ch(8))}${hex(ch(16))}`
 }
+
+// Cor da moeda para uso como TEXTO — no tema claro precisa escurecer.
+// Preenchimentos, bordas e séries de gráfico continuam usando coinColor().
+const coinInk = (coin, dk) => (dk ? coinColor(coin) : escurecer(coinColor(coin), 0.55))
 
 const formatNumber = (value, digits = 4) => {
   if (value === null || value === undefined || Number.isNaN(value)) return '-'
@@ -224,7 +243,7 @@ const baseChartOptions = (dk, extra = {}) => {
       legend: { labels: { color: legendColor(dk), usePointStyle: true, padding: 12 } },
       tooltip: {
         backgroundColor: tooltipBg(dk),
-        borderColor: 'rgba(255,215,0,0.4)',
+        borderColor: readToken('--accent-a40'),
         borderWidth: 1,
         titleColor: ACCENT,
         bodyColor: tooltipBody(dk),
@@ -251,7 +270,7 @@ function KpiCard({ icon, label, value, sub }) {
         p: 2.5,
         height: '100%',
         background: `linear-gradient(135deg, rgba(255,215,0,0.08), ${gradientEnd(dk)})`,
-        border: '1px solid rgba(255,215,0,0.15)',
+        border: '1px solid var(--accent-a15)',
         backdropFilter: 'blur(10px)',
         color: textPrimary(dk),
         display: 'flex',
@@ -260,12 +279,12 @@ function KpiCard({ icon, label, value, sub }) {
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, opacity: 0.85 }}>
-        <Box sx={{ color: ACCENT, display: 'flex' }}>{icon}</Box>
+        <Box sx={{ color: ACCENT_DOM, display: 'flex' }}>{icon}</Box>
         <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 1, fontSize: 11 }}>
           {label}
         </Typography>
       </Box>
-      <Typography variant="h4" sx={{ fontWeight: 700, color: ACCENT, lineHeight: 1.2 }}>
+      <Typography variant="h4" sx={{ fontWeight: 700, color: ACCENT_DOM, lineHeight: 1.2 }}>
         {value}
       </Typography>
       {sub && <Typography variant="caption" sx={{ opacity: 0.7 }}>{sub}</Typography>}
@@ -346,8 +365,8 @@ function EvolucaoCard({ items, onSelectCoin }) {
             {sorted.map((r) => {
               const rewardDelta = (r.rewardAtual ?? 0) - (r.rewardInicial ?? 0)
               const wrDelta = (r.winRateAtual ?? 0) - (r.winRateInicial ?? 0)
-              const rewardColor = rewardDelta >= 0 ? '#14F195' : '#FF5C7C'
-              const wrColor = wrDelta >= 0 ? '#14F195' : '#FF5C7C'
+              const rewardColor = rewardDelta >= 0 ? 'var(--perf-up)' : 'var(--perf-down)'
+              const wrColor = wrDelta >= 0 ? 'var(--perf-up)' : 'var(--perf-down)'
               return (
                 <TableRow
                   key={r.moeda}
@@ -361,7 +380,7 @@ function EvolucaoCard({ items, onSelectCoin }) {
                       size="small"
                       sx={{
                         background: coinColor(r.moeda) + '33',
-                        color: coinColor(r.moeda),
+                        color: coinInk(r.moeda, dk),
                         border: `1px solid ${coinColor(r.moeda)}66`,
                         fontWeight: 600,
                       }}
@@ -442,7 +461,7 @@ function TopEpisodiosCard({ title, subtitle, items, accent, onOpen }) {
               size="small"
               sx={{
                 background: coinColor(r.moeda) + '33',
-                color: coinColor(r.moeda),
+                color: coinInk(r.moeda, dk),
                 border: `1px solid ${coinColor(r.moeda)}66`,
                 fontWeight: 600,
                 minWidth: 56,
@@ -568,7 +587,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
       legend: { labels: { color: legendColor(dk), usePointStyle: true, padding: 12 } },
       tooltip: {
         backgroundColor: tooltipBg(dk),
-        borderColor: 'rgba(255,215,0,0.4)',
+        borderColor: readToken('--accent-a40'),
         borderWidth: 1,
         titleColor: ACCENT,
         bodyColor: tooltipBody(dk),
@@ -1128,7 +1147,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3, flexWrap: 'wrap', gap: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <MdPsychology size={28} color={ACCENT} />
+          <MdPsychology size={28} color={ACCENT_DOM} />
           <Box>
             <Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>{t('treinamento.title')}</Typography>
             <Typography variant="caption" sx={{ opacity: 0.65 }}>{t('treinamento.subtitle')}</Typography>
@@ -1149,14 +1168,14 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
 
       {loadingRange && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, opacity: 0.8 }}>
-          <CircularProgress size={14} sx={{ color: ACCENT }} />
-          <Typography variant="caption" sx={{ color: ACCENT }}>{t('treinamento.loadingRange')}</Typography>
+          <CircularProgress size={14} sx={{ color: ACCENT_DOM }} />
+          <Typography variant="caption" sx={{ color: ACCENT_DOM }}>{t('treinamento.loadingRange')}</Typography>
         </Box>
       )}
 
       {loading && (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-          <CircularProgress sx={{ color: ACCENT }} />
+          <CircularProgress sx={{ color: ACCENT_DOM }} />
         </Box>
       )}
 
@@ -1339,10 +1358,10 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
           {/* Top 5 */}
           <Grid container spacing={2} sx={{ mb: 3 }}>
             <Grid size={{ xs: 12, md: 6 }}>
-              <TopEpisodiosCard title={t('treinamento.top5Best')} subtitle={t('treinamento.highestRewards')} items={tops.best} accent="#14F195" onOpen={onOpen} />
+              <TopEpisodiosCard title={t('treinamento.top5Best')} subtitle={t('treinamento.highestRewards')} items={tops.best} accent="var(--perf-up)" onOpen={onOpen} />
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
-              <TopEpisodiosCard title={t('treinamento.top5Worst')} subtitle={t('treinamento.lowestRewards')} items={tops.worst} accent="#FF5C7C" onOpen={onOpen} />
+              <TopEpisodiosCard title={t('treinamento.top5Worst')} subtitle={t('treinamento.lowestRewards')} items={tops.worst} accent="var(--perf-down)" onOpen={onOpen} />
             </Grid>
           </Grid>
 
@@ -1386,7 +1405,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
                           size="small"
                           sx={{
                             background: coinColor(row.moeda) + '33',
-                            color: coinColor(row.moeda),
+                            color: coinInk(row.moeda, dk),
                             border: `1px solid ${coinColor(row.moeda)}66`,
                             fontWeight: 600,
                           }}
@@ -1505,7 +1524,7 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
       },
       tooltip: {
         backgroundColor: tooltipBg(dk),
-        borderColor: 'rgba(255,215,0,0.4)',
+        borderColor: readToken('--accent-a40'),
         borderWidth: 1,
         titleColor: ACCENT,
         bodyColor: tooltipBody(dk),
@@ -1550,7 +1569,7 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
           label: t('treinamento.episodeNum', { num: item.episodio }),
           data: itemVals,
           borderColor: ACCENT,
-          backgroundColor: 'rgba(255,215,0,0.15)',
+          backgroundColor: readToken('--accent-a15'),
           borderWidth: 2,
           pointBackgroundColor: ACCENT,
           pointRadius: 4,
@@ -1589,7 +1608,7 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
       },
       tooltip: {
         backgroundColor: tooltipBg(dk),
-        borderColor: 'rgba(255,215,0,0.4)',
+        borderColor: readToken('--accent-a40'),
         borderWidth: 1,
         titleColor: ACCENT,
         bodyColor: tooltipBody(dk),
@@ -1643,7 +1662,7 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
       legend: { display: false },
       tooltip: {
         backgroundColor: tooltipBg(dk),
-        borderColor: 'rgba(255,215,0,0.4)',
+        borderColor: readToken('--accent-a40'),
         borderWidth: 1,
         titleColor: ACCENT,
         bodyColor: tooltipBody(dk),
@@ -1805,7 +1824,7 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
       legend: { display: false },
       tooltip: {
         backgroundColor: tooltipBg(dk),
-        borderColor: 'rgba(255,215,0,0.4)',
+        borderColor: readToken('--accent-a40'),
         borderWidth: 1,
         titleColor: ACCENT,
         bodyColor: tooltipBody(dk),
@@ -1831,13 +1850,13 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
   }
   const deltaColor = (d, inverted = false) => {
     const positive = inverted ? d <= 0 : d >= 0
-    return positive ? '#14F195' : '#FF5C7C'
+    return positive ? 'var(--perf-up)' : 'var(--perf-down)'
   }
   const deltaSign = (d) => d >= 0 ? '+' : ''
 
   // ── Win rate visual gauge ──
   const winRatePct = (item.winRate ?? 0) * 100
-  const winRateGaugeColor = winRatePct >= 50 ? '#14F195' : winRatePct >= 35 ? '#FFB547' : '#FF5C7C'
+  const winRateGaugeColor = winRatePct >= 50 ? 'var(--perf-up)' : winRatePct >= 35 ? 'var(--perf-warn)' : 'var(--perf-down)'
 
   // ── Deltas para KPIs ──
   const rewardDelta = delta(item.rewardMedio ?? 0, coinAvg.reward)
@@ -1883,7 +1902,7 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
         {/* ── Título e badge ── */}
         <Box sx={{ mb: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
-            <MdPsychology size={28} color={ACCENT} />
+            <MdPsychology size={28} color={ACCENT_DOM} />
             <Typography variant="h5" sx={{ fontWeight: 700 }}>{t('treinamento.episodeNum', { num: item.episodio })}</Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
@@ -1892,7 +1911,7 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
               size="small"
               sx={{
                 background: coinColor(item.moeda) + '33',
-                color: coinColor(item.moeda),
+                color: coinInk(item.moeda, dk),
                 border: `1px solid ${coinColor(item.moeda)}66`,
                 fontWeight: 600,
               }}
@@ -1933,11 +1952,11 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
                 size="small"
                 sx={{
                   background: coinColor(item.moeda) + '15',
-                  color: coinColor(item.moeda),
+                  color: coinInk(item.moeda, dk),
                   border: `1px solid ${coinColor(item.moeda)}30`,
                   fontWeight: 500,
                   fontSize: 11,
-                  '& .MuiChip-icon': { color: coinColor(item.moeda) },
+                  '& .MuiChip-icon': { color: coinInk(item.moeda, dk) },
                 }}
               />
             )}
@@ -1950,7 +1969,7 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
             <Paper sx={{
               p: 2, height: '100%',
               background: `linear-gradient(135deg, rgba(255,215,0,0.08), ${gradientEnd(dk)})`,
-              border: '1px solid rgba(255,215,0,0.15)',
+              border: '1px solid var(--accent-a15)',
               backdropFilter: 'blur(10px)', color: textPrimary(dk),
               display: 'flex', flexDirection: 'column', gap: 0.5,
             }}>

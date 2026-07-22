@@ -45,7 +45,7 @@ export default function DashboardCharts({
         <h2 style={{ margin: 0, fontSize: '1.25rem' }}>{t('sequence')}</h2>
         {multiMoeda && (
           <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.8rem', color: '#888', alignSelf: 'center' }}>Normalização:</span>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', alignSelf: 'center' }}>Normalização:</span>
             {[
               { key: 'base100', label: 'Base 100', title: 'Performance relativa — começa em 100 para todas' },
               { key: 'minmax', label: 'Min-Max', title: 'Escala 0 a 1 relativa ao período' },
@@ -61,7 +61,7 @@ export default function DashboardCharts({
                   borderRadius: '20px',
                   border: normalizacao === key ? '1px solid #FFD700' : '1px solid #444',
                   background: normalizacao === key ? 'rgba(255,215,0,0.12)' : 'transparent',
-                  color: normalizacao === key ? '#FFD700' : '#888',
+                  color: normalizacao === key ? 'var(--accent-ink)' : 'var(--text-muted)',
                   cursor: 'pointer',
                   fontWeight: normalizacao === key ? 600 : 400,
                   transition: 'all 0.2s',

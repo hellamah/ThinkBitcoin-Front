@@ -71,11 +71,11 @@ export default function HistoryTable({
   const titulo = moedasFiltro.length > 1 ? moedasFiltro.join(', ') : moedasFiltro[0]
 
   const sortLabelSx = { 
-    color: '#888 !important', 
+    color: 'var(--text-muted) !important', 
     fontWeight: '800', 
     fontSize: '0.75rem', 
     textTransform: 'uppercase',
-    '&.Mui-active': { color: 'var(--color-primary) !important' },
+    '&.Mui-active': { color: 'var(--accent-ink) !important' },
     '& .MuiTableSortLabel-icon': { color: 'inherit !important' }
   }
 
@@ -86,12 +86,12 @@ export default function HistoryTable({
         overflow: 'hidden'
       }}>
         <h2 style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <MdRefresh style={{ color: 'var(--color-primary)' }} /> {t('coinHistory')}: {titulo}
+          <MdRefresh style={{ color: 'var(--accent-ink)' }} /> {t('coinHistory')}: {titulo}
         </h2>
         <TableContainer component={Paper} sx={{ backgroundColor: 'transparent', boxShadow: 'none' }}>
           <Table size="small">
             <TableHead>
-              <TableRow sx={{ '& th': { borderBottom: '1px solid rgba(255,255,255,0.1)', padding: '12px 16px' } }}>
+              <TableRow sx={{ '& th': { borderBottom: '1px solid var(--border-strong)', padding: '12px 16px' } }}>
                 <TableCell>
                   <TableSortLabel
                     active={sortConfig.key === 'date'}
@@ -139,7 +139,7 @@ export default function HistoryTable({
             <TableBody>
               {sortedData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={moedasFiltro.length > 1 ? 4 : 3} align="center" sx={{ color: '#666', py: 8 }}>
+                  <TableCell colSpan={moedasFiltro.length > 1 ? 4 : 3} align="center" sx={{ color: 'var(--text-faint)', py: 8 }}>
                     <div style={{ opacity: 0.5, fontSize: '0.9rem' }}>
                       {t('noRecordsFound') || 'Nenhum registro encontrado para os filtros selecionados'}
                     </div>
@@ -155,22 +155,22 @@ export default function HistoryTable({
                     <TableRow
                       key={idx}
                       sx={{
-                        '&:hover': { background: 'rgba(255,255,255,0.02)' },
-                        '& td': { borderBottom: '1px solid rgba(255,255,255,0.03)', py: 1.5, px: 2 }
+                        '&:hover': { backgroundColor: 'var(--surface-subtle)' },
+                        '& td': { borderBottom: '1px solid var(--border-subtle)', py: 1.5, px: 2 }
                       }}
                     >
-                      <TableCell sx={{ color: '#aaa', fontFamily: "'Share Tech Mono', monospace" }}>
+                      <TableCell sx={{ color: 'var(--text-muted)', fontFamily: "'Share Tech Mono', monospace" }}>
                         {toLocal(r.horaReferencia ?? r.HoraReferencia ?? r.dataHora ?? r.DataHora)}
                       </TableCell>
                       {moedasFiltro.length > 1 && (
-                        <TableCell sx={{ color: '#ffd700', fontWeight: 'bold' }}>
+                        <TableCell sx={{ color: 'var(--accent-ink)', fontWeight: 'bold' }}>
                           {r.sigla}
                         </TableCell>
                       )}
-                      <TableCell sx={{ color: '#fff', fontWeight: 600 }}>
+                      <TableCell sx={{ color: 'var(--text-primary)', fontWeight: 600 }}>
                         {mathUtils.formatCurrency(val)}
                       </TableCell>
-                      <TableCell sx={{ color: isUp ? '#4caf50' : '#f44336', fontWeight: 700 }}>
+                      <TableCell sx={{ color: isUp ? 'var(--success)' : 'var(--danger)', fontWeight: 700 }}>
                         <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                           {isUp ? <MdTrendingUp /> : <MdTrendingDown />}
                           {mathUtils.formatPercent(dVar)}

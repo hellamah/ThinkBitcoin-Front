@@ -26,7 +26,7 @@ const PageLoader = () => (
       justifyContent: 'center',
     }}
   >
-    <CircularProgress sx={{ color: '#ffd700' }} />
+    <CircularProgress sx={{ color: 'var(--accent-ink)' }} />
   </Box>
 )
 

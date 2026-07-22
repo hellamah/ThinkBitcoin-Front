@@ -26,9 +26,9 @@ export default function DashboardFilters({ t }) {
 
   const textFieldSx = useMemo(() => ({
     '& .MuiOutlinedInput-root': {
-      backgroundColor: 'rgba(255,255,255,0.02)',
-      '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' },
-      '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.2)' },
+      backgroundColor: 'var(--surface-subtle)',
+      '& fieldset': { borderColor: 'var(--border-strong)' },
+      '&:hover fieldset': { borderColor: 'var(--border-strong)' },
       '&.Mui-focused fieldset': { borderColor: 'var(--color-primary)' }
     }
   }), [])

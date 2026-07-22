@@ -39,13 +39,29 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => decodeAuthenticationToken(token))
   const [prefs, setPrefs] = useState(() => getInitialPreferences())
   const buildTheme = useCallback(
-    (tema) =>
-      createTheme({
+    (tema) => {
+      const isLight = tema === Theme.LIGHT
+      return createTheme({
         palette: {
-          mode: tema === Theme.LIGHT ? 'light' : 'dark',
-          primary: { main: '#ffd700' },
+          mode: isLight ? 'light' : 'dark',
+          // O ouro da marca só sobrevive como cor de texto no tema escuro;
+          // sobre branco cai para ~1.4:1 de contraste, então clareia/escurece
+          // junto com --accent-ink.
+          // No claro o ouro precisa ser escuro para servir de cor de texto —
+          // e aí o preenchimento pede texto branco, não o preto do tema escuro.
+          primary: isLight
+            ? { main: '#8a6a00', contrastText: '#ffffff' }
+            : { main: '#ffd700', contrastText: '#000000' },
+          background: isLight
+            ? { default: '#f4f5f7', paper: '#ffffff' }
+            : { default: '#0d0d0d', paper: '#1a1a1a' },
+          // secondary acompanha --text-muted: 0.58 reprovava em contraste (4.3:1).
+          text: isLight
+            ? { primary: '#16181d', secondary: 'rgba(22,24,29,0.72)' }
+            : { primary: '#ffffff', secondary: 'rgba(255,255,255,0.6)' },
         },
-      }),
+      })
+    },
     []
   )
   const [theme, setTheme] = useState(() => buildTheme(getStoredTheme()))
@@ -53,7 +69,12 @@ export function AuthProvider({ children }) {
   const applyTheme = useCallback(
     (tema) => {
       if (typeof document !== 'undefined') {
-        document.body.classList.toggle('light', tema === Theme.LIGHT)
+        // A classe vai também no <html>: os tokens ficam disponíveis para o
+        // próprio elemento raiz, senão o fundo dele continua escuro e vaza
+        // atrás do body em páginas mais curtas que a viewport.
+        const isLight = tema === Theme.LIGHT
+        document.body.classList.toggle('light', isLight)
+        document.documentElement.classList.toggle('light', isLight)
       }
       setStoredTheme(tema)
       setTheme(buildTheme(tema))

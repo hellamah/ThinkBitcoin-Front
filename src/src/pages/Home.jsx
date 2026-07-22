@@ -115,10 +115,10 @@ function Home() {
       {/* AI Showcase Section */}
       <section className="home-section">
         <div style={{ marginBottom: '40px' }}>
-          <h2 className="terminal-text" style={{ fontSize: '1.5rem', color: '#fff', marginBottom: '16px' }}>
+          <h2 className="terminal-text" style={{ fontSize: '1.5rem', color: 'var(--text-primary)', marginBottom: '16px' }}>
             Powered by Deep Learning
           </h2>
-          <p style={{ color: 'rgba(255,255,255,0.5)', maxWidth: '500px' }}>
+          <p style={{ color: 'var(--text-muted)', maxWidth: '500px' }}>
             Nossa plataforma é construída sobre uma infraestrutura de IA total, processando sentimentos, tendências e fluxos em tempo real.
           </p>
         </div>
@@ -128,20 +128,20 @@ function Home() {
           
           <div className="ai-orbit-v3 orbit-1">
             <div className="orbit-node"></div>
-            <MdBolt style={{ position: 'absolute', top: '50%', right: '0', color: 'var(--color-primary)', transform: 'translate(50%, -50%)', fontSize: '20px' }} />
+            <MdBolt style={{ position: 'absolute', top: '50%', right: '0', color: 'var(--accent-ink)', transform: 'translate(50%, -50%)', fontSize: '20px' }} />
           </div>
           
           <div className="ai-orbit-v3 orbit-2">
             <div className="orbit-node"></div>
-            <MdAutoGraph style={{ position: 'absolute', bottom: '0', left: '50%', color: 'var(--color-primary)', transform: 'translate(-50%, 50%)', fontSize: '20px' }} />
+            <MdAutoGraph style={{ position: 'absolute', bottom: '0', left: '50%', color: 'var(--accent-ink)', transform: 'translate(-50%, 50%)', fontSize: '20px' }} />
           </div>
           
           <div className="ai-orbit-v3 orbit-3">
             <div className="orbit-node"></div>
-            <MdShield style={{ position: 'absolute', top: '50%', left: '0', color: 'var(--color-primary)', transform: 'translate(-50%, -50%)', fontSize: '20px' }} />
+            <MdShield style={{ position: 'absolute', top: '50%', left: '0', color: 'var(--accent-ink)', transform: 'translate(-50%, -50%)', fontSize: '20px' }} />
           </div>
 
-          <div style={{ position: 'absolute', fontFamily: 'Share Tech Mono', fontSize: '0.7rem', color: 'var(--color-primary)', opacity: 0.4 }}>
+          <div style={{ position: 'absolute', fontFamily: 'Share Tech Mono', fontSize: '0.7rem', color: 'var(--accent-ink)', opacity: 0.4 }}>
             SYSTEMAL_ANALYSIS_ACTIVE
           </div>
         </div>

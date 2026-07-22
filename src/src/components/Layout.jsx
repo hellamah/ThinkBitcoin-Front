@@ -241,11 +241,11 @@ function Layout({ children }) {
               mb: 3,
               p: 2,
               borderRadius: '12px',
-              border: '1px solid rgba(255, 215, 0, 0.35)',
-              bgcolor: 'rgba(255, 215, 0, 0.08)',
+              border: '1px solid var(--accent-a30)',
+              backgroundColor: 'var(--accent-a08)',
             }}
           >
-            <MdWorkspacePremium style={{ color: '#ffd700', fontSize: '1.4rem', flexShrink: 0 }} />
+            <MdWorkspacePremium style={{ color: 'var(--accent-ink)', fontSize: '1.4rem', flexShrink: 0 }} />
             <span style={{ flex: 1, minWidth: '200px', fontSize: '0.9rem' }}>
               {t('upsell.mensagem')}
             </span>

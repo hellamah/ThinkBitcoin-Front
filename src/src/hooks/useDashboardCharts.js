@@ -1,6 +1,8 @@
 import { useMemo } from 'react'
+import { useTheme } from '@mui/material/styles'
 import * as mathUtils from '../utils/mathUtils'
 import { toLocalChartLabel } from '../utils/dateUtils'
+import { chartPalette } from '../utils/themeTokens'
 
 const CORES_SIMPLE = ['#FFD700', '#2196f3', '#4caf50', '#e91e63', '#9c27b0', '#ff9800', '#00bcd4']
 
@@ -13,6 +15,8 @@ export default function useDashboardCharts({
   fearGreedPorMoeda,
   trendPorMoeda
 }) {
+  const { palette } = useTheme()
+
   const chartConfig = useMemo(() => {
     // 1. Timestamps comuns (após filtros globais)
     const allTimestampsSet = new Set()
@@ -201,13 +205,17 @@ export default function useDashboardCharts({
     return null;
   };
 
+  // Cores lidas dos tokens a cada troca de tema: o canvas não resolve var(),
+  // então sem isto a legenda (#ccc) e o grid (branco a 3%) sumiam no claro.
+  const cores = useMemo(() => chartPalette(), [palette.mode])
+
   const baseOpcoes = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       legend: {
         display: chartConfig.multiMoeda,
-        labels: { color: '#ccc', boxWidth: 10 }
+        labels: { color: cores.legend, boxWidth: 10 }
       },
       tooltip: {
         mode: 'index',
@@ -218,11 +226,11 @@ export default function useDashboardCharts({
       x: {
         display: true,
         grid: { display: false },
-        ticks: { color: '#666', font: { size: 10 } }
+        ticks: { color: cores.tickSubtle, font: { size: 10 } }
       },
       y: {
-        grid: { color: 'rgba(255,255,255,0.03)', borderDash: [5, 5] },
-        ticks: { color: '#888', font: { family: "'Share Tech Mono', monospace" } }
+        grid: { color: cores.grid, borderDash: [5, 5] },
+        ticks: { color: cores.tick, font: { family: "'Share Tech Mono', monospace" } }
       }
     }
   }

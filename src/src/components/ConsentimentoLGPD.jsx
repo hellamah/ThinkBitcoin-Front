@@ -31,16 +31,16 @@ function saveConsent() {
 // ─── Conteúdo: Política de Privacidade ────────────────────────────────────────
 function PrivacidadeContent() {
   return (
-    <Box sx={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.875rem', lineHeight: 1.75 }}>
-      <Typography variant="subtitle2" sx={{ color: '#FFD700', mb: 1, fontWeight: 700 }}>
+    <Box sx={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.75 }}>
+      <Typography variant="subtitle2" sx={{ color: 'var(--accent-ink)', mb: 1, fontWeight: 700 }}>
         1. Controlador dos Dados
       </Typography>
       <Typography variant="body2" sx={{ mb: 2 }}>
-        A <strong style={{ color: '#fff' }}>ThinkBitcoin</strong> é a controladora dos dados pessoais coletados por
+        A <strong style={{ color: 'var(--text-primary)' }}>ThinkBitcoin</strong> é a controladora dos dados pessoais coletados por
         meio desta plataforma, nos termos da Lei nº 13.709/2018 (LGPD).
       </Typography>
 
-      <Typography variant="subtitle2" sx={{ color: '#FFD700', mb: 1, fontWeight: 700 }}>
+      <Typography variant="subtitle2" sx={{ color: 'var(--accent-ink)', mb: 1, fontWeight: 700 }}>
         2. Dados Coletados
       </Typography>
       <Typography variant="body2" sx={{ mb: 2 }}>
@@ -60,7 +60,7 @@ function PrivacidadeContent() {
         ))}
       </Box>
 
-      <Typography variant="subtitle2" sx={{ color: '#FFD700', mb: 1, fontWeight: 700 }}>
+      <Typography variant="subtitle2" sx={{ color: 'var(--accent-ink)', mb: 1, fontWeight: 700 }}>
         3. Finalidade do Tratamento
       </Typography>
       <Typography variant="body2" sx={{ mb: 2 }}>
@@ -69,25 +69,25 @@ function PrivacidadeContent() {
         legais e melhoria contínua da plataforma.
       </Typography>
 
-      <Typography variant="subtitle2" sx={{ color: '#FFD700', mb: 1, fontWeight: 700 }}>
+      <Typography variant="subtitle2" sx={{ color: 'var(--accent-ink)', mb: 1, fontWeight: 700 }}>
         4. Base Legal
       </Typography>
       <Typography variant="body2" sx={{ mb: 2 }}>
-        O tratamento é realizado com base no seu <strong style={{ color: '#fff' }}>consentimento</strong> (art. 7º, I
+        O tratamento é realizado com base no seu <strong style={{ color: 'var(--text-primary)' }}>consentimento</strong> (art. 7º, I
         da LGPD), na execução do contrato de uso da plataforma (art. 7º, V) e no cumprimento de
         obrigações legais (art. 7º, II).
       </Typography>
 
-      <Typography variant="subtitle2" sx={{ color: '#FFD700', mb: 1, fontWeight: 700 }}>
+      <Typography variant="subtitle2" sx={{ color: 'var(--accent-ink)', mb: 1, fontWeight: 700 }}>
         5. Compartilhamento de Dados
       </Typography>
       <Typography variant="body2" sx={{ mb: 2 }}>
-        Seus dados <strong style={{ color: '#fff' }}>não são vendidos</strong> a terceiros. Podemos compartilhá-los
+        Seus dados <strong style={{ color: 'var(--text-primary)' }}>não são vendidos</strong> a terceiros. Podemos compartilhá-los
         apenas com parceiros de infraestrutura (hospedagem, autenticação) vinculados por contratos
         de confidencialidade, ou quando exigido por lei.
       </Typography>
 
-      <Typography variant="subtitle2" sx={{ color: '#FFD700', mb: 1, fontWeight: 700 }}>
+      <Typography variant="subtitle2" sx={{ color: 'var(--accent-ink)', mb: 1, fontWeight: 700 }}>
         6. Retenção e Exclusão
       </Typography>
       <Typography variant="body2" sx={{ mb: 2 }}>
@@ -95,7 +95,7 @@ function PrivacidadeContent() {
         pela legislação. Você pode solicitar a exclusão a qualquer momento pelo e-mail de suporte.
       </Typography>
 
-      <Typography variant="subtitle2" sx={{ color: '#FFD700', mb: 1, fontWeight: 700 }}>
+      <Typography variant="subtitle2" sx={{ color: 'var(--accent-ink)', mb: 1, fontWeight: 700 }}>
         7. Seus Direitos (art. 18 LGPD)
       </Typography>
       <Box component="ul" sx={{ pl: 2, mb: 2 }}>
@@ -113,13 +113,13 @@ function PrivacidadeContent() {
         ))}
       </Box>
 
-      <Typography variant="subtitle2" sx={{ color: '#FFD700', mb: 1, fontWeight: 700 }}>
+      <Typography variant="subtitle2" sx={{ color: 'var(--accent-ink)', mb: 1, fontWeight: 700 }}>
         8. Contato com o DPO
       </Typography>
       <Typography variant="body2">
         Para exercer seus direitos ou esclarecer dúvidas sobre privacidade, entre em contato com
         nosso Encarregado (DPO) pelo e-mail:{' '}
-        <strong style={{ color: '#FFD700' }}>privacidade@thinkbitcoin.com.br</strong>
+        <strong style={{ color: 'var(--accent-ink)' }}>privacidade@thinkbitcoin.com.br</strong>
       </Typography>
     </Box>
   )
@@ -128,8 +128,8 @@ function PrivacidadeContent() {
 // ─── Conteúdo: Termos de Uso ──────────────────────────────────────────────────
 function TermosContent() {
   return (
-    <Box sx={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.875rem', lineHeight: 1.75 }}>
-      <Typography variant="subtitle2" sx={{ color: '#FFD700', mb: 1, fontWeight: 700 }}>
+    <Box sx={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.75 }}>
+      <Typography variant="subtitle2" sx={{ color: 'var(--accent-ink)', mb: 1, fontWeight: 700 }}>
         1. Aceitação dos Termos
       </Typography>
       <Typography variant="body2" sx={{ mb: 2 }}>
@@ -137,7 +137,7 @@ function TermosContent() {
         O uso continuado após alterações implica aceitação das versões atualizadas.
       </Typography>
 
-      <Typography variant="subtitle2" sx={{ color: '#FFD700', mb: 1, fontWeight: 700 }}>
+      <Typography variant="subtitle2" sx={{ color: 'var(--accent-ink)', mb: 1, fontWeight: 700 }}>
         2. Descrição do Serviço
       </Typography>
       <Typography variant="body2" sx={{ mb: 2 }}>
@@ -146,19 +146,19 @@ function TermosContent() {
         educacionais. As informações disponibilizadas têm caráter exclusivamente informativo.
       </Typography>
 
-      <Typography variant="subtitle2" sx={{ color: '#FFD700', mb: 1, fontWeight: 700 }}>
+      <Typography variant="subtitle2" sx={{ color: 'var(--accent-ink)', mb: 1, fontWeight: 700 }}>
         3. Não Constitui Consultoria Financeira
       </Typography>
       <Box
         sx={{
           background: 'rgba(255,215,0,0.06)',
-          border: '1px solid rgba(255,215,0,0.25)',
+          border: '1px solid var(--accent-a30)',
           borderRadius: 1.5,
           p: 1.5,
           mb: 2,
         }}
       >
-        <Typography variant="body2" sx={{ color: '#FFD700', fontWeight: 600 }}>
+        <Typography variant="body2" sx={{ color: 'var(--accent-ink)', fontWeight: 600 }}>
           ⚠ Aviso Importante
         </Typography>
         <Typography variant="body2" sx={{ mt: 0.5 }}>
@@ -170,7 +170,7 @@ function TermosContent() {
         </Typography>
       </Box>
 
-      <Typography variant="subtitle2" sx={{ color: '#FFD700', mb: 1, fontWeight: 700 }}>
+      <Typography variant="subtitle2" sx={{ color: 'var(--accent-ink)', mb: 1, fontWeight: 700 }}>
         4. Uso Permitido
       </Typography>
       <Typography variant="body2" sx={{ mb: 2 }}>
@@ -181,7 +181,7 @@ function TermosContent() {
         plataforma ou de outros usuários.
       </Typography>
 
-      <Typography variant="subtitle2" sx={{ color: '#FFD700', mb: 1, fontWeight: 700 }}>
+      <Typography variant="subtitle2" sx={{ color: 'var(--accent-ink)', mb: 1, fontWeight: 700 }}>
         5. Propriedade Intelectual
       </Typography>
       <Typography variant="body2" sx={{ mb: 2 }}>
@@ -190,7 +190,7 @@ function TermosContent() {
         Autorais) e pela Lei nº 9.279/1996 (Propriedade Industrial).
       </Typography>
 
-      <Typography variant="subtitle2" sx={{ color: '#FFD700', mb: 1, fontWeight: 700 }}>
+      <Typography variant="subtitle2" sx={{ color: 'var(--accent-ink)', mb: 1, fontWeight: 700 }}>
         6. Limitação de Responsabilidade
       </Typography>
       <Typography variant="body2" sx={{ mb: 2 }}>
@@ -199,7 +199,7 @@ function TermosContent() {
         eventos de força maior.
       </Typography>
 
-      <Typography variant="subtitle2" sx={{ color: '#FFD700', mb: 1, fontWeight: 700 }}>
+      <Typography variant="subtitle2" sx={{ color: 'var(--accent-ink)', mb: 1, fontWeight: 700 }}>
         7. Modificações
       </Typography>
       <Typography variant="body2" sx={{ mb: 2 }}>
@@ -207,7 +207,7 @@ function TermosContent() {
         serão comunicadas por e-mail ou por aviso na plataforma.
       </Typography>
 
-      <Typography variant="subtitle2" sx={{ color: '#FFD700', mb: 1, fontWeight: 700 }}>
+      <Typography variant="subtitle2" sx={{ color: 'var(--accent-ink)', mb: 1, fontWeight: 700 }}>
         8. Foro
       </Typography>
       <Typography variant="body2">
@@ -241,7 +241,7 @@ export default function ConsentimentoLGPD({ onAccept }) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'rgba(0,0,0,0.82)',
+        backgroundColor: 'var(--surface-overlay)',
         backdropFilter: 'blur(6px)',
         p: { xs: 1, sm: 2 },
       }}
@@ -256,7 +256,7 @@ export default function ConsentimentoLGPD({ onAccept }) {
           background: 'linear-gradient(145deg, #0e0e0e 0%, #141414 100%)',
           border: '1px solid rgba(255,215,0,0.18)',
           borderRadius: 3,
-          boxShadow: '0 24px 64px rgba(0,0,0,0.8), 0 0 40px rgba(255,215,0,0.06)',
+          boxShadow: '0 24px 64px var(--scrim-strong), 0 0 40px rgba(255,215,0,0.06)',
           overflow: 'hidden',
         }}
       >
@@ -266,7 +266,7 @@ export default function ConsentimentoLGPD({ onAccept }) {
             px: 3,
             pt: 3,
             pb: 2,
-            borderBottom: '1px solid rgba(255,255,255,0.07)',
+            borderBottom: '1px solid var(--surface-fill-strong)',
             background: 'linear-gradient(90deg, rgba(255,215,0,0.04) 0%, transparent 100%)',
           }}
         >
@@ -275,7 +275,7 @@ export default function ConsentimentoLGPD({ onAccept }) {
             <Typography
               variant="h6"
               sx={{
-                color: '#fff',
+                color: 'var(--text-primary)',
                 fontWeight: 700,
                 fontSize: '1.05rem',
                 letterSpacing: '-0.3px',
@@ -284,7 +284,7 @@ export default function ConsentimentoLGPD({ onAccept }) {
               Privacidade & Termos de Uso
             </Typography>
           </Box>
-          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.8rem' }}>
+          <Typography variant="body2" sx={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
             Antes de continuar, leia e aceite nossa Política de Privacidade (LGPD) e nossos Termos
             de Uso.
           </Typography>
@@ -298,15 +298,15 @@ export default function ConsentimentoLGPD({ onAccept }) {
             px: 2,
             pt: 1,
             minHeight: 40,
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            '& .MuiTabs-indicator': { backgroundColor: '#FFD700', height: 2 },
+            borderBottom: '1px solid var(--border)',
+            '& .MuiTabs-indicator': { backgroundColor: 'var(--accent)', height: 2 },
             '& .MuiTab-root': {
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-faint)',
               fontSize: '0.8rem',
               minHeight: 40,
               textTransform: 'none',
               fontWeight: 600,
-              '&.Mui-selected': { color: '#FFD700' },
+              '&.Mui-selected': { color: 'var(--accent-ink)' },
             },
           }}
         >
@@ -324,7 +324,7 @@ export default function ConsentimentoLGPD({ onAccept }) {
             '&::-webkit-scrollbar': { width: 5 },
             '&::-webkit-scrollbar-track': { background: 'transparent' },
             '&::-webkit-scrollbar-thumb': {
-              background: 'rgba(255,215,0,0.2)',
+              backgroundColor: 'var(--accent-a20)',
               borderRadius: 4,
             },
           }}
@@ -338,8 +338,8 @@ export default function ConsentimentoLGPD({ onAccept }) {
             px: 3,
             pt: 2,
             pb: 3,
-            borderTop: '1px solid rgba(255,255,255,0.07)',
-            background: 'rgba(0,0,0,0.3)',
+            borderTop: '1px solid var(--surface-fill-strong)',
+            backgroundColor: 'var(--scrim-soft)',
           }}
         >
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mb: 2 }}>
@@ -350,17 +350,17 @@ export default function ConsentimentoLGPD({ onAccept }) {
                   onChange={(e) => setAceitouPrivacidade(e.target.checked)}
                   size="small"
                   sx={{
-                    color: 'rgba(255,255,255,0.3)',
-                    '&.Mui-checked': { color: '#FFD700' },
+                    color: 'var(--text-faint)',
+                    '&.Mui-checked': { color: 'var(--accent-ink)' },
                     p: 0.5,
                   }}
                 />
               }
               label={
-                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.8rem' }}>
+                <Typography variant="body2" sx={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
                   Li e aceito a{' '}
                   <span
-                    style={{ color: '#FFD700', cursor: 'pointer', textDecoration: 'underline' }}
+                    style={{ color: 'var(--accent-ink)', cursor: 'pointer', textDecoration: 'underline' }}
                     onClick={() => setAba(0)}
                   >
                     Política de Privacidade (LGPD)
@@ -375,17 +375,17 @@ export default function ConsentimentoLGPD({ onAccept }) {
                   onChange={(e) => setAceitouTermos(e.target.checked)}
                   size="small"
                   sx={{
-                    color: 'rgba(255,255,255,0.3)',
-                    '&.Mui-checked': { color: '#FFD700' },
+                    color: 'var(--text-faint)',
+                    '&.Mui-checked': { color: 'var(--accent-ink)' },
                     p: 0.5,
                   }}
                 />
               }
               label={
-                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.8rem' }}>
+                <Typography variant="body2" sx={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
                   Li e aceito os{' '}
                   <span
-                    style={{ color: '#FFD700', cursor: 'pointer', textDecoration: 'underline' }}
+                    style={{ color: 'var(--accent-ink)', cursor: 'pointer', textDecoration: 'underline' }}
                     onClick={() => setAba(1)}
                   >
                     Termos de Uso
@@ -395,7 +395,7 @@ export default function ConsentimentoLGPD({ onAccept }) {
             />
           </Box>
 
-          <Divider sx={{ borderColor: 'rgba(255,255,255,0.06)', mb: 2 }} />
+          <Divider sx={{ borderColor: 'var(--border)', mb: 2 }} />
 
           <Button
             fullWidth
@@ -407,22 +407,22 @@ export default function ConsentimentoLGPD({ onAccept }) {
                 ? 'linear-gradient(90deg, #B8860B 0%, #FFD700 50%, #B8860B 100%)'
                 : 'rgba(255,255,255,0.07)',
               backgroundSize: '200% auto',
-              color: podeConfirmar ? '#000' : 'rgba(255,255,255,0.3)',
+              color: podeConfirmar ? '#000' : 'var(--border-interactive)',
               fontWeight: 700,
               fontSize: '0.9rem',
               py: 1.4,
               borderRadius: 2,
               textTransform: 'none',
               letterSpacing: '0.3px',
-              boxShadow: podeConfirmar ? '0 0 20px rgba(255,215,0,0.25)' : 'none',
+              boxShadow: podeConfirmar ? '0 0 20px var(--accent-a30)' : 'none',
               transition: 'all 0.3s ease',
               '&:hover': {
                 backgroundPosition: 'right center',
-                boxShadow: podeConfirmar ? '0 0 30px rgba(255,215,0,0.4)' : 'none',
+                boxShadow: podeConfirmar ? '0 0 30px var(--accent-a40)' : 'none',
               },
               '&.Mui-disabled': {
-                background: 'rgba(255,255,255,0.06)',
-                color: 'rgba(255,255,255,0.25)',
+                backgroundColor: 'var(--surface-fill)',
+                color: 'var(--text-faint)',
               },
             }}
           >
@@ -434,7 +434,7 @@ export default function ConsentimentoLGPD({ onAccept }) {
             sx={{
               display: 'block',
               textAlign: 'center',
-              color: 'rgba(255,255,255,0.25)',
+              color: 'var(--text-faint)',
               mt: 1.5,
               fontSize: '0.7rem',
             }}

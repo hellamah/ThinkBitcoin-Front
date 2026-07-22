@@ -35,6 +35,28 @@ export const USE_MOCK_API =
   (parseUseMockFlag(resolvedUseMockEnv) ||
    (resolvedUseMockEnv === undefined && resolveIsDevMode()))
 
+// As preferências do modo demo vivem no localStorage: sem isso o GET devolve
+// sempre o mesmo objeto fixo e qualquer alteração do usuário (tema, idioma…)
+// é descartada no primeiro reload.
+const MOCK_PREFS_KEY = 'tb_mock_preferencias'
+
+const readMockPrefs = () => {
+  try {
+    const raw = globalThis.localStorage?.getItem(MOCK_PREFS_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+const writeMockPrefs = (prefs) => {
+  try {
+    globalThis.localStorage?.setItem(MOCK_PREFS_KEY, JSON.stringify(prefs))
+  } catch {
+    /* storage indisponível (SSR/teste): segue só em memória */
+  }
+}
+
 // Codifica em base64 usando bytes UTF-8 (simétrico ao decode em authentication.js).
 // btoa() puro trata cada caractere como Latin-1 e corrompe acentos: "á" vira o byte 0xE1,
 // que é UTF-8 inválido e aparece como "�" ao decodificar com TextDecoder.
@@ -525,7 +547,9 @@ const mockHandlers = [
         riscoMaximoPerda: 2.5,
         perfilRisco: 'moderado',
         siglaMoedaUltimaInteracaoIA: 'ETH',
-        dataUltimaInteracaoIA: new Date().toISOString()
+        dataUltimaInteracaoIA: new Date().toISOString(),
+        // O que o usuário já alterou nesta sessão vence os valores fixos acima.
+        ...(readMockPrefs() || {}),
       },
     }),
   },
@@ -545,7 +569,7 @@ const mockHandlers = [
     method: 'PUT',
     match: (endpoint) => endpoint === '/ThinkBitcoin/preferencias',
     response: (endpoint, body) => {
-      console.log('Mock PUT Preferences:', body);
+      writeMockPrefs({ ...(readMockPrefs() || {}), ...(body || {}) })
       return { mensagem: 'Preferências mock atualizadas com sucesso' };
     },
   },

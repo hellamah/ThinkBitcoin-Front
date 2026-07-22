@@ -1,10 +1,120 @@
+/* ==========================================================================
+   Tokens de tema
+   --------------------------------------------------------------------------
+   `:root` carrega o tema escuro (padrão do produto). O bloco `.light` no fim
+   do arquivo redefine os mesmos tokens — como custom properties são herdadas,
+   basta a classe estar em <html> ou <body> para toda a árvore virar clara.
+
+   Regra ao escrever CSS/JSX novo: nunca use cor literal para superfície,
+   texto ou borda. Use os tokens abaixo, senão a tela quebra no modo claro.
+   ========================================================================== */
+
 :root {
-  --color-bg: #0d0d0d;
-  --color-bg-card: #1a1a1a;
-  --color-text: #e0e0e0;
+  /* -- Superfícies (do fundo da página para o elemento mais elevado) ------ */
+  --surface-base: #050505;
+  --surface-page: #0d0d0d;
+  --surface-panel: rgba(15, 15, 15, 0.4);
+  --surface-panel-solid: #121212;
+  --surface-raised: #1a1a1a;
+  --surface-inset: rgba(0, 0, 0, 0.4);
+  --surface-hover: rgba(255, 255, 255, 0.04);
+  /* Preenchimentos translúcidos que "levantam" um bloco do fundo — mesmos
+     valores das bordas, mas nomeados à parte porque no claro precisam de
+     opacidade menor para não virarem barras cinzas. */
+  --surface-subtle: rgba(255, 255, 255, 0.03);
+  --surface-fill: rgba(255, 255, 255, 0.05);
+  --surface-fill-strong: rgba(255, 255, 255, 0.08);
+
+  /* Superfície quase opaca de modais/dropdowns que usam backdrop-filter. */
+  --surface-overlay: rgba(15, 15, 15, 0.9);
+  /* Barra de navegação flutuante (vidro sobre o conteúdo que rola por baixo). */
+  --surface-header: rgba(13, 13, 13, 0.7);
+
+  /* -- Véus / overlays de modal ------------------------------------------ */
+  --scrim: rgba(0, 0, 0, 0.6);
+  --scrim-strong: rgba(0, 0, 0, 0.8);
+  --scrim-soft: rgba(0, 0, 0, 0.2);
+  --scrim-faint: rgba(0, 0, 0, 0.1);
+
+  /* -- Texto (primário → mais apagado) ------------------------------------ */
+  --text-primary: #ffffff;
+  --text-body: #e0e0e0;
+  --text-secondary: rgba(255, 255, 255, 0.8);
+  --text-muted: rgba(255, 255, 255, 0.6);
+  --text-faint: rgba(255, 255, 255, 0.4);
+  --text-on-accent: #000000;
+
+  /* -- Bordas / divisores -------------------------------------------------- */
+  --border-subtle: rgba(255, 255, 255, 0.03);
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.15);
+  --border-interactive: rgba(255, 255, 255, 0.3);
+
+  /* -- Marca (ouro) -------------------------------------------------------
+     `--accent` é decorativo (preenchimentos, brilhos, bordas).
+     `--accent-ink` é a variante segura para texto/ícone sobre superfície. */
+  --accent: #ffd700;
+  --accent-ink: #ffd700;
+  --accent-deep: #b8860b;
+  --accent-hover: #e0b800;
+  --accent-a03: rgba(255, 215, 0, 0.03);
+  --accent-a05: rgba(255, 215, 0, 0.05);
+  --accent-a08: rgba(255, 215, 0, 0.08);
+  --accent-a10: rgba(255, 215, 0, 0.1);
+  --accent-a15: rgba(255, 215, 0, 0.15);
+  --accent-a20: rgba(255, 215, 0, 0.2);
+  --accent-a30: rgba(255, 215, 0, 0.3);
+  --accent-a40: rgba(255, 215, 0, 0.4);
+  --accent-a50: rgba(255, 215, 0, 0.5);
+
+  /* -- Status -------------------------------------------------------------- */
+  --success: #4caf50;
+  --success-ink: #81c784;
+  --success-a10: rgba(76, 175, 80, 0.1);
+  --danger: #f44336;
+  --danger-ink: #ff5f5f;
+  --danger-a10: rgba(244, 67, 54, 0.1);
+
+  /* -- Escala Fear & Greed (ganância → medo) -------------------------------
+     Usada como texto e como preenchimento de barra, então precisa passar
+     contraste nos dois temas. */
+  --scale-greed: #4ade80;
+  --scale-greed-mid: #a3e635;
+  --scale-fear-mid: #fb923c;
+  --scale-fear: #f87171;
+
+  /* -- Performance (telas de treinamento): ganho / perda / atenção --------- */
+  --perf-up: #14f195;
+  --perf-down: #ff5c7c;
+  --perf-warn: #ffb547;
+
+  /* -- Verde "terminal" dos efeitos matrix/neon ---------------------------- */
+  --neon: #00ff41;
+  --neon-alt: #00ffaa;
+  --neon-a10: rgba(0, 255, 65, 0.1);
+  --neon-a20: rgba(0, 255, 65, 0.2);
+
+  /* -- Gradientes de título (usados com background-clip: text) -------------
+     Precisam de token próprio: o stop branco some por completo no claro. */
+  --gradient-title: linear-gradient(135deg, #fff 0%, #ffd700 50%, #b8860b 100%);
+  --gradient-title-fade: linear-gradient(to bottom, #fff 30%, rgba(255, 255, 255, 0.5));
+  --gradient-visual-panel: radial-gradient(circle at 0% 0%, #1a1a1a 0%, #050505 100%);
+
+  /* -- Sombras ------------------------------------------------------------- */
+  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 12px 32px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.8);
+
+  /* -- Aliases legados ------------------------------------------------------
+     Mantidos porque App.css, o tema MUI e vários componentes já os consomem.
+     Preferir os tokens semânticos acima em código novo. */
+  --color-bg: var(--surface-page);
+  --color-bg-card: var(--surface-raised);
+  --color-text: var(--text-body);
   --color-text-secondary: #cccccc;
-  --color-primary: #ffd700;
-  --color-success: #4caf50;
+  --color-primary: var(--accent);
+  --color-primary-dark: var(--accent-deep);
+  --color-success: var(--success);
   --color-error: #ff6f61;
 
   font-family: 'Inter', sans-serif;
@@ -21,14 +131,108 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* ==========================================================================
+   Tema claro
+   --------------------------------------------------------------------------
+   Não é uma inversão mecânica: as superfícies ganham um branco levemente
+   quente para casar com o ouro da marca, e o ouro escurece para
+   `--accent-ink` onde vira texto — #ffd700 sobre branco tem contraste ~1.4:1
+   e fica ilegível.
+   ========================================================================== */
+:root.light,
+body.light {
+  --surface-base: #eceef2;
+  --surface-page: #f4f5f7;
+  --surface-panel: rgba(255, 255, 255, 0.75);
+  --surface-panel-solid: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-inset: rgba(16, 20, 28, 0.05);
+  --surface-hover: rgba(16, 20, 28, 0.04);
+  --surface-subtle: rgba(16, 20, 28, 0.025);
+  --surface-fill: rgba(16, 20, 28, 0.045);
+  --surface-fill-strong: rgba(16, 20, 28, 0.07);
+
+  --surface-overlay: rgba(255, 255, 255, 0.94);
+  --surface-header: rgba(255, 255, 255, 0.82);
+
+  --scrim: rgba(16, 20, 28, 0.45);
+  --scrim-strong: rgba(16, 20, 28, 0.65);
+  --scrim-soft: rgba(16, 20, 28, 0.12);
+  --scrim-faint: rgba(16, 20, 28, 0.06);
+
+  --text-primary: #16181d;
+  --text-body: #23262d;
+  /* Alphas calibrados para cruzar 4.5:1 sobre --surface-page (#f4f5f7):
+     0.58/0.42 (o espelho direto dos valores escuros) ficavam em 4.3 e 2.6. */
+  --text-secondary: rgba(22, 24, 29, 0.85);
+  --text-muted: rgba(22, 24, 29, 0.72);
+  --text-faint: rgba(22, 24, 29, 0.64);
+  --text-on-accent: #1a1200;
+
+  --border-subtle: rgba(16, 20, 28, 0.06);
+  --border: rgba(16, 20, 28, 0.12);
+  --border-strong: rgba(16, 20, 28, 0.2);
+  --border-interactive: rgba(16, 20, 28, 0.35);
+
+  --accent: #c9a227;
+  --accent-ink: #8a6a00;
+  --accent-deep: #6f5400;
+  --accent-hover: #a37f00;
+  --accent-a03: rgba(154, 118, 0, 0.04);
+  --accent-a05: rgba(154, 118, 0, 0.06);
+  --accent-a08: rgba(154, 118, 0, 0.09);
+  --accent-a10: rgba(154, 118, 0, 0.12);
+  --accent-a15: rgba(154, 118, 0, 0.18);
+  --accent-a20: rgba(154, 118, 0, 0.24);
+  --accent-a30: rgba(154, 118, 0, 0.34);
+  --accent-a40: rgba(154, 118, 0, 0.44);
+  --accent-a50: rgba(154, 118, 0, 0.55);
+
+  --success: #256b29;
+  --success-ink: #1b5e20;
+  --success-a10: rgba(46, 125, 50, 0.12);
+  --danger: #c62828;
+  --danger-ink: #b71c1c;
+  --danger-a10: rgba(198, 40, 40, 0.1);
+
+  --scale-greed: #15803d;
+  --scale-greed-mid: #4d7c0f;
+  --scale-fear-mid: #c2410c;
+  --scale-fear: #b91c1c;
+
+  --perf-up: #0b6640;
+  --perf-down: #b3213c;
+  --perf-warn: #8a5a00;
+
+  --neon: #0a8f2f;
+  --neon-alt: #00806a;
+  --neon-a10: rgba(10, 143, 47, 0.12);
+  --neon-a20: rgba(10, 143, 47, 0.22);
+
+  --gradient-title: linear-gradient(135deg, #2a2d34 0%, #8a6a00 55%, #6f5400 100%);
+  --gradient-title-fade: linear-gradient(to bottom, #16181d 30%, rgba(22, 24, 29, 0.55));
+  --gradient-visual-panel: radial-gradient(circle at 0% 0%, #ffffff 0%, #e6e8ee 100%);
+
+  --shadow-sm: 0 4px 12px rgba(16, 20, 28, 0.08);
+  --shadow-md: 0 12px 32px rgba(16, 20, 28, 0.12);
+  --shadow-lg: 0 20px 60px rgba(16, 20, 28, 0.18);
+
+  --color-text-secondary: #454a54;
+  --color-error: #c62828;
+
+  color-scheme: light;
+  color: var(--color-text);
+  background-color: var(--color-bg);
+}
+
 a {
   font-weight: 500;
-  color: var(--color-primary);
+  color: var(--accent-ink);
   text-decoration: inherit;
 }
 
 a:hover {
-  color: #e0b800;
+  color: var(--accent-hover);
 }
 
 body {
@@ -36,6 +240,8 @@ body {
   min-width: 320px;
   min-height: 100vh;
   box-sizing: border-box;
+  background-color: var(--color-bg);
+  color: var(--color-text);
 }
 
 #root {
@@ -95,19 +301,6 @@ button:disabled {
   }
 }
 
-body.light {
-  --color-bg: #f5f5f5;
-  --color-bg-card: #ffffff;
-  --color-text: #202020;
-  --color-text-secondary: #555555;
-  --color-primary: #d4af37;
-  --color-success: #4caf50;
-  --color-error: #ff6f61;
-  color-scheme: light;
-  color: var(--color-text);
-  background-color: var(--color-bg);
-}
-
 /* override browser autofill highlight */
 input:-webkit-autofill,
 textarea:-webkit-autofill {
@@ -118,5 +311,5 @@ textarea:-webkit-autofill {
 input::selection,
 textarea::selection {
   background: var(--color-primary);
-  color: var(--color-bg);
+  color: var(--text-on-accent);
 }

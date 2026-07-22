@@ -54,10 +54,10 @@ export const formatarContagem = (seg) => {
 }
 
 export const corFearGreed = (valor) => {
-  if (valor >= 75) return '#4ade80'
-  if (valor >= 50) return '#a3e635'
-  if (valor >= 25) return '#fb923c'
-  return '#f87171'
+  if (valor >= 75) return 'var(--scale-greed)'
+  if (valor >= 50) return 'var(--scale-greed-mid)'
+  if (valor >= 25) return 'var(--scale-fear-mid)'
+  return 'var(--scale-fear)'
 }
 
 const StatChip = ({ label, value, delta, hint }) => {
@@ -65,19 +65,19 @@ const StatChip = ({ label, value, delta, hint }) => {
   const chip = (
     <Box sx={{
       flex: '1 1 45%', minWidth: '120px',
-      background: 'rgba(255,255,255,0.03)',
-      border: '1px solid rgba(255,255,255,0.06)',
+      backgroundColor: 'var(--surface-subtle)',
+      border: '1px solid var(--border)',
       borderRadius: '10px', px: 1.5, py: 1,
     }}>
-      <Typography sx={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.5px', fontFamily: 'Outfit, sans-serif' }}>
+      <Typography sx={{ fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', fontFamily: 'Outfit, sans-serif' }}>
         {label}
       </Typography>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, mt: 0.3 }}>
-        <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: '#fff', fontFamily: 'Share Tech Mono, monospace' }}>
+        <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'Share Tech Mono, monospace' }}>
           {value}
         </Typography>
         {deltaNum !== null && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.2, color: deltaNum >= 0 ? '#4ade80' : '#f87171', fontSize: '0.75rem', fontWeight: 700, fontFamily: 'Share Tech Mono, monospace' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.2, color: deltaNum >= 0 ? 'var(--success-ink)' : 'var(--danger-ink)', fontSize: '0.75rem', fontWeight: 700, fontFamily: 'Share Tech Mono, monospace' }}>
             {deltaNum >= 0 ? <MdTrendingUp size={13} /> : <MdTrendingDown size={13} />}
             {deltaNum >= 0 ? '+' : ''}{deltaNum.toFixed(1)}
           </Box>
@@ -91,7 +91,7 @@ const StatChip = ({ label, value, delta, hint }) => {
 const BarraMedida = ({ label, valorLabel, percent, cor }) => (
   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.6 }}>
     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-      <Typography sx={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: '0.5px', fontFamily: 'Outfit, sans-serif' }}>
+      <Typography sx={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', fontFamily: 'Outfit, sans-serif' }}>
         {label}
       </Typography>
       <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: cor, fontFamily: 'Share Tech Mono, monospace' }}>
@@ -103,7 +103,7 @@ const BarraMedida = ({ label, valorLabel, percent, cor }) => (
       value={Math.max(0, Math.min(100, percent))}
       sx={{
         height: '5px', borderRadius: '3px',
-        background: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'var(--surface-fill)',
         '& .MuiLinearProgress-bar': { background: cor, borderRadius: '3px' },
       }}
     />
@@ -143,12 +143,12 @@ export default function HeatmapInsights({ trend, fear, t }) {
   const fearValor = num(fear?.valor)
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pb: 2, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pb: 2, borderBottom: '1px solid var(--border)' }}>
       {/* Timestamp da coleta + selo de qualidade dos dados */}
       {(horaRef || dadosImputados) && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
           {horaRef && (
-            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, fontSize: '0.72rem', color: 'rgba(255,255,255,0.45)', fontFamily: 'Outfit, sans-serif' }}>
+            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, fontSize: '0.72rem', color: 'var(--text-faint)', fontFamily: 'Outfit, sans-serif' }}>
               <MdAccessTime size={13} />
               {t('heatmap.atualizadoAs') || 'Atualizado às'} {horaRef}
             </Box>
@@ -159,7 +159,7 @@ export default function HeatmapInsights({ trend, fear, t }) {
                 display: 'inline-flex', alignItems: 'center', gap: 0.5,
                 px: 1, py: 0.2, borderRadius: '10px',
                 background: 'rgba(251,146,60,0.08)', border: '1px solid rgba(251,146,60,0.3)',
-                fontSize: '0.7rem', color: '#fb923c', fontFamily: 'Outfit, sans-serif',
+                fontSize: '0.7rem', color: 'var(--scale-fear-mid)', fontFamily: 'Outfit, sans-serif',
               }}>
                 <MdWarningAmber size={13} />
                 {t('heatmap.dadosImputados') || 'Dados parcialmente estimados'}
@@ -205,7 +205,7 @@ export default function HeatmapInsights({ trend, fear, t }) {
             ? `🎯 ${t('heatmap.concentrada') || 'Narrativa concentrada'}`
             : `🌍 ${t('heatmap.distribuida') || 'Narrativa globalizada'}`}
           percent={hhi * 100}
-          cor="#ffd700"
+          cor="var(--accent-ink)"
         />
       )}
 
@@ -219,7 +219,7 @@ export default function HeatmapInsights({ trend, fear, t }) {
             cor={corFearGreed(fearValor)}
           />
           {formatarContagem(segundosRestantes) && (
-            <Typography sx={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.35)', fontFamily: 'Share Tech Mono, monospace', alignSelf: 'flex-end' }}>
+            <Typography sx={{ fontSize: '0.68rem', color: 'var(--text-faint)', fontFamily: 'Share Tech Mono, monospace', alignSelf: 'flex-end' }}>
               ⏳ {t('heatmap.proximaAtualizacao') || 'Próxima atualização em'} {formatarContagem(segundosRestantes)}
             </Typography>
           )}

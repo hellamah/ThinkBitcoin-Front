@@ -99,12 +99,12 @@ export default function CoinCarousel({
           width: '100%',
           p: 4,
           textAlign: 'center',
-          background: 'rgba(20, 20, 20, 0.4)',
+          backgroundColor: 'var(--surface-panel)',
           borderRadius: '16px',
           backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(255,255,255,0.05)'
+          border: '1px solid var(--border)'
         }}>
-          <Typography variant="body1" sx={{ color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+          <Typography variant="body1" sx={{ color: 'var(--accent-ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
             <MdRefresh className="spin" /> {t('loadingCoins')}
           </Typography>
         </Box>
@@ -118,9 +118,9 @@ export default function CoinCarousel({
               className={`carousel-item ${isSelected ? 'selected' : ''}`}
               sx={{
                 minWidth: { xs: 100, sm: 120 },
-                border: isSelected ? '2px solid var(--color-primary) !important' : '1px solid rgba(255,255,255,0.05) !important',
+                border: isSelected ? '2px solid var(--color-primary) !important' : '1px solid var(--surface-fill) !important',
                 transform: isSelected ? 'scale(1.05)' : 'none',
-                boxShadow: isSelected ? '0 0 15px rgba(255, 215, 0, 0.3) !important' : 'none'
+                boxShadow: isSelected ? '0 0 15px var(--accent-a30) !important' : 'none'
               }}
             >
               <CardActionArea
@@ -137,9 +137,9 @@ export default function CoinCarousel({
                   height: '100%',
                   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                   border: isSelected ? '1px solid var(--color-primary)' : '1px solid transparent',
-                  background: isSelected ? 'rgba(255, 215, 0, 0.05)' : 'transparent',
+                  background: isSelected ? 'var(--accent-a05)' : 'transparent',
                   '&:hover': {
-                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                    backgroundColor: 'var(--surface-fill)',
                     transform: 'translateY(-4px)'
                   }
                 }}
@@ -148,7 +148,7 @@ export default function CoinCarousel({
                   <CryptoIcon simbolo={m.simbolo} size={isMobile ? 32 : 40} />
                 </div>
                 <div className="carousel-info">
-                  <span className="carousel-name" style={{ fontWeight: isSelected ? 700 : 400, color: isSelected ? 'var(--color-primary)' : 'inherit' }}>
+                  <span className="carousel-name" style={{ fontWeight: isSelected ? 700 : 400, color: isSelected ? 'var(--accent-ink)' : 'inherit' }}>
                     {m.simbolo}
                   </span>
                   <span className={`carousel-price ${isUp ? 'positive' : 'negative'}`} style={{ fontSize: '0.85rem' }}>

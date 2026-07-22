@@ -50,14 +50,14 @@ function RedefinirSenha() {
   const inputSx = {
     mb: 2,
     '& .MuiFilledInput-root': {
-      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      backgroundColor: 'var(--surface-fill)',
       borderRadius: '12px',
-      border: '1px solid rgba(255, 255, 255, 0.1)',
-      '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.08)', borderColor: 'var(--color-primary)' },
-      '&.Mui-focused': { backgroundColor: 'rgba(255, 255, 255, 0.1)', borderColor: 'var(--color-primary)' },
+      border: '1px solid var(--border-strong)',
+      '&:hover': { backgroundColor: 'var(--surface-fill-strong)', borderColor: 'var(--color-primary)' },
+      '&.Mui-focused': { backgroundColor: 'var(--surface-fill-strong)', borderColor: 'var(--color-primary)' },
     },
-    '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.6)' },
-    '& .MuiInputLabel-root.Mui-focused': { color: 'var(--color-primary)' },
+    '& .MuiInputLabel-root': { color: 'var(--text-muted)' },
+    '& .MuiInputLabel-root.Mui-focused': { color: 'var(--accent-ink)' },
   }
 
   return (
@@ -68,26 +68,26 @@ function RedefinirSenha() {
           maxWidth: '440px',
           width: '95%',
           p: { xs: 4, md: 6 },
-          background: 'rgba(20, 20, 20, 0.85)',
+          backgroundColor: 'var(--surface-overlay)',
           backdropFilter: 'blur(20px)',
           borderRadius: '24px',
-          border: '1px solid rgba(255, 215, 0, 0.15)',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+          border: '1px solid var(--accent-a15)',
+          boxShadow: '0 25px 50px -12px var(--scrim)',
         }}
       >
         <Box sx={{ textAlign: 'center', mb: 4 }}>
           <img src={logo} alt="ThinkBitcoin Logo" style={{ height: '70px', marginBottom: '16px' }} />
-          <Typography variant="h5" sx={{ fontWeight: 800, color: 'var(--color-primary)' }}>
+          <Typography variant="h5" sx={{ fontWeight: 800, color: 'var(--accent-ink)' }}>
             Redefinir senha
           </Typography>
         </Box>
 
         {sucesso ? (
           <Box sx={{ textAlign: 'center', py: 2 }}>
-            <Typography sx={{ color: '#4caf50', fontSize: '1rem', mb: 2 }}>
+            <Typography sx={{ color: 'var(--success)', fontSize: '1rem', mb: 2 }}>
               Senha redefinida com sucesso!
             </Typography>
-            <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.875rem' }}>
+            <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
               Redirecionando para o login...
             </Typography>
           </Box>
@@ -100,7 +100,7 @@ function RedefinirSenha() {
                 required variant="filled" sx={inputSx}
                 InputProps={{
                   disableUnderline: true,
-                  startAdornment: <Box sx={{ mr: 1, color: 'rgba(255,255,255,0.4)', display: 'flex' }}><MdLock /></Box>
+                  startAdornment: <Box sx={{ mr: 1, color: 'var(--text-faint)', display: 'flex' }}><MdLock /></Box>
                 }}
               />
               <TextField
@@ -109,12 +109,12 @@ function RedefinirSenha() {
                 required variant="filled" sx={inputSx}
                 InputProps={{
                   disableUnderline: true,
-                  startAdornment: <Box sx={{ mr: 1, color: 'rgba(255,255,255,0.4)', display: 'flex' }}><MdLock /></Box>
+                  startAdornment: <Box sx={{ mr: 1, color: 'var(--text-faint)', display: 'flex' }}><MdLock /></Box>
                 }}
               />
 
               {erro && (
-                <Typography sx={{ color: '#f44336', fontSize: '0.85rem', mb: 2 }}>{erro}</Typography>
+                <Typography sx={{ color: 'var(--danger)', fontSize: '0.85rem', mb: 2 }}>{erro}</Typography>
               )}
 
               <Button
@@ -122,16 +122,16 @@ function RedefinirSenha() {
                 disabled={carregando || !token}
                 sx={{
                   mt: 1, py: 1.8, borderRadius: '12px', fontSize: '1rem', fontWeight: 700,
-                  bgcolor: 'var(--color-primary)', color: '#000',
+                  backgroundColor: 'var(--accent)', color: 'var(--text-on-accent)',
                   '&:hover': { bgcolor: '#e0c200' },
                 }}
               >
-                {carregando ? <CircularProgress size={24} sx={{ color: '#000' }} /> : 'Redefinir senha'}
+                {carregando ? <CircularProgress size={24} sx={{ color: 'var(--text-on-accent)' }} /> : 'Redefinir senha'}
               </Button>
 
               <Button
                 variant="text" fullWidth onClick={() => navegar('/login')}
-                sx={{ mt: 2, color: 'rgba(255,255,255,0.4)', '&:hover': { color: 'var(--color-primary)' } }}
+                sx={{ mt: 2, color: 'var(--text-faint)', '&:hover': { color: 'var(--accent-ink)' } }}
               >
                 Voltar ao login
               </Button>

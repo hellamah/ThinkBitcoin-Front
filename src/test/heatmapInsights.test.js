@@ -91,11 +91,13 @@ describe('Helpers do HeatmapInsights', () => {
   })
 
   describe('corFearGreed', () => {
+    // As cores saem como tokens de tema (definidos em index.css) e não como
+    // hex fixo, para a escala acompanhar o modo claro/escuro.
     it('mapeia faixas do índice para cores distintas', () => {
-      expect(corFearGreed(80)).toBe('#4ade80')
-      expect(corFearGreed(60)).toBe('#a3e635')
-      expect(corFearGreed(30)).toBe('#fb923c')
-      expect(corFearGreed(10)).toBe('#f87171')
+      expect(corFearGreed(80)).toBe('var(--scale-greed)')
+      expect(corFearGreed(60)).toBe('var(--scale-greed-mid)')
+      expect(corFearGreed(30)).toBe('var(--scale-fear-mid)')
+      expect(corFearGreed(10)).toBe('var(--scale-fear)')
     })
   })
 })

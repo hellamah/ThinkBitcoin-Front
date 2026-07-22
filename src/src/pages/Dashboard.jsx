@@ -309,21 +309,21 @@ export default function Dashboard() {
               dismissKeyAction: false,
               primaryColor: '#ffd700',
               textColor: '#fff',
-              backgroundColor: 'rgba(15,15,15,0.97)',
+              backgroundColor: 'var(--surface-overlay)',
               arrowColor: 'rgba(15,15,15,0.97)',
               zIndex: 9999,
             }}
             styles={{
               tooltip: {
-                border: '1px solid rgba(255,215,0,0.35)',
+                border: '1px solid var(--accent-a30)',
                 borderRadius: 16,
-                boxShadow: '0 20px 60px rgba(0,0,0,0.8)',
+                boxShadow: '0 20px 60px var(--scrim-strong)',
               },
-              tooltipTitle: { color: '#ffd700', fontWeight: 800, fontSize: '1rem' },
-              tooltipContent: { color: 'rgba(255,255,255,0.8)', fontSize: '0.88rem' },
-              buttonPrimary: { background: '#ffd700', color: '#000', fontWeight: 700, borderRadius: '8px' },
-              buttonBack: { color: 'rgba(255,255,255,0.6)' },
-              buttonSkip: { color: 'rgba(255,255,255,0.4)', fontSize: '0.78rem' },
+              tooltipTitle: { color: 'var(--accent-ink)', fontWeight: 800, fontSize: '1rem' },
+              tooltipContent: { color: 'var(--text-secondary)', fontSize: '0.88rem' },
+              buttonPrimary: { backgroundColor: 'var(--accent)', color: 'var(--text-on-accent)', fontWeight: 700, borderRadius: '8px' },
+              buttonBack: { color: 'var(--text-muted)' },
+              buttonSkip: { color: 'var(--text-faint)', fontSize: '0.78rem' },
             }}
           />
         )}

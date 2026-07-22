@@ -37,7 +37,7 @@ export default function PatrimonioCard({ token, user }) {
   if (loading && !patrimonio) {
     return (
       <Box className="patrimonio-summary-card" sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-        <CircularProgress size={30} sx={{ color: 'var(--color-primary)' }} />
+        <CircularProgress size={30} sx={{ color: 'var(--accent-ink)' }} />
       </Box>
     )
   }
@@ -50,12 +50,12 @@ export default function PatrimonioCard({ token, user }) {
       <Grid container spacing={3} alignItems="center">
         <Grid item xs={12} md={7}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-            <MdAccountBalanceWallet style={{ fontSize: '1.4rem', color: 'var(--color-primary)' }} />
+            <MdAccountBalanceWallet style={{ fontSize: '1.4rem', color: 'var(--accent-ink)' }} />
             <Typography className="patrimonio-title-glow" variant="subtitle2" sx={{ fontWeight: 800 }}>
               {t('patrimonio.title')}
             </Typography>
             {saldoBRL > 0 && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: 'rgba(76, 175, 80, 0.1)', color: '#81c784', px: 1, py: 0.2, borderRadius: '10px', fontSize: '0.7rem', fontWeight: 'bold', fontFamily: "'Share Tech Mono', monospace" }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, backgroundColor: 'var(--success-a10)', color: 'var(--success-ink)', px: 1, py: 0.2, borderRadius: '10px', fontSize: '0.7rem', fontWeight: 'bold', fontFamily: "'Share Tech Mono', monospace" }}>
                 <MdTrendingUp /> ACTIVE_GROWTH
               </Box>
             )}
