@@ -517,7 +517,9 @@ const mockHandlers = [
       // Cria um payload mock no padrão JWT para o decode da aplicação
       const payload = {
         'idUsuarioTB': 'b282e124-4dd8-4ccd-a9c6-5b6b0c324a50',
-        'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name': 'Usuário Teste',
+        // Igual à API: o nome sai do banco na reemissão, então o que o usuário
+        // salvou em /settings precisa aparecer aqui depois de renovar.
+        'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name': readMockPrefs()?.nome || 'Usuário Teste',
         'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress': 'teste@thinkbitcoin.com'
       }
       const base64Payload = base64FromUtf8(JSON.stringify(payload))
@@ -571,6 +573,34 @@ const mockHandlers = [
     response: (endpoint, body) => {
       writeMockPrefs({ ...(readMockPrefs() || {}), ...(body || {}) })
       return { mensagem: 'Preferências mock atualizadas com sucesso' };
+    },
+  },
+  {
+    method: 'PUT',
+    match: (endpoint) => endpoint === '/ThinkBitcoin/usuariosTB/meu-perfil',
+    response: (endpoint, body) => {
+      const nome = body?.nome?.trim()
+      if (!nome) {
+        const err = new Error('Nome não pode ser vazio.')
+        err.status = 400
+        throw err
+      }
+      writeMockPrefs({ ...(readMockPrefs() || {}), nome })
+      return { mensagem: 'Perfil mock atualizado com sucesso' }
+    },
+  },
+  {
+    method: 'POST',
+    match: (endpoint) => endpoint === '/ThinkBitcoin/usuariosTB/excluir-conta',
+    response: (endpoint, body) => {
+      // O mock não guarda a senha do usuário demo: aceita qualquer uma, menos
+      // este valor sentinela, que existe para exercitar o caminho de erro.
+      if (!body?.senha || body.senha === 'senha-errada') {
+        const err = new Error('A senha informada está incorreta.')
+        err.status = 400
+        throw err
+      }
+      return { mensagem: 'Conta mock excluída com sucesso' }
     },
   },
   {

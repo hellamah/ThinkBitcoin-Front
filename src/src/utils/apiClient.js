@@ -21,6 +21,9 @@ export const ApiEndpoint = Object.freeze({
     LIST: '/ThinkBitcoin/usuariosTB/',
     CREATE: '/ThinkBitcoin/usuariosTB/',
     DELETE: (id) => `/ThinkBitcoin/usuariosTB/${id}`,
+    // Autoatendimento: o backend resolve o usuário pelo token, sem id na rota.
+    UPDATE_PROFILE: '/ThinkBitcoin/usuariosTB/meu-perfil',
+    DELETE_ACCOUNT: '/ThinkBitcoin/usuariosTB/excluir-conta',
     CHANGE_PASSWORD: '/ThinkBitcoin/usuariosTB/AlterarSenha',
     RECUPERAR_SENHA: '/ThinkBitcoin/usuariosTB/recuperar-senha',
     REDEFINIR_SENHA: '/ThinkBitcoin/usuariosTB/redefinir-senha',

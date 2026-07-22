@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
+  MdPerson,
+  MdDeleteForever,
   MdBrightness4,
   MdLanguage,
   MdNotifications,
@@ -34,7 +36,14 @@ import CircularProgress from '@mui/material/CircularProgress'
 import '../App.css'
 import { useAuth } from '../context/AuthContext'
 import useTranslation from '../hooks/useTranslation'
-import { apiRequest, MarketEndpoint, UserEndpoint, PlanosPagamentoEndpoint, HttpMethod } from '../utils/apiClient'
+import {
+  apiRequest,
+  AuthenticationEndpoint,
+  MarketEndpoint,
+  UserEndpoint,
+  PlanosPagamentoEndpoint,
+  HttpMethod,
+} from '../utils/apiClient'
 import { API_URL } from '../api'
 import {
   AlgorithmStyle,
@@ -46,11 +55,16 @@ import {
 import { isNotificationSupported } from '../utils/browser'
 import { executeNotificationWorkflow } from '../utils/workflow'
 import PlanosPagamentoModal from '../components/PlanosPagamentoModal'
+import ExcluirContaModal from '../components/ExcluirContaModal'
 
 function Settings() {
   const { t } = useTranslation()
-  const { token, user, prefs, updatePreferences } = useAuth()
+  const navigate = useNavigate()
+  const { token, user, prefs, login, logout, updatePreferences } = useAuth()
   const [localPrefs, setLocalPrefs] = useState(prefs)
+  const [nome, setNome] = useState(user?.nome || '')
+  const [loadingNome, setLoadingNome] = useState(false)
+  const [modalExcluirOpen, setModalExcluirOpen] = useState(false)
   const [toast, setToast] = useState('')
   const [moedas, setMoedas] = useState([])
   const [exchanges, setExchanges] = useState([])
@@ -115,6 +129,11 @@ function Settings() {
     if (prefs) setLocalPrefs(prefs)
   }, [prefs])
 
+  // O nome exibido vem do claim do token; o campo reflete a sessão atual.
+  useEffect(() => {
+    setNome(user?.nome || '')
+  }, [user?.nome])
+
   const confirm = () => {
     setToast(t('settingsSaved') || 'Configurações salvas!')
     setTimeout(() => setToast(''), 2000)
@@ -153,6 +172,47 @@ function Settings() {
     if (!Object.values(AlgorithmStyle).includes(val)) return
     updatePreferences({ estiloAlgoritmo: val })
     confirm()
+  }
+
+  const handleSalvarNome = async (e) => {
+    e.preventDefault()
+    const valor = nome.trim()
+    if (!valor) {
+      setToast(t('account.nameRequired'))
+      setTimeout(() => setToast(''), 3000)
+      return
+    }
+    if (valor === user?.nome) return
+
+    setLoadingNome(true)
+    try {
+      await apiRequest(UserEndpoint.UPDATE_PROFILE, {
+        method: HttpMethod.PUT,
+        body: { nome: valor },
+        suppressAuthRedirect: true,
+      })
+      // O nome exibido no Layout sai do claim do token: sem reemitir, a tela
+      // continuaria com o nome antigo até o próximo login.
+      const res = await apiRequest(AuthenticationEndpoint.RENOVAR, {
+        method: HttpMethod.POST,
+        suppressAuthRedirect: true,
+      })
+      const novoToken = res?.resultado?.tokenAutenticado
+      if (novoToken) await login(novoToken)
+      setToast(t('account.nameUpdated'))
+    } catch (err) {
+      console.error('Erro ao atualizar o nome:', err)
+      setToast(t('account.errorUpdatingName'))
+    } finally {
+      setLoadingNome(false)
+      setTimeout(() => setToast(''), 3000)
+    }
+  }
+
+  const handleContaExcluida = () => {
+    setModalExcluirOpen(false)
+    logout()
+    navigate('/login', { replace: true })
   }
 
   const handleTrocarSenha = async (e) => {
@@ -563,6 +623,111 @@ function Settings() {
         </div>
 
         <div style={{ gridColumn: '1 / -1' }}>
+          {renderPanel(<MdPerson />, t('account.title'), (
+            <>
+              <Box component="form" onSubmit={handleSalvarNome} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <Typography variant="body2" sx={{ color: 'var(--text-muted)' }}>
+                  {t('account.description')}
+                </Typography>
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label={t('account.name')}
+                      value={nome}
+                      onChange={(e) => setNome(e.target.value)}
+                      sx={inputSx}
+                      InputLabelProps={{ sx: { color: 'var(--text-muted)' } }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      disabled
+                      label={t('account.email')}
+                      value={user?.email || ''}
+                      helperText={t('account.emailLocked')}
+                      sx={inputSx}
+                      InputLabelProps={{ sx: { color: 'var(--text-muted)' } }}
+                      FormHelperTextProps={{ sx: { color: 'var(--text-faint)' } }}
+                    />
+                  </Grid>
+                </Grid>
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    disabled={loadingNome}
+                    sx={{
+                      backgroundColor: 'var(--accent)',
+                      color: 'var(--text-on-accent)',
+                      fontWeight: 800,
+                      px: 4,
+                      py: 1.2,
+                      borderRadius: '10px',
+                      '&:hover': {
+                        bgcolor: '#e6c200',
+                        boxShadow: '0 0 20px var(--accent-a40)'
+                      },
+                      '&.Mui-disabled': {
+                        backgroundColor: 'var(--accent-a30)',
+                      }
+                    }}
+                  >
+                    {loadingNome ? (t('saving') || 'SALVANDO...') : t('account.saveName').toUpperCase()}
+                  </Button>
+                </Box>
+              </Box>
+
+              <Box sx={{
+                borderTop: '1px solid var(--border-subtle)',
+                pt: 3,
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 2,
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}>
+                <Box sx={{ maxWidth: '560px' }}>
+                  <Typography sx={{
+                    fontWeight: 800,
+                    color: 'var(--danger-ink)',
+                    fontFamily: "'Share Tech Mono', monospace",
+                    textTransform: 'uppercase',
+                    letterSpacing: '1px',
+                    mb: 0.5
+                  }}>
+                    {t('account.dangerZone')}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'var(--text-muted)' }}>
+                    {t('account.deleteAccountDescription')}
+                  </Typography>
+                </Box>
+                <Button
+                  variant="outlined"
+                  startIcon={<MdDeleteForever />}
+                  onClick={() => setModalExcluirOpen(true)}
+                  sx={{
+                    borderColor: 'var(--danger)',
+                    color: 'var(--danger-ink)',
+                    fontWeight: 800,
+                    px: 3,
+                    py: 1.2,
+                    borderRadius: '10px',
+                    '&:hover': {
+                      borderColor: 'var(--danger)',
+                      backgroundColor: 'var(--danger-a10)'
+                    }
+                  }}
+                >
+                  {t('account.deleteAccount').toUpperCase()}
+                </Button>
+              </Box>
+            </>
+          ))}
+        </div>
+
+        <div style={{ gridColumn: '1 / -1' }}>
           {renderPanel(<MdLock />, t('security') || 'SEGURANÇA', (
             <Box component="form" onSubmit={handleTrocarSenha} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
               <Typography variant="body2" sx={{ color: 'var(--text-muted)', mb: 1 }}>
@@ -649,6 +814,12 @@ function Settings() {
         token={token}
         user={user}
         onRefresh={carregarPlanoAtivo}
+      />
+
+      <ExcluirContaModal
+        visible={modalExcluirOpen}
+        onClose={() => setModalExcluirOpen(false)}
+        onDeleted={handleContaExcluida}
       />
     </Box>
   )
