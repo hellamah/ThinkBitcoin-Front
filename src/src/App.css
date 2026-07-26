@@ -2892,6 +2892,14 @@
   color: var(--danger);
 }
 
+.intel-value.up {
+  color: var(--success);
+}
+
+.intel-value.down {
+  color: var(--danger);
+}
+
 /* Barra de pressão compra x venda: o trilho é a parcela vendedora, o
    preenchimento é a compradora. */
 .pressure-bar {

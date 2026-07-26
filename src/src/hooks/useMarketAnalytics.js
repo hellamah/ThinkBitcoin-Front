@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { median } from '../utils/mathUtils'
+import { calcularDesempenho } from '../utils/marketStats'
 
 // Deriva fluxo de ordens, volatilidade e sentimento a partir dos dados que o
 // dashboard já carregou. Nenhuma requisição nova: são campos que a resposta de
@@ -76,6 +77,8 @@ export default function useMarketAnalytics({
         }
       : null
 
-    return { sigla, fluxo, volatilidade, fearGreed, amostras: historico.length }
+    const desempenho = calcularDesempenho(historico)
+
+    return { sigla, fluxo, volatilidade, fearGreed, desempenho, amostras: historico.length }
   }, [historicosPorMoeda, fearGreedPorMoeda, moedasFiltro])
 }

@@ -33,6 +33,7 @@ import CoinCarousel from '../components/dashboard/CoinCarousel'
 import DashboardFilters from '../components/dashboard/DashboardFilters'
 import IntelligencePanel from '../components/dashboard/IntelligencePanel'
 import AnalyticsPanel from '../components/dashboard/AnalyticsPanel'
+import PeriodStatsPanel from '../components/dashboard/PeriodStatsPanel'
 import DashboardCharts from '../components/dashboard/DashboardCharts'
 import HistoryTable from '../components/dashboard/HistoryTable'
 import ErrorMessage from '../components/ErrorMessage'
@@ -390,6 +391,8 @@ export default function Dashboard() {
           t={t}
         />
         </div>
+
+        <PeriodStatsPanel desempenho={analytics?.desempenho} t={t} />
 
         <AnalyticsPanel analytics={analytics} t={t} />
 

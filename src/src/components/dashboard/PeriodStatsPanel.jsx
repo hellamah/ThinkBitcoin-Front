@@ -1,0 +1,59 @@
+import React from 'react'
+import { MdTrendingUp, MdTrendingDown, MdPercent, MdSsidChart } from 'react-icons/md'
+import * as mathUtils from '../../utils/mathUtils'
+
+/**
+ * Desempenho consolidado do período filtrado.
+ *
+ * @param {object} props
+ * @param {object} props.desempenho - Retorno de calcularDesempenho.
+ * @param {Function} props.t - Função de tradução.
+ */
+export default function PeriodStatsPanel({ desempenho, t }) {
+  if (!desempenho) return null
+
+  const { retorno, drawdown, winRate, melhor, pior, amostras } = desempenho
+  const positivo = retorno >= 0
+
+  return (
+    <section className="panel intelligence-panel">
+      <h2>
+        <MdSsidChart style={{ verticalAlign: 'middle', marginRight: '10px' }} /> {t('periodPerformance')}
+      </h2>
+      <div className="intelligence-grid">
+        <div className="intel-card">
+          <div className="intel-icon">{positivo ? <MdTrendingUp /> : <MdTrendingDown />}</div>
+          <div className="intel-label">{t('cumulativeReturn')}</div>
+          <div className={`intel-value ${positivo ? 'up' : 'down'}`}>
+            {mathUtils.formatPercent(retorno)}
+          </div>
+          <div className="intel-subvalue" style={{ opacity: 0.7 }}>
+            {t('candlesCounted', { count: amostras })}
+          </div>
+        </div>
+
+        <div className="intel-card">
+          <div className="intel-icon"><MdTrendingDown /></div>
+          <div className="intel-label">{t('maxDrawdown')}</div>
+          {/* Drawdown é sempre ≤ 0; o sinal já vem no número. */}
+          <div className="intel-value down">{mathUtils.formatPercent(drawdown, 2, false)}</div>
+          <div className="intel-subvalue" style={{ opacity: 0.7 }}>{t('maxDrawdownHint')}</div>
+        </div>
+
+        <div className="intel-card">
+          <div className="intel-icon"><MdPercent /></div>
+          <div className="intel-label">{t('winRate')}</div>
+          <div className="intel-value">{winRate.toFixed(1)}%</div>
+          <div className="intel-subvalue" style={{ opacity: 0.7 }}>{t('winRateHint')}</div>
+        </div>
+
+        <div className="intel-card">
+          <div className="intel-icon"><MdTrendingUp /></div>
+          <div className="intel-label">{t('bestWorstCandle')}</div>
+          <div className="intel-value up">{mathUtils.formatPercent(melhor)}</div>
+          <div className="intel-subvalue down">{mathUtils.formatPercent(pior)}</div>
+        </div>
+      </div>
+    </section>
+  )
+}
