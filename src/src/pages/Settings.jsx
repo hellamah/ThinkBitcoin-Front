@@ -523,6 +523,46 @@ function Settings() {
           </>
         ))}
 
+        {renderPanel(<MdPerson />, t('account.title'), (
+          <Box
+            component="form"
+            onSubmit={handleSalvarNome}
+            sx={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1 }}
+          >
+            {renderField(t('account.name'), (
+              <TextField
+                fullWidth
+                size="small"
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+                sx={inputSx}
+              />
+            ))}
+            <Button
+              type="submit"
+              variant="outlined"
+              disabled={loadingNome}
+              fullWidth
+              sx={{
+                mt: 'auto',
+                borderColor: 'var(--border-strong)',
+                color: 'var(--text-primary)',
+                py: 1.2,
+                borderRadius: '12px',
+                backgroundColor: 'var(--surface-subtle)',
+                fontFamily: "'Share Tech Mono', monospace",
+                fontWeight: 700,
+                '&:hover': {
+                  borderColor: 'var(--color-primary)',
+                  backgroundColor: 'var(--accent-a05)'
+                }
+              }}
+            >
+              {loadingNome ? (t('saving') || 'SALVANDO...') : t('account.saveName').toUpperCase()}
+            </Button>
+          </Box>
+        ))}
+
         <div style={{ gridColumn: '1 / -1' }}>
           {renderPanel(<MdSecurity />, t('riskManagementTitle'), (
             <Grid container spacing={4}>
@@ -623,111 +663,6 @@ function Settings() {
         </div>
 
         <div style={{ gridColumn: '1 / -1' }}>
-          {renderPanel(<MdPerson />, t('account.title'), (
-            <>
-              <Box component="form" onSubmit={handleSalvarNome} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                <Typography variant="body2" sx={{ color: 'var(--text-muted)' }}>
-                  {t('account.description')}
-                </Typography>
-                <Grid container spacing={3}>
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label={t('account.name')}
-                      value={nome}
-                      onChange={(e) => setNome(e.target.value)}
-                      sx={inputSx}
-                      InputLabelProps={{ sx: { color: 'var(--text-muted)' } }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      disabled
-                      label={t('account.email')}
-                      value={user?.email || ''}
-                      helperText={t('account.emailLocked')}
-                      sx={inputSx}
-                      InputLabelProps={{ sx: { color: 'var(--text-muted)' } }}
-                      FormHelperTextProps={{ sx: { color: 'var(--text-faint)' } }}
-                    />
-                  </Grid>
-                </Grid>
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    disabled={loadingNome}
-                    sx={{
-                      backgroundColor: 'var(--accent)',
-                      color: 'var(--text-on-accent)',
-                      fontWeight: 800,
-                      px: 4,
-                      py: 1.2,
-                      borderRadius: '10px',
-                      '&:hover': {
-                        bgcolor: '#e6c200',
-                        boxShadow: '0 0 20px var(--accent-a40)'
-                      },
-                      '&.Mui-disabled': {
-                        backgroundColor: 'var(--accent-a30)',
-                      }
-                    }}
-                  >
-                    {loadingNome ? (t('saving') || 'SALVANDO...') : t('account.saveName').toUpperCase()}
-                  </Button>
-                </Box>
-              </Box>
-
-              <Box sx={{
-                borderTop: '1px solid var(--border-subtle)',
-                pt: 3,
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: 2,
-                alignItems: 'center',
-                justifyContent: 'space-between'
-              }}>
-                <Box sx={{ maxWidth: '560px' }}>
-                  <Typography sx={{
-                    fontWeight: 800,
-                    color: 'var(--danger-ink)',
-                    fontFamily: "'Share Tech Mono', monospace",
-                    textTransform: 'uppercase',
-                    letterSpacing: '1px',
-                    mb: 0.5
-                  }}>
-                    {t('account.dangerZone')}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: 'var(--text-muted)' }}>
-                    {t('account.deleteAccountDescription')}
-                  </Typography>
-                </Box>
-                <Button
-                  variant="outlined"
-                  startIcon={<MdDeleteForever />}
-                  onClick={() => setModalExcluirOpen(true)}
-                  sx={{
-                    borderColor: 'var(--danger)',
-                    color: 'var(--danger-ink)',
-                    fontWeight: 800,
-                    px: 3,
-                    py: 1.2,
-                    borderRadius: '10px',
-                    '&:hover': {
-                      borderColor: 'var(--danger)',
-                      backgroundColor: 'var(--danger-a10)'
-                    }
-                  }}
-                >
-                  {t('account.deleteAccount').toUpperCase()}
-                </Button>
-              </Box>
-            </>
-          ))}
-        </div>
-
-        <div style={{ gridColumn: '1 / -1' }}>
           {renderPanel(<MdLock />, t('security') || 'SEGURANÇA', (
             <Box component="form" onSubmit={handleTrocarSenha} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
               <Typography variant="body2" sx={{ color: 'var(--text-muted)', mb: 1 }}>
@@ -792,6 +727,41 @@ function Settings() {
                   {loadingSenha ? (t('saving') || 'SALVANDO...') : (t('updatePassword') || 'ATUALIZAR SENHA')}
                 </Button>
               </Box>
+            </Box>
+          ))}
+        </div>
+
+        <div style={{ gridColumn: '1 / -1' }}>
+          {renderPanel(<MdDeleteForever />, t('account.dangerZone'), (
+            <Box sx={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 2,
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <Typography variant="body2" sx={{ color: 'var(--text-muted)', maxWidth: '560px' }}>
+                {t('account.deleteAccountDescription')}
+              </Typography>
+              <Button
+                variant="outlined"
+                startIcon={<MdDeleteForever />}
+                onClick={() => setModalExcluirOpen(true)}
+                sx={{
+                  borderColor: 'var(--danger)',
+                  color: 'var(--danger-ink)',
+                  fontWeight: 800,
+                  px: 3,
+                  py: 1.2,
+                  borderRadius: '10px',
+                  '&:hover': {
+                    borderColor: 'var(--danger)',
+                    backgroundColor: 'var(--danger-a10)'
+                  }
+                }}
+              >
+                {t('account.deleteAccount').toUpperCase()}
+              </Button>
             </Box>
           ))}
         </div>
