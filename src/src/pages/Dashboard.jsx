@@ -20,8 +20,11 @@ import useTranslation from '../hooks/useTranslation'
 import useCoinPrices from '../hooks/useCoinPrices'
 import useDashboardData from '../hooks/useDashboardData'
 import useDashboardCharts from '../hooks/useDashboardCharts'
+import useMarketAnalytics from '../hooks/useMarketAnalytics'
 import * as mathUtils from '../utils/mathUtils'
 import { getTourVisto, setTourVisto } from '../utils/preferences'
+import { candlestickPlugin } from '../utils/candlestickChart'
+import { PriceChartMode } from '../utils/enums'
 
 // Sub-componentes Refatorados
 import DashboardHeader from '../components/dashboard/DashboardHeader'
@@ -29,6 +32,7 @@ import PatrimonioCard from '../components/dashboard/PatrimonioCard'
 import CoinCarousel from '../components/dashboard/CoinCarousel'
 import DashboardFilters from '../components/dashboard/DashboardFilters'
 import IntelligencePanel from '../components/dashboard/IntelligencePanel'
+import AnalyticsPanel from '../components/dashboard/AnalyticsPanel'
 import DashboardCharts from '../components/dashboard/DashboardCharts'
 import HistoryTable from '../components/dashboard/HistoryTable'
 import ErrorMessage from '../components/ErrorMessage'
@@ -42,6 +46,9 @@ ChartJS.register(
   Tooltip,
   Legend,
   Filler,
+  // Inerte enquanto options.plugins.candlestick.enabled for falso, então não
+  // interfere no gráfico de variação nem no modo linha.
+  candlestickPlugin,
 )
 
 ChartJS.defaults.color = '#e0e0e0'
@@ -67,6 +74,7 @@ export default function Dashboard() {
 
   // Estados Visuais Locais
   const [normalizacao, setNormalizacao] = useState('base100')
+  const [modoPreco, setModoPreco] = useState(PriceChartMode.LINE)
   const [expandedChart, setExpandedChart] = useState(null)
 
   const hasInitializedPref = useRef(false)
@@ -243,8 +251,16 @@ export default function Dashboard() {
     if (!sigla || !trendPorMoeda[sigla]) return null
     const regs = trendPorMoeda[sigla]
     if (!Array.isArray(regs) || regs.length === 0) return null
-    return regs[regs.length - 1]
+    return regs[0]
   }, [trendPorMoeda, moedasFiltro])
+
+  // Fluxo de ordens, volatilidade e sentimento: tudo derivado dos dados que já
+  // foram carregados acima, sem nenhuma requisição adicional.
+  const analytics = useMarketAnalytics({
+    historicosPorMoeda,
+    fearGreedPorMoeda,
+    moedasFiltro
+  })
 
   // Processamento de Gráficos (Hook Customizado)
   const chartConfig = useDashboardCharts({
@@ -254,14 +270,17 @@ export default function Dashboard() {
     resultadoFiltro,
     normalizacao,
     fearGreedPorMoeda,
-    trendPorMoeda
+    trendPorMoeda,
+    modoPreco
   })
 
+  // As consultas usam ordemAsc=false, então o backend devolve da leitura mais
+  // recente para a mais antiga: o registro atual é o índice 0, não o último.
   const ultimoNegociado = useMemo(() => {
     const sigla = moedasFiltro[0]
     const hist = (historicosPorMoeda && sigla) ? (historicosPorMoeda[sigla] || []) : []
     if (!hist.length) return '-'
-    const last = hist[hist.length - 1]
+    const last = hist[0]
     const val = last?.precoFechamento ?? last?.PrecoFechamento ?? last?.valor ?? last?.Valor ?? last?.valorNegociado ?? last?.ValorNegociado ?? 0
     return mathUtils.formatCurrency(val)
   }, [historicosPorMoeda, moedasFiltro])
@@ -270,7 +289,7 @@ export default function Dashboard() {
     const sigla = moedasFiltro[0]
     const hist = (historicosPorMoeda && sigla) ? (historicosPorMoeda[sigla] || []) : []
     if (!hist.length) return '-'
-    const last = hist[hist.length - 1]
+    const last = hist[0]
     const val = last?.precoPercentualVariacao ?? last?.PrecoPercentualVariacao ?? last?.variacaoPercentual ?? last?.VariacaoPercentual ?? last?.variacao ?? last?.Variacao ?? 0
     return mathUtils.formatPercent(val)
   }, [historicosPorMoeda, moedasFiltro])
@@ -356,6 +375,9 @@ export default function Dashboard() {
           multiMoeda={chartConfig.multiMoeda}
           normalizacao={normalizacao}
           setNormalizacao={setNormalizacao}
+          modoPreco={modoPreco}
+          setModoPreco={setModoPreco}
+          temVelas={chartConfig.velas.length > 0}
           expandedChart={expandedChart}
           setExpandedChart={setExpandedChart}
           dadosNegociados={chartConfig.dadosGraficoPreco}
@@ -368,6 +390,8 @@ export default function Dashboard() {
           t={t}
         />
         </div>
+
+        <AnalyticsPanel analytics={analytics} t={t} />
 
         {moedasFiltro.length === 1 && trendAtual && (
           <IntelligencePanel trendAtual={trendAtual} t={t} />

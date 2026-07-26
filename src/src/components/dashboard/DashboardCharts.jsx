@@ -2,8 +2,21 @@ import React from 'react'
 import Box from '@mui/material/Box'
 import { Line } from 'react-chartjs-2'
 import { MdFullscreen } from 'react-icons/md'
-import { ChartType } from '../../utils/enums'
+import { ChartType, PriceChartMode } from '../../utils/enums'
 import ExpandedChartModal from './ExpandedChartModal'
+
+// Estilo dos alternadores em pílula do cabeçalho dos gráficos.
+const estiloAlternador = (ativo) => ({
+  padding: '4px 12px',
+  fontSize: '0.78rem',
+  borderRadius: '20px',
+  border: ativo ? '1px solid #FFD700' : '1px solid #444',
+  background: ativo ? 'rgba(255,215,0,0.12)' : 'transparent',
+  color: ativo ? 'var(--accent-ink)' : 'var(--text-muted)',
+  cursor: 'pointer',
+  fontWeight: ativo ? 600 : 400,
+  transition: 'all 0.2s',
+})
 
 /**
  * Exibe os gráficos do dashboard. Ao expandir um gráfico (modal),
@@ -24,11 +37,14 @@ import ExpandedChartModal from './ExpandedChartModal'
  * @param {object} props.trendAtual - Dados de tendência atual.
  * @param {Function} props.t - Função de tradução.
  */
-export default function DashboardCharts({ 
-  multiMoeda, 
-  normalizacao, 
-  setNormalizacao, 
-  expandedChart, 
+export default function DashboardCharts({
+  multiMoeda,
+  normalizacao,
+  setNormalizacao,
+  modoPreco,
+  setModoPreco,
+  temVelas,
+  expandedChart,
   setExpandedChart, 
   dadosNegociados, 
   dadosVariacao, 
@@ -55,17 +71,28 @@ export default function DashboardCharts({
                 key={key}
                 title={title}
                 onClick={() => setNormalizacao(key)}
-                style={{
-                  padding: '4px 12px',
-                  fontSize: '0.78rem',
-                  borderRadius: '20px',
-                  border: normalizacao === key ? '1px solid #FFD700' : '1px solid #444',
-                  background: normalizacao === key ? 'rgba(255,215,0,0.12)' : 'transparent',
-                  color: normalizacao === key ? 'var(--accent-ink)' : 'var(--text-muted)',
-                  cursor: 'pointer',
-                  fontWeight: normalizacao === key ? 600 : 400,
-                  transition: 'all 0.2s',
-                }}
+                style={estiloAlternador(normalizacao === key)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Candles exigem uma única moeda: sobrepor OHLC de ativos diferentes
+            não se lê, então o alternador some no modo comparativo. */}
+        {!multiMoeda && temVelas && (
+          <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', alignSelf: 'center' }}>{t('chartMode')}:</span>
+            {[
+              { key: PriceChartMode.LINE, label: t('chartModeLine'), title: t('chartModeLineHint') },
+              { key: PriceChartMode.CANDLE, label: t('chartModeCandle'), title: t('chartModeCandleHint') },
+            ].map(({ key, label, title }) => (
+              <button
+                key={key}
+                title={title}
+                onClick={() => setModoPreco(key)}
+                style={estiloAlternador(modoPreco === key)}
               >
                 {label}
               </button>

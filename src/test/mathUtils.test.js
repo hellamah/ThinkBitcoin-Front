@@ -11,6 +11,7 @@ import {
   normalizeZScore,
   formatCurrency,
   formatPercent,
+  median,
 } from '../src/utils/mathUtils'
 
 // Utilitário de comparação com tolerância para aritmética de ponto flutuante
@@ -136,5 +137,36 @@ describe('utils/mathUtils › formatPercent (Formatação Percentual)', () => {
 
   it('deve retornar placeholder para entradas não numéricas', () => {
     expect(formatPercent('NaN')).toBe('-')
+  })
+})
+
+describe('utils/mathUtils › median (Mediana)', () => {
+  it('deve retornar o valor central em séries de tamanho ímpar', () => {
+    expect(median([5, 1, 3])).toBe(3)
+  })
+
+  it('deve retornar a média dos dois centrais em séries de tamanho par', () => {
+    expect(median([4, 1, 3, 2])).toBe(2.5)
+  })
+
+  it('não deve ser distorcida por um valor atípico, ao contrário da média', () => {
+    // A média desta série é 204,4; a mediana ignora o candle fora da curva.
+    expect(median([1, 2, 3, 4, 1012])).toBe(3)
+  })
+
+  it('deve descartar valores nulos e não numéricos', () => {
+    expect(median([1, null, 3, undefined, 'abc', 5])).toBe(3)
+  })
+
+  it('não deve alterar o array recebido', () => {
+    const original = [3, 1, 2]
+    median(original)
+    expect(original).toEqual([3, 1, 2])
+  })
+
+  it('deve retornar null quando não houver valor válido', () => {
+    expect(median([])).toBeNull()
+    expect(median([null, 'abc'])).toBeNull()
+    expect(median(null)).toBeNull()
   })
 })

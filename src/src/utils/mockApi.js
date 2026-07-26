@@ -157,9 +157,6 @@ const buildCoinValueResponse = (symbol, urlParams) => {
         dominanciaCompradoraPercentual: 60.0,
         dominanciaVendedoraPercentual: 40.0,
         volumeDelta: 30.1,
-        taxaFinanciamento: 0.0005 * (Math.random() > 0.5 ? 1 : -1),
-        contratosAberto: 2000000 + Math.random() * 500000,
-        longShortRatio: 1.0 + Math.random(),
       })
     }
   }
@@ -217,6 +214,44 @@ const buildCoinValueResponse = (symbol, urlParams) => {
 
   return {
     mensagem: 'Operação realizada com sucesso',
+    resultado: {
+      totalRegistros: registros.length,
+      totalPaginas: 1,
+      paginaAtual: 1,
+      registros,
+    },
+  }
+}
+
+// Faixas do índice Fear & Greed, iguais às da fonte externa (alternative.me).
+const classificarFearGreed = (valor) => {
+  if (valor <= 24) return 'Extreme Fear'
+  if (valor <= 44) return 'Fear'
+  if (valor <= 54) return 'Neutral'
+  if (valor <= 74) return 'Greed'
+  return 'Extreme Greed'
+}
+
+// O índice real é uma série diária. Devolver um ponto só deixava o modo demo
+// sem como exercitar a evolução do sentimento no dashboard.
+const buildFearGreedResponse = (urlParams) => {
+  const quantidadeParam = parseInt(urlParams?.get('quantidade'), 10)
+  const quantidade = Math.min(Math.max(quantidadeParam || 30, 1), 90)
+  const agora = Date.now()
+
+  // Do mais recente para o mais antigo, como a API real (ordemAsc=false).
+  const registros = Array.from({ length: quantidade }, (_, i) => {
+    const valor = Math.round(58 + Math.sin(i / 3.5) * 17)
+    return {
+      valor,
+      classificacao: classificarFearGreed(valor),
+      timeUntilUpdateSeg: 1800,
+      horaReferencia: new Date(agora - i * 24 * 60 * 60 * 1000).toISOString(),
+    }
+  })
+
+  return {
+    mensagem: 'Fear & Greed Index mock retornado com sucesso',
     resultado: {
       totalRegistros: registros.length,
       totalPaginas: 1,
@@ -656,22 +691,10 @@ const mockHandlers = [
   {
     method: 'GET',
     match: (endpoint) => !!endpoint.match(/^\/ThinkBitcoin\/variavel-externa\/fear-greed(\?.*)?$/i),
-    response: () => ({
-      mensagem: 'Fear & Greed Index mock retornado com sucesso',
-      resultado: {
-        totalRegistros: 1,
-        totalPaginas: 1,
-        paginaAtual: 1,
-        registros: [
-          {
-            valor: 75,
-            classificacao: 'Greed',
-            timeUntilUpdateSeg: 1800,
-            horaReferencia: new Date().toISOString(),
-          }
-        ]
-      }
-    }),
+    response: (endpoint) => {
+      const urlQuery = endpoint.includes('?') ? new URLSearchParams(endpoint.split('?')[1]) : null
+      return buildFearGreedResponse(urlQuery)
+    },
   },
   {
     method: 'GET',

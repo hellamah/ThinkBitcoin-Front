@@ -56,6 +56,32 @@ export const normalizeZScore = (values) => {
 }
 
 /**
+ * Calcula a mediana de uma série numérica, ignorando valores não numéricos.
+ * Preferida à média como referência de "normalidade" em séries de mercado,
+ * onde um único candle atípico distorce a média.
+ *
+ * @param {Array<number|null>} values - Array de valores numéricos ou null.
+ * @returns {number|null} - A mediana, ou null se não houver valor válido.
+ */
+export const median = (values) => {
+  if (!Array.isArray(values)) return null
+  // O descarte precede a conversão: Number(null) e Number('') valem 0, então
+  // converter antes faria uma leitura ausente entrar na série como zero.
+  const validos = values
+    .filter((v) => v !== null && v !== undefined && v !== '')
+    .map(Number)
+    .filter((v) => Number.isFinite(v))
+    .sort((a, b) => a - b)
+
+  if (validos.length === 0) return null
+
+  const meio = Math.floor(validos.length / 2)
+  return validos.length % 2 === 0
+    ? (validos[meio - 1] + validos[meio]) / 2
+    : validos[meio]
+}
+
+/**
  * Formata um valor numérico para moeda (USD por padrão).
  * 
  * @param {number|string} value - Valor a ser formatado.

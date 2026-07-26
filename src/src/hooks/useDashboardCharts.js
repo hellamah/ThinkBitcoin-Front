@@ -3,6 +3,8 @@ import { useTheme } from '@mui/material/styles'
 import * as mathUtils from '../utils/mathUtils'
 import { toLocalChartLabel } from '../utils/dateUtils'
 import { chartPalette } from '../utils/themeTokens'
+import { construirVelas, faixaDasVelas } from '../utils/candlestickChart'
+import { PriceChartMode } from '../utils/enums'
 
 const CORES_SIMPLE = ['#FFD700', '#2196f3', '#4caf50', '#e91e63', '#9c27b0', '#ff9800', '#00bcd4']
 
@@ -13,7 +15,8 @@ export default function useDashboardCharts({
   resultadoFiltro,
   normalizacao,
   fearGreedPorMoeda,
-  trendPorMoeda
+  trendPorMoeda,
+  modoPreco = PriceChartMode.LINE
 }) {
   const { palette } = useTheme()
 
@@ -151,35 +154,38 @@ export default function useDashboardCharts({
       realTRMap.set(sig, m)
     })
 
-    // Garantimos que TODO timestamp do gráfico tenha um dado de sentimento (real ou fallback)
+    // Só entram no mapa os pontos com leitura real de sentimento. Um timestamp
+    // sem dado simplesmente não exibe a linha no tooltip — antes daqui saía um
+    // valor aleatório, indistinguível de sentimento medido de verdade.
     timestampsUnicos.forEach(ts => {
       const label = toLocalChartLabel(ts)
-      if (!sentimentMap.has(label)) sentimentMap.set(label, new Map())
-      const coinMap = sentimentMap.get(label)
 
       moedasOrdenadas.forEach(sigla => {
+        const fg = realFGMap.get(sigla)?.get(ts)
+        const tr = realTRMap.get(sigla)?.get(ts)
+        if (!fg && !tr) return
+
+        if (!sentimentMap.has(label)) sentimentMap.set(label, new Map())
+        const coinMap = sentimentMap.get(label)
         if (!coinMap.has(sigla)) coinMap.set(sigla, {})
+
         const target = coinMap.get(sigla)
-
-        // Tenta buscar o dado real, senão gera um mock sincronizado para este ponto exato
-        target.fg = realFGMap.get(sigla)?.get(ts) || { 
-          valor: 60 + Math.floor(Math.random() * 15), 
-          classificacao: 'Greed',
-          isMock: true 
-        }
-
-        target.tr = realTRMap.get(sigla)?.get(ts) || { 
-          valorAtual: 100 + Math.floor(Math.random() * 20),
-          mA5: 105, mA15: 110,
-          isMock: true 
-        }
+        if (fg) target.fg = fg
+        if (tr) target.tr = tr
       })
     })
+
+    // Candles só com uma moeda: sobrepor o OHLC de ativos diferentes no mesmo
+    // eixo não produz nada legível.
+    const velas = !multi && moedasOrdenadas.length === 1
+      ? construirVelas(historicosPorMoeda[moedasOrdenadas[0]], timestampsUnicos)
+      : []
 
     return {
       dadosGraficoPreco: { labels, datasets: datasetsPreco },
       dadosGraficoVariacao: { labels, datasets: datasetsVariacao },
       multiMoeda: multi,
+      velas,
       sentimentMap
     }
   }, [historicosPorMoeda, dataInicio, dataFim, resultadoFiltro, normalizacao, fearGreedPorMoeda, trendPorMoeda])
@@ -208,6 +214,16 @@ export default function useDashboardCharts({
   // Cores lidas dos tokens a cada troca de tema: o canvas não resolve var(),
   // então sem isto a legenda (#ccc) e o grid (branco a 3%) sumiam no claro.
   const cores = useMemo(() => chartPalette(), [palette.mode])
+
+  const modoVela =
+    modoPreco === PriceChartMode.CANDLE && chartConfig.velas.length > 0
+
+  // O dataset da linha só carrega os fechamentos, então o eixo Y automático
+  // cortaria os pavios.
+  const faixaVelas = useMemo(
+    () => (modoVela ? faixaDasVelas(chartConfig.velas) : null),
+    [modoVela, chartConfig.velas]
+  )
 
   const baseOpcoes = {
     responsive: true,
@@ -239,10 +255,30 @@ export default function useDashboardCharts({
     ...baseOpcoes,
     plugins: {
       ...baseOpcoes.plugins,
+      candlestick: {
+        enabled: modoVela,
+        velas: chartConfig.velas,
+        corAlta: cores.alta,
+        corBaixa: cores.baixa
+      },
       tooltip: {
         ...baseOpcoes.plugins.tooltip,
         callbacks: {
           label: (ctx) => {
+            // OHLC é a razão de existir do modo vela: o fechamento sozinho
+            // esconde exatamente o que o candle mostra.
+            if (modoVela) {
+              const vela = chartConfig.velas[ctx.dataIndex]
+              if (vela) {
+                const cifra = (v) => `$${Number(v).toLocaleString('en-US')}`
+                return [
+                  `O: ${cifra(vela.abertura)}`,
+                  `H: ${cifra(vela.maior)}`,
+                  `L: ${cifra(vela.menor)}`,
+                  `C: ${cifra(vela.fechamento)}`
+                ]
+              }
+            }
             const val = Number(ctx.parsed.y)
             if (chartConfig.multiMoeda && normalizacao === 'base100') return `${ctx.dataset.label}: ${val.toFixed(2)} (Base 100)`
             if (chartConfig.multiMoeda && normalizacao === 'minmax') return `${ctx.dataset.label}: ${val.toFixed(4)} (Min-Max)`
@@ -257,6 +293,7 @@ export default function useDashboardCharts({
       ...baseOpcoes.scales,
       y: {
         ...baseOpcoes.scales.y,
+        ...(faixaVelas ? { min: faixaVelas.min, max: faixaVelas.max } : {}),
         ticks: {
           ...baseOpcoes.scales.y.ticks,
           callback: (v) => {

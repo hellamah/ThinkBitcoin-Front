@@ -16,6 +16,8 @@ const FALLBACKS = {
   '--accent': '#ffd700',
   '--accent-ink': '#ffd700',
   '--surface-overlay': 'rgba(15,15,15,0.9)',
+  '--success': '#4caf50',
+  '--danger': '#f44336',
 }
 
 /**
@@ -42,4 +44,6 @@ export const chartPalette = () => ({
   grid: readToken('--border-subtle'),
   accent: readToken('--accent-ink'),
   tooltipBg: readToken('--surface-overlay'),
+  alta: readToken('--success'),
+  baixa: readToken('--danger'),
 })

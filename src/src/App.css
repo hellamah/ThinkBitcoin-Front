@@ -2892,6 +2892,40 @@
   color: var(--danger);
 }
 
+/* Barra de pressão compra x venda: o trilho é a parcela vendedora, o
+   preenchimento é a compradora. */
+.pressure-bar {
+  width: 100%;
+  max-width: 140px;
+  height: 6px;
+  margin: 10px 0 4px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--danger);
+}
+
+.pressure-bar-buy {
+  display: block;
+  height: 100%;
+  background: var(--success);
+  transition: width 0.4s ease;
+}
+
+/* Minissérie estática — sem canvas nem loop de animação por card. */
+.sparkline {
+  width: 100%;
+  max-width: 140px;
+  height: 32px;
+  margin: 8px 0 2px;
+}
+
+.sparkline polyline {
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;

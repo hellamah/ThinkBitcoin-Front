@@ -6,6 +6,16 @@ export const ChartType = Object.freeze({
   PERCENT_VARIATION: 'percentVariation',
 });
 
+/**
+ * Como o gráfico de preço é desenhado.
+ * LINE – linha do preço de fechamento.
+ * CANDLE – candles OHLC; só faz sentido com uma única moeda selecionada.
+ */
+export const PriceChartMode = Object.freeze({
+  LINE: 'linha',
+  CANDLE: 'vela',
+});
+
 export const FilterResult = Object.freeze({
   ALL: 'ALL',
   WIN: 'WIN',

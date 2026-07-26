@@ -215,23 +215,33 @@ describe('utils/mockApi › getMockResponse', () => {
   })
 
   describe('Variáveis Externas (Fear & Greed, Trend e Heatmap)', () => {
-    it('retorna mock de Fear & Greed para GET /variavel-externa/fear-greed', () => {
+    it('retorna série de Fear & Greed para GET /variavel-externa/fear-greed', () => {
       const resp = getMockResponse({
         endpoint: '/ThinkBitcoin/variavel-externa/fear-greed',
         method: 'GET',
       })
 
-      expect(resp).toMatchObject({
-        mensagem: expect.any(String),
-        resultado: {
-          registros: [
-            {
-              valor: expect.any(Number),
-              classificacao: expect.any(String),
-            }
-          ]
-        }
+      expect(resp.mensagem).toEqual(expect.any(String))
+      // Série, não ponto único: o dashboard desenha a evolução do sentimento.
+      expect(resp.resultado.registros.length).toBeGreaterThan(1)
+      expect(resp.resultado.registros[0]).toMatchObject({
+        valor: expect.any(Number),
+        classificacao: expect.any(String),
+        horaReferencia: expect.any(String),
       })
+    })
+
+    it('respeita quantidade e ordena do mais recente para o mais antigo', () => {
+      const resp = getMockResponse({
+        endpoint: '/ThinkBitcoin/variavel-externa/fear-greed?quantidade=5',
+        method: 'GET',
+      })
+
+      expect(resp.resultado.registros).toHaveLength(5)
+
+      // A API real usa ordemAsc=false: o índice 0 é sempre a leitura atual.
+      const datas = resp.resultado.registros.map((r) => new Date(r.horaReferencia).getTime())
+      expect(datas).toEqual([...datas].sort((a, b) => b - a))
     })
 
     it('retorna mock de Trend para GET /variavel-externa/trend', () => {
