@@ -15,7 +15,7 @@ jobs:
 - job: DeployVercel
   displayName: 'Deploy to Vercel'
   pool:
-    name: 'ThinkBitcoinPool'
+    name: 'ThinkBitcoinDeploy'
   
   steps:
   - task: NodeTool@0
