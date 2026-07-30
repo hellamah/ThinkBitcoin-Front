@@ -1,5 +1,19 @@
 // Estatísticas de desempenho do período, derivadas do histórico já carregado.
 
+import { mean, median, stdDev } from './mathUtils'
+
+// Abaixo disso média e desvio não descrevem o período: com meia dúzia de
+// candles qualquer leitura vira "atípica" e o alerta perde o sentido.
+const MINIMO_AMOSTRAS = 8
+
+// 2σ deixa ~5% dos candles marcados numa distribuição normal — raro o bastante
+// para chamar atenção, frequente o bastante para aparecer num período típico.
+const SIGMAS_VARIACAO = 2
+
+// Volume é assimétrico e tem cauda longa, então a régua é multiplicativa sobre
+// a mediana, não em desvios padrão.
+const FATOR_VOLUME = 3
+
 /**
  * Consolida o desempenho de uma série de candles.
  *
@@ -49,5 +63,69 @@ export const calcularDesempenho = (registros) => {
     melhor: variacoes.length > 0 ? Math.max(...variacoes) : 0,
     pior: variacoes.length > 0 ? Math.min(...variacoes) : 0,
     amostras: fechamentos.length,
+  }
+}
+
+/**
+ * Régua de normalidade do período, usada para marcar candles atípicos.
+ *
+ * Calculada sobre a série inteira da moeda, não sobre a página exibida: o que
+ * define "fora do normal" é o período, e uma página de 20 linhas produziria
+ * limites diferentes a cada navegação.
+ *
+ * @param {Array<object>} registros - Série completa de uma única moeda.
+ * @returns {{
+ *   mediaVariacao: number, desvioVariacao: number,
+ *   medianaVolume: number|null, amostras: number
+ * }|null} - null se a série for curta demais para descrever normalidade.
+ */
+export const calcularLimites = (registros) => {
+  if (!Array.isArray(registros) || registros.length < MINIMO_AMOSTRAS) return null
+
+  const variacoes = registros.map((r) => r?.precoPercentualVariacao)
+  const mediaVariacao = mean(variacoes)
+  const desvioVariacao = stdDev(variacoes)
+
+  if (mediaVariacao === null || desvioVariacao === null) return null
+
+  return {
+    mediaVariacao,
+    desvioVariacao,
+    medianaVolume: median(registros.map((r) => r?.precoVolume)),
+    amostras: registros.length,
+  }
+}
+
+/**
+ * Classifica um candle contra a régua do período.
+ *
+ * @param {object} registro - Um registro da série.
+ * @param {object|null} limites - Retorno de calcularLimites.
+ * @returns {{
+ *   variacao: boolean, volume: boolean,
+ *   sigmas: number|null, razaoVolume: number|null
+ * }|null} - null quando não há régua ou registro.
+ */
+export const avaliarAnomalia = (registro, limites) => {
+  if (!registro || !limites) return null
+
+  const { mediaVariacao, desvioVariacao, medianaVolume } = limites
+
+  const variacao = Number(registro.precoPercentualVariacao)
+  // Desvio zero = período sem oscilação alguma; nada ali é atípico.
+  const sigmas =
+    Number.isFinite(variacao) && desvioVariacao > 0
+      ? (variacao - mediaVariacao) / desvioVariacao
+      : null
+
+  const volume = Number(registro.precoVolume)
+  const razaoVolume =
+    Number.isFinite(volume) && medianaVolume > 0 ? volume / medianaVolume : null
+
+  return {
+    variacao: sigmas !== null && Math.abs(sigmas) > SIGMAS_VARIACAO,
+    volume: razaoVolume !== null && razaoVolume > FATOR_VOLUME,
+    sigmas,
+    razaoVolume,
   }
 }

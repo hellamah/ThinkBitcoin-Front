@@ -118,7 +118,13 @@ const buildCoinValueResponse = (symbol, urlParams) => {
   const variationFactor = ((hashSymbol(normalized) % 17) - 8) * 0.0025
 
   let registros = []
+  // Base truncada na hora para todas as moedas caírem na mesma grade de
+  // horários. Com `new Date()` puro cada moeda era gerada num milissegundo
+  // diferente, então nenhuma série se alinhava com outra: o gráfico multi-moeda
+  // ficava com um ponto por moeda por instante e a correlação não achava um
+  // par sequer. O backend real amostra em cadência fixa, que é o que isto imita.
   const agora = new Date()
+  agora.setMinutes(0, 0, 0)
 
   // Gera 1 ano de mock com 3 itens por dia (para o gráfico não ficar vazio nos filtros de 7 dias)
   for (let d = 365; d >= 0; d--) {
@@ -131,6 +137,15 @@ const buildCoinValueResponse = (symbol, urlParams) => {
       const precoPonto = Number((baseValue * (1 + oscilacao)).toFixed(2))
       const dVar = oscilacao * 100
 
+      // O volume acompanha a oscilação e leva um pico a cada 11 candles. Com o
+      // valor fixo que havia aqui a mediana era igual a todo registro, então o
+      // detector de anomalia nunca tinha o que marcar no modo demo. O ciclo é
+      // determinístico de propósito: dado sorteado não se distingue de medido.
+      const picoDeVolume = globalIndex % 11 === 3
+      const precoVolume = Number(
+        (150.5 * (1 + Math.abs(oscilacao) * 6) * (picoDeVolume ? 5 : 1)).toFixed(2)
+      )
+
       registros.push({
         precoFechamento: precoPonto,
         horaReferencia: dataPonto.toISOString(),
@@ -142,7 +157,7 @@ const buildCoinValueResponse = (symbol, urlParams) => {
         precoPercentualVariacao: Number(dVar.toFixed(2)),
         precoRatioCompraVenda: 1.5,
         precoTotalNegociada: precoPonto * 1000,
-        precoVolume: 150.5,
+        precoVolume,
         precoDeltaUltimoAbertura: precoPonto * 0.01,
         precoVariacaoAbsoluta: precoPonto * 0.01,
         precoCorpoCandle: precoPonto * 0.01,

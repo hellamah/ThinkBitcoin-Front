@@ -12,15 +12,17 @@ import Paper from '@mui/material/Paper'
 import { MdRefresh, MdTrendingUp, MdTrendingDown } from 'react-icons/md'
 import { toLocal } from '../../utils/dateUtils'
 import * as mathUtils from '../../utils/mathUtils'
+import { avaliarAnomalia } from '../../utils/marketStats'
 
 import { useDashboard } from '../../context/DashboardContext'
 
-export default function HistoryTable({ 
-  historicoMoeda, 
-  historicoFiltrado, 
-  moedasFiltro, 
-  totalPaginas, 
-  t 
+export default function HistoryTable({
+  historicoMoeda,
+  historicoFiltrado,
+  moedasFiltro,
+  limitesPorMoeda = {},
+  totalPaginas,
+  t
 }) {
   const { pagina, setPagina } = useDashboard()
   const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' })
@@ -150,6 +152,9 @@ export default function HistoryTable({
                   const val = r.precoFechamento ?? r.PrecoFechamento ?? r.valor ?? r.Valor ?? r.valorNegociado ?? r.ValorNegociado ?? 0
                   const dVar = r.precoPercentualVariacao ?? r.PrecoPercentualVariacao ?? r.variacaoPercentual ?? r.VariacaoPercentual ?? r.variacao ?? r.Variacao ?? 0
                   const isUp = dVar >= 0
+                  // Cada moeda tem sua própria régua: um volume alto em DOGE
+                  // não diz nada sobre o que é alto em BTC.
+                  const anomalia = avaliarAnomalia(r, limitesPorMoeda[r.sigla])
 
                   return (
                     <TableRow
@@ -174,6 +179,22 @@ export default function HistoryTable({
                         <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                           {isUp ? <MdTrendingUp /> : <MdTrendingDown />}
                           {mathUtils.formatPercent(dVar)}
+                          {anomalia?.variacao && (
+                            <span
+                              className="anomaly-badge variation"
+                              title={t('anomalyVariationTitle', { sigmas: anomalia.sigmas.toFixed(1) })}
+                            >
+                              {anomalia.sigmas.toFixed(1)}σ
+                            </span>
+                          )}
+                          {anomalia?.volume && (
+                            <span
+                              className="anomaly-badge volume"
+                              title={t('anomalyVolumeTitle', { razao: anomalia.razaoVolume.toFixed(1) })}
+                            >
+                              {anomalia.razaoVolume.toFixed(1)}× vol
+                            </span>
+                          )}
                         </span>
                       </TableCell>
                     </TableRow>

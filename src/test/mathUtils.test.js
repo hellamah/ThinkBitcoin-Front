@@ -11,7 +11,9 @@ import {
   normalizeZScore,
   formatCurrency,
   formatPercent,
+  mean,
   median,
+  stdDev,
 } from '../src/utils/mathUtils'
 
 // Utilitário de comparação com tolerância para aritmética de ponto flutuante
@@ -168,5 +170,42 @@ describe('utils/mathUtils › median (Mediana)', () => {
     expect(median([])).toBeNull()
     expect(median([null, 'abc'])).toBeNull()
     expect(median(null)).toBeNull()
+  })
+})
+
+describe('utils/mathUtils › mean (Média)', () => {
+  it('deve calcular a média aritmética', () => {
+    expect(mean([2, 4, 6])).toBe(4)
+  })
+
+  it('deve descartar valores nulos e não numéricos', () => {
+    // A média é sobre 2 e 4; se null virasse zero o resultado cairia para 2.
+    expect(mean([2, null, 4, undefined, 'abc', ''])).toBe(3)
+  })
+
+  it('deve retornar null quando não houver valor válido', () => {
+    expect(mean([])).toBeNull()
+    expect(mean([null, 'abc'])).toBeNull()
+    expect(mean(null)).toBeNull()
+  })
+})
+
+describe('utils/mathUtils › stdDev (Desvio Padrão)', () => {
+  it('deve calcular o desvio padrão populacional', () => {
+    // Média 4; desvios -2, 0, 2 → variância 8/3.
+    expectClose(stdDev([2, 4, 6]), Math.sqrt(8 / 3))
+  })
+
+  it('deve retornar zero em série constante', () => {
+    expect(stdDev([5, 5, 5])).toBe(0)
+  })
+
+  it('deve descartar valores nulos e não numéricos', () => {
+    expect(stdDev([2, null, 4, 'abc', 6])).toBe(stdDev([2, 4, 6]))
+  })
+
+  it('deve retornar null quando não houver valor válido', () => {
+    expect(stdDev([])).toBeNull()
+    expect(stdDev(null)).toBeNull()
   })
 })

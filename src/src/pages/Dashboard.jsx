@@ -22,6 +22,7 @@ import useDashboardData from '../hooks/useDashboardData'
 import useDashboardCharts from '../hooks/useDashboardCharts'
 import useMarketAnalytics from '../hooks/useMarketAnalytics'
 import * as mathUtils from '../utils/mathUtils'
+import { calcularLimites } from '../utils/marketStats'
 import { getTourVisto, setTourVisto } from '../utils/preferences'
 import { candlestickPlugin } from '../utils/candlestickChart'
 import { PriceChartMode } from '../utils/enums'
@@ -34,6 +35,7 @@ import DashboardFilters from '../components/dashboard/DashboardFilters'
 import IntelligencePanel from '../components/dashboard/IntelligencePanel'
 import AnalyticsPanel from '../components/dashboard/AnalyticsPanel'
 import PeriodStatsPanel from '../components/dashboard/PeriodStatsPanel'
+import CorrelationMatrix from '../components/dashboard/CorrelationMatrix'
 import DashboardCharts from '../components/dashboard/DashboardCharts'
 import HistoryTable from '../components/dashboard/HistoryTable'
 import ErrorMessage from '../components/ErrorMessage'
@@ -263,6 +265,18 @@ export default function Dashboard() {
     moedasFiltro
   })
 
+  // Régua de anomalia por moeda. Sai da série completa (historicosPorMoeda), e
+  // não da página exibida: volume de BTC e de DOGE não se comparam, e limites
+  // tirados de 20 linhas mudariam a cada troca de página.
+  const limitesPorMoeda = useMemo(() => {
+    const limites = {}
+    Object.keys(historicosPorMoeda || {}).forEach(sigla => {
+      const l = calcularLimites(historicosPorMoeda[sigla])
+      if (l) limites[sigla] = l
+    })
+    return limites
+  }, [historicosPorMoeda])
+
   // Processamento de Gráficos (Hook Customizado)
   const chartConfig = useDashboardCharts({
     historicosPorMoeda,
@@ -396,6 +410,8 @@ export default function Dashboard() {
 
         <AnalyticsPanel analytics={analytics} t={t} />
 
+        <CorrelationMatrix correlacao={chartConfig.correlacao} t={t} />
+
         {moedasFiltro.length === 1 && trendAtual && (
           <IntelligencePanel trendAtual={trendAtual} t={t} />
         )}
@@ -405,6 +421,7 @@ export default function Dashboard() {
             historicoMoeda={historicoMoeda}
             historicoFiltrado={historicoFiltrado}
             moedasFiltro={moedasFiltro}
+            limitesPorMoeda={limitesPorMoeda}
             totalPaginas={totalPaginas}
             pagina={pagina}
             setPagina={setPagina}

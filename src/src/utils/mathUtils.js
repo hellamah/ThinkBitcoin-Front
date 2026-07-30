@@ -56,6 +56,52 @@ export const normalizeZScore = (values) => {
 }
 
 /**
+ * Extrai os números utilizáveis de uma série.
+ * O descarte precede a conversão: Number(null) e Number('') valem 0, então
+ * converter antes faria uma leitura ausente entrar na série como zero.
+ *
+ * @param {Array<number|null>} values
+ * @returns {number[]}
+ */
+const numerosValidos = (values) => {
+  if (!Array.isArray(values)) return []
+  return values
+    .filter((v) => v !== null && v !== undefined && v !== '')
+    .map(Number)
+    .filter((v) => Number.isFinite(v))
+}
+
+/**
+ * Média aritmética de uma série, ignorando valores não numéricos.
+ *
+ * @param {Array<number|null>} values
+ * @returns {number|null} - null se não houver valor válido.
+ */
+export const mean = (values) => {
+  const validos = numerosValidos(values)
+  if (validos.length === 0) return null
+  return validos.reduce((a, b) => a + b, 0) / validos.length
+}
+
+/**
+ * Desvio padrão populacional de uma série, ignorando valores não numéricos.
+ * Populacional (divide por n) porque a série é o período inteiro observado,
+ * não uma amostra dele.
+ *
+ * @param {Array<number|null>} values
+ * @returns {number|null} - null se não houver valor válido.
+ */
+export const stdDev = (values) => {
+  const validos = numerosValidos(values)
+  if (validos.length === 0) return null
+
+  const media = validos.reduce((a, b) => a + b, 0) / validos.length
+  const variancia =
+    validos.reduce((acc, v) => acc + (v - media) ** 2, 0) / validos.length
+  return Math.sqrt(variancia)
+}
+
+/**
  * Calcula a mediana de uma série numérica, ignorando valores não numéricos.
  * Preferida à média como referência de "normalidade" em séries de mercado,
  * onde um único candle atípico distorce a média.
@@ -64,14 +110,7 @@ export const normalizeZScore = (values) => {
  * @returns {number|null} - A mediana, ou null se não houver valor válido.
  */
 export const median = (values) => {
-  if (!Array.isArray(values)) return null
-  // O descarte precede a conversão: Number(null) e Number('') valem 0, então
-  // converter antes faria uma leitura ausente entrar na série como zero.
-  const validos = values
-    .filter((v) => v !== null && v !== undefined && v !== '')
-    .map(Number)
-    .filter((v) => Number.isFinite(v))
-    .sort((a, b) => a - b)
+  const validos = numerosValidos(values).sort((a, b) => a - b)
 
   if (validos.length === 0) return null
 

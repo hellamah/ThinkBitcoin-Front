@@ -4,6 +4,7 @@ import * as mathUtils from '../utils/mathUtils'
 import { toLocalChartLabel } from '../utils/dateUtils'
 import { chartPalette } from '../utils/themeTokens'
 import { construirVelas, faixaDasVelas } from '../utils/candlestickChart'
+import { matrizCorrelacao } from '../utils/correlation'
 import { PriceChartMode } from '../utils/enums'
 
 const CORES_SIMPLE = ['#FFD700', '#2196f3', '#4caf50', '#e91e63', '#9c27b0', '#ff9800', '#00bcd4']
@@ -181,11 +182,21 @@ export default function useDashboardCharts({
       ? construirVelas(historicosPorMoeda[moedasOrdenadas[0]], timestampsUnicos)
       : []
 
+    // Reaproveita os arrays de variação já alinhados em timestampsUnicos — a
+    // parte cara do cálculo (alinhar as séries) acabou de ser feita acima.
+    // Sobre variação, e não sobre preço: ver o cabeçalho de correlation.js.
+    const correlacao = multi
+      ? matrizCorrelacao(
+          datasetsVariacao.map(d => ({ sigla: d.label, valores: d.data }))
+        )
+      : null
+
     return {
       dadosGraficoPreco: { labels, datasets: datasetsPreco },
       dadosGraficoVariacao: { labels, datasets: datasetsVariacao },
       multiMoeda: multi,
       velas,
+      correlacao,
       sentimentMap
     }
   }, [historicosPorMoeda, dataInicio, dataFim, resultadoFiltro, normalizacao, fearGreedPorMoeda, trendPorMoeda])

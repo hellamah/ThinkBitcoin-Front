@@ -2934,6 +2934,92 @@
   stroke-linejoin: round;
 }
 
+/* Matriz de correlação */
+.correlation-hint {
+  margin: -8px 0 16px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* A matriz cresce com o número de moedas; ela rola sozinha para a página
+   nunca ganhar barra horizontal. */
+.correlation-scroll {
+  overflow-x: auto;
+}
+
+.correlation-table {
+  border-collapse: collapse;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.85rem;
+}
+
+.correlation-table th {
+  padding: 8px 12px;
+  color: var(--accent-ink);
+  font-weight: 700;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.correlation-table td {
+  padding: 10px 14px;
+  text-align: center;
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  min-width: 62px;
+}
+
+.correlation-diagonal {
+  opacity: 0.35;
+}
+
+.correlation-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 14px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.correlation-legend span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.correlation-legend i {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid var(--border-subtle);
+}
+
+/* Selo de candle atípico na tabela de histórico */
+.anomaly-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.68rem;
+  font-weight: 700;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.anomaly-badge.variation {
+  color: var(--warning, #ff9800);
+  border: 1px solid var(--warning, #ff9800);
+}
+
+.anomaly-badge.volume {
+  color: var(--accent-ink);
+  border: 1px solid var(--accent-ink);
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
