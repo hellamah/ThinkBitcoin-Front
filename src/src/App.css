@@ -2995,6 +2995,83 @@
   border: 1px solid var(--border-subtle);
 }
 
+/* Laboratório de sinais */
+.signal-lab-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.signal-lab-horizon {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.signal-lab-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.signal-lab-table th[scope="col"] {
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-strong);
+  white-space: nowrap;
+}
+
+.signal-lab-table th[scope="row"] {
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.signal-lab-table td,
+.signal-lab-table th[scope="row"] {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-family: "Share Tech Mono", monospace;
+}
+
+.signal-lab-table td.up {
+  color: var(--success);
+  font-weight: 700;
+}
+
+.signal-lab-table td.down {
+  color: var(--danger);
+  font-weight: 700;
+}
+
+/* A base é régua, não resultado: fica sóbria para não competir com as linhas
+   de sinal logo abaixo. */
+.signal-lab-base th[scope="row"],
+.signal-lab-base td {
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-strong);
+}
+
+.signal-lab-fraco {
+  opacity: 0.55;
+}
+
+.signal-lab-alerta {
+  vertical-align: middle;
+  margin-left: 6px;
+  color: var(--warning, #ff9800);
+}
+
 /* Selo de candle atípico na tabela de histórico */
 .anomaly-badge {
   display: inline-flex;

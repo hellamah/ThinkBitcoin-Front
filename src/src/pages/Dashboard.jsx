@@ -23,6 +23,7 @@ import useDashboardCharts from '../hooks/useDashboardCharts'
 import useMarketAnalytics from '../hooks/useMarketAnalytics'
 import * as mathUtils from '../utils/mathUtils'
 import { calcularLimites } from '../utils/marketStats'
+import { analisarSinais } from '../utils/signalLab'
 import { getTourVisto, setTourVisto } from '../utils/preferences'
 import { candlestickPlugin } from '../utils/candlestickChart'
 import { PriceChartMode } from '../utils/enums'
@@ -36,6 +37,7 @@ import IntelligencePanel from '../components/dashboard/IntelligencePanel'
 import AnalyticsPanel from '../components/dashboard/AnalyticsPanel'
 import PeriodStatsPanel from '../components/dashboard/PeriodStatsPanel'
 import CorrelationMatrix from '../components/dashboard/CorrelationMatrix'
+import SignalLabPanel from '../components/dashboard/SignalLabPanel'
 import DashboardCharts from '../components/dashboard/DashboardCharts'
 import HistoryTable from '../components/dashboard/HistoryTable'
 import ErrorMessage from '../components/ErrorMessage'
@@ -78,6 +80,7 @@ export default function Dashboard() {
   // Estados Visuais Locais
   const [normalizacao, setNormalizacao] = useState('base100')
   const [modoPreco, setModoPreco] = useState(PriceChartMode.LINE)
+  const [horizonteSinal, setHorizonteSinal] = useState(1)
   const [expandedChart, setExpandedChart] = useState(null)
 
   const hasInitializedPref = useRef(false)
@@ -277,6 +280,13 @@ export default function Dashboard() {
     return limites
   }, [historicosPorMoeda])
 
+  // Desfecho dos sinais. Só faz sentido com uma moeda: misturar os retornos de
+  // ativos diferentes numa mesma taxa não descreve nenhum deles.
+  const analiseSinais = useMemo(() => {
+    if (moedasFiltro.length !== 1) return null
+    return analisarSinais(historicosPorMoeda?.[moedasFiltro[0]], { horizonte: horizonteSinal })
+  }, [historicosPorMoeda, moedasFiltro, horizonteSinal])
+
   // Processamento de Gráficos (Hook Customizado)
   const chartConfig = useDashboardCharts({
     historicosPorMoeda,
@@ -411,6 +421,13 @@ export default function Dashboard() {
         <AnalyticsPanel analytics={analytics} t={t} />
 
         <CorrelationMatrix correlacao={chartConfig.correlacao} t={t} />
+
+        <SignalLabPanel
+          analise={analiseSinais}
+          horizonte={horizonteSinal}
+          setHorizonte={setHorizonteSinal}
+          t={t}
+        />
 
         {moedasFiltro.length === 1 && trendAtual && (
           <IntelligencePanel trendAtual={trendAtual} t={t} />

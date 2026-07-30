@@ -137,7 +137,6 @@ const buildCoinValueResponse = (symbol, urlParams) => {
       const globalIndex = d * 3 + i
       const oscilacao = Math.sin(globalIndex + hashSymbol(normalized)) * 0.05 + variationFactor
       const precoPonto = Number((baseValue * (1 + oscilacao)).toFixed(2))
-      const dVar = oscilacao * 100
 
       // O volume acompanha a oscilação e leva um pico a cada 11 candles. Com o
       // valor fixo que havia aqui a mediana era igual a todo registro, então o
@@ -153,9 +152,24 @@ const buildCoinValueResponse = (symbol, urlParams) => {
       // 0,99 × fechamento, então fechamento > abertura sempre — toda vela saía
       // verde e com o mesmo corpo, mesmo nos candles em que o preço caiu.
       const abertura = fechamentoAnterior ?? Number((precoPonto * 0.995).toFixed(2))
-      const maior = Number((Math.max(abertura, precoPonto) * 1.004).toFixed(2))
-      const menor = Number((Math.min(abertura, precoPonto) * 0.996).toFixed(2))
+
+      // Segunda oscilação, de frequência diferente da do preço, para as sombras
+      // não saírem proporcionais ao corpo. É o que faz o demo exibir doji,
+      // martelo e marubozu em vez de 21 velas do mesmo formato.
+      const formato = Math.sin(globalIndex * 0.7 + hashSymbol(normalized))
+      const alcanceSuperior = 0.002 + Math.max(0, formato) * 0.01
+      const alcanceInferior = 0.002 + Math.max(0, -formato) * 0.01
+
+      const maior = Number((Math.max(abertura, precoPonto) * (1 + alcanceSuperior)).toFixed(2))
+      const menor = Number((Math.min(abertura, precoPonto) * (1 - alcanceInferior)).toFixed(2))
       fechamentoAnterior = precoPonto
+
+      // Contrato do backend: variação é o retorno DENTRO do candle, não o
+      // desvio em relação a um preço-base. O teste PreencherTbMoedaBinanceTests
+      // crava abertura=10, fechamento=12 e variação=20. Com a fórmula antiga
+      // (oscilacao * 100) o sinal da variação não tinha relação com a cor da
+      // vela, e a coluna da tabela contradizia o candle ao lado.
+      const dVar = ((precoPonto - abertura) / abertura) * 100
 
       registros.push({
         precoFechamento: precoPonto,
@@ -173,9 +187,11 @@ const buildCoinValueResponse = (symbol, urlParams) => {
         precoVolume,
         precoDeltaUltimoAbertura: precoPonto * 0.01,
         precoVariacaoAbsoluta: precoPonto * 0.01,
-        precoCorpoCandle: precoPonto * 0.01,
-        precoSombraSuperior: precoPonto * 0.005,
-        precoSombraInferior: precoPonto * 0.005,
+        // Anatomia derivada do próprio OHLC, como o backend faz. Eram frações
+        // fixas do preço e não descreviam a vela ao lado.
+        precoCorpoCandle: Number(Math.abs(precoPonto - abertura).toFixed(2)),
+        precoSombraSuperior: Number((maior - Math.max(abertura, precoPonto)).toFixed(2)),
+        precoSombraInferior: Number((Math.min(abertura, precoPonto) - menor).toFixed(2)),
         precoDirecao: dVar >= 0 ? 1 : -1,
         precoVolatilidadePercentual: 0.5,
         precoFinanceiroPorTrade: 450.0,
