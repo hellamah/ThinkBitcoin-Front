@@ -3,7 +3,12 @@ import { useTheme } from '@mui/material/styles'
 import * as mathUtils from '../utils/mathUtils'
 import { toLocalChartLabel } from '../utils/dateUtils'
 import { chartPalette } from '../utils/themeTokens'
-import { construirVelas, faixaDasVelas } from '../utils/candlestickChart'
+import {
+  construirVelas,
+  faixaDasVelas,
+  LARGURA_MAXIMA_CORPO,
+  PROPORCAO_CORPO,
+} from '../utils/candlestickChart'
 import { matrizCorrelacao } from '../utils/correlation'
 import { PriceChartMode } from '../utils/enums'
 
@@ -256,6 +261,13 @@ export default function useDashboardCharts({
         borderColor: 'transparent',
         borderWidth: 0,
         fill: false,
+        // Mesma espessura da vela: categoria ocupando o passo inteiro e a
+        // barra ocupando a mesma fração dele que o corpo do candle, com o
+        // mesmo teto em px. Sem isto a barra sai ~25% mais larga e os dois
+        // painéis, que ficam lado a lado, não parecem a mesma série.
+        categoryPercentage: 1,
+        barPercentage: PROPORCAO_CORPO,
+        maxBarThickness: LARGURA_MAXIMA_CORPO,
       })),
     }
   }, [modoVela, chartConfig.dadosGraficoVariacao, cores])
