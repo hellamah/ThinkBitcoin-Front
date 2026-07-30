@@ -118,6 +118,8 @@ const buildCoinValueResponse = (symbol, urlParams) => {
   const variationFactor = ((hashSymbol(normalized) % 17) - 8) * 0.0025
 
   let registros = []
+  // Fechamento do candle anterior, que vira a abertura do próximo.
+  let fechamentoAnterior = null
   // Base truncada na hora para todas as moedas caírem na mesma grade de
   // horários. Com `new Date()` puro cada moeda era gerada num milissegundo
   // diferente, então nenhuma série se alinhava com outra: o gráfico multi-moeda
@@ -146,14 +148,25 @@ const buildCoinValueResponse = (symbol, urlParams) => {
         (150.5 * (1 + Math.abs(oscilacao) * 6) * (picoDeVolume ? 5 : 1)).toFixed(2)
       )
 
+      // OHLC de verdade: a abertura é o fechamento do candle anterior, e as
+      // extremidades envolvem esse intervalo. Antes a abertura era fixada em
+      // 0,99 × fechamento, então fechamento > abertura sempre — toda vela saía
+      // verde e com o mesmo corpo, mesmo nos candles em que o preço caiu.
+      const abertura = fechamentoAnterior ?? Number((precoPonto * 0.995).toFixed(2))
+      const maior = Number((Math.max(abertura, precoPonto) * 1.004).toFixed(2))
+      const menor = Number((Math.min(abertura, precoPonto) * 0.996).toFixed(2))
+      fechamentoAnterior = precoPonto
+
       registros.push({
         precoFechamento: precoPonto,
         horaReferencia: dataPonto.toISOString(),
-        precoMaior: precoPonto * 1.01,
-        precoMedio: precoPonto * 0.995,
-        precoMenor: precoPonto * 0.98,
-        precoAbertura: precoPonto * 0.99,
-        precoAmplitude: precoPonto * 0.03,
+        precoMaior: maior,
+        precoMedio: Number(((maior + menor) / 2).toFixed(2)),
+        precoMenor: menor,
+        precoAbertura: abertura,
+        // Amplitude é, por definição, máxima menos mínima; era 3% fixo do preço
+        // e não conversava com o OHLC ao lado.
+        precoAmplitude: Number((maior - menor).toFixed(2)),
         precoPercentualVariacao: Number(dVar.toFixed(2)),
         precoRatioCompraVenda: 1.5,
         precoTotalNegociada: precoPonto * 1000,
