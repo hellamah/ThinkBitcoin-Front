@@ -28,11 +28,7 @@ const LIMITE_MARUBOZU = 0.75
 // Uma sombra precisa ser o dobro do corpo para caracterizar rejeição de preço.
 const FATOR_SOMBRA = 2
 
-const numero = (v) => {
-  if (v === null || v === undefined || v === '') return NaN
-  const n = Number(v)
-  return Number.isFinite(n) ? n : NaN
-}
+import { paraNumero } from './mathUtils'
 
 /**
  * Classifica a geometria de um candle.
@@ -44,15 +40,15 @@ const numero = (v) => {
 export const classificarCandle = (registro) => {
   if (!registro) return null
 
-  const corpo = numero(registro.precoCorpoCandle)
-  const superior = numero(registro.precoSombraSuperior)
-  const inferior = numero(registro.precoSombraInferior)
-  const amplitude = numero(registro.precoAmplitude)
+  const corpo = paraNumero(registro.precoCorpoCandle)
+  const superior = paraNumero(registro.precoSombraSuperior)
+  const inferior = paraNumero(registro.precoSombraInferior)
+  const amplitude = paraNumero(registro.precoAmplitude)
 
-  if ([corpo, superior, inferior].some(Number.isNaN)) return null
+  if ([corpo, superior, inferior].some((v) => v === null)) return null
   // Sem amplitude não há proporção: dividir daria Infinity e classificaria
   // qualquer coisa como marubozu.
-  if (Number.isNaN(amplitude) || amplitude <= 0) return null
+  if (amplitude === null || amplitude <= 0) return null
 
   const proporcaoCorpo = corpo / amplitude
 

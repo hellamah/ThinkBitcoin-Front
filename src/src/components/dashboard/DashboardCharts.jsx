@@ -47,12 +47,15 @@ export default function DashboardCharts({
   modoVela,
   expandedChart,
   setExpandedChart, 
-  dadosNegociados, 
-  dadosVariacao, 
-  opcoesPreco, 
-  opcoesVariacao, 
-  ultimoNegociado, 
-  ultimaVariacao, 
+  dadosNegociados,
+  dadosVariacao,
+  dadosVolume,
+  opcoesPreco,
+  opcoesVariacao,
+  opcoesVolume,
+  ultimoNegociado,
+  ultimaVariacao,
+  volumeAtual,
   trendAtual,
   t 
 }) {
@@ -114,18 +117,23 @@ export default function DashboardCharts({
             <Line data={dadosNegociados} options={opcoesPreco} />
           </div>
         </Box>
+        {/* No modo candle este painel troca de assunto: a variação percentual é
+            o próprio corpo da vela ao lado, então mostrar volume acrescenta a
+            dimensão que falta em vez de repetir a que já está na tela. */}
         <Box
           className="panel chart-panel chart-panel-clickable"
           onClick={() => setExpandedChart(ChartType.PERCENT_VARIATION)}
         >
           <div className="chart-expand-icon"><MdFullscreen /></div>
-          <h2>{t('percentVariation')}</h2>
-          <div className="chart-note">{t('lastVariation')}: {ultimaVariacao}</div>
-          <div className="chart-container">
-            {/* Barras acompanham o modo candle; a linha suavizada esconderia
-                justamente a leitura candle a candle que o modo propõe. */}
+          <h2>{modoVela ? t('volume') : t('percentVariation')}</h2>
+          <div className="chart-note">
             {modoVela
-              ? <Bar data={dadosVariacao} options={opcoesVariacao} />
+              ? `${t('currentVolume')}: ${volumeAtual}`
+              : `${t('lastVariation')}: ${ultimaVariacao}`}
+          </div>
+          <div className="chart-container">
+            {modoVela
+              ? <Bar data={dadosVolume} options={opcoesVolume} />
               : <Line data={dadosVariacao} options={opcoesVariacao} />}
           </div>
         </Box>
@@ -137,8 +145,10 @@ export default function DashboardCharts({
         setExpandedChart={setExpandedChart}
         dadosNegociados={dadosNegociados}
         dadosVariacao={dadosVariacao}
+        dadosVolume={dadosVolume}
         opcoesPreco={opcoesPreco}
         opcoesVariacao={opcoesVariacao}
+        opcoesVolume={opcoesVolume}
         trendAtual={trendAtual}
         modoVela={modoVela}
         t={t}

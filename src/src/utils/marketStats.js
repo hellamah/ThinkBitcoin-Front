@@ -12,7 +12,7 @@ const SIGMAS_VARIACAO = 2
 
 // Volume é assimétrico e tem cauda longa, então a régua é multiplicativa sobre
 // a mediana, não em desvios padrão.
-const FATOR_VOLUME = 3
+export const FATOR_VOLUME = 3
 
 /**
  * Consolida o desempenho de uma série de candles.

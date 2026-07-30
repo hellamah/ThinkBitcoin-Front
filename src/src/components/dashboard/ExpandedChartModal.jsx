@@ -25,8 +25,10 @@ const ExpandedChartModal = ({
   setExpandedChart,
   dadosNegociados,
   dadosVariacao,
+  dadosVolume,
   opcoesPreco,
   opcoesVariacao,
+  opcoesVolume,
   trendAtual,
   modoVela,
   t,
@@ -34,12 +36,12 @@ const ExpandedChartModal = ({
   if (!expandedChart) return null;
 
   const isTraded = expandedChart === ChartType.TRADED_VALUE;
-  const chartData = isTraded ? dadosNegociados : dadosVariacao;
-  const chartOptions = isTraded ? opcoesPreco : opcoesVariacao;
-
-  // A variação vira barra no modo candle, aqui como no painel reduzido.
+  // No modo candle o segundo painel é volume, aqui como na versão reduzida.
   const isBarra = !isTraded && Boolean(modoVela);
   const ChartComp = isBarra ? Bar : Line;
+
+  const chartData = isTraded ? dadosNegociados : (isBarra ? dadosVolume : dadosVariacao);
+  const chartOptions = isTraded ? opcoesPreco : (isBarra ? opcoesVolume : opcoesVariacao);
 
   const chartRef = useRef(null);
   const [selectedIndex, setSelectedIndex] = useState(null);
@@ -145,7 +147,7 @@ const ExpandedChartModal = ({
         <button className="btn-close-premium" onClick={handleClose} aria-label={t('close')}>
           <MdClose size={32} />
         </button>
-        <h2>{isTraded ? t('tradedValue') : t('percentVariation')}</h2>
+        <h2>{isTraded ? t('tradedValue') : (isBarra ? t('volume') : t('percentVariation'))}</h2>
         <div className="chart-container">
           <ChartComp
             ref={chartRef}

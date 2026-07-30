@@ -146,6 +146,8 @@
   "correlationDirect": "Direct (+1)",
   "anomalyVariationTitle": "Unusual change: {{sigmas}}σ from the period average",
   "anomalyVolumeTitle": "Unusual volume: {{razao}}× the period median",
+  "volume": "Volume",
+  "currentVolume": "Current volume",
   "signalLab": "Signal Lab",
   "signalLabHint": "What happened AFTER each signal. Only the \"vs base\" column matters: a high rate means nothing if the whole period rose just as often.",
   "signalHorizon": "Horizon",

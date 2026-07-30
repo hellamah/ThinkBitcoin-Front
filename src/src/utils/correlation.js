@@ -9,13 +9,7 @@
 // de 1 quase sempre, sem significar nada.
 const MINIMO_PARES = 5
 
-// Number(null) e Number('') valem 0, e 0 passa em Number.isFinite: converter
-// direto faria um instante sem leitura entrar na conta como variação zero.
-const numero = (v) => {
-  if (v === null || v === undefined || v === '') return NaN
-  const n = Number(v)
-  return Number.isFinite(n) ? n : NaN
-}
+import { paraNumero } from './mathUtils'
 
 /**
  * Coeficiente de Pearson entre duas séries alinhadas no mesmo eixo de tempo.
@@ -36,11 +30,11 @@ export const pearson = (x, y) => {
   let somaXY = 0
 
   for (let i = 0; i < n; i++) {
-    const a = numero(x[i])
-    const b = numero(y[i])
+    const a = paraNumero(x[i])
+    const b = paraNumero(y[i])
     // Descarte par a par: um buraco em uma das moedas não invalida os demais
     // instantes, só aquele ponto.
-    if (Number.isNaN(a) || Number.isNaN(b)) continue
+    if (a === null || b === null) continue
 
     pares++
     somaX += a

@@ -56,19 +56,31 @@ export const normalizeZScore = (values) => {
 }
 
 /**
+ * Converte um valor para número, ou null se não houver leitura utilizável.
+ *
+ * Existe porque Number(null), Number(undefined ?? '') e Number('') valem 0, e
+ * 0 passa em Number.isFinite: converter antes de descartar faz uma medição
+ * ausente entrar na série como zero — que numa série de mercado é uma
+ * afirmação ("não variou", "não negociou"), não uma lacuna.
+ *
+ * @param {*} valor
+ * @returns {number|null}
+ */
+export const paraNumero = (valor) => {
+  if (valor === null || valor === undefined || valor === '') return null
+  const n = Number(valor)
+  return Number.isFinite(n) ? n : null
+}
+
+/**
  * Extrai os números utilizáveis de uma série.
- * O descarte precede a conversão: Number(null) e Number('') valem 0, então
- * converter antes faria uma leitura ausente entrar na série como zero.
  *
  * @param {Array<number|null>} values
  * @returns {number[]}
  */
 const numerosValidos = (values) => {
   if (!Array.isArray(values)) return []
-  return values
-    .filter((v) => v !== null && v !== undefined && v !== '')
-    .map(Number)
-    .filter((v) => Number.isFinite(v))
+  return values.map(paraNumero).filter((v) => v !== null)
 }
 
 /**

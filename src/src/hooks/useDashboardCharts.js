@@ -9,6 +9,7 @@ import {
   LARGURA_MAXIMA_CORPO,
   PROPORCAO_CORPO,
 } from '../utils/candlestickChart'
+import { construirVolumes, estiloDasBarras } from '../utils/volumeChart'
 import { matrizCorrelacao } from '../utils/correlation'
 import { PriceChartMode } from '../utils/enums'
 
@@ -187,6 +188,12 @@ export default function useDashboardCharts({
       ? construirVelas(historicosPorMoeda[moedasOrdenadas[0]], timestampsUnicos)
       : []
 
+    // Volume acompanha as velas: mesmo eixo, mesma condição de moeda única.
+    const volumes = velas.length > 0
+      ? construirVolumes(historicosPorMoeda[moedasOrdenadas[0]], timestampsUnicos)
+      : []
+    const medianaVolume = mathUtils.median(volumes)
+
     // Reaproveita os arrays de variação já alinhados em timestampsUnicos — a
     // parte cara do cálculo (alinhar as séries) acabou de ser feita acima.
     // Sobre variação, e não sobre preço: ver o cabeçalho de correlation.js.
@@ -201,6 +208,8 @@ export default function useDashboardCharts({
       dadosGraficoVariacao: { labels, datasets: datasetsVariacao },
       multiMoeda: multi,
       velas,
+      volumes,
+      medianaVolume,
       correlacao,
       sentimentMap
     }
@@ -241,36 +250,38 @@ export default function useDashboardCharts({
     [modoVela, chartConfig.velas]
   )
 
-  // No modo candle a variação vira barra colorida pela direção, para os dois
-  // painéis contarem a mesma história: a barra vermelha do candle vermelho
-  // fica na mesma coluna. Como o modo só existe com uma moeda, não há risco de
-  // duas séries de barras disputarem o mesmo eixo.
-  const dadosVariacao = useMemo(() => {
-    const base = chartConfig.dadosGraficoVariacao
-    if (!modoVela) return base
+  // No modo candle o painel de baixo passa a ser volume. A variação percentual
+  // é (fechamento - abertura)/abertura, ou seja, o próprio corpo da vela: os
+  // dois gráficos mostrariam o mesmo número em geometrias diferentes. Volume é
+  // a dimensão que falta — diz se o movimento teve participação.
+  const dadosVolume = useMemo(() => {
+    if (!modoVela) return null
+
+    const { volumes, velas, medianaVolume } = chartConfig
+    const estilo = estiloDasBarras(volumes, velas, medianaVolume, {
+      corAlta: cores.alta,
+      corBaixa: cores.baixa,
+      corDestaque: cores.legend,
+    })
 
     return {
-      ...base,
-      datasets: base.datasets.map((d) => ({
-        ...d,
-        // Null é ausência de leitura: a barra não é desenhada, e a cor daquela
-        // posição não chega a ser usada.
-        backgroundColor: d.data.map((v) =>
-          v === null || v === undefined || Number(v) >= 0 ? cores.alta : cores.baixa
-        ),
-        borderColor: 'transparent',
-        borderWidth: 0,
-        fill: false,
+      labels: chartConfig.dadosGraficoVariacao.labels,
+      datasets: [{
+        label: 'Volume',
+        data: volumes,
+        backgroundColor: estilo.fundo,
+        borderColor: estilo.borda,
+        borderWidth: estilo.espessura,
         // Mesma espessura da vela: categoria ocupando o passo inteiro e a
         // barra ocupando a mesma fração dele que o corpo do candle, com o
-        // mesmo teto em px. Sem isto a barra sai ~25% mais larga e os dois
-        // painéis, que ficam lado a lado, não parecem a mesma série.
+        // mesmo teto em px. Os dois painéis ficam lado a lado e qualquer
+        // divergência de largura salta aos olhos.
         categoryPercentage: 1,
         barPercentage: PROPORCAO_CORPO,
         maxBarThickness: LARGURA_MAXIMA_CORPO,
-      })),
+      }],
     }
-  }, [modoVela, chartConfig.dadosGraficoVariacao, cores])
+  }, [modoVela, chartConfig, cores])
 
   const baseOpcoes = {
     responsive: true,
@@ -376,11 +387,59 @@ export default function useDashboardCharts({
     }
   }
 
+  const opcoesVolume = {
+    ...baseOpcoes,
+    plugins: {
+      ...baseOpcoes.plugins,
+      legend: { display: false },
+      tooltip: {
+        ...baseOpcoes.plugins.tooltip,
+        callbacks: {
+          label: (ctx) => {
+            const v = Number(ctx.parsed.y)
+            const linhas = [`Volume: ${mathUtils.formatCompact(v)}`]
+            // A razão contra a mediana é o que diz se o volume foi alto; o
+            // número absoluto sozinho não tem régua.
+            const mediana = chartConfig.medianaVolume
+            if (Number.isFinite(mediana) && mediana > 0) {
+              linhas.push(`${(v / mediana).toFixed(1)}× a mediana`)
+            }
+            return linhas
+          },
+          footer: sentimentFooter
+        }
+      }
+    },
+    scales: {
+      ...baseOpcoes.scales,
+      y: {
+        ...baseOpcoes.scales.y,
+        beginAtZero: true,
+        ticks: {
+          ...baseOpcoes.scales.y.ticks,
+          callback: (v) => mathUtils.formatCompact(v)
+        }
+      }
+    }
+  }
+
+  // Última leitura da série alinhada, que é cronológica: o volume do candle
+  // mais recente.
+  const volumeAtual = useMemo(() => {
+    const lista = chartConfig.volumes || []
+    for (let i = lista.length - 1; i >= 0; i--) {
+      if (Number.isFinite(lista[i])) return mathUtils.formatCompact(lista[i])
+    }
+    return '-'
+  }, [chartConfig.volumes])
+
   return {
     ...chartConfig,
-    dadosGraficoVariacao: dadosVariacao,
     modoVela,
+    dadosGraficoVolume: dadosVolume,
+    volumeAtual,
     opcoesPreco,
     opcoesVariacao,
+    opcoesVolume,
   }
 }

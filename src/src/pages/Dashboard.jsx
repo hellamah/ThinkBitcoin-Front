@@ -411,10 +411,13 @@ export default function Dashboard() {
           setExpandedChart={setExpandedChart}
           dadosNegociados={chartConfig.dadosGraficoPreco}
           dadosVariacao={chartConfig.dadosGraficoVariacao}
+          dadosVolume={chartConfig.dadosGraficoVolume}
           opcoesPreco={chartConfig.opcoesPreco}
           opcoesVariacao={chartConfig.opcoesVariacao}
+          opcoesVolume={chartConfig.opcoesVolume}
           ultimoNegociado={ultimoNegociado}
           ultimaVariacao={ultimaVariacao}
+          volumeAtual={chartConfig.volumeAtual}
           trendAtual={trendAtual}
           t={t}
         />
