@@ -5,6 +5,7 @@ import {
   LinearScale,
   PointElement,
   LineElement,
+  BarElement,
   Title,
   Tooltip,
   Legend,
@@ -47,6 +48,8 @@ ChartJS.register(
   LinearScale,
   PointElement,
   LineElement,
+  // Barras da variação no modo candle.
+  BarElement,
   Title,
   Tooltip,
   Legend,
@@ -403,6 +406,7 @@ export default function Dashboard() {
           modoPreco={modoPreco}
           setModoPreco={setModoPreco}
           temVelas={chartConfig.velas.length > 0}
+          modoVela={chartConfig.modoVela}
           expandedChart={expandedChart}
           setExpandedChart={setExpandedChart}
           dadosNegociados={chartConfig.dadosGraficoPreco}

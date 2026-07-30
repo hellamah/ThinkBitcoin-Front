@@ -1,6 +1,6 @@
 import React from 'react'
 import Box from '@mui/material/Box'
-import { Line } from 'react-chartjs-2'
+import { Bar, Line } from 'react-chartjs-2'
 import { MdFullscreen } from 'react-icons/md'
 import { ChartType, PriceChartMode } from '../../utils/enums'
 import ExpandedChartModal from './ExpandedChartModal'
@@ -44,6 +44,7 @@ export default function DashboardCharts({
   modoPreco,
   setModoPreco,
   temVelas,
+  modoVela,
   expandedChart,
   setExpandedChart, 
   dadosNegociados, 
@@ -121,7 +122,11 @@ export default function DashboardCharts({
           <h2>{t('percentVariation')}</h2>
           <div className="chart-note">{t('lastVariation')}: {ultimaVariacao}</div>
           <div className="chart-container">
-            <Line data={dadosVariacao} options={opcoesVariacao} />
+            {/* Barras acompanham o modo candle; a linha suavizada esconderia
+                justamente a leitura candle a candle que o modo propõe. */}
+            {modoVela
+              ? <Bar data={dadosVariacao} options={opcoesVariacao} />
+              : <Line data={dadosVariacao} options={opcoesVariacao} />}
           </div>
         </Box>
       </div>
@@ -135,6 +140,7 @@ export default function DashboardCharts({
         opcoesPreco={opcoesPreco}
         opcoesVariacao={opcoesVariacao}
         trendAtual={trendAtual}
+        modoVela={modoVela}
         t={t}
       />
     </>

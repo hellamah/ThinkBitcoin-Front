@@ -236,6 +236,30 @@ export default function useDashboardCharts({
     [modoVela, chartConfig.velas]
   )
 
+  // No modo candle a variação vira barra colorida pela direção, para os dois
+  // painéis contarem a mesma história: a barra vermelha do candle vermelho
+  // fica na mesma coluna. Como o modo só existe com uma moeda, não há risco de
+  // duas séries de barras disputarem o mesmo eixo.
+  const dadosVariacao = useMemo(() => {
+    const base = chartConfig.dadosGraficoVariacao
+    if (!modoVela) return base
+
+    return {
+      ...base,
+      datasets: base.datasets.map((d) => ({
+        ...d,
+        // Null é ausência de leitura: a barra não é desenhada, e a cor daquela
+        // posição não chega a ser usada.
+        backgroundColor: d.data.map((v) =>
+          v === null || v === undefined || Number(v) >= 0 ? cores.alta : cores.baixa
+        ),
+        borderColor: 'transparent',
+        borderWidth: 0,
+        fill: false,
+      })),
+    }
+  }, [modoVela, chartConfig.dadosGraficoVariacao, cores])
+
   const baseOpcoes = {
     responsive: true,
     maintainAspectRatio: false,
@@ -340,5 +364,11 @@ export default function useDashboardCharts({
     }
   }
 
-  return { ...chartConfig, opcoesPreco, opcoesVariacao }
+  return {
+    ...chartConfig,
+    dadosGraficoVariacao: dadosVariacao,
+    modoVela,
+    opcoesPreco,
+    opcoesVariacao,
+  }
 }

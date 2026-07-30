@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef } from 'react';
-import { Line, getElementAtEvent } from 'react-chartjs-2';
+import { Bar, Line, getElementAtEvent } from 'react-chartjs-2';
 import { MdClose, MdAnalytics, MdTimeline, MdSpeed, MdUpdate, MdPublic } from 'react-icons/md';
 import { ChartType } from '../../utils/enums';
 import { readToken } from '../../utils/themeTokens';
@@ -28,6 +28,7 @@ const ExpandedChartModal = ({
   opcoesPreco,
   opcoesVariacao,
   trendAtual,
+  modoVela,
   t,
 }) => {
   if (!expandedChart) return null;
@@ -35,6 +36,10 @@ const ExpandedChartModal = ({
   const isTraded = expandedChart === ChartType.TRADED_VALUE;
   const chartData = isTraded ? dadosNegociados : dadosVariacao;
   const chartOptions = isTraded ? opcoesPreco : opcoesVariacao;
+
+  // A variação vira barra no modo candle, aqui como no painel reduzido.
+  const isBarra = !isTraded && Boolean(modoVela);
+  const ChartComp = isBarra ? Bar : Line;
 
   const chartRef = useRef(null);
   const [selectedIndex, setSelectedIndex] = useState(null);
@@ -89,6 +94,9 @@ const ExpandedChartModal = ({
   // Escondemos os pontos por padrão para limpar o visual e destacamos apenas o selecionado
   const processedData = useMemo(() => {
     if (!chartData?.datasets) return null;
+    // Barra não tem ponto nem tensão de linha para estilizar; o dataset já sai
+    // do hook com a cor por direção.
+    if (isBarra) return chartData;
     return {
       ...chartData,
       datasets: chartData.datasets.map((ds) => ({
@@ -139,7 +147,7 @@ const ExpandedChartModal = ({
         </button>
         <h2>{isTraded ? t('tradedValue') : t('percentVariation')}</h2>
         <div className="chart-container">
-          <Line
+          <ChartComp
             ref={chartRef}
             data={processedData || chartData}
             options={{
