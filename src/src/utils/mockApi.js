@@ -147,6 +147,16 @@ const buildCoinValueResponse = (symbol, urlParams) => {
         (150.5 * (1 + Math.abs(oscilacao) * 6) * (picoDeVolume ? 5 : 1)).toFixed(2)
       )
 
+      // Ticket médio em ciclo próprio, deslocado do ciclo do volume de
+      // propósito: assim o demo produz hora de volume alto com ticket baixo
+      // (varejo) e hora de volume normal com ticket alto (baleia), que é
+      // justamente a distinção que o card e o sinal existem para mostrar.
+      // Era 450 fixo, e com mediana igual a todo registro nada era atípico.
+      const picoDeTicket = globalIndex % 13 === 6
+      const precoFinanceiroPorTrade = Number(
+        (450 * (1 + Math.abs(Math.sin(globalIndex * 0.4)) * 0.5) * (picoDeTicket ? 3 : 1)).toFixed(2)
+      )
+
       // OHLC de verdade: a abertura é o fechamento do candle anterior, e as
       // extremidades envolvem esse intervalo. Antes a abertura era fixada em
       // 0,99 × fechamento, então fechamento > abertura sempre — toda vela saía
@@ -183,7 +193,9 @@ const buildCoinValueResponse = (symbol, urlParams) => {
         precoAmplitude: Number((maior - menor).toFixed(2)),
         precoPercentualVariacao: Number(dVar.toFixed(2)),
         precoRatioCompraVenda: 1.5,
-        precoTotalNegociada: precoPonto * 1000,
+        // Nocional em dólar coerente com o volume da hora, para a contagem de
+        // trades derivada (nocional ÷ ticket) não sair absurda.
+        precoTotalNegociada: Number((precoVolume * precoPonto).toFixed(2)),
         precoVolume,
         precoDeltaUltimoAbertura: precoPonto * 0.01,
         precoVariacaoAbsoluta: precoPonto * 0.01,
@@ -194,8 +206,10 @@ const buildCoinValueResponse = (symbol, urlParams) => {
         precoSombraInferior: Number((Math.min(abertura, precoPonto) - menor).toFixed(2)),
         precoDirecao: dVar >= 0 ? 1 : -1,
         precoVolatilidadePercentual: 0.5,
-        precoFinanceiroPorTrade: 450.0,
-        quantidadeNegociada: 150.5,
+        precoFinanceiroPorTrade,
+        // No backend real quantidadeNegociada e precoVolume vêm com o mesmo
+        // valor; o mock reproduz isso em vez de inventar duas séries.
+        quantidadeNegociada: precoVolume,
         volumeComprado: 90.3,
         volumeVendido: 60.2,
         dominanciaCompradoraPercentual: 60.0,

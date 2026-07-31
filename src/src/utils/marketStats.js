@@ -14,6 +14,11 @@ const SIGMA_THRESHOLD = 2
 // a mediana, não em desvios padrão.
 export const VOLUME_FACTOR = 3
 
+// Ticket médio acima deste múltiplo da mediana: o volume da hora veio de
+// poucas ordens grandes em vez de muitas pequenas. Fator menor que o do volume
+// porque o ticket é bem menos disperso — 3× praticamente não ocorre.
+const TICKET_FACTOR = 2
+
 /**
  * Consolida o desempenho de uma série de candles.
  *
@@ -92,6 +97,7 @@ export const calcularLimites = (registros) => {
     mediaVariacao,
     desvioVariacao,
     medianaVolume: median(registros.map((r) => r?.precoVolume)),
+    medianaTicket: median(registros.map((r) => r?.precoFinanceiroPorTrade)),
     amostras: registros.length,
   }
 }
@@ -109,7 +115,7 @@ export const calcularLimites = (registros) => {
 export const avaliarAnomalia = (registro, limites) => {
   if (!registro || !limites) return null
 
-  const { mediaVariacao, desvioVariacao, medianaVolume } = limites
+  const { mediaVariacao, desvioVariacao, medianaVolume, medianaTicket } = limites
 
   const variacao = Number(registro.precoPercentualVariacao)
   // Desvio zero = período sem oscilação alguma; nada ali é atípico.
@@ -122,10 +128,16 @@ export const avaliarAnomalia = (registro, limites) => {
   const razaoVolume =
     Number.isFinite(volume) && medianaVolume > 0 ? volume / medianaVolume : null
 
+  const ticket = Number(registro.precoFinanceiroPorTrade)
+  const razaoTicket =
+    Number.isFinite(ticket) && medianaTicket > 0 ? ticket / medianaTicket : null
+
   return {
     variacao: sigmas !== null && Math.abs(sigmas) > SIGMA_THRESHOLD,
     volume: razaoVolume !== null && razaoVolume > VOLUME_FACTOR,
+    ticket: razaoTicket !== null && razaoTicket > TICKET_FACTOR,
     sigmas,
     razaoVolume,
+    razaoTicket,
   }
 }

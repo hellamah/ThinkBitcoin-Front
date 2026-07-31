@@ -1,5 +1,5 @@
 import React from 'react'
-import { MdCompareArrows, MdBarChart, MdShowChart, MdPsychology, MdWaterfallChart } from 'react-icons/md'
+import { MdCompareArrows, MdBarChart, MdShowChart, MdPsychology, MdReceiptLong, MdWaterfallChart } from 'react-icons/md'
 import * as mathUtils from '../../utils/mathUtils'
 
 // Classificações vêm em inglês da fonte externa (alternative.me); o dashboard
@@ -54,7 +54,7 @@ function Sparkline({ valores, largura = 120, altura = 32 }) {
 export default function AnalyticsPanel({ analytics, t }) {
   if (!analytics) return null
 
-  const { fluxo, volatilidade, fearGreed } = analytics
+  const { fluxo, volatilidade, ticket, fearGreed } = analytics
 
   const compradora = fluxo.dominanciaCompradora
   const vendedora = fluxo.dominanciaVendedora
@@ -119,6 +119,23 @@ export default function AnalyticsPanel({ analytics, t }) {
               ? t('vsMedian', { value: volatilidade.razao.toFixed(1) })
               : t('noReading')}
           </div>
+        </div>
+
+        {/* Ticket médio: separa fluxo de varejo de fluxo de baleia */}
+        <div className="intel-card">
+          <div className="intel-icon"><MdReceiptLong /></div>
+          <div className="intel-label">{t('avgTicket')}</div>
+          <div className="intel-value">{mathUtils.formatCurrency(ticket.atual)}</div>
+          <div className="intel-subvalue" style={{ opacity: 0.7 }}>
+            {ticket.razao !== null
+              ? t('vsMedian', { value: ticket.razao.toFixed(1) })
+              : t('noReading')}
+          </div>
+          {ticket.trades !== null && (
+            <div className="intel-subvalue" style={{ opacity: 0.55 }}>
+              {t('tradeCount', { count: mathUtils.formatCompact(ticket.trades) })}
+            </div>
+          )}
         </div>
 
         {/* Fear & Greed com a série do período */}

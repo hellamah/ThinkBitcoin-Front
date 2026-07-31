@@ -14,6 +14,7 @@ import { CandlePattern, classificarCandle } from './candlePatterns'
 export const SignalKey = Object.freeze({
   VOLUME_ATIPICO: 'volumeAtipico',
   VARIACAO_ATIPICA: 'variacaoAtipica',
+  TICKET_ALTO: 'ticketAlto',
 })
 
 // Abaixo disso a taxa é anedota: com 3 ocorrências, uma a mais vira 33 pontos
@@ -82,14 +83,14 @@ export const analisarSinais = (registros, { horizonte = 1 } = {}) => {
     }
 
     const anomalia = avaliarAnomalia(registro, limites)
-    if (anomalia?.volume) {
-      if (!porSinal.has(SignalKey.VOLUME_ATIPICO)) porSinal.set(SignalKey.VOLUME_ATIPICO, [])
-      porSinal.get(SignalKey.VOLUME_ATIPICO).push(retorno)
+    const marcar = (chave) => {
+      if (!porSinal.has(chave)) porSinal.set(chave, [])
+      porSinal.get(chave).push(retorno)
     }
-    if (anomalia?.variacao) {
-      if (!porSinal.has(SignalKey.VARIACAO_ATIPICA)) porSinal.set(SignalKey.VARIACAO_ATIPICA, [])
-      porSinal.get(SignalKey.VARIACAO_ATIPICA).push(retorno)
-    }
+
+    if (anomalia?.volume) marcar(SignalKey.VOLUME_ATIPICO)
+    if (anomalia?.variacao) marcar(SignalKey.VARIACAO_ATIPICA)
+    if (anomalia?.ticket) marcar(SignalKey.TICKET_ALTO)
   }
 
   const base = resumir(retornosBase)

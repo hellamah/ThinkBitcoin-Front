@@ -8,6 +8,8 @@ const registro = (over = {}) => ({
   precoVolatilidadePercentual: 2,
   precoAmplitude: 5,
   precoRatioCompraVenda: 1.5,
+  precoFinanceiroPorTrade: 400,
+  precoTotalNegociada: 40000,
   volumeComprado: 60,
   volumeVendido: 40,
   volumeDelta: 20,
@@ -69,6 +71,34 @@ describe('utils/marketAnalytics › derivarAnalytics', () => {
   it('deve devolver razão nula sem mediana utilizável', () => {
     const r = derivarAnalytics(entrada([registro({ precoVolatilidadePercentual: 0 })]))
     expect(r.volatilidade.razao).toBeNull()
+  })
+
+  it('deve medir o ticket contra a mediana do período', () => {
+    // Atual 900, mediana dos cinco é 300 → 3×: o volume da hora veio de
+    // poucas ordens grandes.
+    const r = derivarAnalytics(entrada([
+      registro({ precoFinanceiroPorTrade: 900 }),
+      registro({ precoFinanceiroPorTrade: 200 }),
+      registro({ precoFinanceiroPorTrade: 300 }),
+      registro({ precoFinanceiroPorTrade: 300 }),
+      registro({ precoFinanceiroPorTrade: 400 }),
+    ]))
+    expect(r.ticket.mediana).toBe(300)
+    expect(r.ticket.razao).toBeCloseTo(3, 6)
+  })
+
+  it('deve derivar a contagem de trades do nocional sobre o ticket', () => {
+    // O backend não manda a contagem; ela cai de 40000 / 400.
+    const r = derivarAnalytics(entrada([
+      registro({ precoTotalNegociada: 40000, precoFinanceiroPorTrade: 400 }),
+    ]))
+    expect(r.ticket.trades).toBe(100)
+  })
+
+  it('deve devolver contagem nula sem ticket para dividir', () => {
+    const r = derivarAnalytics(entrada([registro({ precoFinanceiroPorTrade: 0 })]))
+    expect(r.ticket.trades).toBeNull()
+    expect(r.ticket.razao).toBeNull()
   })
 
   it('deve inverter a série do sparkline para ler do antigo ao atual', () => {

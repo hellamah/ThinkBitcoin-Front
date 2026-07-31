@@ -67,8 +67,13 @@ const serieComOutlier = () => {
   const registros = Array.from({ length: 9 }, () => ({
     precoPercentualVariacao: 1,
     precoVolume: 100,
+    precoFinanceiroPorTrade: 400,
   }))
-  registros.push({ precoPercentualVariacao: 10, precoVolume: 500 })
+  registros.push({
+    precoPercentualVariacao: 10,
+    precoVolume: 500,
+    precoFinanceiroPorTrade: 1200,
+  })
   return registros
 }
 
@@ -107,6 +112,28 @@ describe('utils/marketStats › avaliarAnomalia', () => {
     const r = avaliarAnomalia({ precoPercentualVariacao: 1, precoVolume: 500 }, limites)
     expect(r.volume).toBe(true)
     expect(r.razaoVolume).toBeCloseTo(5, 10)
+  })
+
+  it('deve marcar o ticket acima de 2× a mediana', () => {
+    // Mediana do ticket é 400; 1200 é 3×.
+    const r = avaliarAnomalia({ precoFinanceiroPorTrade: 1200 }, limites)
+    expect(r.ticket).toBe(true)
+    expect(r.razaoTicket).toBeCloseTo(3, 10)
+  })
+
+  it('não deve marcar ticket dentro do limiar', () => {
+    // 2× é o limiar; 2× exato não passa, porque a comparação é estrita.
+    expect(avaliarAnomalia({ precoFinanceiroPorTrade: 800 }, limites).ticket).toBe(false)
+  })
+
+  it('deve separar ticket alto de volume alto', () => {
+    // Volume de rotina com ordens grandes: poucas ordens, cada uma pesada.
+    const r = avaliarAnomalia(
+      { precoVolume: 100, precoFinanceiroPorTrade: 1200 },
+      limites
+    )
+    expect(r.volume).toBe(false)
+    expect(r.ticket).toBe(true)
   })
 
   it('não deve marcar o candle de rotina', () => {

@@ -75,6 +75,24 @@ export const derivarAnalytics = ({
     amplitude: valorOuZero(atual?.precoAmplitude),
   }
 
+  // Ticket médio: quanto vale um trade, em dólar. É a dimensão que o volume
+  // sozinho não separa — o mesmo volume pode vir de muita gente pequena ou de
+  // pouca gente grande, e isso muda a leitura do movimento.
+  const ticketAtual = valorOuZero(atual?.precoFinanceiroPorTrade)
+  const ticketMediana = median(historico.map((r) => r?.precoFinanceiroPorTrade))
+
+  const ticket = {
+    atual: ticketAtual,
+    mediana: ticketMediana,
+    razao: ticketMediana > 0 ? ticketAtual / ticketMediana : null,
+    // Número de trades sai do nocional dividido pelo ticket. O backend não
+    // manda a contagem, mas ela cai dos dois campos que já vêm.
+    trades:
+      ticketAtual > 0
+        ? Math.round(valorOuZero(atual?.precoTotalNegociada) / ticketAtual)
+        : null,
+  }
+
   const registrosFG = fearGreedPorMoeda?.[sigla] || []
   const fgAtual = registrosFG[0]
 
@@ -95,6 +113,7 @@ export const derivarAnalytics = ({
     sigla,
     fluxo,
     volatilidade,
+    ticket,
     fearGreed,
     desempenho: calcularDesempenho(historico),
     amostras: historico.length,
