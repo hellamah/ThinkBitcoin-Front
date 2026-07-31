@@ -3066,6 +3066,11 @@
   opacity: 0.55;
 }
 
+.signal-lab-intervalo {
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
 .signal-lab-alerta {
   vertical-align: middle;
   margin-left: 6px;

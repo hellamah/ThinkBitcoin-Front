@@ -8,6 +8,7 @@
 // todo resultado sai acompanhado do delta contra a base, que é o número que
 // realmente importa.
 
+import { intervaloWilson } from './mathUtils'
 import { avaliarAnomalia, calcularLimites } from './marketStats'
 import { CandlePattern, classificarCandle } from './candlePatterns'
 import { detectarDivergencias } from './flowDivergence'
@@ -36,6 +37,7 @@ const resumir = (retornos) => {
   const soma = retornos.reduce((a, b) => a + b, 0)
   return {
     ocorrencias: retornos.length,
+    positivos,
     taxaAlta: (positivos / retornos.length) * 100,
     retornoMedio: soma / retornos.length,
   }
@@ -111,6 +113,16 @@ export const analisarSinais = (registros, { horizonte = 1 } = {}) => {
   const sinais = [...porSinal.entries()]
     .map(([chave, retornos]) => {
       const r = resumir(retornos)
+      const intervalo = intervaloWilson(r.positivos, r.ocorrencias)
+
+      // Se a taxa base cabe dentro do intervalo de confiança do sinal, os dois
+      // números são indistinguíveis com esta amostra. É o que separa "o sinal
+      // desloca a probabilidade" de "o sinal parece deslocar por acaso" — e
+      // com n pequeno o segundo caso é a regra, não a exceção.
+      const significante =
+        intervalo !== null &&
+        (base.taxaAlta < intervalo.inferior || base.taxaAlta > intervalo.superior)
+
       return {
         chave,
         ...r,
@@ -119,6 +131,8 @@ export const analisarSinais = (registros, { horizonte = 1 } = {}) => {
         deltaTaxa: r.taxaAlta - base.taxaAlta,
         deltaRetorno: r.retornoMedio - base.retornoMedio,
         confiavel: r.ocorrencias >= MIN_OCCURRENCES,
+        intervalo,
+        significante,
       }
     })
     // Maior deslocamento absoluto primeiro: é o que merece o olho.

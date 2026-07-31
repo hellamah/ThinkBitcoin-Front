@@ -132,6 +132,40 @@ export const median = (values) => {
     : validos[meio]
 }
 
+// z de 1,96 corresponde a 95% de confiança na normal padrão.
+const Z_95 = 1.96
+
+/**
+ * Intervalo de confiança de Wilson para uma proporção.
+ *
+ * Escolhido em vez da aproximação normal justamente porque as amostras aqui
+ * são pequenas: com n baixo ou proporção perto de 0% ou 100%, a aproximação
+ * normal produz intervalos que saem de [0, 1] e sugerem precisão que não
+ * existe. Wilson é assimétrico e permanece dentro dos limites.
+ *
+ * @param {number} sucessos
+ * @param {number} total
+ * @param {number} [z] - Escore normal; 1,96 = 95%.
+ * @returns {{inferior: number, superior: number}|null} - Em %, ou null sem amostra.
+ */
+export const intervaloWilson = (sucessos, total, z = Z_95) => {
+  const n = paraNumero(total)
+  const k = paraNumero(sucessos)
+  if (n === null || k === null || n <= 0 || k < 0 || k > n) return null
+
+  const p = k / n
+  const z2 = z * z
+  const denominador = 1 + z2 / n
+  const centro = (p + z2 / (2 * n)) / denominador
+  const margem =
+    (z / denominador) * Math.sqrt((p * (1 - p)) / n + z2 / (4 * n * n))
+
+  return {
+    inferior: Math.max(0, centro - margem) * 100,
+    superior: Math.min(1, centro + margem) * 100,
+  }
+}
+
 /**
  * Formata um valor numérico para moeda (USD por padrão).
  * 

@@ -11,6 +11,7 @@ import {
   normalizeZScore,
   formatCurrency,
   formatPercent,
+  intervaloWilson,
   mean,
   median,
   stdDev,
@@ -207,5 +208,48 @@ describe('utils/mathUtils › stdDev (Desvio Padrão)', () => {
   it('deve retornar null quando não houver valor válido', () => {
     expect(stdDev([])).toBeNull()
     expect(stdDev(null)).toBeNull()
+  })
+})
+
+describe('utils/mathUtils › intervaloWilson (Intervalo de Confiança)', () => {
+  it('deve permanecer dentro de 0 e 100 mesmo nos extremos', () => {
+    // É por isso que Wilson foi escolhido: a aproximação normal devolveria
+    // limites fora de [0, 100] com proporção colada no extremo.
+    const tudoAlta = intervaloWilson(5, 5)
+    expect(tudoAlta.inferior).toBeGreaterThanOrEqual(0)
+    expect(tudoAlta.superior).toBeLessThanOrEqual(100)
+
+    const nadaAlta = intervaloWilson(0, 5)
+    expect(nadaAlta.inferior).toBeGreaterThanOrEqual(0)
+    expect(nadaAlta.superior).toBeLessThanOrEqual(100)
+  })
+
+  it('deve estreitar o intervalo conforme a amostra cresce', () => {
+    const largura = (k, n) => {
+      const i = intervaloWilson(k, n)
+      return i.superior - i.inferior
+    }
+    expect(largura(3, 6)).toBeGreaterThan(largura(30, 60))
+    expect(largura(30, 60)).toBeGreaterThan(largura(300, 600))
+  })
+
+  it('deve conter a proporção observada', () => {
+    const i = intervaloWilson(30, 60)
+    expect(i.inferior).toBeLessThan(50)
+    expect(i.superior).toBeGreaterThan(50)
+  })
+
+  it('deve ser largo demais para concluir qualquer coisa com n=2', () => {
+    // Com duas ocorrências, 100% de acerto ainda admite quase todo o espaço:
+    // é exatamente o caso que o laboratório precisa marcar como inconclusivo.
+    const i = intervaloWilson(2, 2)
+    expect(i.superior - i.inferior).toBeGreaterThan(50)
+  })
+
+  it('deve recusar entrada inválida', () => {
+    expect(intervaloWilson(1, 0)).toBeNull()
+    expect(intervaloWilson(3, 2)).toBeNull()
+    expect(intervaloWilson(-1, 5)).toBeNull()
+    expect(intervaloWilson(null, 5)).toBeNull()
   })
 })

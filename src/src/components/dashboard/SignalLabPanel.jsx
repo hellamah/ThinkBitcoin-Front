@@ -60,6 +60,7 @@ export default function SignalLabPanel({ analise, horizonte, setHorizonte, t }) 
               <th scope="col">{t('signalName')}</th>
               <th scope="col">{t('signalCount')}</th>
               <th scope="col">{t('signalUpRate')}</th>
+              <th scope="col">{t('signalInterval')}</th>
               <th scope="col">{t('signalVsBase')}</th>
               <th scope="col">{t('signalAvgReturn')}</th>
             </tr>
@@ -72,26 +73,34 @@ export default function SignalLabPanel({ analise, horizonte, setHorizonte, t }) 
               <td>{base.ocorrencias}</td>
               <td>{base.taxaAlta.toFixed(1)}%</td>
               <td>—</td>
+              <td>—</td>
               <td>{mathUtils.formatPercent(base.retornoMedio)}</td>
             </tr>
 
             {sinais.map((s) => (
-              <tr key={s.chave} className={s.confiavel ? undefined : 'signal-lab-fraco'}>
+              // Sem significância a linha fica esmaecida: o número existe, mas
+              // não se distingue da base com esta amostra.
+              <tr key={s.chave} className={s.significante ? undefined : 'signal-lab-fraco'}>
                 <th scope="row">
                   {t(`signal_${s.chave}`)}
-                  {!s.confiavel && (
+                  {!s.significante && (
                     <MdWarningAmber
                       className="signal-lab-alerta"
-                      title={t('signalLowSample')}
+                      title={t('signalNotSignificant')}
                     />
                   )}
                 </th>
                 <td>{s.ocorrencias}</td>
                 <td>{s.taxaAlta.toFixed(1)}%</td>
-                <td className={classeDelta(s.deltaTaxa)}>
+                <td className="signal-lab-intervalo">
+                  {s.intervalo
+                    ? `${s.intervalo.inferior.toFixed(0)}–${s.intervalo.superior.toFixed(0)}%`
+                    : '—'}
+                </td>
+                <td className={s.significante ? classeDelta(s.deltaTaxa) : undefined}>
                   {sinal(s.deltaTaxa)}{s.deltaTaxa.toFixed(1)} p.p.
                 </td>
-                <td className={classeDelta(s.retornoMedio)}>
+                <td className={s.significante ? classeDelta(s.retornoMedio) : undefined}>
                   {mathUtils.formatPercent(s.retornoMedio)}
                 </td>
               </tr>

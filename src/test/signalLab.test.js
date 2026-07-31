@@ -102,3 +102,52 @@ describe('utils/signalLab › analisarSinais', () => {
     expect(analisarSinais(comoDaApi([reg(100), reg(110)]), { horizonte: 0 })).toBeNull()
   })
 })
+
+describe('utils/signalLab › significância estatística', () => {
+  // Série longa o bastante para o martelo acumular ocorrências: metade dos
+  // candles é martelo e todos eles sobem, contra base próxima de 50%.
+  const serieComEdge = (n) => {
+    const out = []
+    for (let i = 0; i < n; i++) {
+      const ehMartelo = i % 2 === 0
+      // Martelo sempre seguido de alta; neutro sempre seguido de queda.
+      const preco = 100 + (ehMartelo ? 0 : 10)
+      out.push(reg(preco, ehMartelo ? MARTELO : NEUTRO))
+    }
+    return out
+  }
+
+  it('deve devolver intervalo de confiança para cada sinal', () => {
+    const r = analisarSinais(comoDaApi(serieComEdge(40)))
+    r.sinais.forEach((s) => {
+      expect(s.intervalo.inferior).toBeGreaterThanOrEqual(0)
+      expect(s.intervalo.superior).toBeLessThanOrEqual(100)
+      expect(s.intervalo.inferior).toBeLessThanOrEqual(s.intervalo.superior)
+    })
+  })
+
+  it('não deve considerar significante uma amostra minúscula', () => {
+    // Um único martelo que subiu não distingue nada, por mais que a taxa
+    // isolada seja 100%.
+    const r = analisarSinais(comoDaApi([reg(100, MARTELO), reg(110), reg(105), reg(100)]))
+    const martelo = r.sinais.find((s) => s.chave === CandlePattern.MARTELO)
+    expect(martelo.ocorrencias).toBe(1)
+    expect(martelo.significante).toBe(false)
+  })
+
+  it('deve reconhecer significância quando o intervalo exclui a base', () => {
+    const r = analisarSinais(comoDaApi(serieComEdge(40)))
+    const martelo = r.sinais.find((s) => s.chave === CandlePattern.MARTELO)
+    // A base fora do intervalo é exatamente a definição usada.
+    const dentro =
+      r.base.taxaAlta >= martelo.intervalo.inferior &&
+      r.base.taxaAlta <= martelo.intervalo.superior
+    expect(martelo.significante).toBe(!dentro)
+  })
+
+  it('deve contar os positivos que sustentam a taxa', () => {
+    const r = analisarSinais(comoDaApi([reg(100), reg(110), reg(121)]))
+    expect(r.base.positivos).toBe(2)
+    expect(r.base.ocorrencias).toBe(2)
+  })
+})

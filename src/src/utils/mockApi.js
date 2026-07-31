@@ -112,6 +112,31 @@ const hashSymbol = (symbol) =>
     .split('')
     .reduce((acc, char) => acc + char.charCodeAt(0), 0)
 
+// Gerador pseudoaleatório semeado (mulberry32). Determinístico de propósito:
+// a mesma sigla produz sempre a mesma série, então o demo é reprodutível e
+// dois desenvolvedores veem os mesmos números. Não é Math.random.
+const geradorSemeado = (semente) => () => {
+  semente |= 0
+  semente = (semente + 0x6d2b79f5) | 0
+  let t = Math.imul(semente ^ (semente >>> 15), 1 | semente)
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+}
+
+// Quanto do movimento de ontem persiste hoje. É o que cria trechos de
+// tendência sustentada — sem isso o preço vira ruído sem direção e nenhum
+// oscilador chega perto de extremo.
+const PERSISTENCIA = 0.72
+
+// Escala do choque por candle.
+const CHOQUE = 0.028
+
+// Puxão de volta em direção ao preço-base. Um passeio livre acumula deriva ao
+// longo dos 1096 candles do mock e afasta o ativo do valor que o identifica —
+// ETH terminava em $1.013 com base $3.500. Com a reversão o preço passeia
+// numa banda plausível sem deixar de ter tendência.
+const REVERSAO = 0.012
+
 const buildCoinValueResponse = (symbol, urlParams) => {
   const normalized = symbol.toUpperCase()
   const baseValue = MOCK_COIN_BASE_VALUE[normalized] ?? 100
@@ -120,6 +145,12 @@ const buildCoinValueResponse = (symbol, urlParams) => {
   let registros = []
   // Fechamento do candle anterior, que vira a abertura do próximo.
   let fechamentoAnterior = null
+
+  // Estado do passeio. O laço abaixo percorre do mais antigo para o mais
+  // recente, então basta avançar o passeio a cada candle.
+  const sortear = geradorSemeado(hashSymbol(normalized))
+  let precoRelativo = 1
+  let momentum = 0
   // Base truncada na hora para todas as moedas caírem na mesma grade de
   // horários. Com `new Date()` puro cada moeda era gerada num milissegundo
   // diferente, então nenhuma série se alinhava com outra: o gráfico multi-moeda
@@ -135,20 +166,25 @@ const buildCoinValueResponse = (symbol, urlParams) => {
       const dataPonto = new Date(agora.getTime() - msOffset)
       
       const globalIndex = d * 3 + i
-      // Três componentes de frequências não múltiplas entre si, mais a deriva
-      // por moeda. Era um seno puro, e oscilação perfeitamente simétrica faz o
-      // RSI orbitar 50 (medido: 44 a 57 em 93 candles) e nada romper ±2σ — os
-      // dois osciladores ficavam impossíveis de demonstrar no demo. Com as
-      // frequências desencontradas surgem trechos de tendência, que é onde
-      // extremo de oscilador acontece. Determinístico: dado sorteado não se
-      // distingue de medido.
-      const fase = hashSymbol(normalized)
-      const oscilacao =
-        Math.sin(globalIndex * 0.9 + fase) * 0.035 +
-        Math.sin(globalIndex * 0.23 + fase * 1.7) * 0.045 +
-        Math.sin(globalIndex * 0.061 + fase * 0.4) * 0.06 +
-        variationFactor
-      const precoPonto = Number((baseValue * (1 + oscilacao)).toFixed(2))
+      // Passeio aleatório com momentum, semeado pela sigla.
+      //
+      // Antes era soma de senos, e antes disso um seno puro. Ambos falhavam
+      // pelo mesmo motivo: oscilação periódica não tem tendência sustentada,
+      // então o RSI orbitava 50 (medido: 38 a 61 em 93 candles) e nunca
+      // cruzava 70/30 — o sinal existia no código e era impossível de ver.
+      //
+      // A correção não foi ajustar a frequência até o indicador acender, e sim
+      // trocar a forma da série: preço real se parece com passeio aleatório
+      // com persistência, não com senoide. Com isso o extremo de oscilador
+      // aparece por consequência, não por encomenda.
+      momentum =
+        momentum * PERSISTENCIA +
+        (sortear() - 0.5) * CHOQUE -
+        (precoRelativo - 1) * REVERSAO
+      precoRelativo *= 1 + momentum
+
+      const oscilacao = precoRelativo - 1 + variationFactor
+      const precoPonto = Number((baseValue * precoRelativo).toFixed(2))
 
       // O volume acompanha a oscilação e leva um pico a cada 11 candles. Com o
       // valor fixo que havia aqui a mediana era igual a todo registro, então o

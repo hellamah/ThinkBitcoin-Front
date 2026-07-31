@@ -107,13 +107,22 @@ describe('utils/mockApi › getMockResponse', () => {
       })
     })
 
+    // O preço passeia a partir da base ao longo de um ano de candles, então
+    // prendê-lo à base testaria a forma do gerador, não o contrato. O que
+    // importa é a moeda usar a base certa — se ETH herdasse a de BTC, o preço
+    // sairia vinte vezes fora desta banda.
+    const dentroDaBanda = (valor, base) => {
+      expect(valor).toBeGreaterThan(base * 0.5)
+      expect(valor).toBeLessThan(base * 1.5)
+    }
+
     it('retorna dados de valor para endpoint de ETH', () => {
       const resp = getMockResponse({
         endpoint: '/ThinkBitcoin/moeda/ETH/valor',
         method: 'GET',
       })
 
-      expect(resp?.resultado?.registros?.[0]?.precoFechamento).toBeCloseTo(3500, -3)
+      dentroDaBanda(resp?.resultado?.registros?.[0]?.precoFechamento, 3500)
     })
 
     it('retorna dados de valor para endpoint de DOGE (valor fracionário)', () => {
@@ -131,7 +140,7 @@ describe('utils/mockApi › getMockResponse', () => {
         method: 'GET',
       })
 
-      expect(resp?.resultado?.registros?.[0]?.precoFechamento).toBeCloseTo(100, -1)
+      dentroDaBanda(resp?.resultado?.registros?.[0]?.precoFechamento, 100)
     })
 
     it('aceita query string na URL do endpoint de moeda', () => {

@@ -99,13 +99,12 @@ igual à base.
 | 7d | ~21 | 7 pontos | 2 pontos |
 | 1m | ~93 | 79 pontos | 74 pontos |
 
-**Limitação conhecida do demo:** no modo mock o RSI fica entre 38 e 61 e nunca
-cruza 70/30, então esses dois sinais não aparecem no laboratório sem dados
-reais. A série do mock ganhou três componentes de frequências desencontradas
-justamente para criar trechos de tendência — isso foi o bastante para os
-rompimentos de banda passarem a ocorrer, mas extremo de RSI exige tendência
-mais sustentada. Continuar ajustando o mock até o RSI disparar seria moldar o
-dado à ferramenta, que é o contrário do que a plataforma se propõe.
+O mock passou por três formas até sustentar os dois. Seno puro e soma de senos
+falhavam pelo mesmo motivo: oscilação periódica não tem tendência sustentada, e
+sem ela o RSI orbita 50. A correção não foi ajustar frequências até o indicador
+acender — foi trocar a forma da série por um passeio aleatório com persistência,
+que é o que preço real se parece. O extremo passou a aparecer por consequência
+(RSI de 10 a 97 em 93 candles), não por encomenda.
 
 ### ATR — `marketStats.calcularAtr`
 
@@ -129,12 +128,24 @@ e ainda não viraram trabalho:
 
 - **Padrões de dois candles** (engolfo, harami) — precisam de contexto entre
   velas consecutivas, que é outra estrutura de detecção.
-- **Significância estatística no laboratório** — hoje o `n` e o delta contra a
-  base evitam o pior erro de leitura, mas não há teste formal. Com amostras
-  pequenas como as atuais, um intervalo de confiança mostraria quantas dessas
-  linhas são indistinguíveis de ruído.
 - **Contexto de localização dos padrões** — martelo só significa reversão
   depois de uma queda. Hoje a classificação é puramente geométrica.
+
+---
+
+## O que o laboratório está dizendo
+
+Com intervalo de confiança de Wilson a 95%, **nenhum dos doze sinais se
+distingue da taxa base** numa janela de ~90 candles. "Cruzou VWAP p/ Cima" com
+100% de acerto tem intervalo de 21 a 100%: não informa nada.
+
+Isso não é falha da ferramenta — é a resposta correta para esse tamanho de
+amostra, e é justamente o que o painel existe para dizer. Antes da coluna de
+intervalo, a mesma linha aparecia como "+51,1 p.p." e passava por descoberta.
+
+Para separar sinal de ruído nesses deltas seria preciso ordem de grandeza mais
+de histórico. A conclusão prática: o laboratório serve hoje para **descartar**
+hipóteses, não para confirmá-las.
 
 ---
 
