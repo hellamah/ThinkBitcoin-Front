@@ -5,8 +5,11 @@
 //
 // A leitura só existe contra a taxa base do próprio período: 68% de acerto não
 // significa nada se o período inteiro fechou em alta 67% das vezes. Por isso
-// todo resultado sai acompanhado do delta contra a base, que é o número que
-// realmente importa.
+// todo resultado sai acompanhado do delta contra a base.
+//
+// E o delta sozinho ainda engana: com amostra pequena ele é grande por acaso.
+// Quem decide se a linha diz alguma coisa é o intervalo de confiança — se a
+// taxa base cabe dentro dele, os dois números são indistinguíveis.
 
 import { intervaloWilson } from './mathUtils'
 import { avaliarAnomalia, calcularLimites } from './marketStats'
@@ -20,11 +23,6 @@ export const SignalKey = Object.freeze({
   VARIACAO_ATIPICA: 'variacaoAtipica',
   TICKET_ALTO: 'ticketAlto',
 })
-
-// Abaixo disso a taxa é anedota: com 3 ocorrências, uma a mais vira 33 pontos
-// percentuais. A UI mostra a linha mesmo assim, marcada como pouco confiável,
-// porque esconder o n seria pior do que exibi-lo.
-export const MIN_OCCURRENCES = 5
 
 const fechamentoDe = (r) => {
   const v = Number(r?.precoFechamento)
@@ -130,7 +128,6 @@ export const analisarSinais = (registros, { horizonte = 1 } = {}) => {
         // relação a não filtrar nada.
         deltaTaxa: r.taxaAlta - base.taxaAlta,
         deltaRetorno: r.retornoMedio - base.retornoMedio,
-        confiavel: r.ocorrencias >= MIN_OCCURRENCES,
         intervalo,
         significante,
       }

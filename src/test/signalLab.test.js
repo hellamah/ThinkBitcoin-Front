@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { analisarSinais, MIN_OCCURRENCES, SignalKey } from '../src/utils/signalLab'
+import { analisarSinais, SignalKey } from '../src/utils/signalLab'
 import { CandlePattern } from '../src/utils/candlePatterns'
 
 // Geometrias fixas: martelo tem sombra inferior longa, neutro fica no meio.
@@ -66,11 +66,13 @@ describe('utils/signalLab › analisarSinais', () => {
     expect(r.sinais.find((s) => s.chave === CandlePattern.NEUTRO)).toBeUndefined()
   })
 
-  it('deve marcar como pouco confiável a amostra abaixo do mínimo', () => {
+  it('não deve dar significância a uma ocorrência isolada', () => {
+    // Wilson trata amostra pequena por construção: o intervalo fica largo
+    // demais para excluir a base, sem precisar de um limiar de n à parte.
     const r = analisarSinais(comoDaApi([reg(100, MARTELO), reg(110), reg(121)]))
     const martelo = r.sinais.find((s) => s.chave === CandlePattern.MARTELO)
-    expect(martelo.ocorrencias).toBeLessThan(MIN_OCCURRENCES)
-    expect(martelo.confiavel).toBe(false)
+    expect(martelo.ocorrencias).toBe(1)
+    expect(martelo.significante).toBe(false)
   })
 
   it('deve captar volume atípico quando a série sustenta a régua', () => {

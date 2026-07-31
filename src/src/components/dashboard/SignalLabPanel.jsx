@@ -15,7 +15,8 @@ const estiloHorizonte = (ativo) => ({
   fontWeight: ativo ? 600 : 400,
 })
 
-// O delta é a única coluna que responde "esse sinal serve para alguma coisa?".
+// Só colorimos delta de linha significante: pintar de verde um deslocamento
+// que o intervalo não sustenta é dar destaque a ruído.
 const classeDelta = (v) => (v > 0 ? 'up' : v < 0 ? 'down' : undefined)
 
 const sinal = (v) => (v > 0 ? '+' : '')
