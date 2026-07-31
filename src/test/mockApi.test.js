@@ -90,6 +90,35 @@ describe('utils/mockApi › getMockResponse', () => {
       expect(congelados).toEqual([])
     })
 
+    // Campo que varia no tempo mas é igual em todas as moedas passa no teste
+    // acima e ainda assim inutiliza qualquer comparação — foi o caso de
+    // precoVolatilidadePercentual, que dependia só do índice do candle.
+    it('não deve entregar série idêntica entre moedas diferentes', () => {
+      const serieDe = (sigla) =>
+        getMockResponse({
+          endpoint: `/ThinkBitcoin/moeda/${sigla}/valor?quantidade=30`,
+          method: 'GET',
+        }).resultado.registros
+
+      const btc = serieDe('BTC')
+      const eth = serieDe('ETH')
+
+      // Percentuais e razões, que não dependem da escala de preço da moeda e
+      // por isso poderiam coincidir sem ninguém notar.
+      const comparaveis = [
+        'precoPercentualVariacao',
+        'precoVolatilidadePercentual',
+        'dominanciaCompradoraPercentual',
+        'precoRatioCompraVenda',
+      ]
+
+      const iguais = comparaveis.filter((campo) =>
+        btc.every((r, i) => r[campo] === eth[i]?.[campo])
+      )
+
+      expect(iguais).toEqual([])
+    })
+
     it('deve manter o fluxo comprador e vendedor coerente entre si', () => {
       // As duas dominâncias somam 100, o delta é a diferença dos volumes e o
       // ratio é a razão deles. Sem isso o painel mostra números que se

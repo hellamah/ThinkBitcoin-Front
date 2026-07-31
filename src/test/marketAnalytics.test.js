@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { derivarAnalytics } from '../src/utils/marketAnalytics'
+import { compararMoedas, derivarAnalytics } from '../src/utils/marketAnalytics'
 
 // A API entrega do mais recente ao mais antigo (ordemAsc=false).
 const registro = (over = {}) => ({
@@ -142,5 +142,52 @@ describe('utils/marketAnalytics › derivarAnalytics', () => {
     expect(derivarAnalytics(entrada([]))).toBeNull()
     expect(derivarAnalytics({ moedasFiltro: [] })).toBeNull()
     expect(derivarAnalytics({ moedasFiltro: null })).toBeNull()
+  })
+})
+
+describe('utils/marketAnalytics › compararMoedas', () => {
+  // Cronologicamente 100 → 110 é +10%; 100 → 90 é -10%.
+  const historico = (fechamentos, volatilidade = 2) =>
+    [...fechamentos].reverse().map((precoFechamento) => ({
+      precoFechamento,
+      precoVolatilidadePercentual: volatilidade,
+      precoVolume: 10,
+      precoTotalNegociada: precoFechamento * 10,
+      precoPercentualVariacao: 0,
+    }))
+
+  const carteira = {
+    BTC: historico([100, 110]),
+    ETH: historico([100, 90]),
+    SOL: historico([100, 130]),
+  }
+
+  it('deve ordenar por retorno, maior primeiro', () => {
+    const r = compararMoedas(carteira, ['BTC', 'ETH', 'SOL'])
+    expect(r.map((m) => m.sigla)).toEqual(['SOL', 'BTC', 'ETH'])
+  })
+
+  it('deve trazer as leituras que existem por moeda', () => {
+    const r = compararMoedas(carteira, ['BTC', 'ETH'])
+    const btc = r.find((m) => m.sigla === 'BTC')
+    expect(btc.retorno).toBeCloseTo(10, 6)
+    expect(btc.volatilidade).toBe(2)
+    expect(btc.desvioVwap).not.toBeNull()
+  })
+
+  it('deve devolver null fora do modo comparativo', () => {
+    // Com uma moeda o painel de desempenho já cobre, com mais detalhe.
+    expect(compararMoedas(carteira, ['BTC'])).toBeNull()
+    expect(compararMoedas(carteira, [])).toBeNull()
+    expect(compararMoedas(carteira, null)).toBeNull()
+  })
+
+  it('deve descartar moeda sem histórico em vez de exibir linha vazia', () => {
+    const r = compararMoedas({ ...carteira, XRP: [] }, ['BTC', 'XRP'])
+    expect(r.map((m) => m.sigla)).toEqual(['BTC'])
+  })
+
+  it('deve devolver null quando nenhuma moeda tem histórico', () => {
+    expect(compararMoedas({ BTC: [], ETH: [] }, ['BTC', 'ETH'])).toBeNull()
   })
 })

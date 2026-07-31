@@ -216,14 +216,6 @@ const buildCoinValueResponse = (symbol, urlParams) => {
       const volumeComprado = precoVolume * (dominanciaCompradora / 100)
       const volumeVendido = precoVolume - volumeComprado
 
-      // Volatilidade em ciclo próprio, com pico a cada 9 candles, para a régua
-      // "N× a mediana" do card ter o que mostrar. Era 0,5 fixo, o que dava
-      // exatamente 1,0× em todo candle.
-      const picoDeVolatilidade = globalIndex % 9 === 4
-      const precoVolatilidadePercentual = Number(
-        (0.35 + Math.abs(Math.sin(globalIndex * 0.3)) * 0.5 + (picoDeVolatilidade ? 1.2 : 0)).toFixed(5)
-      )
-
       // OHLC de verdade: a abertura é o fechamento do candle anterior, e as
       // extremidades envolvem esse intervalo. Antes a abertura era fixada em
       // 0,99 × fechamento, então fechamento > abertura sempre — toda vela saía
@@ -240,6 +232,15 @@ const buildCoinValueResponse = (symbol, urlParams) => {
       const maior = Number((Math.max(abertura, precoPonto) * (1 + alcanceSuperior)).toFixed(2))
       const menor = Number((Math.min(abertura, precoPonto) * (1 - alcanceInferior)).toFixed(2))
       fechamentoAnterior = precoPonto
+
+      // Volatilidade derivada da amplitude real do candle, e não de um ciclo
+      // próprio. Antes dependia só do índice, então TODAS as moedas tinham a
+      // mesma série e a coluna de volatilidade do comparativo mostrava o mesmo
+      // número para todas — campo que varia no tempo mas não distingue os
+      // ativos passa despercebido em teste de campo congelado.
+      const precoVolatilidadePercentual = Number(
+        (((maior - menor) / precoPonto) * 100).toFixed(5)
+      )
 
       // Contrato do backend: variação é o retorno DENTRO do candle, não o
       // desvio em relação a um preço-base. O teste PreencherTbMoedaBinanceTests

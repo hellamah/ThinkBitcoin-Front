@@ -24,6 +24,7 @@ import useDashboardCharts from '../hooks/useDashboardCharts'
 import useMarketAnalytics from '../hooks/useMarketAnalytics'
 import * as mathUtils from '../utils/mathUtils'
 import { calcularLimites } from '../utils/marketStats'
+import { compararMoedas } from '../utils/marketAnalytics'
 import { analisarSinais } from '../utils/signalLab'
 import { getTourVisto, setTourVisto } from '../utils/preferences'
 import { candlestickPlugin } from '../utils/candlestickChart'
@@ -38,6 +39,7 @@ import IntelligencePanel from '../components/dashboard/IntelligencePanel'
 import AnalyticsPanel from '../components/dashboard/AnalyticsPanel'
 import PeriodStatsPanel from '../components/dashboard/PeriodStatsPanel'
 import CorrelationMatrix from '../components/dashboard/CorrelationMatrix'
+import CoinComparisonPanel from '../components/dashboard/CoinComparisonPanel'
 import SignalLabPanel from '../components/dashboard/SignalLabPanel'
 import DashboardCharts from '../components/dashboard/DashboardCharts'
 import HistoryTable from '../components/dashboard/HistoryTable'
@@ -304,8 +306,17 @@ export default function Dashboard() {
     t
   })
 
+  const comparativo = useMemo(
+    () => compararMoedas(historicosPorMoeda, moedasFiltro),
+    [historicosPorMoeda, moedasFiltro]
+  )
+
   // As consultas usam ordemAsc=false, então o backend devolve da leitura mais
   // recente para a mais antiga: o registro atual é o índice 0, não o último.
+  //
+  // No modo comparativo estes dois valores não são exibidos: eram do primeiro
+  // da lista, sem dizer de qual moeda, e em dólar enquanto o gráfico está
+  // normalizado — três números diferentes na tela para a mesma coisa.
   const ultimoNegociado = useMemo(() => {
     const sigla = moedasFiltro[0]
     const hist = (historicosPorMoeda && sigla) ? (historicosPorMoeda[sigla] || []) : []
@@ -430,6 +441,8 @@ export default function Dashboard() {
         <PeriodStatsPanel desempenho={analytics?.desempenho} t={t} />
 
         <AnalyticsPanel analytics={analytics} t={t} />
+
+        <CoinComparisonPanel comparativo={comparativo} t={t} />
 
         <CorrelationMatrix correlacao={chartConfig.correlacao} t={t} />
 

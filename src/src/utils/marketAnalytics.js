@@ -23,6 +23,45 @@ const somar = (registros, campo) =>
 const valorOuZero = (v) => paraNumero(v) ?? 0
 
 /**
+ * Compara as moedas selecionadas lado a lado.
+ *
+ * Existe porque no modo comparativo o painel de desempenho sumia inteiro. As
+ * leituras que NÃO se somam entre ativos — fluxo de ordens, laboratório de
+ * sinais — continuam fora, mas retorno, drawdown e volatilidade são por moeda
+ * e comparar exatamente isso é o motivo de alguém selecionar várias.
+ *
+ * @param {object} historicosPorMoeda - Séries por sigla.
+ * @param {string[]} moedasFiltro - Moedas selecionadas.
+ * @returns {Array<object>|null} - Ordenado por retorno; null fora do modo
+ *   comparativo, onde o painel de moeda única já cobre.
+ */
+export const compararMoedas = (historicosPorMoeda, moedasFiltro) => {
+  if (!Array.isArray(moedasFiltro) || moedasFiltro.length < 2) return null
+
+  const linhas = moedasFiltro
+    .map((sigla) => {
+      const historico = historicosPorMoeda?.[sigla] || []
+      const desempenho = calcularDesempenho(historico)
+      if (!desempenho) return null
+
+      return {
+        sigla,
+        ...desempenho,
+        volatilidade: median(historico.map((r) => r?.precoVolatilidadePercentual)),
+        // Onde o preço está em relação ao custo médio ponderado do período.
+        desvioVwap: resumirVwap(historico)?.desvioAtual ?? null,
+      }
+    })
+    .filter(Boolean)
+
+  if (linhas.length === 0) return null
+
+  // Maior retorno primeiro: a pergunta que se faz olhando esta tabela é
+  // "qual rendeu mais", e a resposta deve estar na primeira linha.
+  return linhas.sort((a, b) => b.retorno - a.retorno)
+}
+
+/**
  * Consolida as leituras derivadas de uma única moeda.
  *
  * @param {object} params

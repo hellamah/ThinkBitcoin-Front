@@ -142,7 +142,13 @@ export default function DashboardCharts({
         >
           <div className="chart-expand-icon"><MdFullscreen /></div>
           <h2>{t('tradedValue')}</h2>
-          <div className="chart-note">{t('lastValue')}: {ultimoNegociado}</div>
+          {/* Em modo comparativo a série está normalizada, então um valor em
+              dólar de uma única moeda não descreve o que está desenhado. */}
+          <div className="chart-note">
+            {multiMoeda
+              ? t('comparingCoins', { count: dadosNegociados.datasets.length })
+              : `${t('lastValue')}: ${ultimoNegociado}`}
+          </div>
           <div className="chart-container">
             <Line data={dadosNegociados} options={opcoesPreco} />
           </div>
@@ -157,9 +163,11 @@ export default function DashboardCharts({
           <div className="chart-expand-icon"><MdFullscreen /></div>
           <h2>{mostraVolume ? t('volume') : t('percentVariation')}</h2>
           <div className="chart-note">
-            {mostraVolume
-              ? `${t('currentVolume')}: ${volumeAtual}`
-              : `${t('lastVariation')}: ${ultimaVariacao}`}
+            {multiMoeda
+              ? t('comparingCoins', { count: dadosVariacao.datasets.length })
+              : mostraVolume
+                ? `${t('currentVolume')}: ${volumeAtual}`
+                : `${t('lastVariation')}: ${ultimaVariacao}`}
           </div>
           <div className="chart-container">
             {mostraVolume
