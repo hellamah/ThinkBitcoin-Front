@@ -65,10 +65,10 @@ export const faixaDasVelas = (velas) => {
 // blocos largos que parecem um gráfico de barras.
 // Exportadas porque as barras da variação seguem exatamente a mesma medida: os
 // dois painéis ficam lado a lado e qualquer divergência aqui salta aos olhos.
-export const LARGURA_MAXIMA_CORPO = 18
+export const MAX_BODY_WIDTH = 18
 
 // Fração do espaço entre pontos ocupada pelo corpo; o resto é respiro.
-export const PROPORCAO_CORPO = 0.6
+export const BODY_RATIO = 0.6
 
 export const candlestickPlugin = {
   id: 'candlestick',
@@ -95,7 +95,7 @@ export const candlestickPlugin = {
       velas.length > 1
         ? Math.abs(escalaX.getPixelForValue(1) - escalaX.getPixelForValue(0))
         : chartArea.right - chartArea.left
-    const largura = Math.max(1, Math.min(passo * PROPORCAO_CORPO, LARGURA_MAXIMA_CORPO))
+    const largura = Math.max(1, Math.min(passo * BODY_RATIO, MAX_BODY_WIDTH))
 
     ctx.save()
     // afterDatasetsDraw roda fora do clip do chart.js: sem isto, uma vela na

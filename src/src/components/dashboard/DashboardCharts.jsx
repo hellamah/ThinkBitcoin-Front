@@ -2,7 +2,7 @@ import React from 'react'
 import Box from '@mui/material/Box'
 import { Bar, Line } from 'react-chartjs-2'
 import { MdFullscreen } from 'react-icons/md'
-import { ChartType, PriceChartMode } from '../../utils/enums'
+import { ChartType, PriceChartMode, SecondaryChart } from '../../utils/enums'
 import ExpandedChartModal from './ExpandedChartModal'
 
 // Estilo dos alternadores em pílula do cabeçalho dos gráficos.
@@ -43,6 +43,8 @@ export default function DashboardCharts({
   setNormalizacao,
   modoPreco,
   setModoPreco,
+  painelSecundario,
+  setPainelSecundario,
   temVelas,
   modoVela,
   expandedChart,
@@ -57,8 +59,12 @@ export default function DashboardCharts({
   ultimaVariacao,
   volumeAtual,
   trendAtual,
-  t 
+  t
 }) {
+  // Volume existe só com moeda única; em modo comparativo o seletor nem
+  // aparece, mas a guarda evita render vazio se o filtro mudar por baixo.
+  const mostraVolume = painelSecundario === SecondaryChart.VOLUME && Boolean(dadosVolume)
+
   return (
     <>
       <div style={{ marginTop: '40px', marginBottom: '16px', padding: '0 4px', display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
@@ -83,24 +89,45 @@ export default function DashboardCharts({
           </div>
         )}
 
-        {/* Candles exigem uma única moeda: sobrepor OHLC de ativos diferentes
-            não se lê, então o alternador some no modo comparativo. */}
+        {/* Dois controles independentes: "Visualização" muda COMO o preço é
+            desenhado, "Painel" muda O QUE o gráfico ao lado mostra. Amarrar os
+            dois faria o seletor de visualização trocar o conteúdo da tela.
+            Ambos exigem moeda única: candle de vários ativos no mesmo eixo não
+            se lê, e volume de moedas diferentes não se soma. */}
         {!multiMoeda && temVelas && (
-          <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', alignSelf: 'center' }}>{t('chartMode')}:</span>
-            {[
-              { key: PriceChartMode.LINE, label: t('chartModeLine'), title: t('chartModeLineHint') },
-              { key: PriceChartMode.CANDLE, label: t('chartModeCandle'), title: t('chartModeCandleHint') },
-            ].map(({ key, label, title }) => (
-              <button
-                key={key}
-                title={title}
-                onClick={() => setModoPreco(key)}
-                style={estiloAlternador(modoPreco === key)}
-              >
-                {label}
-              </button>
-            ))}
+          <div style={{ display: 'flex', gap: '18px', marginLeft: 'auto', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', alignSelf: 'center' }}>{t('chartMode')}:</span>
+              {[
+                { key: PriceChartMode.LINE, label: t('chartModeLine'), title: t('chartModeLineHint') },
+                { key: PriceChartMode.CANDLE, label: t('chartModeCandle'), title: t('chartModeCandleHint') },
+              ].map(({ key, label, title }) => (
+                <button
+                  key={key}
+                  title={title}
+                  onClick={() => setModoPreco(key)}
+                  style={estiloAlternador(modoPreco === key)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', alignSelf: 'center' }}>{t('secondaryChart')}:</span>
+              {[
+                { key: SecondaryChart.VARIATION, label: t('percentVariation') },
+                { key: SecondaryChart.VOLUME, label: t('volume') },
+              ].map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => setPainelSecundario(key)}
+                  style={estiloAlternador(painelSecundario === key)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -117,22 +144,22 @@ export default function DashboardCharts({
             <Line data={dadosNegociados} options={opcoesPreco} />
           </div>
         </Box>
-        {/* No modo candle este painel troca de assunto: a variação percentual é
-            o próprio corpo da vela ao lado, então mostrar volume acrescenta a
-            dimensão que falta em vez de repetir a que já está na tela. */}
+        {/* Assunto escolhido no seletor "Painel", não no de visualização.
+            Volume é útil como acompanhamento porque diz se o movimento teve
+            participação — dimensão que nem a linha nem o candle mostram. */}
         <Box
           className="panel chart-panel chart-panel-clickable"
           onClick={() => setExpandedChart(ChartType.PERCENT_VARIATION)}
         >
           <div className="chart-expand-icon"><MdFullscreen /></div>
-          <h2>{modoVela ? t('volume') : t('percentVariation')}</h2>
+          <h2>{mostraVolume ? t('volume') : t('percentVariation')}</h2>
           <div className="chart-note">
-            {modoVela
+            {mostraVolume
               ? `${t('currentVolume')}: ${volumeAtual}`
               : `${t('lastVariation')}: ${ultimaVariacao}`}
           </div>
           <div className="chart-container">
-            {modoVela
+            {mostraVolume
               ? <Bar data={dadosVolume} options={opcoesVolume} />
               : <Line data={dadosVariacao} options={opcoesVariacao} />}
           </div>
@@ -150,7 +177,7 @@ export default function DashboardCharts({
         opcoesVariacao={opcoesVariacao}
         opcoesVolume={opcoesVolume}
         trendAtual={trendAtual}
-        modoVela={modoVela}
+        mostraVolume={mostraVolume}
         t={t}
       />
     </>

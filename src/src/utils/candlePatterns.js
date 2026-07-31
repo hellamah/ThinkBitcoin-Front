@@ -10,6 +10,8 @@
 // A classificação aqui é puramente geométrica; quem dá sentido a ela é o
 // desfecho medido em signalLab.js, que é o ponto do laboratório.
 
+import { paraNumero } from './mathUtils'
+
 export const CandlePattern = Object.freeze({
   MARTELO: 'martelo',
   ESTRELA: 'estrela',
@@ -20,15 +22,13 @@ export const CandlePattern = Object.freeze({
 
 // Corpo até 12% da amplitude: abertura e fechamento praticamente no mesmo
 // lugar, o preço andou e voltou.
-const LIMITE_DOJI = 0.12
+const DOJI_LIMIT = 0.12
 
 // Corpo acima de 75% da amplitude: quase sem pavio, movimento sem disputa.
-const LIMITE_MARUBOZU = 0.75
+const MARUBOZU_LIMIT = 0.75
 
 // Uma sombra precisa ser o dobro do corpo para caracterizar rejeição de preço.
-const FATOR_SOMBRA = 2
-
-import { paraNumero } from './mathUtils'
+const SHADOW_FACTOR = 2
 
 /**
  * Classifica a geometria de um candle.
@@ -54,15 +54,15 @@ export const classificarCandle = (registro) => {
 
   // Sombra dominante vem antes de doji: a assimetria diz para que lado o preço
   // foi rejeitado, o que informa mais do que só "o corpo é pequeno".
-  if (inferior >= corpo * FATOR_SOMBRA && inferior > superior) {
+  if (inferior >= corpo * SHADOW_FACTOR && inferior > superior) {
     return CandlePattern.MARTELO
   }
-  if (superior >= corpo * FATOR_SOMBRA && superior > inferior) {
+  if (superior >= corpo * SHADOW_FACTOR && superior > inferior) {
     return CandlePattern.ESTRELA
   }
 
-  if (proporcaoCorpo <= LIMITE_DOJI) return CandlePattern.DOJI
-  if (proporcaoCorpo >= LIMITE_MARUBOZU) return CandlePattern.MARUBOZU
+  if (proporcaoCorpo <= DOJI_LIMIT) return CandlePattern.DOJI
+  if (proporcaoCorpo >= MARUBOZU_LIMIT) return CandlePattern.MARUBOZU
 
   return CandlePattern.NEUTRO
 }

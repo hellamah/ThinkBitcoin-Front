@@ -4,15 +4,15 @@ import { mean, median, stdDev } from './mathUtils'
 
 // Abaixo disso média e desvio não descrevem o período: com meia dúzia de
 // candles qualquer leitura vira "atípica" e o alerta perde o sentido.
-const MINIMO_AMOSTRAS = 8
+const MIN_SAMPLES = 8
 
 // 2σ deixa ~5% dos candles marcados numa distribuição normal — raro o bastante
 // para chamar atenção, frequente o bastante para aparecer num período típico.
-const SIGMAS_VARIACAO = 2
+const SIGMA_THRESHOLD = 2
 
 // Volume é assimétrico e tem cauda longa, então a régua é multiplicativa sobre
 // a mediana, não em desvios padrão.
-export const FATOR_VOLUME = 3
+export const VOLUME_FACTOR = 3
 
 /**
  * Consolida o desempenho de uma série de candles.
@@ -80,7 +80,7 @@ export const calcularDesempenho = (registros) => {
  * }|null} - null se a série for curta demais para descrever normalidade.
  */
 export const calcularLimites = (registros) => {
-  if (!Array.isArray(registros) || registros.length < MINIMO_AMOSTRAS) return null
+  if (!Array.isArray(registros) || registros.length < MIN_SAMPLES) return null
 
   const variacoes = registros.map((r) => r?.precoPercentualVariacao)
   const mediaVariacao = mean(variacoes)
@@ -123,8 +123,8 @@ export const avaliarAnomalia = (registro, limites) => {
     Number.isFinite(volume) && medianaVolume > 0 ? volume / medianaVolume : null
 
   return {
-    variacao: sigmas !== null && Math.abs(sigmas) > SIGMAS_VARIACAO,
-    volume: razaoVolume !== null && razaoVolume > FATOR_VOLUME,
+    variacao: sigmas !== null && Math.abs(sigmas) > SIGMA_THRESHOLD,
+    volume: razaoVolume !== null && razaoVolume > VOLUME_FACTOR,
     sigmas,
     razaoVolume,
   }

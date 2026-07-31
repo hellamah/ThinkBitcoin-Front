@@ -30,14 +30,15 @@ const ExpandedChartModal = ({
   opcoesVariacao,
   opcoesVolume,
   trendAtual,
-  modoVela,
+  mostraVolume,
   t,
 }) => {
   if (!expandedChart) return null;
 
   const isTraded = expandedChart === ChartType.TRADED_VALUE;
-  // No modo candle o segundo painel é volume, aqui como na versão reduzida.
-  const isBarra = !isTraded && Boolean(modoVela);
+  // O assunto do segundo painel vem do seletor "Painel", igual à versão
+  // reduzida — abrir o modal não muda o que está sendo mostrado.
+  const isBarra = !isTraded && Boolean(mostraVolume);
   const ChartComp = isBarra ? Bar : Line;
 
   const chartData = isTraded ? dadosNegociados : (isBarra ? dadosVolume : dadosVariacao);

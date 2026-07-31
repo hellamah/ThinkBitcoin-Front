@@ -148,6 +148,8 @@
   "anomalyVolumeTitle": "Unusual volume: {{razao}}× the period median",
   "volume": "Volume",
   "currentVolume": "Current volume",
+  "volumeVsMedian": "{{razao}}× the period median",
+  "secondaryChart": "Panel",
   "signalLab": "Signal Lab",
   "signalLabHint": "What happened AFTER each signal. Only the \"vs base\" column matters: a high rate means nothing if the whole period rose just as often.",
   "signalHorizon": "Horizon",

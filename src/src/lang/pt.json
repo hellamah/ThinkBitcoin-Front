@@ -148,6 +148,8 @@
   "anomalyVolumeTitle": "Volume atípico: {{razao}}× a mediana do período",
   "volume": "Volume",
   "currentVolume": "Volume atual",
+  "volumeVsMedian": "{{razao}}× a mediana do período",
+  "secondaryChart": "Painel",
   "signalLab": "Laboratório de Sinais",
   "signalLabHint": "O que aconteceu DEPOIS de cada sinal. Só a coluna \"vs base\" importa: uma taxa alta não vale nada se o período inteiro subiu na mesma proporção.",
   "signalHorizon": "Horizonte",

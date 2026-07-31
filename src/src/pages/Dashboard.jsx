@@ -27,7 +27,7 @@ import { calcularLimites } from '../utils/marketStats'
 import { analisarSinais } from '../utils/signalLab'
 import { getTourVisto, setTourVisto } from '../utils/preferences'
 import { candlestickPlugin } from '../utils/candlestickChart'
-import { PriceChartMode } from '../utils/enums'
+import { PriceChartMode, SecondaryChart } from '../utils/enums'
 
 // Sub-componentes Refatorados
 import DashboardHeader from '../components/dashboard/DashboardHeader'
@@ -83,6 +83,7 @@ export default function Dashboard() {
   // Estados Visuais Locais
   const [normalizacao, setNormalizacao] = useState('base100')
   const [modoPreco, setModoPreco] = useState(PriceChartMode.LINE)
+  const [painelSecundario, setPainelSecundario] = useState(SecondaryChart.VARIATION)
   const [horizonteSinal, setHorizonteSinal] = useState(1)
   const [expandedChart, setExpandedChart] = useState(null)
 
@@ -299,7 +300,8 @@ export default function Dashboard() {
     normalizacao,
     fearGreedPorMoeda,
     trendPorMoeda,
-    modoPreco
+    modoPreco,
+    t
   })
 
   // As consultas usam ordemAsc=false, então o backend devolve da leitura mais
@@ -405,6 +407,8 @@ export default function Dashboard() {
           setNormalizacao={setNormalizacao}
           modoPreco={modoPreco}
           setModoPreco={setModoPreco}
+          painelSecundario={painelSecundario}
+          setPainelSecundario={setPainelSecundario}
           temVelas={chartConfig.velas.length > 0}
           modoVela={chartConfig.modoVela}
           expandedChart={expandedChart}

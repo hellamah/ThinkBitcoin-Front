@@ -6,8 +6,8 @@ import { chartPalette } from '../utils/themeTokens'
 import {
   construirVelas,
   faixaDasVelas,
-  LARGURA_MAXIMA_CORPO,
-  PROPORCAO_CORPO,
+  MAX_BODY_WIDTH,
+  BODY_RATIO,
 } from '../utils/candlestickChart'
 import { construirVolumes, estiloDasBarras } from '../utils/volumeChart'
 import { matrizCorrelacao } from '../utils/correlation'
@@ -23,7 +23,8 @@ export default function useDashboardCharts({
   normalizacao,
   fearGreedPorMoeda,
   trendPorMoeda,
-  modoPreco = PriceChartMode.LINE
+  modoPreco = PriceChartMode.LINE,
+  t = (chave) => chave
 }) {
   const { palette } = useTheme()
 
@@ -250,14 +251,13 @@ export default function useDashboardCharts({
     [modoVela, chartConfig.velas]
   )
 
-  // No modo candle o painel de baixo passa a ser volume. A variação percentual
-  // é (fechamento - abertura)/abertura, ou seja, o próprio corpo da vela: os
-  // dois gráficos mostrariam o mesmo número em geometrias diferentes. Volume é
-  // a dimensão que falta — diz se o movimento teve participação.
+  // Volume não depende de como o preço está desenhado: é o assunto do segundo
+  // painel, escolhido no seletor próprio dele. Existe sempre que há moeda
+  // única, tanto em linha quanto em candles.
   const dadosVolume = useMemo(() => {
-    if (!modoVela) return null
-
     const { volumes, velas, medianaVolume } = chartConfig
+    if (!volumes || volumes.length === 0) return null
+
     const estilo = estiloDasBarras(volumes, velas, medianaVolume, {
       corAlta: cores.alta,
       corBaixa: cores.baixa,
@@ -267,7 +267,7 @@ export default function useDashboardCharts({
     return {
       labels: chartConfig.dadosGraficoVariacao.labels,
       datasets: [{
-        label: 'Volume',
+        label: t('volume'),
         data: volumes,
         backgroundColor: estilo.fundo,
         borderColor: estilo.borda,
@@ -277,11 +277,11 @@ export default function useDashboardCharts({
         // mesmo teto em px. Os dois painéis ficam lado a lado e qualquer
         // divergência de largura salta aos olhos.
         categoryPercentage: 1,
-        barPercentage: PROPORCAO_CORPO,
-        maxBarThickness: LARGURA_MAXIMA_CORPO,
+        barPercentage: BODY_RATIO,
+        maxBarThickness: MAX_BODY_WIDTH,
       }],
     }
-  }, [modoVela, chartConfig, cores])
+  }, [chartConfig, cores, t])
 
   const baseOpcoes = {
     responsive: true,
@@ -397,12 +397,12 @@ export default function useDashboardCharts({
         callbacks: {
           label: (ctx) => {
             const v = Number(ctx.parsed.y)
-            const linhas = [`Volume: ${mathUtils.formatCompact(v)}`]
+            const linhas = [`${t('volume')}: ${mathUtils.formatCompact(v)}`]
             // A razão contra a mediana é o que diz se o volume foi alto; o
             // número absoluto sozinho não tem régua.
             const mediana = chartConfig.medianaVolume
             if (Number.isFinite(mediana) && mediana > 0) {
-              linhas.push(`${(v / mediana).toFixed(1)}× a mediana`)
+              linhas.push(t('volumeVsMedian', { razao: (v / mediana).toFixed(1) }))
             }
             return linhas
           },

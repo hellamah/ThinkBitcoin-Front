@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { analisarSinais, MINIMO_OCORRENCIAS, SignalKey } from '../src/utils/signalLab'
+import { analisarSinais, MIN_OCCURRENCES, SignalKey } from '../src/utils/signalLab'
 import { CandlePattern } from '../src/utils/candlePatterns'
 
 // Geometrias fixas: martelo tem sombra inferior longa, neutro fica no meio.
@@ -69,7 +69,7 @@ describe('utils/signalLab › analisarSinais', () => {
   it('deve marcar como pouco confiável a amostra abaixo do mínimo', () => {
     const r = analisarSinais(comoDaApi([reg(100, MARTELO), reg(110), reg(121)]))
     const martelo = r.sinais.find((s) => s.chave === CandlePattern.MARTELO)
-    expect(martelo.ocorrencias).toBeLessThan(MINIMO_OCORRENCIAS)
+    expect(martelo.ocorrencias).toBeLessThan(MIN_OCCURRENCES)
     expect(martelo.confiavel).toBe(false)
   })
 

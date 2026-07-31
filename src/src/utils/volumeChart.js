@@ -7,7 +7,7 @@
 
 // Volume acima deste múltiplo da mediana ganha destaque. Mesmo critério do
 // selo da tabela de histórico, em marketStats.
-import { FATOR_VOLUME } from './marketStats'
+import { VOLUME_FACTOR } from './marketStats'
 import { paraNumero } from './mathUtils'
 
 /**
@@ -49,7 +49,7 @@ export const construirVolumes = (historico, timestamps) => {
  */
 export const estiloDasBarras = (volumes, velas, mediana, cores) => {
   const lista = volumes || []
-  const limite = Number.isFinite(mediana) && mediana > 0 ? mediana * FATOR_VOLUME : null
+  const limite = Number.isFinite(mediana) && mediana > 0 ? mediana * VOLUME_FACTOR : null
 
   const fundo = []
   const borda = []

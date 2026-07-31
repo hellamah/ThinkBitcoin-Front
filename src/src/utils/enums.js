@@ -16,6 +16,15 @@ export const PriceChartMode = Object.freeze({
   CANDLE: 'vela',
 });
 
+// Assunto do segundo painel. Separado de PriceChartMode de propósito: aquele
+// controla COMO o preço é desenhado, este controla O QUE o painel ao lado
+// mostra. Amarrar os dois faria o seletor de visualização trocar o conteúdo
+// da tela, que não é o que o rótulo promete.
+export const SecondaryChart = Object.freeze({
+  VARIATION: 'variacao',
+  VOLUME: 'volume',
+});
+
 export const FilterResult = Object.freeze({
   ALL: 'ALL',
   WIN: 'WIN',

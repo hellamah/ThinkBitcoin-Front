@@ -19,7 +19,7 @@ export const SignalKey = Object.freeze({
 // Abaixo disso a taxa é anedota: com 3 ocorrências, uma a mais vira 33 pontos
 // percentuais. A UI mostra a linha mesmo assim, marcada como pouco confiável,
 // porque esconder o n seria pior do que exibi-lo.
-export const MINIMO_OCORRENCIAS = 5
+export const MIN_OCCURRENCES = 5
 
 const fechamentoDe = (r) => {
   const v = Number(r?.precoFechamento)
@@ -105,7 +105,7 @@ export const analisarSinais = (registros, { horizonte = 1 } = {}) => {
         // relação a não filtrar nada.
         deltaTaxa: r.taxaAlta - base.taxaAlta,
         deltaRetorno: r.retornoMedio - base.retornoMedio,
-        confiavel: r.ocorrencias >= MINIMO_OCORRENCIAS,
+        confiavel: r.ocorrencias >= MIN_OCCURRENCES,
       }
     })
     // Maior deslocamento absoluto primeiro: é o que merece o olho.

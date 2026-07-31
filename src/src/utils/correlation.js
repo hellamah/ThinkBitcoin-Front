@@ -5,11 +5,11 @@
 // correlacionar níveis devolve ~0,95 para qualquer par e não informa nada. A
 // variação mede co-movimento real: é isso que diz se as moedas diversificam.
 
+import { paraNumero } from './mathUtils'
+
 // Abaixo disso o coeficiente é ruído — com dois ou três pontos |r| fica perto
 // de 1 quase sempre, sem significar nada.
-const MINIMO_PARES = 5
-
-import { paraNumero } from './mathUtils'
+const MIN_PAIRS = 5
 
 /**
  * Coeficiente de Pearson entre duas séries alinhadas no mesmo eixo de tempo.
@@ -44,7 +44,7 @@ export const pearson = (x, y) => {
     somaXY += a * b
   }
 
-  if (pares < MINIMO_PARES) return null
+  if (pares < MIN_PAIRS) return null
 
   const numerador = pares * somaXY - somaX * somaY
   const denominador = Math.sqrt(
