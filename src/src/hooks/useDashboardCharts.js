@@ -10,6 +10,7 @@ import {
   BODY_RATIO,
 } from '../utils/candlestickChart'
 import { construirVolumes, estiloDasBarras } from '../utils/volumeChart'
+import { resumirVwap } from '../utils/vwap'
 import { matrizCorrelacao } from '../utils/correlation'
 import { Normalization, PriceChartMode } from '../utils/enums'
 
@@ -195,6 +196,21 @@ export default function useDashboardCharts({
       : []
     const medianaVolume = mathUtils.median(volumes)
 
+    // VWAP acompanha o preço no mesmo eixo, então só faz sentido com moeda
+    // única — média ponderada de ativos diferentes não descreve nenhum deles.
+    //
+    // É calculado só sobre os instantes que o gráfico exibe. Como o VWAP é
+    // acumulado, incluir candles que os filtros removeram deslocaria a linha
+    // inteira em relação aos pontos desenhados ao lado dela.
+    const noEixo = new Set(timestampsUnicos)
+    const vwap = velas.length > 0
+      ? resumirVwap(
+          (historicosPorMoeda[moedasOrdenadas[0]] || []).filter((r) =>
+            noEixo.has(r?.horaReferencia ?? r?.dataHora)
+          )
+        )
+      : null
+
     // Reaproveita os arrays de variação já alinhados em timestampsUnicos — a
     // parte cara do cálculo (alinhar as séries) acabou de ser feita acima.
     // Sobre variação, e não sobre preço: ver o cabeçalho de correlation.js.
@@ -204,13 +220,32 @@ export default function useDashboardCharts({
         )
       : null
 
+    // A linha do VWAP entra DEPOIS da série de preço: o plugin de candle
+    // cancela o desenho do índice 0, então a sobreposição precisa vir a
+    // seguir para sobreviver ao modo vela.
+    const datasetsComVwap = vwap
+      ? [...datasetsPreco, {
+          label: 'VWAP',
+          data: vwap.serie,
+          borderColor: '#9c27b0',
+          borderDash: [6, 4],
+          borderWidth: 1.5,
+          pointRadius: 0,
+          pointHoverRadius: 0,
+          fill: false,
+          tension: 0,
+          spanGaps: true,
+        }]
+      : datasetsPreco
+
     return {
-      dadosGraficoPreco: { labels, datasets: datasetsPreco },
+      dadosGraficoPreco: { labels, datasets: datasetsComVwap },
       dadosGraficoVariacao: { labels, datasets: datasetsVariacao },
       multiMoeda: multi,
       velas,
       volumes,
       medianaVolume,
+      vwap,
       correlacao,
       sentimentMap
     }
@@ -323,9 +358,15 @@ export default function useDashboardCharts({
         ...baseOpcoes.plugins.tooltip,
         callbacks: {
           label: (ctx) => {
+            // A linha do VWAP é outro dataset no mesmo eixo; sem isto o bloco
+            // OHLC sairia repetido a cada série sob o cursor.
+            if (ctx.dataset.label === 'VWAP') {
+              return `VWAP: $${Number(ctx.parsed.y).toLocaleString('en-US')}`
+            }
+
             // OHLC é a razão de existir do modo vela: o fechamento sozinho
             // esconde exatamente o que o candle mostra.
-            if (modoVela) {
+            if (modoVela && ctx.datasetIndex === 0) {
               const vela = chartConfig.velas[ctx.dataIndex]
               if (vela) {
                 const cifra = (v) => `$${Number(v).toLocaleString('en-US')}`

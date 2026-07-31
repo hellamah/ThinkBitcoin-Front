@@ -55,28 +55,31 @@ então usa múltiplo da mediana em vez de desvio padrão.
 
 ---
 
+### VWAP — `utils/vwap.js`
+
+Preço médio ponderado por volume, o benchmark que mesa institucional usa para
+avaliar execução: comprou abaixo do VWAP, comprou bem.
+
+**Acumulado** a partir do início da janela (`Σ nocional ÷ Σ volume`), que é
+como se plota. A média dos VWAPs por candle seria outra coisa — daria peso
+igual a uma hora de 200 trades e a uma de 20.000.
+
+O sinal é o **cruzamento**, não o lado. Estar acima do VWAP é estado: quase
+todo candle está de um lado ou do outro, então medir isso devolveria algo
+próximo da taxa base. A travessia é o acontecimento.
+
+Sinais: `vwapCruzamentoAlta`, `vwapCruzamentoBaixa`.
+
+Detalhe de integração: a linha entra como dataset depois da série de preço,
+porque o plugin de candle cancela o desenho do índice 0. O plugin foi ajustado
+para cancelar só esse índice — antes cancelava todos, o que apagaria qualquer
+sobreposição no modo vela.
+
+---
+
 ## Planejadas
 
-### 1. VWAP e desvio do VWAP
-
-Preço médio ponderado por volume: `precoTotalNegociada ÷ precoVolume` por
-candle; acumulado, `Σ nocional ÷ Σ volume`.
-
-**Já verificado contra o backend real**: o valor cai dentro da faixa
-`precoMenor`–`precoMaior` em todos os candles amostrados, e fica próximo de
-`precoMedio` sem ser igual — é a versão ponderada, que é a informativa.
-
-| Hora | Mín–Máx | VWAP derivado |
-|---|---|---|
-| 13:00 | 63.241–63.849 | 63.579 |
-| 12:00 | 63.627–63.830 | 63.713 |
-
-Entrega: linha de VWAP no gráfico de preço, card com o desvio percentual
-atual, e sinal no laboratório para preço acima/abaixo.
-
-É o benchmark que mesa institucional usa para avaliar execução.
-
-### 2. ATR — faixa de volatilidade
+### 1. ATR — faixa de volatilidade
 
 `precoAmplitude` é essencialmente o *true range* do candle. A média móvel dele
 dá o ATR, usado para dimensionar stop por volatilidade medida em vez de por
@@ -88,7 +91,7 @@ mediana do período. Falta a média móvel e o desenho da faixa no gráfico.
 Ferramenta de gestão de risco, não de entrada — não gera sinal de compra ou
 venda e por isso não entra no laboratório.
 
-### 3. Bandas de Bollinger
+### 2. Bandas de Bollinger
 
 Média móvel dos fechamentos ± 2σ. `mathUtils.stdDev` já existe.
 
@@ -96,7 +99,7 @@ O valor aqui é menos a banda desenhada e mais **medir no laboratório** se
 tocar a banda antecede alguma coisa. O resultado pode perfeitamente ser "não
 desloca a taxa base", que já é informação útil.
 
-### 4. RSI
+### 3. RSI
 
 Índice de força relativa sobre os fechamentos.
 
@@ -131,7 +134,8 @@ Do contrato de `/moeda/{sigla}/valor`, seguem sem uso:
 - `precoDeltaUltimoAbertura`
 - `precoVariacaoAbsoluta`
 - `precoDirecao` — classificação de direção que o backend já faz
-- `precoMedio` — será substituído pelo VWAP, que é mais informativo
+- `precoMedio` — média simples do candle; o VWAP entrega a versão ponderada,
+  que é a informativa, então este só entraria como comparação entre os dois
 
 `quantidadeNegociada` foi verificado e é **idêntico** a `precoVolume` no
 backend real; não acrescenta nada.

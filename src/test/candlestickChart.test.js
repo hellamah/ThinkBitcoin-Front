@@ -5,6 +5,7 @@
  * fora do escopo unitário.
  */
 import { describe, expect, it } from 'vitest'
+import { candlestickPlugin } from '../src/utils/candlestickChart'
 import { construirVelas, faixaDasVelas } from '../src/utils/candlestickChart'
 
 const registro = (horaReferencia, abertura, maior, menor, fechamento) => ({
@@ -79,5 +80,26 @@ describe('utils/candlestickChart › faixaDasVelas', () => {
     expect(faixaDasVelas([])).toBeNull()
     expect(faixaDasVelas([null, null])).toBeNull()
     expect(faixaDasVelas(null)).toBeNull()
+  })
+})
+
+describe('utils/candlestickChart › candlestickPlugin.beforeDatasetDraw', () => {
+  const chamar = (index, enabled) =>
+    candlestickPlugin.beforeDatasetDraw({}, { index }, { enabled })
+
+  it('deve cancelar o desenho da série de preço no modo vela', () => {
+    // false cancela: a vela ocupa o lugar da linha.
+    expect(chamar(0, true)).toBe(false)
+  })
+
+  it('não deve cancelar sobreposições desenhadas por cima', () => {
+    // Cancelar todos apagaria a linha do VWAP junto com a do preço.
+    expect(chamar(1, true)).toBeUndefined()
+    expect(chamar(2, true)).toBeUndefined()
+  })
+
+  it('deve ser inerte fora do modo vela', () => {
+    expect(chamar(0, false)).toBeUndefined()
+    expect(candlestickPlugin.beforeDatasetDraw({}, { index: 0 }, undefined)).toBeUndefined()
   })
 })

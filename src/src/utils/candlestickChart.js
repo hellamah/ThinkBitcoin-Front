@@ -73,10 +73,16 @@ export const BODY_RATIO = 0.6
 export const candlestickPlugin = {
   id: 'candlestick',
 
-  // Cancela o desenho da linha e dos pontos: no modo vela o candle ocupa o
-  // lugar deles. O dataset continua alimentando tooltip e eixos normalmente.
+  // Cancela o desenho da linha e dos pontos do dataset de PREÇO: no modo vela
+  // o candle ocupa o lugar deles. O dataset continua alimentando tooltip e
+  // eixos normalmente.
+  //
+  // Só o índice 0, que é a série de preço — o modo vela exige moeda única, e
+  // as velas são construídas a partir dela. Cancelar todos apagaria qualquer
+  // sobreposição desenhada por cima, como a linha do VWAP.
   beforeDatasetDraw(chart, args, opts) {
     if (!opts?.enabled) return undefined
+    if (args?.index !== 0) return undefined
     return false
   },
 

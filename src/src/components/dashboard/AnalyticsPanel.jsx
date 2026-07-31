@@ -1,5 +1,5 @@
 import React from 'react'
-import { MdCompareArrows, MdBarChart, MdCallSplit, MdShowChart, MdPsychology, MdReceiptLong, MdWaterfallChart } from 'react-icons/md'
+import { MdCompareArrows, MdBarChart, MdCallSplit, MdShowChart, MdPsychology, MdReceiptLong, MdStraighten, MdWaterfallChart } from 'react-icons/md'
 import * as mathUtils from '../../utils/mathUtils'
 import { DivergenceKind } from '../../utils/flowDivergence'
 
@@ -62,7 +62,7 @@ function Sparkline({ valores, largura = 120, altura = 32 }) {
 export default function AnalyticsPanel({ analytics, t }) {
   if (!analytics) return null
 
-  const { fluxo, volatilidade, ticket, fearGreed } = analytics
+  const { fluxo, volatilidade, ticket, vwap, fearGreed } = analytics
   const divergencia = fluxo.divergencia
 
   const compradora = fluxo.dominanciaCompradora
@@ -128,6 +128,27 @@ export default function AnalyticsPanel({ analytics, t }) {
               ? t('vsMedian', { value: volatilidade.razao.toFixed(1) })
               : t('noReading')}
           </div>
+        </div>
+
+        {/* VWAP: onde o preço está em relação ao custo médio do período */}
+        <div className="intel-card">
+          <div className="intel-icon"><MdStraighten /></div>
+          <div className="intel-label">{t('vwap')}</div>
+          {vwap?.vwapAtual !== null && vwap?.vwapAtual !== undefined ? (
+            <>
+              <div className="intel-value">{mathUtils.formatCurrency(vwap.vwapAtual)}</div>
+              <div className={`intel-subvalue ${vwap.acima ? 'up' : 'down'}`}>
+                {t(vwap.acima ? 'vwapAbove' : 'vwapBelow', {
+                  value: Math.abs(vwap.desvioAtual).toFixed(2),
+                })}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="intel-value">-</div>
+              <div className="intel-subvalue" style={{ opacity: 0.7 }}>{t('noReading')}</div>
+            </>
+          )}
         </div>
 
         {/* Delta acumulado e divergência contra o preço */}
