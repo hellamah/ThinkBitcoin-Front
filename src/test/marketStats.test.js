@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { avaliarAnomalia, calcularDesempenho, calcularLimites } from '../src/utils/marketStats'
+import {
+  ATR_PERIOD,
+  avaliarAnomalia,
+  calcularAtr,
+  calcularDesempenho,
+  calcularLimites,
+} from '../src/utils/marketStats'
 
 // A API entrega do mais recente ao mais antigo (ordemAsc=false); os helpers
 // abaixo montam nessa mesma ordem para o teste refletir o contrato real.
@@ -165,5 +171,42 @@ describe('utils/marketStats › avaliarAnomalia', () => {
   it('deve retornar null sem régua ou sem registro', () => {
     expect(avaliarAnomalia({ precoPercentualVariacao: 10 }, null)).toBeNull()
     expect(avaliarAnomalia(null, limites)).toBeNull()
+  })
+})
+
+describe('utils/marketStats › calcularAtr', () => {
+  // A API entrega do mais recente ao mais antigo.
+  const serie = (amplitudes, fechamento = 1000) =>
+    [...amplitudes].reverse().map((precoAmplitude) => ({ precoAmplitude, precoFechamento: fechamento }))
+
+  it('deve devolver a própria amplitude quando ela é constante', () => {
+    // Suavização de uma série constante não desloca a média.
+    const r = calcularAtr(serie(new Array(ATR_PERIOD).fill(50)))
+    expect(r.valor).toBeCloseTo(50, 10)
+  })
+
+  it('deve expor o ATR como percentual do preço atual', () => {
+    // Em dólar BTC e DOGE não se comparam; em percentual, sim.
+    const r = calcularAtr(serie(new Array(ATR_PERIOD).fill(50), 1000))
+    expect(r.percentual).toBeCloseTo(5, 10)
+  })
+
+  it('deve suavizar em vez de acompanhar o último candle', () => {
+    // Um candle de 500 no fim de uma série de 50 puxa pouco: (50*13 + 500)/14.
+    const amplitudes = [...new Array(ATR_PERIOD).fill(50), 500]
+    const r = calcularAtr(serie(amplitudes))
+    expect(r.valor).toBeCloseTo((50 * 13 + 500) / 14, 6)
+    expect(r.valor).toBeLessThan(500)
+  })
+
+  it('deve recusar histórico curto demais em vez de estimar', () => {
+    expect(calcularAtr(serie(new Array(ATR_PERIOD - 1).fill(50)))).toBeNull()
+    expect(calcularAtr([])).toBeNull()
+    expect(calcularAtr(null)).toBeNull()
+  })
+
+  it('deve devolver percentual nulo sem preço para comparar', () => {
+    const registros = new Array(ATR_PERIOD).fill(null).map(() => ({ precoAmplitude: 50 }))
+    expect(calcularAtr(registros).percentual).toBeNull()
   })
 })

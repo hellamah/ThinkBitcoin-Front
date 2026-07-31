@@ -1,6 +1,6 @@
 // Estatísticas de desempenho do período, derivadas do histórico já carregado.
 
-import { mean, median, stdDev } from './mathUtils'
+import { mean, median, paraNumero, stdDev } from './mathUtils'
 
 // Abaixo disso média e desvio não descrevem o período: com meia dúzia de
 // candles qualquer leitura vira "atípica" e o alerta perde o sentido.
@@ -18,6 +18,9 @@ export const VOLUME_FACTOR = 3
 // poucas ordens grandes em vez de muitas pequenas. Fator menor que o do volume
 // porque o ticket é bem menos disperso — 3× praticamente não ocorre.
 const TICKET_FACTOR = 2
+
+// Período padrão do ATR na formulação de Wilder.
+export const ATR_PERIOD = 14
 
 /**
  * Consolida o desempenho de uma série de candles.
@@ -68,6 +71,51 @@ export const calcularDesempenho = (registros) => {
     melhor: variacoes.length > 0 ? Math.max(...variacoes) : 0,
     pior: variacoes.length > 0 ? Math.min(...variacoes) : 0,
     amostras: fechamentos.length,
+  }
+}
+
+/**
+ * ATR — amplitude média verdadeira, na suavização de Wilder.
+ *
+ * `precoAmplitude` é máxima menos mínima do candle, que é o true range. Mede
+ * o quanto o ativo costuma andar dentro de um candle, e é usado para
+ * dimensionar distâncias por volatilidade medida em vez de por palpite.
+ *
+ * Não gera sinal: descreve a amplitude do movimento, não sugere direção, e
+ * por isso não entra no laboratório.
+ *
+ * @param {Array<object>} registros - Série na ordem da API (mais recente primeiro).
+ * @param {number} periodo
+ * @returns {{valor: number, percentual: number|null, amostras: number}|null}
+ *   null sem histórico suficiente; percentual é o ATR sobre o preço atual.
+ */
+export const calcularAtr = (registros, periodo = ATR_PERIOD) => {
+  if (!Array.isArray(registros) || registros.length < periodo) return null
+
+  const cronologico = [...registros].reverse()
+  const amplitudes = cronologico
+    .map((r) => paraNumero(r?.precoAmplitude))
+    .filter((v) => v !== null && v >= 0)
+
+  if (amplitudes.length < periodo) return null
+
+  // Primeira média simples, depois suavizada — mesma mecânica do RSI.
+  let atr = mean(amplitudes.slice(0, periodo)) ?? 0
+  for (let i = periodo; i < amplitudes.length; i++) {
+    atr = (atr * (periodo - 1) + amplitudes[i]) / periodo
+  }
+
+  const fechamentoAtual = paraNumero(registros[0]?.precoFechamento)
+
+  return {
+    valor: atr,
+    // Em percentual o ATR compara entre moedas de preços muito diferentes;
+    // em dólar, BTC e DOGE não se olham lado a lado.
+    percentual:
+      fechamentoAtual !== null && fechamentoAtual > 0
+        ? (atr / fechamentoAtual) * 100
+        : null,
+    amostras: amplitudes.length,
   }
 }
 

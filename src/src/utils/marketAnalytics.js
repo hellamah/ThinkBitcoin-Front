@@ -6,7 +6,7 @@
 // — mesmo arranjo de marketStats, correlation e volumeChart.
 
 import { median, paraNumero } from './mathUtils'
-import { calcularDesempenho } from './marketStats'
+import { calcularAtr, calcularDesempenho } from './marketStats'
 import { resumirFluxo } from './flowDivergence'
 import { resumirVwap } from './vwap'
 import { resumirOsciladores } from './oscillators'
@@ -125,6 +125,7 @@ export const derivarAnalytics = ({
     fearGreed,
     vwap: resumirVwap(historico),
     osciladores: resumirOsciladores(historico),
+    atr: calcularAtr(historico),
     desempenho: calcularDesempenho(historico),
     amostras: historico.length,
   }

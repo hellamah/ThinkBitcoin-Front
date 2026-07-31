@@ -11,6 +11,7 @@ import {
 } from '../utils/candlestickChart'
 import { construirVolumes, estiloDasBarras } from '../utils/volumeChart'
 import { resumirVwap } from '../utils/vwap'
+import { calcularBollinger } from '../utils/oscillators'
 import { matrizCorrelacao } from '../utils/correlation'
 import { Normalization, PriceChartMode } from '../utils/enums'
 
@@ -203,13 +204,18 @@ export default function useDashboardCharts({
     // acumulado, incluir candles que os filtros removeram deslocaria a linha
     // inteira em relação aos pontos desenhados ao lado dela.
     const noEixo = new Set(timestampsUnicos)
-    const vwap = velas.length > 0
-      ? resumirVwap(
-          (historicosPorMoeda[moedasOrdenadas[0]] || []).filter((r) =>
-            noEixo.has(r?.horaReferencia ?? r?.dataHora)
-          )
+    const registrosNoEixo = velas.length > 0
+      ? (historicosPorMoeda[moedasOrdenadas[0]] || []).filter((r) =>
+          noEixo.has(r?.horaReferencia ?? r?.dataHora)
         )
-      : null
+      : []
+
+    const vwap = registrosNoEixo.length > 0 ? resumirVwap(registrosNoEixo) : null
+
+    // Bandas sobre a mesma janela do gráfico, pelo mesmo motivo do VWAP.
+    const bandas = registrosNoEixo.length > 0
+      ? calcularBollinger([...registrosNoEixo].reverse())
+      : []
 
     // Reaproveita os arrays de variação já alinhados em timestampsUnicos — a
     // parte cara do cálculo (alinhar as séries) acabou de ser feita acima.
@@ -223,20 +229,39 @@ export default function useDashboardCharts({
     // A linha do VWAP entra DEPOIS da série de preço: o plugin de candle
     // cancela o desenho do índice 0, então a sobreposição precisa vir a
     // seguir para sobreviver ao modo vela.
-    const datasetsComVwap = vwap
-      ? [...datasetsPreco, {
-          label: 'VWAP',
-          data: vwap.serie,
-          borderColor: '#9c27b0',
-          borderDash: [6, 4],
-          borderWidth: 1.5,
-          pointRadius: 0,
-          pointHoverRadius: 0,
-          fill: false,
-          tension: 0,
-          spanGaps: true,
-        }]
-      : datasetsPreco
+    const sobreposicao = (label, dados, extra = {}) => ({
+      label,
+      data: dados,
+      borderWidth: 1.5,
+      pointRadius: 0,
+      pointHoverRadius: 0,
+      fill: false,
+      tension: 0,
+      spanGaps: true,
+      ...extra,
+    })
+
+    // A banda superior preenche até a inferior, desenhando o envelope. Só as
+    // duas extremas: a linha do meio é a média móvel simples, e o VWAP já
+    // ocupa esse papel visual com uma leitura mais informativa.
+    const temBandas = bandas.some(Boolean)
+    const datasetsComVwap = [
+      ...datasetsPreco,
+      ...(vwap ? [sobreposicao('VWAP', vwap.serie, {
+        borderColor: '#9c27b0',
+        borderDash: [6, 4],
+      })] : []),
+      ...(temBandas ? [
+        sobreposicao(t('bollingerUpper'), bandas.map((b) => b?.superior ?? null), {
+          borderColor: 'rgba(33,150,243,0.55)',
+          fill: '+1',
+          backgroundColor: 'rgba(33,150,243,0.06)',
+        }),
+        sobreposicao(t('bollingerLower'), bandas.map((b) => b?.inferior ?? null), {
+          borderColor: 'rgba(33,150,243,0.55)',
+        }),
+      ] : []),
+    ]
 
     return {
       dadosGraficoPreco: { labels, datasets: datasetsComVwap },
@@ -249,7 +274,7 @@ export default function useDashboardCharts({
       correlacao,
       sentimentMap
     }
-  }, [historicosPorMoeda, dataInicio, dataFim, resultadoFiltro, normalizacao, fearGreedPorMoeda, trendPorMoeda])
+  }, [historicosPorMoeda, dataInicio, dataFim, resultadoFiltro, normalizacao, fearGreedPorMoeda, trendPorMoeda, t])
 
   const sentimentFooter = (context) => {
     const label = context[0].label;
@@ -281,10 +306,27 @@ export default function useDashboardCharts({
 
   // O dataset da linha só carrega os fechamentos, então o eixo Y automático
   // cortaria os pavios.
-  const faixaVelas = useMemo(
-    () => (modoVela ? faixaDasVelas(chartConfig.velas) : null),
-    [modoVela, chartConfig.velas]
-  )
+  const faixaVelas = useMemo(() => {
+    if (!modoVela) return null
+
+    const faixa = faixaDasVelas(chartConfig.velas)
+    if (!faixa) return null
+
+    // As bandas de Bollinger costumam ultrapassar máxima e mínima dos candles.
+    // Como o eixo Y é forçado aqui, sem alargar a faixa elas sairiam cortadas
+    // justamente nos pontos em que interessam.
+    const extremos = (chartConfig.dadosGraficoPreco?.datasets || [])
+      .slice(1)
+      .flatMap((d) => d.data)
+      .filter((v) => Number.isFinite(v))
+
+    if (extremos.length === 0) return faixa
+
+    return {
+      min: Math.min(faixa.min, ...extremos),
+      max: Math.max(faixa.max, ...extremos),
+    }
+  }, [modoVela, chartConfig.velas, chartConfig.dadosGraficoPreco])
 
   // Volume não depende de como o preço está desenhado: é o assunto do segundo
   // painel, escolhido no seletor próprio dele. Existe sempre que há moeda
@@ -358,10 +400,10 @@ export default function useDashboardCharts({
         ...baseOpcoes.plugins.tooltip,
         callbacks: {
           label: (ctx) => {
-            // A linha do VWAP é outro dataset no mesmo eixo; sem isto o bloco
-            // OHLC sairia repetido a cada série sob o cursor.
-            if (ctx.dataset.label === 'VWAP') {
-              return `VWAP: $${Number(ctx.parsed.y).toLocaleString('en-US')}`
+            // VWAP e bandas são datasets no mesmo eixo; sem isto o bloco OHLC
+            // sairia repetido a cada série sob o cursor.
+            if (ctx.datasetIndex > 0 && !chartConfig.multiMoeda) {
+              return `${ctx.dataset.label}: $${Number(ctx.parsed.y).toLocaleString('en-US')}`
             }
 
             // OHLC é a razão de existir do modo vela: o fechamento sozinho

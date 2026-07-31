@@ -1,5 +1,6 @@
 import React from 'react'
-import { MdCompareArrows, MdBarChart, MdCallSplit, MdShowChart, MdPsychology, MdReceiptLong, MdSpeed, MdStraighten, MdWaterfallChart } from 'react-icons/md'
+import { MdCompareArrows, MdBarChart, MdCallSplit, MdHeight, MdShowChart, MdPsychology, MdReceiptLong, MdSpeed, MdStraighten, MdWaterfallChart } from 'react-icons/md'
+import { ATR_PERIOD } from '../../utils/marketStats'
 import * as mathUtils from '../../utils/mathUtils'
 import { DivergenceKind } from '../../utils/flowDivergence'
 import { RSI_OVERBOUGHT, RSI_OVERSOLD, RSI_PERIOD } from '../../utils/oscillators'
@@ -70,7 +71,7 @@ function Sparkline({ valores, largura = 120, altura = 32 }) {
 export default function AnalyticsPanel({ analytics, t }) {
   if (!analytics) return null
 
-  const { fluxo, volatilidade, ticket, vwap, osciladores, fearGreed } = analytics
+  const { fluxo, volatilidade, ticket, vwap, osciladores, atr, fearGreed } = analytics
   const divergencia = fluxo.divergencia
 
   const compradora = fluxo.dominanciaCompradora
@@ -136,6 +137,29 @@ export default function AnalyticsPanel({ analytics, t }) {
               ? t('vsMedian', { value: volatilidade.razao.toFixed(1) })
               : t('noReading')}
           </div>
+        </div>
+
+        {/* ATR: o quanto o ativo costuma andar dentro de um candle */}
+        <div className="intel-card">
+          <div className="intel-icon"><MdHeight /></div>
+          <div className="intel-label">{t('atr')}</div>
+          {atr ? (
+            <>
+              <div className="intel-value">{mathUtils.formatCurrency(atr.valor)}</div>
+              <div className="intel-subvalue" style={{ opacity: 0.7 }}>
+                {atr.percentual !== null
+                  ? t('atrPercent', { value: atr.percentual.toFixed(2) })
+                  : t('noReading')}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="intel-value">-</div>
+              <div className="intel-subvalue" style={{ opacity: 0.7 }}>
+                {t('needsMoreHistory', { count: ATR_PERIOD })}
+              </div>
+            </>
+          )}
         </div>
 
         {/* RSI: exibido para ser julgado pelo laboratório, não seguido */}

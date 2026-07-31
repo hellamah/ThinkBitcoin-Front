@@ -107,26 +107,34 @@ rompimentos de banda passarem a ocorrer, mas extremo de RSI exige tendência
 mais sustentada. Continuar ajustando o mock até o RSI disparar seria moldar o
 dado à ferramenta, que é o contrário do que a plataforma se propõe.
 
+### ATR — `marketStats.calcularAtr`
+
+`precoAmplitude` é o *true range* do candle. Suavizado por Wilder ao longo de
+14 períodos, dá o ATR: quanto o ativo costuma andar dentro de um candle.
+
+Exposto também em percentual do preço atual, porque em dólar BTC e DOGE não se
+comparam lado a lado.
+
+**Não gera sinal e por isso não entra no laboratório.** Descreve amplitude de
+movimento, não sugere direção — é insumo para dimensionar distâncias por
+volatilidade medida em vez de por palpite, e a decisão de o que fazer com isso
+é de quem opera.
+
 ---
 
 ## Planejadas
 
-### 1. ATR — faixa de volatilidade
+Nada pendente do roadmap original. Ideias que ficaram registradas nas conversas
+e ainda não viraram trabalho:
 
-`precoAmplitude` é essencialmente o *true range* do candle. A média móvel dele
-dá o ATR, usado para dimensionar stop por volatilidade medida em vez de por
-palpite.
-
-Metade do caminho já existe em `marketAnalytics.volatilidade`, que calcula a
-mediana do período. Falta a média móvel e o desenho da faixa no gráfico.
-
-Ferramenta de gestão de risco, não de entrada — não gera sinal de compra ou
-venda e por isso não entra no laboratório.
-
-### 2. Desenhar as bandas no gráfico
-
-O cálculo já existe; falta plotar as três linhas sobre o preço, como foi feito
-com o VWAP. O dataset precisa entrar depois do índice 0 pelo mesmo motivo.
+- **Padrões de dois candles** (engolfo, harami) — precisam de contexto entre
+  velas consecutivas, que é outra estrutura de detecção.
+- **Significância estatística no laboratório** — hoje o `n` e o delta contra a
+  base evitam o pior erro de leitura, mas não há teste formal. Com amostras
+  pequenas como as atuais, um intervalo de confiança mostraria quantas dessas
+  linhas são indistinguíveis de ruído.
+- **Contexto de localização dos padrões** — martelo só significa reversão
+  depois de uma queda. Hoje a classificação é puramente geométrica.
 
 ---
 
