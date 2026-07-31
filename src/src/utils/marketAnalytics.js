@@ -7,6 +7,7 @@
 
 import { median, paraNumero } from './mathUtils'
 import { calcularDesempenho } from './marketStats'
+import { resumirFluxo } from './flowDivergence'
 
 // Quantos pontos o sparkline de Fear & Greed desenha. Mais que isso não
 // acrescenta leitura e só engorda o path do SVG.
@@ -48,7 +49,12 @@ export const derivarAnalytics = ({
   const vendidoTotal = somar(historico, 'volumeVendido')
   const volumeTotal = compradoTotal + vendidoTotal
 
+  // Delta acumulado e divergência contra o preço. A mediana de volume é a
+  // régua que torna o movimento de fluxo comparável com o de preço.
+  const divergencia = resumirFluxo(historico, median(historico.map((r) => r?.precoVolume)))
+
   const fluxo = {
+    divergencia,
     dominanciaCompradora: valorOuZero(atual?.dominanciaCompradoraPercentual),
     dominanciaVendedora: valorOuZero(atual?.dominanciaVendedoraPercentual),
     ratioCompraVenda: valorOuZero(atual?.precoRatioCompraVenda),

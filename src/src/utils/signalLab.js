@@ -10,6 +10,7 @@
 
 import { avaliarAnomalia, calcularLimites } from './marketStats'
 import { CandlePattern, classificarCandle } from './candlePatterns'
+import { detectarDivergencias } from './flowDivergence'
 
 export const SignalKey = Object.freeze({
   VOLUME_ATIPICO: 'volumeAtipico',
@@ -58,6 +59,9 @@ export const analisarSinais = (registros, { horizonte = 1 } = {}) => {
   const cronologico = [...registros].reverse()
   const limites = calcularLimites(registros)
 
+  // Já vem em ordem cronológica, alinhado com `cronologico` posição a posição.
+  const divergencias = detectarDivergencias(registros, limites?.medianaVolume)
+
   const porSinal = new Map()
   const retornosBase = []
 
@@ -91,6 +95,7 @@ export const analisarSinais = (registros, { horizonte = 1 } = {}) => {
     if (anomalia?.volume) marcar(SignalKey.VOLUME_ATIPICO)
     if (anomalia?.variacao) marcar(SignalKey.VARIACAO_ATIPICA)
     if (anomalia?.ticket) marcar(SignalKey.TICKET_ALTO)
+    if (divergencias[i]) marcar(divergencias[i])
   }
 
   const base = resumir(retornosBase)

@@ -1,6 +1,14 @@
 import React from 'react'
-import { MdCompareArrows, MdBarChart, MdShowChart, MdPsychology, MdReceiptLong, MdWaterfallChart } from 'react-icons/md'
+import { MdCompareArrows, MdBarChart, MdCallSplit, MdShowChart, MdPsychology, MdReceiptLong, MdWaterfallChart } from 'react-icons/md'
 import * as mathUtils from '../../utils/mathUtils'
+import { DivergenceKind } from '../../utils/flowDivergence'
+
+// Divergência baixista é alerta sobre uma alta; altista, sobre uma queda. A
+// cor segue o que a leitura sugere, não a direção do preço.
+const DIVERGENCIA_CLASSE = Object.freeze({
+  [DivergenceKind.BEARISH]: 'down',
+  [DivergenceKind.BULLISH]: 'up',
+})
 
 // Classificações vêm em inglês da fonte externa (alternative.me); o dashboard
 // já tem as traduções, basta casar a chave.
@@ -55,6 +63,7 @@ export default function AnalyticsPanel({ analytics, t }) {
   if (!analytics) return null
 
   const { fluxo, volatilidade, ticket, fearGreed } = analytics
+  const divergencia = fluxo.divergencia
 
   const compradora = fluxo.dominanciaCompradora
   const vendedora = fluxo.dominanciaVendedora
@@ -119,6 +128,30 @@ export default function AnalyticsPanel({ analytics, t }) {
               ? t('vsMedian', { value: volatilidade.razao.toFixed(1) })
               : t('noReading')}
           </div>
+        </div>
+
+        {/* Delta acumulado e divergência contra o preço */}
+        <div className="intel-card">
+          <div className="intel-icon"><MdCallSplit /></div>
+          <div className="intel-label">{t('cumulativeDelta')}</div>
+          {divergencia ? (
+            <>
+              <div className={`intel-value ${divergencia.cvd >= 0 ? 'up' : 'down'}`}>
+                {divergencia.cvd >= 0 ? '+' : ''}{mathUtils.formatCompact(divergencia.cvd)}
+              </div>
+              <Sparkline valores={divergencia.serie} />
+              <div className={`intel-subvalue ${DIVERGENCIA_CLASSE[divergencia.divergenciaAtual] || ''}`}>
+                {divergencia.divergenciaAtual
+                  ? t(divergencia.divergenciaAtual)
+                  : t('flowAligned')}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="intel-value">-</div>
+              <div className="intel-subvalue" style={{ opacity: 0.7 }}>{t('noReading')}</div>
+            </>
+          )}
         </div>
 
         {/* Ticket médio: separa fluxo de varejo de fluxo de baleia */}
