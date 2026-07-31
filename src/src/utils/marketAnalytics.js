@@ -9,6 +9,7 @@ import { median, paraNumero } from './mathUtils'
 import { calcularDesempenho } from './marketStats'
 import { resumirFluxo } from './flowDivergence'
 import { resumirVwap } from './vwap'
+import { resumirOsciladores } from './oscillators'
 
 // Quantos pontos o sparkline de Fear & Greed desenha. Mais que isso não
 // acrescenta leitura e só engorda o path do SVG.
@@ -123,6 +124,7 @@ export const derivarAnalytics = ({
     ticket,
     fearGreed,
     vwap: resumirVwap(historico),
+    osciladores: resumirOsciladores(historico),
     desempenho: calcularDesempenho(historico),
     amostras: historico.length,
   }

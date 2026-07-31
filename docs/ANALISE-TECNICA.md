@@ -75,6 +75,38 @@ porque o plugin de candle cancela o desenho do índice 0. O plugin foi ajustado
 para cancelar só esse índice — antes cancelava todos, o que apagaria qualquer
 sobreposição no modo vela.
 
+### RSI e Bandas de Bollinger — `utils/oscillators.js`
+
+Os dois entraram para **serem medidos**, não para serem seguidos. São os
+indicadores mais usados do mercado e estão entre os de evidência mais fraca;
+se o desfecho contra a taxa base der zero, isso precisa aparecer na tela.
+
+Períodos padrão da literatura: RSI 14 com suavização de Wilder, bandas de 20
+com 2σ. Encurtá-los para caber em janelas curtas faria "RSI 70" significar
+aqui algo diferente do que significa em qualquer outra ferramenta. Sem
+histórico suficiente a saída é `null` e o card diz isso, em vez de exibir
+número calculado sobre dados de menos.
+
+Como nos outros, o sinal é a **travessia**, não o nível: um ativo pode ficar
+sobrecomprado por semanas, e marcar todos esses candles daria uma linha quase
+igual à base.
+
+**Depende do intervalo selecionado:**
+
+| Intervalo | Candles | RSI(14) | Bollinger(20) |
+|---|---|---|---|
+| 24h | ~3 | não calcula | não calcula |
+| 7d | ~21 | 7 pontos | 2 pontos |
+| 1m | ~93 | 79 pontos | 74 pontos |
+
+**Limitação conhecida do demo:** no modo mock o RSI fica entre 38 e 61 e nunca
+cruza 70/30, então esses dois sinais não aparecem no laboratório sem dados
+reais. A série do mock ganhou três componentes de frequências desencontradas
+justamente para criar trechos de tendência — isso foi o bastante para os
+rompimentos de banda passarem a ocorrer, mas extremo de RSI exige tendência
+mais sustentada. Continuar ajustando o mock até o RSI disparar seria moldar o
+dado à ferramenta, que é o contrário do que a plataforma se propõe.
+
 ---
 
 ## Planejadas
@@ -91,22 +123,10 @@ mediana do período. Falta a média móvel e o desenho da faixa no gráfico.
 Ferramenta de gestão de risco, não de entrada — não gera sinal de compra ou
 venda e por isso não entra no laboratório.
 
-### 2. Bandas de Bollinger
+### 2. Desenhar as bandas no gráfico
 
-Média móvel dos fechamentos ± 2σ. `mathUtils.stdDev` já existe.
-
-O valor aqui é menos a banda desenhada e mais **medir no laboratório** se
-tocar a banda antecede alguma coisa. O resultado pode perfeitamente ser "não
-desloca a taxa base", que já é informação útil.
-
-### 3. RSI
-
-Índice de força relativa sobre os fechamentos.
-
-Incluído com ressalva explícita: é o indicador mais usado e um dos de
-evidência mais fraca. A razão de implementá-lo é justamente submetê-lo à
-mesma régua dos outros. Se o delta contra a base for nulo, isso deve aparecer
-na tela em vez de ficar subentendido.
+O cálculo já existe; falta plotar as três linhas sobre o preço, como foi feito
+com o VWAP. O dataset precisa entrar depois do índice 0 pelo mesmo motivo.
 
 ---
 

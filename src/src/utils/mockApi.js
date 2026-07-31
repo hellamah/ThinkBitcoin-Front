@@ -135,7 +135,19 @@ const buildCoinValueResponse = (symbol, urlParams) => {
       const dataPonto = new Date(agora.getTime() - msOffset)
       
       const globalIndex = d * 3 + i
-      const oscilacao = Math.sin(globalIndex + hashSymbol(normalized)) * 0.05 + variationFactor
+      // Três componentes de frequências não múltiplas entre si, mais a deriva
+      // por moeda. Era um seno puro, e oscilação perfeitamente simétrica faz o
+      // RSI orbitar 50 (medido: 44 a 57 em 93 candles) e nada romper ±2σ — os
+      // dois osciladores ficavam impossíveis de demonstrar no demo. Com as
+      // frequências desencontradas surgem trechos de tendência, que é onde
+      // extremo de oscilador acontece. Determinístico: dado sorteado não se
+      // distingue de medido.
+      const fase = hashSymbol(normalized)
+      const oscilacao =
+        Math.sin(globalIndex * 0.9 + fase) * 0.035 +
+        Math.sin(globalIndex * 0.23 + fase * 1.7) * 0.045 +
+        Math.sin(globalIndex * 0.061 + fase * 0.4) * 0.06 +
+        variationFactor
       const precoPonto = Number((baseValue * (1 + oscilacao)).toFixed(2))
 
       // O volume acompanha a oscilação e leva um pico a cada 11 candles. Com o

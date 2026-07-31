@@ -12,6 +12,7 @@ import { avaliarAnomalia, calcularLimites } from './marketStats'
 import { CandlePattern, classificarCandle } from './candlePatterns'
 import { detectarDivergencias } from './flowDivergence'
 import { resumirVwap } from './vwap'
+import { resumirOsciladores } from './oscillators'
 
 export const SignalKey = Object.freeze({
   VOLUME_ATIPICO: 'volumeAtipico',
@@ -63,6 +64,8 @@ export const analisarSinais = (registros, { horizonte = 1 } = {}) => {
   // Já vem em ordem cronológica, alinhado com `cronologico` posição a posição.
   const divergencias = detectarDivergencias(registros, limites?.medianaVolume)
   const cruzamentosVwap = resumirVwap(registros)?.cruzamentos ?? []
+  // Cada posição pode carregar mais de uma marca (RSI e banda no mesmo candle).
+  const osciladores = resumirOsciladores(registros)?.marcas ?? []
 
   const porSinal = new Map()
   const retornosBase = []
@@ -99,6 +102,7 @@ export const analisarSinais = (registros, { horizonte = 1 } = {}) => {
     if (anomalia?.ticket) marcar(SignalKey.TICKET_ALTO)
     if (divergencias[i]) marcar(divergencias[i])
     if (cruzamentosVwap[i]) marcar(cruzamentosVwap[i])
+    ;(osciladores[i] || []).forEach(marcar)
   }
 
   const base = resumir(retornosBase)

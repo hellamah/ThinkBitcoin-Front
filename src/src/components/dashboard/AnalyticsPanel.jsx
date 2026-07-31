@@ -1,7 +1,15 @@
 import React from 'react'
-import { MdCompareArrows, MdBarChart, MdCallSplit, MdShowChart, MdPsychology, MdReceiptLong, MdStraighten, MdWaterfallChart } from 'react-icons/md'
+import { MdCompareArrows, MdBarChart, MdCallSplit, MdShowChart, MdPsychology, MdReceiptLong, MdSpeed, MdStraighten, MdWaterfallChart } from 'react-icons/md'
 import * as mathUtils from '../../utils/mathUtils'
 import { DivergenceKind } from '../../utils/flowDivergence'
+import { RSI_OVERBOUGHT, RSI_OVERSOLD, RSI_PERIOD } from '../../utils/oscillators'
+
+// A cor segue o alerta, não a direção: sobrecompra é aviso sobre uma alta.
+const RSI_CLASSE = (v) =>
+  v >= RSI_OVERBOUGHT ? 'down' : v <= RSI_OVERSOLD ? 'up' : ''
+
+const RSI_ROTULO = (v) =>
+  v >= RSI_OVERBOUGHT ? 'rsiOverbought' : v <= RSI_OVERSOLD ? 'rsiOversold' : 'rsiNeutral'
 
 // Divergência baixista é alerta sobre uma alta; altista, sobre uma queda. A
 // cor segue o que a leitura sugere, não a direção do preço.
@@ -62,7 +70,7 @@ function Sparkline({ valores, largura = 120, altura = 32 }) {
 export default function AnalyticsPanel({ analytics, t }) {
   if (!analytics) return null
 
-  const { fluxo, volatilidade, ticket, vwap, fearGreed } = analytics
+  const { fluxo, volatilidade, ticket, vwap, osciladores, fearGreed } = analytics
   const divergencia = fluxo.divergencia
 
   const compradora = fluxo.dominanciaCompradora
@@ -128,6 +136,29 @@ export default function AnalyticsPanel({ analytics, t }) {
               ? t('vsMedian', { value: volatilidade.razao.toFixed(1) })
               : t('noReading')}
           </div>
+        </div>
+
+        {/* RSI: exibido para ser julgado pelo laboratório, não seguido */}
+        <div className="intel-card">
+          <div className="intel-icon"><MdSpeed /></div>
+          <div className="intel-label">{t('rsi')}</div>
+          {osciladores?.rsiAtual !== null && osciladores?.rsiAtual !== undefined ? (
+            <>
+              <div className={`intel-value ${RSI_CLASSE(osciladores.rsiAtual)}`}>
+                {osciladores.rsiAtual.toFixed(1)}
+              </div>
+              <div className="intel-subvalue" style={{ opacity: 0.7 }}>
+                {t(RSI_ROTULO(osciladores.rsiAtual))}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="intel-value">-</div>
+              <div className="intel-subvalue" style={{ opacity: 0.7 }}>
+                {t('needsMoreHistory', { count: RSI_PERIOD })}
+              </div>
+            </>
+          )}
         </div>
 
         {/* VWAP: onde o preço está em relação ao custo médio do período */}
