@@ -157,6 +157,25 @@ const buildCoinValueResponse = (symbol, urlParams) => {
         (450 * (1 + Math.abs(Math.sin(globalIndex * 0.4)) * 0.5) * (picoDeTicket ? 3 : 1)).toFixed(2)
       )
 
+      // Fluxo comprador/vendedor. Tudo deriva de uma única dominância: assim os
+      // cinco campos continuam coerentes entre si (as duas dominâncias somam
+      // 100, o delta é a diferença dos volumes e o ratio é a razão deles), que
+      // é como o backend real entrega. Eram cinco constantes, então o painel
+      // Fluxo de Ordens ficava congelado no demo — pressão sempre 60,0% e
+      // "média do período" idêntica à leitura atual.
+      // A faixa imita a do backend real, que oscila entre ~44% e ~56%.
+      const dominanciaCompradora = 50 + Math.sin(globalIndex * 0.55 + hashSymbol(normalized)) * 6
+      const volumeComprado = precoVolume * (dominanciaCompradora / 100)
+      const volumeVendido = precoVolume - volumeComprado
+
+      // Volatilidade em ciclo próprio, com pico a cada 9 candles, para a régua
+      // "N× a mediana" do card ter o que mostrar. Era 0,5 fixo, o que dava
+      // exatamente 1,0× em todo candle.
+      const picoDeVolatilidade = globalIndex % 9 === 4
+      const precoVolatilidadePercentual = Number(
+        (0.35 + Math.abs(Math.sin(globalIndex * 0.3)) * 0.5 + (picoDeVolatilidade ? 1.2 : 0)).toFixed(5)
+      )
+
       // OHLC de verdade: a abertura é o fechamento do candle anterior, e as
       // extremidades envolvem esse intervalo. Antes a abertura era fixada em
       // 0,99 × fechamento, então fechamento > abertura sempre — toda vela saía
@@ -192,7 +211,9 @@ const buildCoinValueResponse = (symbol, urlParams) => {
         // e não conversava com o OHLC ao lado.
         precoAmplitude: Number((maior - menor).toFixed(2)),
         precoPercentualVariacao: Number(dVar.toFixed(2)),
-        precoRatioCompraVenda: 1.5,
+        precoRatioCompraVenda: Number(
+          (volumeVendido > 0 ? volumeComprado / volumeVendido : 0).toFixed(5)
+        ),
         // Nocional em dólar coerente com o volume da hora, para a contagem de
         // trades derivada (nocional ÷ ticket) não sair absurda.
         precoTotalNegociada: Number((precoVolume * precoPonto).toFixed(2)),
@@ -205,16 +226,16 @@ const buildCoinValueResponse = (symbol, urlParams) => {
         precoSombraSuperior: Number((maior - Math.max(abertura, precoPonto)).toFixed(2)),
         precoSombraInferior: Number((Math.min(abertura, precoPonto) - menor).toFixed(2)),
         precoDirecao: dVar >= 0 ? 1 : -1,
-        precoVolatilidadePercentual: 0.5,
+        precoVolatilidadePercentual,
         precoFinanceiroPorTrade,
         // No backend real quantidadeNegociada e precoVolume vêm com o mesmo
         // valor; o mock reproduz isso em vez de inventar duas séries.
         quantidadeNegociada: precoVolume,
-        volumeComprado: 90.3,
-        volumeVendido: 60.2,
-        dominanciaCompradoraPercentual: 60.0,
-        dominanciaVendedoraPercentual: 40.0,
-        volumeDelta: 30.1,
+        volumeComprado: Number(volumeComprado.toFixed(5)),
+        volumeVendido: Number(volumeVendido.toFixed(5)),
+        dominanciaCompradoraPercentual: Number(dominanciaCompradora.toFixed(5)),
+        dominanciaVendedoraPercentual: Number((100 - dominanciaCompradora).toFixed(5)),
+        volumeDelta: Number((volumeComprado - volumeVendido).toFixed(5)),
       })
     }
   }

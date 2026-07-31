@@ -60,6 +60,53 @@ describe('utils/mockApi › getMockResponse', () => {
       expect(resp.resultado.registros.length).toBeGreaterThan(0)
     })
 
+    // Campo constante no mock não quebra nada e não aparece em erro nenhum:
+    // o painel simplesmente exibe sempre o mesmo número, e a régua "N× a
+    // mediana" trava em 1,0. Já aconteceu quatro vezes neste arquivo.
+    it('não deve entregar campo analítico congelado ao longo da série', () => {
+      const resp = getMockResponse({
+        endpoint: '/ThinkBitcoin/moeda/BTC/valor?quantidade=40',
+        method: 'GET',
+      })
+      const registros = resp.resultado.registros
+      expect(registros.length).toBeGreaterThan(20)
+
+      // Campos que alimentam painel ou detector; cada um precisa de variação
+      // para o modo demo conseguir demonstrar a leitura que oferece.
+      const analiticos = [
+        'precoFechamento', 'precoAbertura', 'precoMaior', 'precoMenor',
+        'precoPercentualVariacao', 'precoAmplitude', 'precoVolume',
+        'precoCorpoCandle', 'precoSombraSuperior', 'precoSombraInferior',
+        'precoFinanceiroPorTrade', 'precoRatioCompraVenda',
+        'precoVolatilidadePercentual', 'volumeComprado', 'volumeVendido',
+        'dominanciaCompradoraPercentual', 'dominanciaVendedoraPercentual',
+        'volumeDelta',
+      ]
+
+      const congelados = analiticos.filter(
+        (campo) => new Set(registros.map((r) => r[campo])).size === 1
+      )
+
+      expect(congelados).toEqual([])
+    })
+
+    it('deve manter o fluxo comprador e vendedor coerente entre si', () => {
+      // As duas dominâncias somam 100, o delta é a diferença dos volumes e o
+      // ratio é a razão deles. Sem isso o painel mostra números que se
+      // contradizem — pressão de 60% com delta negativo, por exemplo.
+      const resp = getMockResponse({
+        endpoint: '/ThinkBitcoin/moeda/BTC/valor?quantidade=20',
+        method: 'GET',
+      })
+
+      resp.resultado.registros.forEach((r) => {
+        expect(r.dominanciaCompradoraPercentual + r.dominanciaVendedoraPercentual).toBeCloseTo(100, 4)
+        expect(r.volumeComprado + r.volumeVendido).toBeCloseTo(r.precoVolume, 4)
+        expect(r.volumeDelta).toBeCloseTo(r.volumeComprado - r.volumeVendido, 4)
+        expect(r.precoRatioCompraVenda).toBeCloseTo(r.volumeComprado / r.volumeVendido, 4)
+      })
+    })
+
     it('retorna dados de valor para endpoint de ETH', () => {
       const resp = getMockResponse({
         endpoint: '/ThinkBitcoin/moeda/ETH/valor',
