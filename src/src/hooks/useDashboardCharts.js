@@ -11,7 +11,7 @@ import {
 } from '../utils/candlestickChart'
 import { construirVolumes, estiloDasBarras } from '../utils/volumeChart'
 import { matrizCorrelacao } from '../utils/correlation'
-import { PriceChartMode } from '../utils/enums'
+import { Normalization, PriceChartMode } from '../utils/enums'
 
 const CORES_SIMPLE = ['#FFD700', '#2196f3', '#4caf50', '#e91e63', '#9c27b0', '#ff9800', '#00bcd4']
 
@@ -83,9 +83,9 @@ export default function useDashboardCharts({
       // Aplicar Normalização se multi-moeda
       let dataFinal = dataRaw
       if (multi) {
-        if (normalizacao === 'base100') dataFinal = mathUtils.normalizeToBase100(dataRaw)
-        else if (normalizacao === 'minmax') dataFinal = mathUtils.normalizeMinMax(dataRaw)
-        else if (normalizacao === 'zscore') dataFinal = mathUtils.normalizeZScore(dataRaw)
+        if (normalizacao === Normalization.BASE_100) dataFinal = mathUtils.normalizeToBase100(dataRaw)
+        else if (normalizacao === Normalization.MIN_MAX) dataFinal = mathUtils.normalizeMinMax(dataRaw)
+        else if (normalizacao === Normalization.Z_SCORE) dataFinal = mathUtils.normalizeZScore(dataRaw)
       }
 
       return {
@@ -338,9 +338,9 @@ export default function useDashboardCharts({
               }
             }
             const val = Number(ctx.parsed.y)
-            if (chartConfig.multiMoeda && normalizacao === 'base100') return `${ctx.dataset.label}: ${val.toFixed(2)} (Base 100)`
-            if (chartConfig.multiMoeda && normalizacao === 'minmax') return `${ctx.dataset.label}: ${val.toFixed(4)} (Min-Max)`
-            if (chartConfig.multiMoeda && normalizacao === 'zscore') return `${ctx.dataset.label}: ${val.toFixed(4)} (Z-Score)`
+            if (chartConfig.multiMoeda && normalizacao === Normalization.BASE_100) return `${ctx.dataset.label}: ${val.toFixed(2)} (Base 100)`
+            if (chartConfig.multiMoeda && normalizacao === Normalization.MIN_MAX) return `${ctx.dataset.label}: ${val.toFixed(4)} (Min-Max)`
+            if (chartConfig.multiMoeda && normalizacao === Normalization.Z_SCORE) return `${ctx.dataset.label}: ${val.toFixed(4)} (Z-Score)`
             return `${ctx.dataset.label}: $${val.toLocaleString('en-US')}`
           },
           footer: sentimentFooter
@@ -355,7 +355,7 @@ export default function useDashboardCharts({
         ticks: {
           ...baseOpcoes.scales.y.ticks,
           callback: (v) => {
-            if (chartConfig.multiMoeda && normalizacao !== 'bruto') return v.toFixed(2)
+            if (chartConfig.multiMoeda && normalizacao !== Normalization.RAW) return v.toFixed(2)
             return `$${Number(v).toLocaleString('en-US')}`
           }
         }

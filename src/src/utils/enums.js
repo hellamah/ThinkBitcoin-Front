@@ -16,6 +16,15 @@ export const PriceChartMode = Object.freeze({
   CANDLE: 'vela',
 });
 
+// Como as séries são reescaladas para comparação entre moedas. Os valores
+// eram strings soltas repetidas no Dashboard, no hook e no seletor.
+export const Normalization = Object.freeze({
+  RAW: 'bruto',
+  BASE_100: 'base100',
+  MIN_MAX: 'minmax',
+  Z_SCORE: 'zscore',
+});
+
 // Assunto do segundo painel. Separado de PriceChartMode de propósito: aquele
 // controla COMO o preço é desenhado, este controla O QUE o painel ao lado
 // mostra. Amarrar os dois faria o seletor de visualização trocar o conteúdo

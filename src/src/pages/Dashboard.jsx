@@ -27,7 +27,7 @@ import { calcularLimites } from '../utils/marketStats'
 import { analisarSinais } from '../utils/signalLab'
 import { getTourVisto, setTourVisto } from '../utils/preferences'
 import { candlestickPlugin } from '../utils/candlestickChart'
-import { PriceChartMode, SecondaryChart } from '../utils/enums'
+import { Normalization, PriceChartMode, SecondaryChart } from '../utils/enums'
 
 // Sub-componentes Refatorados
 import DashboardHeader from '../components/dashboard/DashboardHeader'
@@ -81,7 +81,7 @@ export default function Dashboard() {
   const [moedasFiltro, setMoedasFiltro] = useState([]) 
 
   // Estados Visuais Locais
-  const [normalizacao, setNormalizacao] = useState('base100')
+  const [normalizacao, setNormalizacao] = useState(Normalization.BASE_100)
   const [modoPreco, setModoPreco] = useState(PriceChartMode.LINE)
   const [painelSecundario, setPainelSecundario] = useState(SecondaryChart.VARIATION)
   const [horizonteSinal, setHorizonteSinal] = useState(1)

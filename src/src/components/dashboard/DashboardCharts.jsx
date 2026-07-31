@@ -2,7 +2,7 @@ import React from 'react'
 import Box from '@mui/material/Box'
 import { Bar, Line } from 'react-chartjs-2'
 import { MdFullscreen } from 'react-icons/md'
-import { ChartType, PriceChartMode, SecondaryChart } from '../../utils/enums'
+import { ChartType, Normalization, PriceChartMode, SecondaryChart } from '../../utils/enums'
 import ExpandedChartModal from './ExpandedChartModal'
 
 // Estilo dos alternadores em pílula do cabeçalho dos gráficos.
@@ -71,11 +71,14 @@ export default function DashboardCharts({
         <h2 style={{ margin: 0, fontSize: '1.25rem' }}>{t('sequence')}</h2>
         {multiMoeda && (
           <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', alignSelf: 'center' }}>Normalização:</span>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', alignSelf: 'center' }}>{t('normalization')}:</span>
+            {/* Os rótulos ficam literais de propósito: Base 100, Min-Max e
+                Z-Score são nomes de métodos estatísticos, escritos igual nos
+                dois idiomas. Só a explicação em prosa passa pelo i18n. */}
             {[
-              { key: 'base100', label: 'Base 100', title: 'Performance relativa — começa em 100 para todas' },
-              { key: 'minmax', label: 'Min-Max', title: 'Escala 0 a 1 relativa ao período' },
-              { key: 'zscore', label: 'Z-Score', title: 'Volatilidade — desvios em relação à média' },
+              { key: Normalization.BASE_100, label: 'Base 100', title: t('normalizationBase100Hint') },
+              { key: Normalization.MIN_MAX, label: 'Min-Max', title: t('normalizationMinMaxHint') },
+              { key: Normalization.Z_SCORE, label: 'Z-Score', title: t('normalizationZScoreHint') },
             ].map(({ key, label, title }) => (
               <button
                 key={key}
