@@ -198,6 +198,7 @@ export default function Dashboard() {
     trendPorMoeda,
     totalPaginas,
     historicoMoeda,
+    cobertura,
     erro,
     setErro
   } = useDashboardData({
@@ -433,6 +434,7 @@ export default function Dashboard() {
           ultimoNegociado={ultimoNegociado}
           ultimaVariacao={ultimaVariacao}
           volumeAtual={chartConfig.volumeAtual}
+          cobertura={cobertura}
           trendAtual={trendAtual}
           t={t}
         />

@@ -137,6 +137,11 @@ const CHOQUE = 0.028
 // numa banda plausível sem deixar de ter tendência.
 const REVERSAO = 0.012
 
+// Quantas horas de histórico o mock gera. 120 dias cobrem o preset de 1 mês
+// (~720 candles) com folga, sem pagar a geração de um ano inteiro de hora em
+// hora a cada requisição.
+const HORAS_DE_HISTORICO = 120 * 24
+
 const buildCoinValueResponse = (symbol, urlParams) => {
   const normalized = symbol.toUpperCase()
   const baseValue = MOCK_COIN_BASE_VALUE[normalized] ?? 100
@@ -159,13 +164,21 @@ const buildCoinValueResponse = (symbol, urlParams) => {
   const agora = new Date()
   agora.setMinutes(0, 0, 0)
 
-  // Gera 1 ano de mock com 3 itens por dia (para o gráfico não ficar vazio nos filtros de 7 dias)
-  for (let d = 365; d >= 0; d--) {
-    for (let i = 0; i < 3; i++) {
-      const msOffset = d * 24 * 60 * 60 * 1000 - i * 8 * 60 * 60 * 1000
-      const dataPonto = new Date(agora.getTime() - msOffset)
-      
-      const globalIndex = d * 3 + i
+  // Um candle por hora, como o backend real amostra.
+  //
+  // Eram 3 por dia. A diferença de cadência escondia uma classe inteira de
+  // problema: com 3/dia um filtro de 1 mês dá 90 candles e cabe em qualquer
+  // requisição, enquanto de hora em hora dá ~720 e estoura o teto. Foi por
+  // isso que o corte silencioso do período só apareceu em produção.
+  //
+  // Menos histórico que antes em dias, mas 4× mais candles: o que os
+  // indicadores consomem é quantidade de candles, não calendário.
+  for (let passo = HORAS_DE_HISTORICO; passo >= 0; passo--) {
+    {
+      const dataPonto = new Date(agora.getTime() - passo * 60 * 60 * 1000)
+
+      // Cresce com o tempo, do mais antigo para o mais recente.
+      const globalIndex = HORAS_DE_HISTORICO - passo
       // Passeio aleatório com momentum, semeado pela sigla.
       //
       // Antes era soma de senos, e antes disso um seno puro. Ambos falhavam

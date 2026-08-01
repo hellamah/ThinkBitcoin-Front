@@ -93,23 +93,22 @@ igual à base.
 
 **Depende do intervalo selecionado:**
 
+O backend amostra de hora em hora, então:
+
 | Intervalo | Candles | RSI(14) | Bollinger(20) | Banda no gráfico |
 |---|---|---|---|---|
-| 24h | ~3 | não calcula | não calcula | oculta |
-| 7d | ~21 | 7 pontos | 2 pontos (10%) | oculta |
-| 1m | ~93 | 79 pontos | 74 pontos (80%) | desenhada |
+| 24h | ~24 | 10 pontos | 5 pontos (21%) | oculta |
+| 7d | ~168 | 154 pontos | 149 pontos (89%) | desenhada |
+| 1m | ~720 | 706 pontos | 701 pontos (97%) | desenhada |
 
-A banda só é desenhada quando cobre ao menos metade do gráfico. No filtro de
-7d ela apareceria nos dois últimos candles, colada na borda direita: parecia
-estática e não dizia nada. Melhor não desenhar do que desenhar um toco.
+A banda só é desenhada quando cobre ao menos metade do gráfico — no 24h ela
+apareceria colada na borda direita, parecendo estática.
 
-**O conserto de fundo, não feito:** o indicador poderia chegar aquecido se o
-front tivesse os ~20 candles anteriores à janela. Ele não tem — `dataInicio`
-e `dataFim` vão para a API, que já devolve só o recorte. Buscar a margem extra
-esbarra em `historicoMoeda` e `totalPaginas` saírem do mesmo request
-(`useDashboardData.js`), então a contagem de páginas da tabela passaria a
-incluir os candles de aquecimento. Exigiria separar o request da série do
-request da tabela.
+**Como isso foi descoberto:** o mock gerava 3 candles por dia, então um filtro
+de 7 dias dava 21 candles e a banda cobria 10% do gráfico. Parecia limitação
+do indicador. Era diferença de cadência entre mock e produção: o backend
+entrega 168 no mesmo período, e a banda cobre 89%. O mock passou a amostrar de
+hora em hora, e essa classe de engano deixou de existir.
 
 O mock passou por três formas até sustentar os dois. Seno puro e soma de senos
 falhavam pelo mesmo motivo: oscilação periódica não tem tendência sustentada, e

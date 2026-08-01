@@ -2995,6 +2995,20 @@
   border: 1px solid var(--border-subtle);
 }
 
+/* Aviso de que o período pedido não coube na requisição. */
+.chart-truncated {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--warning, #ff9800);
+  color: var(--warning, #ff9800);
+  font-size: 0.75rem;
+  white-space: nowrap;
+  cursor: help;
+}
+
 /* Alternador em pílula: Visualização, Painel, Normalização e Horizonte.
    Mora aqui, e não em objeto de estilo inline, porque as cópias inline já
    tinham divergido — o seletor do laboratório saíra com padding, corpo de

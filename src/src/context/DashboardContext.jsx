@@ -13,7 +13,11 @@ export function DashboardProvider({ children }) {
   
   // Paginação e Outros (Global para o Dashboard, caso seja relevante)
   const [pagina, setPagina] = useState(1);
-  const [quantidade, setQuantidade] = useState(100);
+  // Teto de candles por requisição. Eram 100, o que cortava até o preset mais
+  // curto: o backend amostra de hora em hora, então 7d são ~168 candles e 1m
+  // são ~720. O filtro dizia 12 dias e o gráfico mostrava 4, sem avisar.
+  // Mil cobre os três presets com folga; acima disso a tela informa o corte.
+  const [quantidade, setQuantidade] = useState(1000);
 
   // Seleção de Moeda para o Carrossel e Expandir Gráfico
   const [moedaSelecionada, setMoedaSelecionada] = useState(() => {

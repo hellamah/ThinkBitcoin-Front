@@ -19,6 +19,11 @@ export default function useDashboardData({
   const [trendPorMoeda, setTrendPorMoeda] = useState({})
   const [loadingSentiment, setLoadingSentiment] = useState(false)
   const [totalPaginas, setTotalPaginas] = useState(1)
+
+  // Quanto do período pedido realmente chegou. `quantidade` é um teto sobre a
+  // janela, então pedir 12 dias de candles horários (278) e receber 100 é o
+  // comportamento normal da API — o que não pode é a tela omitir o corte.
+  const [cobertura, setCobertura] = useState(null)
   const [historicoMoeda, setHistoricoMoeda] = useState(null)
   const [erro, setErro] = useState('')
 
@@ -120,6 +125,11 @@ export default function useDashboardData({
       const novoTrend = {}
       const moedasComErro = []
 
+      // Todas as moedas compartilham janela e cadência, então o pior caso
+      // descreve o conjunto.
+      let recebidos = 0
+      let disponiveis = 0
+
       resultados.forEach(res => {
         if (!res) return
         if (res.error) {
@@ -131,6 +141,9 @@ export default function useDashboardData({
         const regsPreco = preco?.registros ?? (Array.isArray(preco) ? preco : [])
         const regsFear = fear?.registros ?? (Array.isArray(fear) ? fear : [])
         const regsTrend = trend?.registros ?? (Array.isArray(trend) ? trend : [])
+
+        recebidos = Math.max(recebidos, regsPreco.length)
+        disponiveis = Math.max(disponiveis, Number(preco?.totalRegistros) || regsPreco.length)
 
         novoHistoricoPreco[sigla] = regsPreco
         novoFearGreed[sigla] = regsFear
@@ -148,6 +161,10 @@ export default function useDashboardData({
       if (moedasComErro.length > 0) {
         setErro(`Não foi possível carregar os dados de: ${moedasComErro.join(', ')}`)
       }
+
+      setCobertura(
+        recebidos > 0 ? { recebidos, disponiveis, truncado: disponiveis > recebidos } : null
+      )
 
       setHistoricosPorMoeda(novoHistoricoPreco)
       setFearGreedPorMoeda(novoFearGreed)
@@ -169,6 +186,7 @@ export default function useDashboardData({
     loadingSentiment,
     totalPaginas,
     historicoMoeda,
+    cobertura,
     erro,
     setErro
   }

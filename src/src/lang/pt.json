@@ -32,6 +32,8 @@
   },
   "dashboard": "Dashboard",
   "sequence": "Sequência de Retorno",
+  "truncatedRange": "Exibindo {{recebidos}} de {{disponiveis}} candles do período",
+  "truncatedHint": "O período escolhido tem mais candles do que uma requisição traz. O gráfico mostra os mais recentes; reduza o intervalo para ver o começo.",
   "updateSignal": "Atualizar Sinal",
   "signalBuy": "💡 Sinal de Compra",
   "signalSell": "🔻 Sinal de Venda",

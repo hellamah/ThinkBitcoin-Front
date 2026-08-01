@@ -1,7 +1,7 @@
 import React from 'react'
 import Box from '@mui/material/Box'
 import { Bar, Line } from 'react-chartjs-2'
-import { MdFullscreen } from 'react-icons/md'
+import { MdFullscreen, MdWarningAmber } from 'react-icons/md'
 import { ChartType, Normalization, PriceChartMode, SecondaryChart } from '../../utils/enums'
 import ExpandedChartModal from './ExpandedChartModal'
 
@@ -50,6 +50,7 @@ export default function DashboardCharts({
   ultimaVariacao,
   volumeAtual,
   trendAtual,
+  cobertura,
   t
 }) {
   // Volume existe só com moeda única; em modo comparativo o seletor nem
@@ -60,6 +61,19 @@ export default function DashboardCharts({
     <>
       <div style={{ marginTop: '40px', marginBottom: '16px', padding: '0 4px', display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
         <h2 style={{ margin: 0, fontSize: '1.25rem' }}>{t('sequence')}</h2>
+
+        {/* O período pedido pode ter mais candles do que a requisição traz.
+            Sem este aviso o eixo começa depois da data escolhida e nada
+            explica por quê. */}
+        {cobertura?.truncado && (
+          <span className="chart-truncated" title={t('truncatedHint')}>
+            <MdWarningAmber />
+            {t('truncatedRange', {
+              recebidos: cobertura.recebidos,
+              disponiveis: cobertura.disponiveis,
+            })}
+          </span>
+        )}
         {multiMoeda && (
           <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto', flexWrap: 'wrap' }}>
             <span className="pill-group-label">{t('normalization')}:</span>
