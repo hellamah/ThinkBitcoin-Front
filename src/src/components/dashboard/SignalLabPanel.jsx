@@ -4,16 +4,10 @@ import * as mathUtils from '../../utils/mathUtils'
 
 const HORIZONTES = [1, 3, 5]
 
-const estiloHorizonte = (ativo) => ({
-  padding: '3px 10px',
-  fontSize: '0.75rem',
-  borderRadius: '20px',
-  border: ativo ? '1px solid #FFD700' : '1px solid #444',
-  background: ativo ? 'rgba(255,215,0,0.12)' : 'transparent',
-  color: ativo ? 'var(--accent-ink)' : 'var(--text-muted)',
-  cursor: 'pointer',
-  fontWeight: ativo ? 600 : 400,
-})
+// t() faz substituição literal de {{var}} e não tem regra de plural, então a
+// escolha entre singular e plural é explícita aqui.
+const rotuloHorizonte = (h, t) =>
+  t(h === 1 ? 'signalHorizonOne' : 'signalHorizonMany', { count: h })
 
 // Só colorimos delta de linha significante: pintar de verde um deslocamento
 // que o intervalo não sustenta é dar destaque a ruído.
@@ -45,10 +39,14 @@ export default function SignalLabPanel({ analise, horizonte, setHorizonte, t }) 
       <div className="signal-lab-controls">
         <span className="correlation-hint" style={{ margin: 0 }}>{t('signalLabHint')}</span>
         <div className="signal-lab-horizon">
-          <span>{t('signalHorizon')}:</span>
+          <span className="pill-group-label">{t('signalHorizon')}:</span>
           {HORIZONTES.map((h) => (
-            <button key={h} onClick={() => setHorizonte(h)} style={estiloHorizonte(horizonte === h)}>
-              {t('signalHorizonUnit', { count: h })}
+            <button
+              key={h}
+              onClick={() => setHorizonte(h)}
+              className={`pill-toggle ${horizonte === h ? 'ativo' : ''}`}
+            >
+              {rotuloHorizonte(h, t)}
             </button>
           ))}
         </div>

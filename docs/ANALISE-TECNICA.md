@@ -93,11 +93,23 @@ igual à base.
 
 **Depende do intervalo selecionado:**
 
-| Intervalo | Candles | RSI(14) | Bollinger(20) |
-|---|---|---|---|
-| 24h | ~3 | não calcula | não calcula |
-| 7d | ~21 | 7 pontos | 2 pontos |
-| 1m | ~93 | 79 pontos | 74 pontos |
+| Intervalo | Candles | RSI(14) | Bollinger(20) | Banda no gráfico |
+|---|---|---|---|---|
+| 24h | ~3 | não calcula | não calcula | oculta |
+| 7d | ~21 | 7 pontos | 2 pontos (10%) | oculta |
+| 1m | ~93 | 79 pontos | 74 pontos (80%) | desenhada |
+
+A banda só é desenhada quando cobre ao menos metade do gráfico. No filtro de
+7d ela apareceria nos dois últimos candles, colada na borda direita: parecia
+estática e não dizia nada. Melhor não desenhar do que desenhar um toco.
+
+**O conserto de fundo, não feito:** o indicador poderia chegar aquecido se o
+front tivesse os ~20 candles anteriores à janela. Ele não tem — `dataInicio`
+e `dataFim` vão para a API, que já devolve só o recorte. Buscar a margem extra
+esbarra em `historicoMoeda` e `totalPaginas` saírem do mesmo request
+(`useDashboardData.js`), então a contagem de páginas da tabela passaria a
+incluir os candles de aquecimento. Exigiria separar o request da série do
+request da tabela.
 
 O mock passou por três formas até sustentar os dois. Seno puro e soma de senos
 falhavam pelo mesmo motivo: oscilação periódica não tem tendência sustentada, e

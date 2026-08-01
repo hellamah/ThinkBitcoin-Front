@@ -17,6 +17,10 @@ import { Normalization, PriceChartMode } from '../utils/enums'
 
 const CORES_SIMPLE = ['#FFD700', '#2196f3', '#4caf50', '#e91e63', '#9c27b0', '#ff9800', '#00bcd4']
 
+// Fração mínima do gráfico que a banda precisa cobrir para valer a pena
+// desenhá-la. Metade é o suficiente para o formato ser legível.
+const COBERTURA_MINIMA_BANDA = 0.5
+
 export default function useDashboardCharts({
   historicosPorMoeda,
   dataInicio,
@@ -212,10 +216,37 @@ export default function useDashboardCharts({
 
     const vwap = registrosNoEixo.length > 0 ? resumirVwap(registrosNoEixo) : null
 
-    // Bandas sobre a mesma janela do gráfico, pelo mesmo motivo do VWAP.
-    const bandas = registrosNoEixo.length > 0
-      ? calcularBollinger([...registrosNoEixo].reverse())
+    // Bandas calculadas sobre a série INTEIRA e depois recortadas na janela.
+    //
+    // Bollinger é média móvel de 20 períodos, então calcular só sobre o que
+    // está desenhado gasta 20 dos 21 candles visíveis apenas para produzir o
+    // primeiro valor — a banda aparecia nos dois últimos pontos e parecia
+    // estática. Com o histórico anterior o indicador chega aquecido no
+    // primeiro ponto do gráfico, que é como plataforma de trade faz.
+    //
+    // Diferente do VWAP, que é ancorado no início da janela por definição e
+    // por isso continua sendo calculado só sobre ela.
+    const serieCompleta = [...(historicosPorMoeda[moedasOrdenadas[0]] || [])].reverse()
+    const bandasCompletas = velas.length > 0 ? calcularBollinger(serieCompleta) : []
+
+    const bandaPorInstante = new Map()
+    serieCompleta.forEach((r, i) => {
+      const ts = r?.horaReferencia ?? r?.dataHora
+      if (ts) bandaPorInstante.set(ts, bandasCompletas[i] ?? null)
+    })
+
+    const bandasNoEixo = velas.length > 0
+      ? timestampsUnicos.map((ts) => bandaPorInstante.get(ts) ?? null)
       : []
+
+    // Banda que cobre um pedaço pequeno do gráfico não se lê: no filtro de 7d
+    // são 21 candles, e Bollinger(20) só produz valor nos dois últimos. O
+    // traço aparecia colado na borda direita, parecia estático e não dizia
+    // nada. Melhor não desenhar do que desenhar um toco.
+    const cobertura = bandasNoEixo.length > 0
+      ? bandasNoEixo.filter(Boolean).length / bandasNoEixo.length
+      : 0
+    const bandas = cobertura >= COBERTURA_MINIMA_BANDA ? bandasNoEixo : []
 
     // Reaproveita os arrays de variação já alinhados em timestampsUnicos — a
     // parte cara do cálculo (alinhar as séries) acabou de ser feita acima.

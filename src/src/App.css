@@ -2995,6 +2995,40 @@
   border: 1px solid var(--border-subtle);
 }
 
+/* Alternador em pílula: Visualização, Painel, Normalização e Horizonte.
+   Mora aqui, e não em objeto de estilo inline, porque as cópias inline já
+   tinham divergido — o seletor do laboratório saíra com padding, corpo de
+   fonte e transição diferentes dos outros três. */
+.pill-toggle {
+  padding: 4px 12px;
+  font-size: 0.78rem;
+  border-radius: 20px;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-weight: 400;
+  transition: all 0.2s;
+}
+
+.pill-toggle:hover {
+  color: var(--accent-ink);
+}
+
+.pill-toggle.ativo {
+  border-color: var(--accent);
+  background: rgba(255, 215, 0, 0.12);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+/* Rótulo que antecede um grupo de pílulas. */
+.pill-group-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  align-self: center;
+}
+
 /* Laboratório de sinais */
 .signal-lab-controls {
   display: flex;

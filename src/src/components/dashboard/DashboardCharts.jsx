@@ -5,18 +5,9 @@ import { MdFullscreen } from 'react-icons/md'
 import { ChartType, Normalization, PriceChartMode, SecondaryChart } from '../../utils/enums'
 import ExpandedChartModal from './ExpandedChartModal'
 
-// Estilo dos alternadores em pílula do cabeçalho dos gráficos.
-const estiloAlternador = (ativo) => ({
-  padding: '4px 12px',
-  fontSize: '0.78rem',
-  borderRadius: '20px',
-  border: ativo ? '1px solid #FFD700' : '1px solid #444',
-  background: ativo ? 'rgba(255,215,0,0.12)' : 'transparent',
-  color: ativo ? 'var(--accent-ink)' : 'var(--text-muted)',
-  cursor: 'pointer',
-  fontWeight: ativo ? 600 : 400,
-  transition: 'all 0.2s',
-})
+// O visual da pílula vive em .pill-toggle no App.css, compartilhado com o
+// seletor de horizonte do laboratório.
+const classeAlternador = (ativo) => `pill-toggle ${ativo ? 'ativo' : ''}`
 
 /**
  * Exibe os gráficos do dashboard. Ao expandir um gráfico (modal),
@@ -71,7 +62,7 @@ export default function DashboardCharts({
         <h2 style={{ margin: 0, fontSize: '1.25rem' }}>{t('sequence')}</h2>
         {multiMoeda && (
           <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', alignSelf: 'center' }}>{t('normalization')}:</span>
+            <span className="pill-group-label">{t('normalization')}:</span>
             {/* Os rótulos ficam literais de propósito: Base 100, Min-Max e
                 Z-Score são nomes de métodos estatísticos, escritos igual nos
                 dois idiomas. Só a explicação em prosa passa pelo i18n. */}
@@ -84,7 +75,7 @@ export default function DashboardCharts({
                 key={key}
                 title={title}
                 onClick={() => setNormalizacao(key)}
-                style={estiloAlternador(normalizacao === key)}
+                className={classeAlternador(normalizacao === key)}
               >
                 {label}
               </button>
@@ -100,7 +91,7 @@ export default function DashboardCharts({
         {!multiMoeda && temVelas && (
           <div style={{ display: 'flex', gap: '18px', marginLeft: 'auto', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', alignSelf: 'center' }}>{t('chartMode')}:</span>
+              <span className="pill-group-label">{t('chartMode')}:</span>
               {[
                 { key: PriceChartMode.LINE, label: t('chartModeLine'), title: t('chartModeLineHint') },
                 { key: PriceChartMode.CANDLE, label: t('chartModeCandle'), title: t('chartModeCandleHint') },
@@ -109,7 +100,7 @@ export default function DashboardCharts({
                   key={key}
                   title={title}
                   onClick={() => setModoPreco(key)}
-                  style={estiloAlternador(modoPreco === key)}
+                  className={classeAlternador(modoPreco === key)}
                 >
                   {label}
                 </button>
@@ -117,7 +108,7 @@ export default function DashboardCharts({
             </div>
 
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', alignSelf: 'center' }}>{t('secondaryChart')}:</span>
+              <span className="pill-group-label">{t('secondaryChart')}:</span>
               {[
                 { key: SecondaryChart.VARIATION, label: t('percentVariation') },
                 { key: SecondaryChart.VOLUME, label: t('volume') },
@@ -125,7 +116,7 @@ export default function DashboardCharts({
                 <button
                   key={key}
                   onClick={() => setPainelSecundario(key)}
-                  style={estiloAlternador(painelSecundario === key)}
+                  className={classeAlternador(painelSecundario === key)}
                 >
                   {label}
                 </button>
