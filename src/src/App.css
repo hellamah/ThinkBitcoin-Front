@@ -2995,6 +2995,61 @@
   border: 1px solid var(--border-subtle);
 }
 
+/* Ícone de ajuda ao lado dos rótulos. Discreto o bastante para não competir
+   com o número, visível o bastante para alguém perceber que há o que ler. */
+.ajuda-icone {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 5px;
+  vertical-align: middle;
+  color: var(--text-faint);
+  cursor: help;
+  transition: color 0.2s;
+}
+
+.ajuda-icone:hover,
+.ajuda-icone:focus-visible {
+  color: var(--accent-ink);
+  outline: none;
+}
+
+.ajuda-icone svg {
+  width: 0.95em;
+  height: 0.95em;
+}
+
+/* O balão padrão do MUI é estreito demais para uma explicação de duas ou três
+   linhas, que é o tamanho necessário para a frase ensinar alguma coisa. */
+.ajuda-balao {
+  max-width: 320px !important;
+  font-size: 0.78rem !important;
+  line-height: 1.5 !important;
+  padding: 10px 12px !important;
+}
+
+/* Legenda do gráfico: explica o que é cada traço desenhado sobre o preço. */
+.chart-legenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 10px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.chart-legenda span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.chart-legenda i {
+  width: 16px;
+  height: 0;
+  border-top-width: 2px;
+  border-top-style: solid;
+}
+
 /* Aviso de que o período pedido não coube na requisição. */
 .chart-truncated {
   display: inline-flex;

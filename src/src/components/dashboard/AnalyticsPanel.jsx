@@ -2,6 +2,7 @@ import React from 'react'
 import { MdCompareArrows, MdBarChart, MdCallSplit, MdHeight, MdShowChart, MdPsychology, MdReceiptLong, MdSpeed, MdStraighten, MdWaterfallChart } from 'react-icons/md'
 import { ATR_PERIOD } from '../../utils/marketStats'
 import * as mathUtils from '../../utils/mathUtils'
+import RotuloComAjuda from './RotuloComAjuda'
 import { DivergenceKind } from '../../utils/flowDivergence'
 import { RSI_OVERBOUGHT, RSI_OVERSOLD, RSI_PERIOD } from '../../utils/oscillators'
 
@@ -95,7 +96,7 @@ export default function AnalyticsPanel({ analytics, t }) {
         {/* Pressão compradora vs vendedora */}
         <div className="intel-card">
           <div className="intel-icon"><MdCompareArrows /></div>
-          <div className="intel-label">{t('buyPressure')}</div>
+          <RotuloComAjuda className="intel-label" texto={t('buyPressure')} ajuda={t('ajuda.pressaoCompradora')} />
           <div className="intel-value">
             {temDominancia ? `${compradora.toFixed(1)}%` : '-'}
           </div>
@@ -118,7 +119,7 @@ export default function AnalyticsPanel({ analytics, t }) {
         {/* Delta de volume acumulado */}
         <div className="intel-card">
           <div className="intel-icon"><MdBarChart /></div>
-          <div className="intel-label">{t('volumeDelta')}</div>
+          <RotuloComAjuda className="intel-label" texto={t('volumeDelta')} ajuda={t('ajuda.deltaVolume')} />
           <div className="intel-value">
             {deltaPositivo ? '+' : ''}{mathUtils.formatCompact(fluxo.deltaAcumulado)}
           </div>
@@ -130,7 +131,7 @@ export default function AnalyticsPanel({ analytics, t }) {
         {/* Volatilidade atual contra a mediana do período */}
         <div className="intel-card">
           <div className="intel-icon"><MdShowChart /></div>
-          <div className="intel-label">{t('volatility')}</div>
+          <RotuloComAjuda className="intel-label" texto={t('volatility')} ajuda={t('ajuda.volatilidade')} />
           <div className="intel-value">{volatilidade.atual.toFixed(2)}%</div>
           <div className="intel-subvalue" style={{ opacity: 0.7 }}>
             {volatilidade.razao !== null
@@ -142,7 +143,7 @@ export default function AnalyticsPanel({ analytics, t }) {
         {/* ATR: o quanto o ativo costuma andar dentro de um candle */}
         <div className="intel-card">
           <div className="intel-icon"><MdHeight /></div>
-          <div className="intel-label">{t('atr')}</div>
+          <RotuloComAjuda className="intel-label" texto={t('atr')} ajuda={t('ajuda.atr')} />
           {atr ? (
             <>
               <div className="intel-value">{mathUtils.formatCurrency(atr.valor)}</div>
@@ -165,7 +166,7 @@ export default function AnalyticsPanel({ analytics, t }) {
         {/* RSI: exibido para ser julgado pelo laboratório, não seguido */}
         <div className="intel-card">
           <div className="intel-icon"><MdSpeed /></div>
-          <div className="intel-label">{t('rsi')}</div>
+          <RotuloComAjuda className="intel-label" texto={t('rsi')} ajuda={t('ajuda.rsi')} />
           {osciladores?.rsiAtual !== null && osciladores?.rsiAtual !== undefined ? (
             <>
               <div className={`intel-value ${RSI_CLASSE(osciladores.rsiAtual)}`}>
@@ -188,7 +189,7 @@ export default function AnalyticsPanel({ analytics, t }) {
         {/* VWAP: onde o preço está em relação ao custo médio do período */}
         <div className="intel-card">
           <div className="intel-icon"><MdStraighten /></div>
-          <div className="intel-label">{t('vwap')}</div>
+          <RotuloComAjuda className="intel-label" texto={t('vwap')} ajuda={t('ajuda.vwap')} />
           {vwap?.vwapAtual !== null && vwap?.vwapAtual !== undefined ? (
             <>
               <div className="intel-value">{mathUtils.formatCurrency(vwap.vwapAtual)}</div>
@@ -209,7 +210,7 @@ export default function AnalyticsPanel({ analytics, t }) {
         {/* Delta acumulado e divergência contra o preço */}
         <div className="intel-card">
           <div className="intel-icon"><MdCallSplit /></div>
-          <div className="intel-label">{t('cumulativeDelta')}</div>
+          <RotuloComAjuda className="intel-label" texto={t('cumulativeDelta')} ajuda={t('ajuda.deltaAcumulado')} />
           {divergencia ? (
             <>
               <div className={`intel-value ${divergencia.cvd >= 0 ? 'up' : 'down'}`}>
@@ -233,7 +234,7 @@ export default function AnalyticsPanel({ analytics, t }) {
         {/* Ticket médio: separa fluxo de varejo de fluxo de baleia */}
         <div className="intel-card">
           <div className="intel-icon"><MdReceiptLong /></div>
-          <div className="intel-label">{t('avgTicket')}</div>
+          <RotuloComAjuda className="intel-label" texto={t('avgTicket')} ajuda={t('ajuda.ticketMedio')} />
           <div className="intel-value">{mathUtils.formatCurrency(ticket.atual)}</div>
           <div className="intel-subvalue" style={{ opacity: 0.7 }}>
             {ticket.razao !== null
@@ -250,7 +251,7 @@ export default function AnalyticsPanel({ analytics, t }) {
         {/* Fear & Greed com a série do período */}
         <div className="intel-card">
           <div className="intel-icon"><MdPsychology /></div>
-          <div className="intel-label">{t('fearGreedIndex')}</div>
+          <RotuloComAjuda className="intel-label" texto={t('fearGreedIndex')} ajuda={t('ajuda.fearGreed')} />
           {fearGreed ? (
             <>
               <div className="intel-value">{fearGreed.valor}</div>

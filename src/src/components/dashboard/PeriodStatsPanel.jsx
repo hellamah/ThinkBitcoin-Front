@@ -1,6 +1,7 @@
 import React from 'react'
 import { MdTrendingUp, MdTrendingDown, MdPercent, MdSsidChart } from 'react-icons/md'
 import * as mathUtils from '../../utils/mathUtils'
+import RotuloComAjuda from './RotuloComAjuda'
 
 /**
  * Desempenho consolidado do período filtrado.
@@ -23,7 +24,7 @@ export default function PeriodStatsPanel({ desempenho, t }) {
       <div className="intelligence-grid">
         <div className="intel-card">
           <div className="intel-icon">{positivo ? <MdTrendingUp /> : <MdTrendingDown />}</div>
-          <div className="intel-label">{t('cumulativeReturn')}</div>
+          <RotuloComAjuda className="intel-label" texto={t('cumulativeReturn')} ajuda={t('ajuda.retornoAcumulado')} />
           <div className={`intel-value ${positivo ? 'up' : 'down'}`}>
             {mathUtils.formatPercent(retorno)}
           </div>
@@ -34,7 +35,7 @@ export default function PeriodStatsPanel({ desempenho, t }) {
 
         <div className="intel-card">
           <div className="intel-icon"><MdTrendingDown /></div>
-          <div className="intel-label">{t('maxDrawdown')}</div>
+          <RotuloComAjuda className="intel-label" texto={t('maxDrawdown')} ajuda={t('ajuda.drawdown')} />
           {/* Drawdown é sempre ≤ 0; o sinal já vem no número. */}
           <div className="intel-value down">{mathUtils.formatPercent(drawdown, 2, false)}</div>
           <div className="intel-subvalue" style={{ opacity: 0.7 }}>{t('maxDrawdownHint')}</div>
@@ -42,14 +43,14 @@ export default function PeriodStatsPanel({ desempenho, t }) {
 
         <div className="intel-card">
           <div className="intel-icon"><MdPercent /></div>
-          <div className="intel-label">{t('winRate')}</div>
+          <RotuloComAjuda className="intel-label" texto={t('winRate')} ajuda={t('ajuda.taxaAlta')} />
           <div className="intel-value">{winRate.toFixed(1)}%</div>
           <div className="intel-subvalue" style={{ opacity: 0.7 }}>{t('winRateHint')}</div>
         </div>
 
         <div className="intel-card">
           <div className="intel-icon"><MdTrendingUp /></div>
-          <div className="intel-label">{t('bestWorstCandle')}</div>
+          <RotuloComAjuda className="intel-label" texto={t('bestWorstCandle')} ajuda={t('ajuda.melhorPior')} />
           <div className="intel-value up">{mathUtils.formatPercent(melhor)}</div>
           <div className="intel-subvalue down">{mathUtils.formatPercent(pior)}</div>
         </div>

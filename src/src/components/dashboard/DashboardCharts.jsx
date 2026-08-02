@@ -4,6 +4,7 @@ import { Bar, Line } from 'react-chartjs-2'
 import { MdFullscreen, MdWarningAmber } from 'react-icons/md'
 import { ChartType, Normalization, PriceChartMode, SecondaryChart } from '../../utils/enums'
 import { toLocal } from '../../utils/dateUtils'
+import RotuloComAjuda from './RotuloComAjuda'
 import ExpandedChartModal from './ExpandedChartModal'
 
 // O visual da pílula vive em .pill-toggle no App.css, compartilhado com o
@@ -57,6 +58,12 @@ export default function DashboardCharts({
   // Volume existe só com moeda única; em modo comparativo o seletor nem
   // aparece, mas a guarda evita render vazio se o filtro mudar por baixo.
   const mostraVolume = painelSecundario === SecondaryChart.VOLUME && Boolean(dadosVolume)
+
+  // A legenda descreve o que existe no gráfico agora; VWAP e bandas só entram
+  // com moeda única, então nem sempre estão lá.
+  const rotulosDesenhados = (dadosNegociados?.datasets || []).map((d) => d.label)
+  const temVwap = rotulosDesenhados.includes('VWAP')
+  const temBandas = rotulosDesenhados.some((r) => r === t('bollingerUpper'))
 
   return (
     <>
@@ -157,6 +164,26 @@ export default function DashboardCharts({
           </div>
           <div className="chart-container">
             <Line data={dadosNegociados} options={opcoesPreco} />
+          </div>
+
+          {/* O que está desenhado sobre o preço vive dentro do canvas e não
+              comporta ícone, então a explicação vem numa legenda embaixo. */}
+          <div className="chart-legenda">
+            {modoVela && (
+              <RotuloComAjuda texto={t('chartModeCandle')} ajuda={t('ajuda.velas')} />
+            )}
+            {temVwap && (
+              <span>
+                <i style={{ borderTopColor: '#9c27b0', borderTopStyle: 'dashed' }} />
+                <RotuloComAjuda texto="VWAP" ajuda={t('ajuda.linhaVwap')} />
+              </span>
+            )}
+            {temBandas && (
+              <span>
+                <i style={{ borderTopColor: 'rgba(33,150,243,0.55)' }} />
+                <RotuloComAjuda texto={t('bollingerBands')} ajuda={t('ajuda.faixaBollinger')} />
+              </span>
+            )}
           </div>
         </Box>
         {/* Assunto escolhido no seletor "Painel", não no de visualização.

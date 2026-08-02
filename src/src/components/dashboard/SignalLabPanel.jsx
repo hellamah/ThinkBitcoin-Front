@@ -1,6 +1,33 @@
 import React from 'react'
 import { MdScience, MdWarningAmber } from 'react-icons/md'
 import * as mathUtils from '../../utils/mathUtils'
+import RotuloComAjuda from './RotuloComAjuda'
+import { CandlePattern } from '../../utils/candlePatterns'
+import { SignalKey } from '../../utils/signalLab'
+import { DivergenceKind } from '../../utils/flowDivergence'
+import { VwapSignal } from '../../utils/vwap'
+import { OscillatorSignal } from '../../utils/oscillators'
+
+// Cada sinal da tabela aponta para a frase que explica o que ele é. Os nomes
+// — martelo, marubozu, divergência — são justamente os termos mais opacos da
+// tela para quem está começando.
+const AJUDA_POR_SINAL = Object.freeze({
+  [CandlePattern.MARTELO]: 'ajuda.sinalMartelo',
+  [CandlePattern.ESTRELA]: 'ajuda.sinalEstrela',
+  [CandlePattern.DOJI]: 'ajuda.sinalDoji',
+  [CandlePattern.MARUBOZU]: 'ajuda.sinalMarubozu',
+  [SignalKey.VOLUME_ATIPICO]: 'ajuda.sinalVolumeAtipico',
+  [SignalKey.VARIACAO_ATIPICA]: 'ajuda.sinalVariacaoAtipica',
+  [SignalKey.TICKET_ALTO]: 'ajuda.sinalTicketAlto',
+  [DivergenceKind.BEARISH]: 'ajuda.sinalDivBaixista',
+  [DivergenceKind.BULLISH]: 'ajuda.sinalDivAltista',
+  [VwapSignal.CROSS_UP]: 'ajuda.sinalVwapCima',
+  [VwapSignal.CROSS_DOWN]: 'ajuda.sinalVwapBaixo',
+  [OscillatorSignal.RSI_OVERBOUGHT]: 'ajuda.sinalRsiSobrecompra',
+  [OscillatorSignal.RSI_OVERSOLD]: 'ajuda.sinalRsiSobrevenda',
+  [OscillatorSignal.BAND_BREAK_UP]: 'ajuda.sinalBandaSuperior',
+  [OscillatorSignal.BAND_BREAK_DOWN]: 'ajuda.sinalBandaInferior',
+})
 
 const HORIZONTES = [1, 3, 5]
 
@@ -57,11 +84,21 @@ export default function SignalLabPanel({ analise, horizonte, setHorizonte, t }) 
           <thead>
             <tr>
               <th scope="col">{t('signalName')}</th>
-              <th scope="col">{t('signalCount')}</th>
-              <th scope="col">{t('signalUpRate')}</th>
-              <th scope="col">{t('signalInterval')}</th>
-              <th scope="col">{t('signalVsBase')}</th>
-              <th scope="col">{t('signalAvgReturn')}</th>
+              <th scope="col">
+                <RotuloComAjuda texto={t('signalCount')} ajuda={t('ajuda.colOcorrencias')} />
+              </th>
+              <th scope="col">
+                <RotuloComAjuda texto={t('signalUpRate')} ajuda={t('ajuda.colTaxaAlta')} />
+              </th>
+              <th scope="col">
+                <RotuloComAjuda texto={t('signalInterval')} ajuda={t('ajuda.colIntervalo')} />
+              </th>
+              <th scope="col">
+                <RotuloComAjuda texto={t('signalVsBase')} ajuda={t('ajuda.colVsBase')} />
+              </th>
+              <th scope="col">
+                <RotuloComAjuda texto={t('signalAvgReturn')} ajuda={t('ajuda.colRetornoMedio')} />
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -81,7 +118,10 @@ export default function SignalLabPanel({ analise, horizonte, setHorizonte, t }) 
               // não se distingue da base com esta amostra.
               <tr key={s.chave} className={s.significante ? undefined : 'signal-lab-fraco'}>
                 <th scope="row">
-                  {t(`signal_${s.chave}`)}
+                  <RotuloComAjuda
+                    texto={t(`signal_${s.chave}`)}
+                    ajuda={AJUDA_POR_SINAL[s.chave] ? t(AJUDA_POR_SINAL[s.chave]) : undefined}
+                  />
                   {!s.significante && (
                     <MdWarningAmber
                       className="signal-lab-alerta"
