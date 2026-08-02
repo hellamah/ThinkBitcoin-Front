@@ -1063,6 +1063,9 @@
   height: 2px;
   background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
   opacity: 0.3;
+  /* Camada decorativa: sem isto ela cobre o conteudo e engole hover e
+     clique de tudo que esta dentro. */
+  pointer-events: none;
 }
 
 /* Enhanced Top‑Coins Panel */
@@ -2841,6 +2844,9 @@
   background: radial-gradient(circle at center, rgba(255, 215, 0, 0.05) 0%, transparent 70%);
   opacity: 0;
   transition: opacity 0.3s;
+  /* Camada decorativa: sem isto ela cobre o conteudo e engole hover e
+     clique de tudo que esta dentro. */
+  pointer-events: none;
 }
 
 .intel-card:hover {
@@ -2997,20 +3003,29 @@
 
 /* Ícone de ajuda ao lado dos rótulos. Discreto o bastante para não competir
    com o número, visível o bastante para alguém perceber que há o que ler. */
+/* O rótulo inteiro é a área sensível; o ícone só sinaliza que há o que ler. */
+.com-ajuda {
+  cursor: help;
+}
+
+.com-ajuda:focus-visible {
+  outline: 1px solid var(--accent-ink);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
 .ajuda-icone {
   display: inline-flex;
   align-items: center;
   margin-left: 5px;
   vertical-align: middle;
   color: var(--text-faint);
-  cursor: help;
   transition: color 0.2s;
 }
 
-.ajuda-icone:hover,
-.ajuda-icone:focus-visible {
+.com-ajuda:hover .ajuda-icone,
+.com-ajuda:focus-visible .ajuda-icone {
   color: var(--accent-ink);
-  outline: none;
 }
 
 .ajuda-icone svg {
@@ -3393,6 +3408,9 @@
   height: 2px;
   background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
   opacity: 0.15;
+  /* Camada decorativa: sem isto ela cobre o conteudo e engole hover e
+     clique de tudo que esta dentro. */
+  pointer-events: none;
 }
 
 .settings-panel-icon-wrapper {
@@ -3627,4 +3645,4 @@
   .pricing-plan-card {
     padding: 24px 16px !important;
   }
-}
+}

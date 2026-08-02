@@ -24,26 +24,29 @@ export default function RotuloComAjuda({ texto, ajuda, className }) {
   if (!ajuda) return <span className={className}>{texto}</span>
 
   return (
-    <span className={className}>
-      {texto}
-      <Tooltip
-        title={ajuda}
-        arrow
-        // Sem isto o toque exige um segundo de pressão e some rápido demais
-        // para um texto de duas linhas.
-        enterTouchDelay={0}
-        leaveTouchDelay={8000}
-        classes={{ tooltip: 'ajuda-balao' }}
+    <Tooltip
+      title={ajuda}
+      arrow
+      // Sem isto o toque exige um segundo de pressão e some rápido demais
+      // para um texto de duas linhas.
+      enterTouchDelay={0}
+      leaveTouchDelay={8000}
+      classes={{ tooltip: 'ajuda-balao' }}
+    >
+      {/* O gatilho é o rótulo INTEIRO, não o ícone. O ícone tem cerca de 10px
+          e exigir essa pontaria numa funcionalidade feita para quem está
+          começando derrota o propósito: o gesto natural é passar o mouse no
+          nome da métrica, não acertar o círculo ao lado dele. */}
+      <span
+        className={`${className || ''} com-ajuda`.trim()}
+        tabIndex={0}
+        aria-label={typeof texto === 'string' ? `${texto}: ${ajuda}` : ajuda}
       >
-        <span
-          className="ajuda-icone"
-          role="button"
-          tabIndex={0}
-          aria-label={typeof texto === 'string' ? `${texto}: ${ajuda}` : ajuda}
-        >
+        {texto}
+        <span className="ajuda-icone" aria-hidden="true">
           <MdInfoOutline />
         </span>
-      </Tooltip>
-    </span>
+      </span>
+    </Tooltip>
   )
 }
