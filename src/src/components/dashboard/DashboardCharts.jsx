@@ -3,6 +3,7 @@ import Box from '@mui/material/Box'
 import { Bar, Line } from 'react-chartjs-2'
 import { MdFullscreen, MdWarningAmber } from 'react-icons/md'
 import { ChartType, Normalization, PriceChartMode, SecondaryChart } from '../../utils/enums'
+import { toLocal } from '../../utils/dateUtils'
 import ExpandedChartModal from './ExpandedChartModal'
 
 // O visual da pílula vive em .pill-toggle no App.css, compartilhado com o
@@ -70,7 +71,7 @@ export default function DashboardCharts({
             <MdWarningAmber />
             {t('truncatedRange', {
               recebidos: cobertura.recebidos,
-              disponiveis: cobertura.disponiveis,
+              desde: toLocal(cobertura.desde),
             })}
           </span>
         )}

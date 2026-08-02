@@ -4,6 +4,16 @@ import { FilterResult, FilterInterval } from '../utils/enums';
 
 const DashboardContext = createContext();
 
+// Teto de candles por requisição. Eram 100, o que cortava até o preset mais
+// curto: o backend amostra de hora em hora, então 7d são ~168 candles e 1m são
+// ~720. O filtro dizia 12 dias e o gráfico mostrava 4, sem avisar. Mil cobre os
+// três presets com folga; acima disso a tela informa o corte.
+//
+// Fica numa constante porque o valor era repetido no estado inicial e dentro
+// de setFilterInterval — trocar só o primeiro deixava os presets no valor
+// antigo, que foi exatamente o que aconteceu.
+const CANDLES_POR_REQUISICAO = 1000;
+
 export function DashboardProvider({ children }) {
   // Filtros Globais
   const [dataInicio, setDataInicio] = useState(() => subDays(new Date(), 7).toISOString());
@@ -13,11 +23,7 @@ export function DashboardProvider({ children }) {
   
   // Paginação e Outros (Global para o Dashboard, caso seja relevante)
   const [pagina, setPagina] = useState(1);
-  // Teto de candles por requisição. Eram 100, o que cortava até o preset mais
-  // curto: o backend amostra de hora em hora, então 7d são ~168 candles e 1m
-  // são ~720. O filtro dizia 12 dias e o gráfico mostrava 4, sem avisar.
-  // Mil cobre os três presets com folga; acima disso a tela informa o corte.
-  const [quantidade, setQuantidade] = useState(1000);
+  const [quantidade, setQuantidade] = useState(CANDLES_POR_REQUISICAO);
 
   // Seleção de Moeda para o Carrossel e Expandir Gráfico
   const [moedaSelecionada, setMoedaSelecionada] = useState(() => {
@@ -61,7 +67,7 @@ export function DashboardProvider({ children }) {
     setDataFim(formattedFim);
     setIntervalo(opt);
     setPagina(1);
-    setQuantidade(100);
+    setQuantidade(CANDLES_POR_REQUISICAO);
     setResultadoFiltro(FilterResult.ALL);
   }, []);
 

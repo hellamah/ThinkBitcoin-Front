@@ -32,7 +32,7 @@
   },
   "dashboard": "Dashboard",
   "sequence": "Return Sequence",
-  "truncatedRange": "Showing {{recebidos}} of {{disponiveis}} candles in the period",
+  "truncatedRange": "Showing {{recebidos}} candles, starting {{desde}}",
   "truncatedHint": "The selected period holds more candles than one request returns. The chart shows the most recent ones; narrow the range to see the start.",
   "updateSignal": "Update Signal",
   "signalBuy": "💡 Buy Signal",
