@@ -55,7 +55,10 @@ function CookieBanner() {
         <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.82rem', lineHeight: 1.6 }}>
           Utilizamos cookies essenciais para o funcionamento da plataforma e cookies de preferências para melhorar sua experiência.
           Consulte nossa{' '}
-          <Box component="a" href="https://minerthinkbitcoin.com/privacidade" target="_blank" rel="noopener"
+          {/* Caminho relativo, não a URL absoluta de produção: assim o link
+              funciona no preview e no localhost em vez de pular para o site
+              publicado. Abre em outra aba para não derrubar este banner. */}
+          <Box component="a" href="/privacidade" target="_blank" rel="noopener"
             sx={{ color: 'var(--accent-ink)', textDecoration: 'none', fontWeight: 600, '&:hover': { opacity: 0.8 } }}>
             Política de Privacidade
           </Box>.

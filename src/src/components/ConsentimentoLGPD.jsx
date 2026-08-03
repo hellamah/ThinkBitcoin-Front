@@ -29,7 +29,10 @@ function saveConsent() {
 }
 
 // ─── Conteúdo: Política de Privacidade ────────────────────────────────────────
-function PrivacidadeContent() {
+// Exportado porque as rotas /privacidade e /termos renderizam este mesmo texto.
+// Duplicar a redação em duas telas é como um documento legal envelhece torto:
+// alguém atualiza uma cópia e esquece a outra.
+export function PrivacidadeContent() {
   return (
     <Box sx={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.75 }}>
       <Typography variant="subtitle2" sx={{ color: 'var(--accent-ink)', mb: 1, fontWeight: 700 }}>
@@ -126,7 +129,7 @@ function PrivacidadeContent() {
 }
 
 // ─── Conteúdo: Termos de Uso ──────────────────────────────────────────────────
-function TermosContent() {
+export function TermosContent() {
   return (
     <Box sx={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.75 }}>
       <Typography variant="subtitle2" sx={{ color: 'var(--accent-ink)', mb: 1, fontWeight: 700 }}>

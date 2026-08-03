@@ -532,7 +532,9 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                       label={
                         <Typography sx={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
                           Li e concordo com a{' '}
-                          <Link href="https://minerthinkbitcoin.com/privacidade" target="_blank" rel="noopener"
+                          {/* Nova aba, e caminho relativo: navegar na mesma aba
+                              perderia o formulário de cadastro já preenchido. */}
+                          <Link href="/privacidade" target="_blank" rel="noopener"
                             sx={{ color: 'var(--accent-ink)', fontWeight: 600, '&:hover': { opacity: 0.8 } }}>
                             Política de Privacidade
                           </Link>
@@ -552,7 +554,7 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                       label={
                         <Typography sx={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
                           Li e concordo com os{' '}
-                          <Link href="https://minerthinkbitcoin.com/termos" target="_blank" rel="noopener"
+                          <Link href="/termos" target="_blank" rel="noopener"
                             sx={{ color: 'var(--accent-ink)', fontWeight: 600, '&:hover': { opacity: 0.8 } }}>
                             Termos de Uso
                           </Link>
