@@ -684,6 +684,43 @@
   background: rgba(255, 111, 97, 0.2) !important;
 }
 
+/* Header no celular.
+   O conteúdo somava 373px de largura dentro de 311px úteis a 375px de tela, e
+   o pill de usuário vazava 62px para fora do cartão flutuante. Passou
+   despercebido enquanto o index.html não tinha <meta viewport>: o telefone
+   fingia ter 981px e tudo cabia.
+
+   O corte é 767.98px e não 768px de propósito: em `min-width: 768px` a
+   .bottom-nav some, e um empate nos dois lados aplicaria as duas faixas ao
+   mesmo tempo em telas de exatos 768px. */
+@media (max-width: 767.98px) {
+  /* 50px de altura no logo davam 187px de largura, mais da metade do espaço
+     útil do header só para a marca. */
+  .app-logo {
+    height: 36px;
+  }
+
+  .header-right {
+    gap: 8px;
+    /* Sem isto o flex-item se recusa a encolher abaixo do conteúdo e o
+       text-overflow do nome nunca chega a agir. */
+    min-width: 0;
+  }
+
+  .user-info-pill {
+    min-width: 0;
+    padding-left: 12px;
+    gap: 8px;
+  }
+
+  /* Nome longo vira reticências em vez de empurrar o botão de sair para fora
+     da tela. */
+  .user-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
 
 .top-nav {
   display: none;
