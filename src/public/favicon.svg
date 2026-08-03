@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80" fill="none">
+    <!-- Só a marca do logo-light.svg (hexágono + erlenmeyer + tendência), sem o
+         wordmark: a 16px o texto vira borrão. O fundo escuro é próprio, e não
+         o token do tema, porque a aba do navegador pode ser clara — o traço
+         dourado sozinho sumiria ali. -->
+    <rect width="80" height="80" rx="16" fill="#0d0d0d" />
+
+    <g transform="translate(40 40) scale(1.28) translate(-40 -40)">
+        <polygon points="27,17.5 53,17.5 66,40 53,62.5 27,62.5 14,40"
+                 fill="none" stroke="#FFD700" stroke-width="2.5" stroke-linejoin="round" />
+
+        <path d="M36 24 L36 35 L26 54 Q25 56.5 27.5 56.5 L52.5 56.5 Q55 56.5 54 54 L44 35 L44 24"
+              fill="none" stroke="#FFD700" stroke-width="2.4" stroke-linejoin="round" />
+        <line x1="33" y1="24" x2="47" y2="24" stroke="#FFD700" stroke-width="2.4" stroke-linecap="round" />
+
+        <polyline points="30,52 35,47 39,49 45,41"
+                  fill="none" stroke="#27c07a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M42 41 L45.5 40.8 L44.8 44"
+              fill="none" stroke="#27c07a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+</svg>
