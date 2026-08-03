@@ -18,14 +18,22 @@ jobs:
     name: 'ThinkBitcoinDeploy'
   
   steps:
+  # Vite 7 exige Node ^20.19.0 || >=22.12.0. Em 18.x o `npm install` ainda passa
+  # raspando (só avisa EBADENGINE), mas os testes, que carregam o Vite, quebram.
   - task: NodeTool@0
     inputs:
-      versionSpec: '18.x'
+      versionSpec: '20.x'
     displayName: 'Install Node.js'
 
   - script: npm install
     workingDirectory: 'src'
     displayName: 'Install Dependencies'
+
+  # Portão do deploy: se a suíte falhar, o job para aqui e nada vai para a
+  # Vercel. Sem este passo, os testes existem mas nunca rodam antes do release.
+  - script: npm test
+    workingDirectory: 'src'
+    displayName: 'Run Tests'
 
   - task: PowerShell@2
     displayName: 'Vercel Deploy'
