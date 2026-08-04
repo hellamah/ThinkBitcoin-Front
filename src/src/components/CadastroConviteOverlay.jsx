@@ -28,8 +28,8 @@ import {
   AlgorithmStyle,
   RiskProfile,
   ReviewFrequency,
-  Language,
 } from '../utils/preferences'
+import { LANGUAGES } from '../lang'
 
 
 /**
@@ -240,7 +240,7 @@ const CadastroConviteOverlay = ({ onFechar }) => {
       onClick={handleBackdropClick}
       role="dialog"
       aria-modal="true"
-      aria-label="Cadastrar novo usuário por convite"
+      aria-label={t('inviteOverlayAria')}
     >
       <Container maxWidth="xl" sx={{ height: '100%', display: 'flex', alignItems: 'center', py: { xs: 0, md: 3 } }}>
         <div className="convite-overlay-paper">
@@ -410,8 +410,11 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                               </InputAdornment>
                             }
                           >
-                            <MenuItem value={Language.PT}>{t('portuguese')}</MenuItem>
-                            <MenuItem value={Language.EN}>{t('english')}</MenuItem>
+                            {LANGUAGES.map((idioma) => (
+                              <MenuItem key={idioma.codigo} value={idioma.codigo}>
+                                {idioma.rotulo}
+                              </MenuItem>
+                            ))}
                           </Select>
                         </FormControl>
                       </Grid>

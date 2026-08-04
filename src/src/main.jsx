@@ -4,6 +4,7 @@ import './index.css'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App.jsx'
 import { AuthProvider } from './context/AuthContext'
+import { TranslationProvider } from './context/TranslationContext'
 
 let savedTheme = null
 try {
@@ -19,7 +20,10 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <App />
+        {/* Dentro do AuthProvider: o idioma vem das preferências do usuário. */}
+        <TranslationProvider>
+          <App />
+        </TranslationProvider>
       </AuthProvider>
     </BrowserRouter>
   </StrictMode>,

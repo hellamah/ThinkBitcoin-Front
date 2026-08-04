@@ -52,6 +52,7 @@ import {
   RiskProfile,
   ReviewFrequency,
 } from '../utils/preferences'
+import { LANGUAGES, IDIOMA_PADRAO } from '../lang'
 import { isNotificationSupported } from '../utils/browser'
 import { executeNotificationWorkflow } from '../utils/workflow'
 import PlanosPagamentoModal from '../components/PlanosPagamentoModal'
@@ -397,7 +398,7 @@ function Settings() {
             ))}
             {renderField(t('language'), (
               <Select
-                value={localPrefs?.idioma || Language.PT}
+                value={localPrefs?.idioma || IDIOMA_PADRAO}
                 onChange={(e) => {
                   const val = e.target.value
                   setLocalPrefs(p => ({ ...p, idioma: val }))
@@ -406,8 +407,11 @@ function Settings() {
                 size="small"
                 sx={selectSx}
               >
-                <MenuItem value={Language.PT}>{t('portuguese')}</MenuItem>
-                <MenuItem value={Language.EN}>{t('english')}</MenuItem>
+                {/* Rótulo é o endônimo vindo do registro: quem procura
+                    "Français" não procura por "Francês". */}
+                {LANGUAGES.map((idioma) => (
+                  <MenuItem key={idioma.codigo} value={idioma.codigo}>{idioma.rotulo}</MenuItem>
+                ))}
               </Select>
             ))}
           </>

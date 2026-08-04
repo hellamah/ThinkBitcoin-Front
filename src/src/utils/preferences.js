@@ -1,3 +1,5 @@
+import { LANGUAGE_CODES, IDIOMA_PADRAO } from '../lang'
+
 const getWindow = () =>
   typeof window !== 'undefined' ? window : undefined
 
@@ -16,10 +18,13 @@ export const Theme = Object.freeze({
   DARK: 'dark',
 })
 
-export const Language = Object.freeze({
-  PT: 'pt',
-  EN: 'en',
-})
+// Derivado do registro em lang/index.js, e não escrito à mão: enquanto esta
+// lista era própria, acrescentar um idioma exigia lembrar de editá-la — e
+// esquecer não quebrava nada, só fazia o idioma novo ser rejeitado em silêncio
+// pelo normalizeLanguage e cair no padrão.
+export const Language = Object.freeze(
+  Object.fromEntries(LANGUAGE_CODES.map((codigo) => [codigo.toUpperCase(), codigo]))
+)
 
 export const AlgorithmStyle = Object.freeze({
   CONSERVATIVE: 'conservador',
@@ -41,7 +46,7 @@ export const ReviewFrequency = Object.freeze({
 
 export const DEFAULT_PREFERENCES = Object.freeze({
   tema: Theme.DARK,
-  idioma: Language.PT,
+  idioma: IDIOMA_PADRAO,
   notificacoes: false,
   estiloAlgoritmo: AlgorithmStyle.BALANCED,
   investimentoInicial: 0,
@@ -75,9 +80,7 @@ const normalizeTheme = (value) => {
 const normalizeLanguage = (value) => {
   if (typeof value !== 'string') return null
   const normalized = value.toLowerCase()
-  if (normalized === Language.PT) return Language.PT
-  if (normalized === Language.EN) return Language.EN
-  return null
+  return LANGUAGE_CODES.includes(normalized) ? normalized : null
 }
 
 const normalizeAlgorithmStyle = (value) => {

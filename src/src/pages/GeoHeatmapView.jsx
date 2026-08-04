@@ -38,6 +38,7 @@ import { apiRequest, VariavelExternaEndpoint } from '../utils/apiClient'
 import { MapRegion, ExportFormat, MapMetric } from '../utils/enums'
 import { formatTooltipData, getRegionForCountry, filterCoinsByCountry, getCountryName } from '../utils/mapUtils'
 import { hasCacheValid } from '../utils/cache'
+import { idiomaDe } from '../lang'
 import { getTourHeatmapVisto, setTourHeatmapVisto } from '../utils/preferences'
 import { exportarHeatmapDados } from '../utils/exportUtils'
 
@@ -192,7 +193,9 @@ export default function GeoHeatmapView() {
   const handleChartReady = useCallback((chart) => { chartInstanceRef.current = chart }, [])
 
   // Nomes de países no idioma preferido do usuário (Intl.DisplayNames).
-  const localeIdioma = prefs?.idioma === 'en' ? 'en' : 'pt'
+  // O locale vem do registro: enquanto era um ternário entre 'en' e 'pt', todo
+  // idioma acrescentado depois caía calado em português neste ponto.
+  const localeIdioma = idiomaDe(prefs?.idioma).intl
   const nomePais = useCallback((code) => getCountryName(code, localeIdioma), [localeIdioma])
 
   // ------ estados de notificação ------
@@ -719,7 +722,7 @@ export default function GeoHeatmapView() {
     }
   }
 
-  if (!token) return <Box sx={{ p: 5 }}>Redirecionando para login...</Box>
+  if (!token) return <Box sx={{ p: 5 }}>{t('redirectingToLogin')}</Box>
 
   // ---------------------------------------------------------------------------
   // Render
