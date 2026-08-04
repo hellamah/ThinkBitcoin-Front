@@ -608,7 +608,9 @@ export default function GeoHeatmapView() {
       return
     }
 
-    exportarHeatmapDados(heatmapData, moedaSelecionada, intervaloMapa, formato)
+    // `nomePais` vai junto para o arquivo sair com o nome do país no idioma da
+    // tela; sem ele a coluna "País" carregava o código ISO cru.
+    exportarHeatmapDados(heatmapData, moedaSelecionada, intervaloMapa, formato, nomePais)
     mostrarSnackbar(`${formato.toUpperCase()} — ${t('heatmap.exportacaoConcluida') || 'exportação concluída!'}`)
   }
 
