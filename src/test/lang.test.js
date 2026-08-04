@@ -3,12 +3,23 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import pt from '../src/lang/pt.json'
 import en from '../src/lang/en.json'
+import es from '../src/lang/es.json'
+import fr from '../src/lang/fr.json'
+// Importado como `italiano`, e não `it`: o nome curto sombrearia o `it()` do
+// vitest e a suíte inteira falha ao coletar, com um "is not a function" que não
+// aponta para o import.
+import italiano from '../src/lang/it.json'
+import { LANGUAGE_CODES } from '../src/lang'
 
 // Guarda os arquivos de idioma. Divergência entre eles não quebra build nem
 // aparece em tela: a chave ausente simplesmente cai no fallback e a interface
 // exibe o nome da chave, que passa despercebido em revisão.
 
-const IDIOMAS = { pt, en }
+const IDIOMAS = { pt, en, es, fr, it: italiano }
+
+// O português é a fonte da verdade: é o idioma em que as telas são escritas
+// primeiro e o fallback quando o dicionário escolhido ainda não chegou.
+const REFERENCIA = 'pt'
 
 // Marcador de que o teste está olhando o arquivo inteiro, e não só a superfície.
 const MINIMO_CHAVES = 150
@@ -49,23 +60,44 @@ const achatar = (objeto, prefixo = '') =>
       : { ...acc, [caminho]: valor }
   }, {})
 
-const planoPt = achatar(pt)
-const planoEn = achatar(en)
+const planos = Object.fromEntries(
+  Object.entries(IDIOMAS).map(([nome, dicionario]) => [nome, achatar(dicionario)])
+)
+const planoReferencia = planos[REFERENCIA]
 
-describe('lang › paridade entre idiomas', () => {
+const OUTROS = Object.keys(IDIOMAS).filter((nome) => nome !== REFERENCIA)
+
+describe('lang › registro de idiomas', () => {
+  it('deve ter um arquivo para cada código declarado em lang/index.js', () => {
+    // O registro é o que a interface percorre para montar o seletor. Um código
+    // listado sem arquivo correspondente vira uma opção que, ao ser escolhida,
+    // deixa a tela inteira no idioma de fallback.
+    expect([...LANGUAGE_CODES].sort()).toEqual(Object.keys(IDIOMAS).sort())
+  })
+})
+
+describe.each(OUTROS)('lang › paridade de %s com pt', (nome) => {
+  const plano = planos[nome]
+
   it('deve ter exatamente o mesmo conjunto de chaves, em qualquer nível', () => {
     // toEqual em vez de comparar tamanhos: a mensagem de falha aponta qual
     // chave está sobrando ou faltando.
-    expect(Object.keys(planoEn).sort()).toEqual(Object.keys(planoPt).sort())
+    expect(Object.keys(plano).sort()).toEqual(Object.keys(planoReferencia).sort())
   })
 
-  it('deve usar os mesmos marcadores de interpolação nos dois idiomas', () => {
-    // Um {{razao}} que existe só em pt faz a versão em inglês exibir o texto
-    // sem o número, sem erro nenhum no console.
-    const divergentes = Object.keys(planoPt)
-      .filter((chave) => chave in planoEn)
-      .filter((chave) => marcadores(planoPt[chave]).join() !== marcadores(planoEn[chave]).join())
-      .map((chave) => ({ chave, pt: marcadores(planoPt[chave]), en: marcadores(planoEn[chave]) }))
+  it('deve usar os mesmos marcadores de interpolação que o português', () => {
+    // Um {{razao}} que existe só em pt faz a outra versão exibir o texto sem o
+    // número, sem erro nenhum no console.
+    const divergentes = Object.keys(planoReferencia)
+      .filter((chave) => chave in plano)
+      .filter(
+        (chave) => marcadores(planoReferencia[chave]).join() !== marcadores(plano[chave]).join()
+      )
+      .map((chave) => ({
+        chave,
+        pt: marcadores(planoReferencia[chave]),
+        [nome]: marcadores(plano[chave]),
+      }))
 
     expect(divergentes).toEqual([])
   })
