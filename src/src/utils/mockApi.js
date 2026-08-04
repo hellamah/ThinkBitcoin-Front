@@ -1,6 +1,5 @@
-// A flag mudou de casa (mockFlag.js) para que este arquivo possa ficar atrás de
-// um import dinâmico. Reexportada aqui só para quem já importava daqui.
-export { USE_MOCK_API } from './mockFlag'
+// A flag vive em mockFlag.js, para que este arquivo possa ficar atrás de um
+// import dinâmico e não viajar no bundle de produção.
 
 // As preferências do modo demo vivem no localStorage: sem isso o GET devolve
 // sempre o mesmo objeto fixo e qualquer alteração do usuário (tema, idioma…)
