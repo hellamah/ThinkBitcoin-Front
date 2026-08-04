@@ -1,6 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="300" height="80" viewBox="0 0 300 80" fill="none">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;800&amp;display=swap');
+        /* Sem @import remoto aqui: este SVG é usado via img, e nesse modo o
+           navegador bloqueia carregamento externo — a fonte nunca chegou a ser
+           baixada. O texto sempre caiu no fallback abaixo. */
         .logo-text { font-family: 'Outfit', 'Segoe UI', system-ui, sans-serif; }
     </style>
 
