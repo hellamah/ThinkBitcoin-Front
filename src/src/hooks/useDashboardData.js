@@ -136,6 +136,14 @@ export default function useDashboardData({
 
       const resultados = await Promise.all(promessasMoedas)
 
+      // O guard fica ANTES de consumir os resultados, não depois. Num abort
+      // parcial — troca de filtro com várias moedas, algumas requisições já
+      // respondidas e outras canceladas — o laço abaixo chega a chamar
+      // setHistoricoMoeda/setTotalPaginas com o dado da consulta velha, e só o
+      // resto do estado ficava barrado. A tabela e a paginação mostravam o
+      // filtro anterior enquanto os gráficos já mostravam o novo.
+      if (signal.aborted) return
+
       const novoHistoricoPreco = {}
       const novoFearGreed = {}
       const novoTrend = {}
@@ -192,8 +200,6 @@ export default function useDashboardData({
           setHistoricoMoeda({ registros: regsPreco, totalPaginas: paginasTotal })
         }
       })
-
-      if (signal.aborted) return
 
       if (moedasComErro.length > 0) {
         setErro(`Não foi possível carregar os dados de: ${moedasComErro.join(', ')}`)
