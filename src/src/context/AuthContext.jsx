@@ -13,6 +13,7 @@ import {
 } from '../utils/preferences'
 import { decodeAuthenticationToken, isAuthenticationTokenExpired } from '../utils/authentication'
 import { apiRequest, HttpMethod, PreferencesEndpoint } from '../utils/apiClient'
+import { clearAllCache } from '../utils/cache'
 
 // Lê o token armazenado descartando (e limpando) tokens já expirados, para o
 // usuário não permanecer "logado" até levar o primeiro 401.
@@ -90,9 +91,17 @@ export function AuthProvider({ children }) {
     applyTheme(prefs.tema)
   }, [prefs.tema, applyTheme])
 
+  // O cache de respostas do apiClient é chaveado por endpoint, não por usuário
+  // (`api_cache_${endpoint}`). Enquanto ele sobreviver à troca de sessão, os
+  // dados de uma conta podem ser servidos à seguinte no mesmo navegador,
+  // dentro do TTL. Hoje só o heatmap de trend usa cache — dado público de
+  // mercado —, mas basta alguém marcar `useCache: true` num endpoint de
+  // patrimônio para isso virar vazamento. Limpar aqui é o que torna a regra
+  // "cache é por sessão" verdadeira em vez de sorte.
   const logout = useCallback(() => {
     setToken(null)
     clearStoredToken()
+    clearAllCache()
     setUser(null)
     const defaults = getInitialPreferences()
     setPrefs(defaults)
@@ -108,6 +117,10 @@ export function AuthProvider({ children }) {
   }, [logout])
 
   const login = async (t) => {
+    // Também na entrada, e não só no logout: quem fecha a aba sem sair deixa o
+    // cache para trás, e o próximo a entrar herdaria aquilo. Toda sessão começa
+    // limpa.
+    clearAllCache()
     // Grava antes de setToken: o efeito abaixo dispara a carga de preferências
     // e o apiClient lê o token do storage.
     setStoredToken(t)
