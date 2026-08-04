@@ -20,7 +20,7 @@ export default function DashboardHeader({ t, prefs, usuario, title }) {
           onClick={forceRefresh}
           style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
         >
-          <MdRefresh /> Atualizar Dados
+          <MdRefresh /> {t('refreshData')}
         </button>
       </div>
     </header>

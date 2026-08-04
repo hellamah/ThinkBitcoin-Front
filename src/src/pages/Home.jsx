@@ -95,19 +95,19 @@ function Home() {
             <div className="stat-num-v3">
               <AnimatedNumber end={94.8} decimals={1} suffix="%" />
             </div>
-            <div className="stat-label-v3">Precisão da IA</div>
+            <div className="stat-label-v3">{t('statAiAccuracy')}</div>
           </div>
           <div className="stat-item-v3">
             <div className="stat-num-v3">
               <AnimatedNumber end={1.5} decimals={1} suffix="M+" />
             </div>
-            <div className="stat-label-v3">Dados/Seg</div>
+            <div className="stat-label-v3">{t('statDataPerSecond')}</div>
           </div>
           <div className="stat-item-v3">
             <div className="stat-num-v3">
               <AnimatedNumber end={99.9} decimals={1} suffix="%" />
             </div>
-            <div className="stat-label-v3">Uptime do Core</div>
+            <div className="stat-label-v3">{t('statCoreUptime')}</div>
           </div>
         </div>
       </section>
