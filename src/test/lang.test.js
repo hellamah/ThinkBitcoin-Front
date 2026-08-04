@@ -9,7 +9,7 @@ import fr from '../src/lang/fr.json'
 // vitest e a suíte inteira falha ao coletar, com um "is not a function" que não
 // aponta para o import.
 import italiano from '../src/lang/it.json'
-import { LANGUAGE_CODES } from '../src/lang'
+import { LANGUAGE_CODES, IDIOMA_PADRAO } from '../src/lang'
 
 // Guarda os arquivos de idioma. Divergência entre eles não quebra build nem
 // aparece em tela: a chave ausente simplesmente cai no fallback e a interface
@@ -17,9 +17,10 @@ import { LANGUAGE_CODES } from '../src/lang'
 
 const IDIOMAS = { pt, en, es, fr, it: italiano }
 
-// O português é a fonte da verdade: é o idioma em que as telas são escritas
-// primeiro e o fallback quando o dicionário escolhido ainda não chegou.
-const REFERENCIA = 'pt'
+// A referência acompanha o idioma padrão, e não fica cravada: é o dicionário
+// estático, o que preenche a lacuna quando uma chave falta em outro idioma.
+// Comparar contra ele é comparar contra o que o usuário realmente veria.
+const REFERENCIA = IDIOMA_PADRAO
 
 // Marcador de que o teste está olhando o arquivo inteiro, e não só a superfície.
 const MINIMO_CHAVES = 150
@@ -76,7 +77,7 @@ describe('lang › registro de idiomas', () => {
   })
 })
 
-describe.each(OUTROS)('lang › paridade de %s com pt', (nome) => {
+describe.each(OUTROS)(`lang › paridade de %s com ${REFERENCIA}`, (nome) => {
   const plano = planos[nome]
 
   it('deve ter exatamente o mesmo conjunto de chaves, em qualquer nível', () => {
@@ -85,9 +86,9 @@ describe.each(OUTROS)('lang › paridade de %s com pt', (nome) => {
     expect(Object.keys(plano).sort()).toEqual(Object.keys(planoReferencia).sort())
   })
 
-  it('deve usar os mesmos marcadores de interpolação que o português', () => {
-    // Um {{razao}} que existe só em pt faz a outra versão exibir o texto sem o
-    // número, sem erro nenhum no console.
+  it('deve usar os mesmos marcadores de interpolação que o idioma de referência', () => {
+    // Um {{razao}} que existe só na referência faz a outra versão exibir o
+    // texto sem o número, sem erro nenhum no console.
     const divergentes = Object.keys(planoReferencia)
       .filter((chave) => chave in plano)
       .filter(
@@ -95,7 +96,7 @@ describe.each(OUTROS)('lang › paridade de %s com pt', (nome) => {
       )
       .map((chave) => ({
         chave,
-        pt: marcadores(planoReferencia[chave]),
+        [REFERENCIA]: marcadores(planoReferencia[chave]),
         [nome]: marcadores(plano[chave]),
       }))
 

@@ -7,7 +7,7 @@
 // idioma significava lembrar de todos. Agora significa acrescentar uma linha
 // aqui e um arquivo ao lado.
 
-import pt from './pt.json'
+import en from './en.json'
 
 /**
  * @typedef {Object} Idioma
@@ -21,9 +21,11 @@ import pt from './pt.json'
  */
 
 /** @type {ReadonlyArray<Idioma>} */
+// O inglês vem primeiro por ser o padrão: é a ordem em que o seletor aparece.
+/** @type {ReadonlyArray<Idioma>} */
 export const LANGUAGES = Object.freeze([
-  { codigo: 'pt', rotulo: 'Português', htmlLang: 'pt-BR', intl: 'pt-BR' },
   { codigo: 'en', rotulo: 'English', htmlLang: 'en', intl: 'en-US' },
+  { codigo: 'pt', rotulo: 'Português', htmlLang: 'pt-BR', intl: 'pt-BR' },
   { codigo: 'es', rotulo: 'Español', htmlLang: 'es', intl: 'es-ES' },
   { codigo: 'fr', rotulo: 'Français', htmlLang: 'fr', intl: 'fr-FR' },
   { codigo: 'it', rotulo: 'Italiano', htmlLang: 'it', intl: 'it-IT' },
@@ -31,12 +33,13 @@ export const LANGUAGES = Object.freeze([
 
 export const LANGUAGE_CODES = Object.freeze(LANGUAGES.map((l) => l.codigo))
 
-export const IDIOMA_PADRAO = 'pt'
+export const IDIOMA_PADRAO = 'en'
 
-// O português é o único importado estaticamente. Ele é o fallback: enquanto o
-// dicionário escolhido não chega, `t()` responde em português em vez de
-// devolver o nome cru da chave ("nav.dashboard") na tela.
-export const dicionarioPadrao = pt
+// O idioma padrão é o único importado estaticamente, e as duas coisas andam
+// juntas de propósito: ele é o fallback enquanto o dicionário escolhido não
+// chega, e é o que a maioria vê primeiro. Fosse outro o estático, justamente o
+// padrão seria o único a esperar uma requisição para renderizar.
+export const dicionarioPadrao = en
 
 /** Devolve os metadados do idioma, caindo no padrão quando o código é inválido. */
 export const idiomaDe = (codigo) =>
@@ -47,10 +50,10 @@ export const idiomaDe = (codigo) =>
 // usuário precisa exatamente de um. Estaticamente, os cinco viajariam no chunk
 // principal para todo visitante.
 //
-// O pt.json fica de fora do glob de propósito: ele já é estático logo acima, e
+// O en.json fica de fora do glob de propósito: ele já é estático logo acima, e
 // incluí-lo aqui faria o Rollup avisar que o import dinâmico não consegue
 // movê-lo de chunk — verdade, e intencional, já que ele é o fallback.
-const carregadores = import.meta.glob(['./*.json', '!./pt.json'])
+const carregadores = import.meta.glob(['./*.json', '!./en.json'])
 
 /**
  * Carrega o dicionário de um idioma sob demanda.

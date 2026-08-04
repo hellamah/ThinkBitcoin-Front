@@ -43,7 +43,7 @@ import { getTourHeatmapVisto, setTourHeatmapVisto } from '../utils/preferences'
 import { exportarHeatmapDados } from '../utils/exportUtils'
 
 // Componente de Gráfico Nativo à prova de loops no React 19
-const NativeGeoChart = ({ data, options, onSelect, onChartReady }) => {
+const NativeGeoChart = ({ data, options, onSelect, onChartReady, language }) => {
   const containerRef = useRef(null)
   const [loaded, setLoaded] = useState(false)
 
@@ -62,9 +62,13 @@ const NativeGeoChart = ({ data, options, onSelect, onChartReady }) => {
     if (checkLoaded()) return
 
     const loadLibrary = () => {
+      // O locale vem de fora, do registro de idiomas — estava cravado em
+      // 'pt-BR'. A biblioteca só carrega uma vez por página, então quem troca
+      // de idioma sem recarregar mantém o locale da carga inicial: é limitação
+      // do loader do Google, não da preferência.
       window.google.charts.load('current', {
         packages: ['geochart'],
-        language: 'pt-BR'
+        language
       })
       window.google.charts.setOnLoadCallback(() => {
         if (active) setLoaded(true)
@@ -1138,6 +1142,7 @@ export default function GeoHeatmapView() {
                       options={optionsFinal}
                       onSelect={handleChartSelect}
                       onChartReady={handleChartReady}
+                      language={localeIdioma}
                     />
                   </Box>
                 </Box>

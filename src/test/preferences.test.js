@@ -5,6 +5,7 @@
  * de entradas e o ciclo de vida de preferências do investidor no ThinkBitcoin.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { IDIOMA_PADRAO } from '../src/lang'
 import {
   AlgorithmStyle,
   DEFAULT_PREFERENCES,
@@ -49,9 +50,12 @@ describe('utils/preferences › Enums & Constantes', () => {
     expect(AlgorithmStyle.AGGRESSIVE).toBe('agressivo')
   })
 
-  it('deve carregar as configurações padrão (Dark/PT) corretamente', () => {
+  it('deve carregar as configurações padrão corretamente', () => {
     expect(DEFAULT_PREFERENCES.tema).toBe(Theme.DARK)
-    expect(DEFAULT_PREFERENCES.idioma).toBe(Language.PT)
+    // Comparado com IDIOMA_PADRAO, e não com um código escrito à mão: o idioma
+    // padrão é decisão de produto e mora no registro. Cravá-lo aqui faria o
+    // teste falhar por estar desatualizado, não por haver defeito.
+    expect(DEFAULT_PREFERENCES.idioma).toBe(IDIOMA_PADRAO)
   })
 })
 
@@ -121,7 +125,7 @@ describe('utils/preferences › Persistência (LocalStorage)', () => {
     localStorage.setItem('theme', 'light')
     const initial = getInitialPreferences()
     expect(initial.tema).toBe(Theme.LIGHT)
-    expect(initial.idioma).toBe(Language.PT) // Padrão pois não estava no storage
+    expect(initial.idioma).toBe(IDIOMA_PADRAO) // Padrão pois não estava no storage
   })
 })
 
