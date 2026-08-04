@@ -1,5 +1,5 @@
 import { API_URL } from '../api'
-import { getMockResponse, USE_MOCK_API } from './mockApi'
+import { USE_MOCK_API } from './mockFlag'
 import { getCache, setCache } from './cache'
 import { getStoredToken } from './preferences'
 
@@ -189,6 +189,9 @@ export const apiRequest = async (
   }
 
   if (USE_MOCK_API) {
+    // Import dinâmico: em produção a flag é estaticamente falsa e o Rollup joga
+    // o mockApi num chunk separado, que o navegador nunca chega a buscar.
+    const { getMockResponse } = await import('./mockApi')
     const mockResponse = getMockResponse({ endpoint, method, body })
     if (mockResponse) {
       const normalizedMock = normalizeApiKeys(mockResponse)

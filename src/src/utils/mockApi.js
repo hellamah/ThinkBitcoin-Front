@@ -1,39 +1,6 @@
-const parseUseMockFlag = (value) => {
-  if (typeof value === 'boolean') return value
-  if (typeof value === 'string') return value.toLowerCase() === 'true'
-  return false
-}
-
-const resolveUseMockEnv = () => {
-  try {
-    return import.meta.env?.VITE_USE_MOCK
-  } catch {
-    return undefined
-  }
-}
-
-const resolveIsDevMode = () => {
-  try {
-    return Boolean(import.meta.env?.DEV)
-  } catch {
-    return false
-  }
-}
-
-const resolveIsTestMode = () => {
-  try {
-    return import.meta.env?.MODE === 'test'
-  } catch {
-    return false
-  }
-}
-
-const resolvedUseMockEnv = resolveUseMockEnv()
-
-export const USE_MOCK_API =
-  !resolveIsTestMode() &&
-  (parseUseMockFlag(resolvedUseMockEnv) ||
-   (resolvedUseMockEnv === undefined && resolveIsDevMode()))
+// A flag mudou de casa (mockFlag.js) para que este arquivo possa ficar atrás de
+// um import dinâmico. Reexportada aqui só para quem já importava daqui.
+export { USE_MOCK_API } from './mockFlag'
 
 // As preferências do modo demo vivem no localStorage: sem isso o GET devolve
 // sempre o mesmo objeto fixo e qualquer alteração do usuário (tema, idioma…)
