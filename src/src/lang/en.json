@@ -27,6 +27,13 @@
   "statDataPerSecond": "Data/Sec",
   "statCoreUptime": "Core Uptime",
   "inviteOverlayAria": "Register a new user by invitation",
+  "heroTitleLine1": "The Intelligence That",
+  "heroTitleLine2": "Masters the Market.",
+  "heroDescription": "Access the elite platform that uses advanced artificial intelligence to anticipate movements and maximize your results in the Bitcoin universe.",
+  "heroCta": "Access Terminal",
+  "heroInviteBadge": "⚡ Invitation-only access",
+  "aiShowcaseTitle": "Powered by Deep Learning",
+  "aiShowcaseDescription": "Our platform is built on a full AI infrastructure, processing sentiment, trends and flows in real time.",
   "nav": {
     "home": "Home",
     "dashboard": "Dashboard",

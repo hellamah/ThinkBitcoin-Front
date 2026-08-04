@@ -64,26 +64,29 @@ function Home() {
       {/* Hero Section */}
       <section className="home-section hero-v3">
         <div className="hero-tag">ThinkBitcoin OS // Neural Network v4.0</div>
+        {/* Duas chaves, e não uma com <br /> embutido: a quebra cai em pontos
+            diferentes conforme o idioma, e marcação dentro do dicionário é o
+            começo de um problema pior. */}
         <h1 className="hero-title-v3">
-          A Inteligência Que<br />Domina o Mercado.
+          {t('heroTitleLine1')}<br />{t('heroTitleLine2')}
         </h1>
         <p className="hero-desc-v3">
-          Acesse a plataforma de elite que utiliza inteligência artificial avançada para antecipar movimentos e maximizar seus resultados no universo Bitcoin.
+          {t('heroDescription')}
         </p>
         
         <div className="cta-group">
           <NavLink to="/login" className="btn-premium btn-primary-v3">
-            Acessar Terminal <MdArrowForward />
+            {t('heroCta')} <MdArrowForward />
           </NavLink>
           <span
             className={`exclusive-tag${token ? ' exclusive-tag-logado' : ''}`}
             onClick={abrirOverlay}
-            title={token ? 'Cadastrar novo usuário por convite' : undefined}
+            title={token ? t('inviteOverlayAria') : undefined}
             role={token ? 'button' : undefined}
             tabIndex={token ? 0 : undefined}
             onKeyDown={token ? (e) => e.key === 'Enter' && abrirOverlay() : undefined}
           >
-            ⚡ Acesso exclusivo por convite
+            {t('heroInviteBadge')}
           </span>
         </div>
       </section>
@@ -116,10 +119,10 @@ function Home() {
       <section className="home-section">
         <div style={{ marginBottom: '40px' }}>
           <h2 className="terminal-text" style={{ fontSize: '1.5rem', color: 'var(--text-primary)', marginBottom: '16px' }}>
-            Powered by Deep Learning
+            {t('aiShowcaseTitle')}
           </h2>
           <p style={{ color: 'var(--text-muted)', maxWidth: '500px' }}>
-            Nossa plataforma é construída sobre uma infraestrutura de IA total, processando sentimentos, tendências e fluxos em tempo real.
+            {t('aiShowcaseDescription')}
           </p>
         </div>
 

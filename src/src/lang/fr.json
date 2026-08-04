@@ -27,6 +27,13 @@
   "statDataPerSecond": "Données/s",
   "statCoreUptime": "Disponibilité du cœur",
   "inviteOverlayAria": "Inscrire un nouvel utilisateur par invitation",
+  "heroTitleLine1": "L'intelligence qui",
+  "heroTitleLine2": "domine le marché.",
+  "heroDescription": "Accédez à la plateforme d'élite qui utilise une intelligence artificielle avancée pour anticiper les mouvements et maximiser vos résultats dans l'univers Bitcoin.",
+  "heroCta": "Accéder au terminal",
+  "heroInviteBadge": "⚡ Accès exclusif sur invitation",
+  "aiShowcaseTitle": "Powered by Deep Learning",
+  "aiShowcaseDescription": "Notre plateforme repose sur une infrastructure d'IA complète, traitant le sentiment, les tendances et les flux en temps réel.",
   "nav": {
     "home": "Accueil",
     "dashboard": "Tableau de bord",
