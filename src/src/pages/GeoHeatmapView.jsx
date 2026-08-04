@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation, useNavigationType } from 'react-router-dom'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import CircularProgress from '@mui/material/CircularProgress'
@@ -13,7 +13,9 @@ import Alert from '@mui/material/Alert'
 import Menu from '@mui/material/Menu'
 import MenuItem from '@mui/material/MenuItem'
 import Tooltip from '@mui/material/Tooltip'
+import { useTheme } from '@mui/material/styles'
 import { Joyride, STATUS } from 'react-joyride'
+import { readToken } from '../utils/themeTokens'
 import {
   MdPublic,
   MdAnalytics,
@@ -25,6 +27,7 @@ import {
 } from 'react-icons/md'
 
 import DashboardHeader from '../components/dashboard/DashboardHeader'
+import HeatmapInsights from '../components/heatmap/HeatmapInsights'
 import ErrorMessage from '../components/ErrorMessage'
 import CoinCarousel from '../components/dashboard/CoinCarousel'
 import { useAuth } from '../context/AuthContext'
@@ -32,14 +35,14 @@ import { useDashboard } from '../context/DashboardContext'
 import useTranslation from '../hooks/useTranslation'
 import useCoinPrices from '../hooks/useCoinPrices'
 import { apiRequest, VariavelExternaEndpoint } from '../utils/apiClient'
-import { MapRegion, ExportFormat } from '../utils/enums'
-import { formatTooltipData, getRegionForCountry, filterCoinsByCountry } from '../utils/mapUtils'
+import { MapRegion, ExportFormat, MapMetric } from '../utils/enums'
+import { formatTooltipData, getRegionForCountry, filterCoinsByCountry, getCountryName } from '../utils/mapUtils'
 import { hasCacheValid } from '../utils/cache'
 import { getTourHeatmapVisto, setTourHeatmapVisto } from '../utils/preferences'
 import { exportarHeatmapDados } from '../utils/exportUtils'
 
 // Componente de Gráfico Nativo à prova de loops no React 19
-const NativeGeoChart = ({ data, options, onSelect }) => {
+const NativeGeoChart = ({ data, options, onSelect, onChartReady }) => {
   const containerRef = useRef(null)
   const [loaded, setLoaded] = useState(false)
 
@@ -113,7 +116,8 @@ const NativeGeoChart = ({ data, options, onSelect }) => {
       }
 
       chart.draw(dataTable, options)
-      
+      if (onChartReady) onChartReady(chart)
+
       const handleResize = () => {
         chart.draw(dataTable, options)
       }
@@ -121,12 +125,13 @@ const NativeGeoChart = ({ data, options, onSelect }) => {
 
       return () => {
         window.removeEventListener('resize', handleResize)
+        if (onChartReady) onChartReady(null)
         chart.clearChart()
       }
     } catch (err) {
       console.error('[NativeGeoChart] Erro ao desenhar gráfico:', err)
     }
-  }, [loaded, data, options, onSelect])
+  }, [loaded, data, options, onSelect, onChartReady])
 
   return (
     <div 
@@ -137,46 +142,33 @@ const NativeGeoChart = ({ data, options, onSelect }) => {
 }
 
 // ---------------------------------------------------------------------------
-// Mapa de códigos ISO para nomes de países em PT-BR
-// ---------------------------------------------------------------------------
-const getCountryName = (code) => {
-  const countries = {
-    US: 'Estados Unidos', DE: 'Alemanha', CH: 'Suíça', BR: 'Brasil',
-    CA: 'Canadá', GB: 'Reino Unido', FR: 'França', JP: 'Japão',
-    CN: 'China', IN: 'Índia', RU: 'Rússia', AU: 'Austrália',
-    NO: 'Noruega', SE: 'Suécia', NL: 'Holanda', SG: 'Singapura',
-    IT: 'Itália', ES: 'Espanha', ZA: 'África do Sul', NG: 'Nigéria',
-    EG: 'Egito', KE: 'Quênia', GH: 'Gana', MA: 'Marrocos',
-    NZ: 'Nova Zelândia', KR: 'Coreia do Sul', MX: 'México',
-    AR: 'Argentina', CO: 'Colômbia',
-  }
-  return countries[String(code).toUpperCase()] || code
-}
-
-// ---------------------------------------------------------------------------
 // Componente principal
 // ---------------------------------------------------------------------------
 export default function GeoHeatmapView() {
+  const { palette } = useTheme()
   const { token, user: usuario, prefs } = useAuth()
   const { refreshTrigger, moedaSelecionada, setMoedaSelecionada } = useDashboard()
   const { t } = useTranslation()
   const { moedas: moedasCarousel, erro: erroMoedas, setErro: setErroMoedas } = useCoinPrices()
   const navigate = useNavigate()
   const location = useLocation()
+  const navigationType = useNavigationType()
 
   // ------ estados de dados ------
-  const [heatmapData, setHeatmapData] = useState(null)
-  const heatmapDataRef = useRef(heatmapData)
-  useEffect(() => {
-    heatmapDataRef.current = heatmapData
-  }, [heatmapData])
+  // Registros crus da API; a matriz do Google Charts é derivada por useMemo,
+  // o que permite alternar a métrica do mapa sem novo fetch.
+  const [heatmapRaw, setHeatmapRaw] = useState(null)
   const [loading, setLoading] = useState(false)
   const [erro, setErro] = useState('')
   const [dadosDoCacheAtivo, setDadosDoCacheAtivo] = useState(false)
 
   // ------ estados de UI ------
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200)
-  const [paisSelecionado, setPaisSelecionado] = useState(null)
+  const [paisSelecionado, setPaisSelecionado] = useState(() => {
+    if (typeof window === 'undefined') return null
+    const qPais = new URLSearchParams(window.location.search).get('pais')
+    return qPais ? qPais.toUpperCase() : null
+  })
   const [regionSelecionada, setRegionSelecionada] = useState(() => {
     if (typeof window === 'undefined') return MapRegion.WORLD
     const params = new URLSearchParams(window.location.search)
@@ -189,6 +181,19 @@ export default function GeoHeatmapView() {
     const qIntervalo = params.get('intervalo')
     return ['1h', '24h', '1m'].includes(qIntervalo) ? qIntervalo : '24h'
   })
+  const [metricaMapa, setMetricaMapa] = useState(() => {
+    if (typeof window === 'undefined') return MapMetric.LIDERANCA
+    const params = new URLSearchParams(window.location.search)
+    const qMetrica = params.get('metrica')
+    return Object.values(MapMetric).includes(qMetrica) ? qMetrica : MapMetric.LIDERANCA
+  })
+  // Instância viva do GeoChart, usada para exportar o mapa como PNG.
+  const chartInstanceRef = useRef(null)
+  const handleChartReady = useCallback((chart) => { chartInstanceRef.current = chart }, [])
+
+  // Nomes de países no idioma preferido do usuário (Intl.DisplayNames).
+  const localeIdioma = prefs?.idioma === 'en' ? 'en' : 'pt'
+  const nomePais = useCallback((code) => getCountryName(code, localeIdioma), [localeIdioma])
 
   // ------ estados de notificação ------
   const [snackbarAberto, setSnackbarAberto] = useState(false)
@@ -206,11 +211,6 @@ export default function GeoHeatmapView() {
   const refAcoesTopo = useRef(null)
   const refZoom = useRef(null)
   const refInteligencia = useRef(null)
-
-  const moedasCarouselRef = useRef(moedasCarousel)
-  useEffect(() => {
-    moedasCarouselRef.current = moedasCarousel
-  }, [moedasCarousel])
 
   const queryLidaRef = useRef(false)
 
@@ -244,48 +244,58 @@ export default function GeoHeatmapView() {
     const qIntervalo = params.get('intervalo')
     const qRegiao = params.get('regiao')
 
-    let inicializouAlgo = false
-
     if (qMoeda) {
       const match = moedasCarousel.find(m =>
         String(m.simbolo).toUpperCase() === String(qMoeda).toUpperCase()
       )
       if (match && match.simbolo !== moedaSelecionada) {
         setMoedaSelecionada(match.simbolo)
-        inicializouAlgo = true
       }
     }
-    if (qIntervalo && ['1h', '24h', '1m'].includes(qIntervalo)) {
-      if (qIntervalo !== intervaloMapa) {
-        setIntervaloMapa(qIntervalo)
-        inicializouAlgo = true
-      }
+    if (qIntervalo && ['1h', '24h', '1m'].includes(qIntervalo) && qIntervalo !== intervaloMapa) {
+      setIntervaloMapa(qIntervalo)
     }
-    if (qRegiao && Object.values(MapRegion).includes(qRegiao)) {
-      if (qRegiao !== regionSelecionada) {
-        setRegionSelecionada(qRegiao)
-        inicializouAlgo = true
-      }
+    if (qRegiao && Object.values(MapRegion).includes(qRegiao) && qRegiao !== regionSelecionada) {
+      setRegionSelecionada(qRegiao)
     }
 
-    if (inicializouAlgo || qMoeda) {
-      queryLidaRef.current = true
-    }
+    // Leitura única: uma vez com o carrossel carregado, este efeito nunca mais
+    // roda. Sem isso, uma URL inicial sem `moeda` deixava o efeito armado e ele
+    // revertia a primeira troca de moeda feita pelo usuário (tela "piscando").
+    queryLidaRef.current = true
   }, [moedasCarousel, location.search, moedaSelecionada, intervaloMapa, regionSelecionada, setMoedaSelecionada])
 
   // ---------------------------------------------------------------------------
-  // Sincroniza a URL -> Estado apenas quando o usuário navegar no histórico (Voltar/Avançar)
+  // Sincroniza a URL -> Estado apenas quando o usuário navegar no histórico
+  // (Voltar/Avançar). O gate por navigationType === 'POP' + dependência apenas
+  // em location.key é essencial: sem ele, este efeito rodava a cada mudança de
+  // estado e revertia a seleção feita no carrossel enquanto o efeito de
+  // Estado -> URL empurrava na direção contrária (tela alternando em loop).
   // ---------------------------------------------------------------------------
   useEffect(() => {
+    if (navigationType !== 'POP') return
+
     const params = new URLSearchParams(location.search)
     const qMoeda = params.get('moeda')
-    if (qMoeda && qMoeda !== moedaSelecionada) {
+    if (qMoeda) {
       const match = moedasCarousel?.find(m =>
         String(m.simbolo).toUpperCase() === String(qMoeda).toUpperCase()
       )
       if (match) setMoedaSelecionada(match.simbolo)
     }
-  }, [location.search, moedaSelecionada, moedasCarousel, setMoedaSelecionada])
+    const qIntervalo = params.get('intervalo')
+    if (qIntervalo && ['1h', '24h', '1m'].includes(qIntervalo)) setIntervaloMapa(qIntervalo)
+    const qRegiao = params.get('regiao')
+    if (qRegiao && Object.values(MapRegion).includes(qRegiao)) setRegionSelecionada(qRegiao)
+    const qPais = params.get('pais')
+    setPaisSelecionado(qPais ? qPais.toUpperCase() : null)
+    const qMetrica = params.get('metrica')
+    setMetricaMapa(Object.values(MapMetric).includes(qMetrica) ? qMetrica : MapMetric.LIDERANCA)
+    // Roda uma única vez por navegação (location.key); os valores atuais de
+    // estado não entram nas dependências de propósito — setState idêntico faz
+    // bail-out no React, e reagir a estado aqui recriaria o loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigationType, location.key, moedasCarousel])
 
   // ---------------------------------------------------------------------------
   // Sincroniza query-string ao mudar o estado (permite link compartilhável)
@@ -298,15 +308,25 @@ export default function GeoHeatmapView() {
     const qMoeda = params.get('moeda')
     const qIntervalo = params.get('intervalo')
     const qRegiao = params.get('regiao')
+    const qPais = params.get('pais')
+    const qMetrica = params.get('metrica')
 
-    if (qMoeda !== moedaSelecionada || qIntervalo !== intervaloMapa || qRegiao !== regionSelecionada) {
+    if (
+      qMoeda !== moedaSelecionada ||
+      qIntervalo !== intervaloMapa ||
+      qRegiao !== regionSelecionada ||
+      (qPais || null) !== paisSelecionado ||
+      (qMetrica || MapMetric.LIDERANCA) !== metricaMapa
+    ) {
       const newParams = new URLSearchParams()
       newParams.set('moeda', moedaSelecionada)
       newParams.set('intervalo', intervaloMapa)
       newParams.set('regiao', regionSelecionada)
+      if (paisSelecionado) newParams.set('pais', paisSelecionado)
+      if (metricaMapa !== MapMetric.LIDERANCA) newParams.set('metrica', metricaMapa)
       navigate(`?${newParams.toString()}`, { replace: true })
     }
-  }, [moedaSelecionada, intervaloMapa, regionSelecionada, navigate, location.pathname, location.search])
+  }, [moedaSelecionada, intervaloMapa, regionSelecionada, paisSelecionado, metricaMapa, navigate, location.pathname, location.search])
 
   // ---------------------------------------------------------------------------
   // Inicialização da moeda selecionada baseada nas preferências do usuário
@@ -336,6 +356,83 @@ export default function GeoHeatmapView() {
   // ---------------------------------------------------------------------------
   const moedasFiltro = useMemo(() =>
     moedaSelecionada ? [moedaSelecionada] : [], [moedaSelecionada])
+
+  // Matriz do Google Charts derivada dos registros crus + métrica selecionada.
+  // Alternar Liderança × Intensidade redesenha o mapa sem novo fetch.
+  const heatmapData = useMemo(() => {
+    if (!heatmapRaw?.length) return null
+
+    const valorItem = (item) => {
+      const lider = Number(item.frequenciaLideranca ?? item.FrequenciaLideranca ?? 0)
+      const intens = Number(item.mediaIntensidade ?? item.MediaIntensidade ?? 0)
+      return metricaMapa === MapMetric.INTENSIDADE ? (intens || lider) : (lider || intens)
+    }
+
+    // Participações relativas do top 5
+    const top5List = heatmapRaw.map(item => ({
+      countryCode: String(item.geoTop1Code || item.GeoTop1Code).toUpperCase(),
+      val: valorItem(item),
+    })).sort((a, b) => b.val - a.val).slice(0, 5)
+
+    const totalSum = top5List.reduce((acc, curr) => acc + curr.val, 0)
+    const sharesMap = {}
+    if (totalSum > 0) {
+      let sumShares = 0
+      top5List.forEach(item => {
+        const share = Math.round((item.val / totalSum) * 100)
+        sharesMap[item.countryCode] = share
+        sumShares += share
+      })
+      const diff = 100 - sumShares
+      if (diff !== 0 && top5List.length > 0) sharesMap[top5List[0].countryCode] += diff
+    }
+
+    // Variação de preço do ativo selecionado (dado real do carrossel) — a API
+    // do heatmap não traz variação/volume por país.
+    const moedaAtual = moedasCarousel?.find(m => m.simbolo === moedaSelecionada)
+    const variacaoMoeda = typeof moedaAtual?.variacao === 'number' ? moedaAtual.variacao : null
+
+    const tooltipLabels = {
+      participacao: t('heatmap.participacaoTop5'),
+      lideranca: t('heatmap.liderancaBuscas'),
+      intensidade: t('heatmap.intensidadeMedia'),
+      variacao: t('heatmap.variacao'),
+    }
+
+    const chartData = [
+      [
+        'Country',
+        metricaMapa === MapMetric.INTENSIDADE
+          ? (t('heatmap.metricaIntensidade') || 'Intensidade média')
+          : (t('heatmap.metricaLideranca') || 'Liderança de buscas'),
+        { role: 'tooltip', type: 'string', p: { html: true } }
+      ]
+    ]
+
+    heatmapRaw.forEach(item => {
+      const countryCode = String(item.geoTop1Code || item.GeoTop1Code).toUpperCase()
+      const extras = {
+        variacao24h: variacaoMoeda,
+        lideranca: item.frequenciaLideranca ?? item.FrequenciaLideranca ?? null,
+        intensidade: item.mediaIntensidade ?? item.MediaIntensidade ?? null,
+      }
+      const tooltipHtml = formatTooltipData(
+        nomePais(countryCode),
+        moedaSelecionada,
+        sharesMap[countryCode] || 0,
+        extras,
+        tooltipLabels
+      )
+      chartData.push([{ v: countryCode, f: '' }, valorItem(item), tooltipHtml])
+    })
+
+    return chartData.length > 1 ? chartData : null
+  }, [heatmapRaw, metricaMapa, moedasCarousel, moedaSelecionada, nomePais, t])
+
+  const heatmapDataRef = useRef(heatmapData)
+  useEffect(() => {
+    heatmapDataRef.current = heatmapData
+  }, [heatmapData])
 
   const topRegioes = useMemo(() => {
     if (!heatmapData || heatmapData.length <= 1) return []
@@ -386,27 +483,39 @@ export default function GeoHeatmapView() {
   // ---------------------------------------------------------------------------
   // Carregamento do Heatmap com suporte a cache
   // ---------------------------------------------------------------------------
-  const moedaId = useMemo(() => {
-    const moeda = moedasCarousel?.find(m => m.simbolo === moedaSelecionada)
-    return moeda?.id || null
-  }, [moedasCarousel, moedaSelecionada])
+  const moedaSelObj = useMemo(() =>
+    moedasCarousel?.find(m => m.simbolo === moedaSelecionada) || null,
+    [moedasCarousel, moedaSelecionada])
 
-  const carregarHeatmap = useCallback(async (forceRefresh = false) => {
+  const moedaId = moedaSelObj?.id || null
+
+  // `silencioso` recarrega sem exibir skeleton — usado pelo auto-refresh
+  // quando o cache expira com a aba aberta.
+  const carregarHeatmap = useCallback(async (forceRefresh = false, silencioso = false) => {
     if (!token || !moedaSelecionada) return
     if (!moedaId && (!moedasCarousel || moedasCarousel.length === 0)) return // Aguarda o carrossel carregar
 
     const chaveCache = `heatmap_${moedaSelecionada}_${intervaloMapa}`
-    
+
     // Sinaliza se o dado será carregado do cache (caso exista)
     const temNoCache = !forceRefresh && hasCacheValid(chaveCache)
     setDadosDoCacheAtivo(temNoCache)
 
-    setLoading(true)
+    if (!silencioso) setLoading(true)
     setErro('')
     try {
-      const idMoedaParam = moedaId ? `?idMoeda=${moedaId}` : ''
-      const sep = idMoedaParam ? '&' : '?'
-      const url = `${VariavelExternaEndpoint.TREND_HEATMAP}${idMoedaParam}${sep}intervalo=${intervaloMapa}`
+      // O backend real não conhece `intervalo`: o recorte temporal é feito por
+      // dataInicio/dataFim. O `intervalo` continua na URL apenas para o mock.
+      const horasPorIntervalo = { '1h': 1, '24h': 24, '1m': 24 * 30 }
+      const agora = new Date()
+      const inicio = new Date(agora.getTime() - (horasPorIntervalo[intervaloMapa] || 24) * 60 * 60 * 1000)
+
+      const params = new URLSearchParams()
+      if (moedaId) params.set('idMoeda', moedaId)
+      params.set('dataInicio', inicio.toISOString())
+      params.set('dataFim', agora.toISOString())
+      params.set('intervalo', intervaloMapa)
+      const url = `${VariavelExternaEndpoint.TREND_HEATMAP}?${params.toString()}`
       const response = await apiRequest(url, {
         useCache: true,
         cacheKey: chaveCache,
@@ -421,72 +530,31 @@ export default function GeoHeatmapView() {
         rawData = response
       }
 
-      // Calcula participações relativas do top 5
-      const top5List = rawData.map(item => {
-        const countryCode = String(item.geoTop1Code || item.GeoTop1Code).toUpperCase()
-        const val = Number(item.frequenciaLideranca || item.FrequenciaLideranca || item.mediaIntensidade || item.MediaIntensidade || 0)
-        return { countryCode, val }
-      }).sort((a, b) => b.val - a.val).slice(0, 5)
-
-      const totalSum = top5List.reduce((acc, curr) => acc + curr.val, 0)
-      const sharesMap = {}
-      if (totalSum > 0) {
-        let sumShares = 0
-        top5List.forEach(item => {
-          const share = Math.round((item.val / totalSum) * 100)
-          sharesMap[item.countryCode] = share
-          sumShares += share
-        })
-        const diff = 100 - sumShares
-        if (diff !== 0 && top5List.length > 0) sharesMap[top5List[0].countryCode] += diff
-      }
-
-      // Converte para o formato Google Charts com Tooltips HTML enriquecidos
-      const chartData = [
-        [
-          'Country',
-          t('marketInterest') || 'Interesse Global (Dominância)',
-          { role: 'tooltip', type: 'string', p: { html: true } }
-        ]
-      ]
-
-      if (rawData?.length > 0) {
-        rawData.forEach(item => {
-          const countryCode = String(item.geoTop1Code || item.GeoTop1Code).toUpperCase()
-          const val = item.frequenciaLideranca || item.FrequenciaLideranca || item.mediaIntensidade || item.MediaIntensidade || 0
-          const normalizedPercent = sharesMap[countryCode] || 0
-
-          // Dados extras para o tooltip enriquecido
-          const extras = {
-            variacao24h: item.variacao24h ?? item.Variacao24h,
-            volume: item.volume ?? item.Volume,
-          }
-
-          const tooltipHtml = formatTooltipData(
-            getCountryName(countryCode),
-            moedaSelecionada,
-            normalizedPercent,
-            extras
-          )
-          chartData.push([
-            { v: countryCode, f: '' },
-            val,
-            tooltipHtml
-          ])
-        })
-      }
-
-      const resultado = chartData.length > 1 ? chartData : null
-      setHeatmapData(resultado)
+      setHeatmapRaw(rawData?.length > 0 ? rawData : null)
     } catch (err) {
       console.error('Erro ao carregar Heatmap', err)
-      setErro('Não foi possível carregar os dados geográficos no momento.')
+      setErro(t('heatmap.erroCarregar') || 'Não foi possível carregar os dados geográficos no momento.')
     } finally {
       setLoading(false)
     }
   }, [token, moedaSelecionada, moedaId, moedasCarousel?.length, intervaloMapa, t])
 
   useEffect(() => { carregarHeatmap() }, [carregarHeatmap, refreshTrigger])
+
+  // Auto-refresh: quando o cache de 5 min expira com a aba visível, recarrega
+  // silenciosamente (sem skeleton) para manter o mapa vivo.
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return
+      if (!moedaSelecionada) return
+      const chave = `heatmap_${moedaSelecionada}_${intervaloMapa}`
+      if (!hasCacheValid(chave)) {
+        setDadosDoCacheAtivo(false)
+        carregarHeatmap(false, true)
+      }
+    }, 60_000)
+    return () => clearInterval(id)
+  }, [moedaSelecionada, intervaloMapa, carregarHeatmap])
 
   // ---------------------------------------------------------------------------
   // Handlers de UI
@@ -516,16 +584,32 @@ export default function GeoHeatmapView() {
     const url = window.location.href
     navigator.clipboard.writeText(url)
       .then(() => mostrarSnackbar(t('heatmap.linkCopiado') || 'Link copiado!'))
-      .catch(() => mostrarSnackbar('Não foi possível copiar o link', 'error'))
+      .catch(() => mostrarSnackbar(t('heatmap.erroCopiarLink') || 'Não foi possível copiar o link', 'error'))
   }
 
   const handleAbrirExportar = (event) => setAnchorExportar(event.currentTarget)
   const handleFecharExportar = () => setAnchorExportar(null)
 
   const handleExportar = (formato) => {
-    exportarHeatmapDados(heatmapData, moedaSelecionada, intervaloMapa, formato)
     handleFecharExportar()
-    mostrarSnackbar(`Exportação ${formato.toUpperCase()} concluída!`)
+
+    // PNG: usa a imagem rasterizada da instância viva do GeoChart.
+    if (formato === ExportFormat.PNG) {
+      const uri = chartInstanceRef.current?.getImageURI?.()
+      if (!uri) {
+        mostrarSnackbar(t('heatmap.exportarPNGErro') || 'Não foi possível gerar a imagem do mapa.', 'error')
+        return
+      }
+      const link = document.createElement('a')
+      link.href = uri
+      link.download = `heatmap_${moedaSelecionada}_${intervaloMapa}.png`
+      link.click()
+      mostrarSnackbar(`PNG — ${t('heatmap.exportacaoConcluida') || 'exportação concluída!'}`)
+      return
+    }
+
+    exportarHeatmapDados(heatmapData, moedaSelecionada, intervaloMapa, formato)
+    mostrarSnackbar(`${formato.toUpperCase()} — ${t('heatmap.exportacaoConcluida') || 'exportação concluída!'}`)
   }
 
   // ---------------------------------------------------------------------------
@@ -556,15 +640,26 @@ export default function GeoHeatmapView() {
     }
   ], [handleChartSelect])
 
-  const chartOptions = useMemo(() => ({
-    backgroundColor: 'transparent',
-    datalessRegionColor: '#1a1a1a',
-    defaultColor: '#252525',
-    colorAxis: { colors: ['#282208', '#cca92c', '#ffd700'] },
-    keepAspectRatio: true,
-    region: regionSelecionada,
-    tooltip: { isHtml: true, trigger: 'focus' }
-  }), [regionSelecionada])
+  // O GeoChart pinta atributos SVG via JS: precisa de cor resolvida, var() não
+  // funciona aqui. Os tons de "sem dado" e a rampa da escala também invertem —
+  // no claro, o cinza-chumbo original virava uma mancha preta sobre o mapa.
+  const chartOptions = useMemo(() => {
+    const claro = palette.mode === 'light'
+    return {
+      backgroundColor: 'transparent',
+      datalessRegionColor: claro ? '#e4e6ea' : '#1a1a1a',
+      defaultColor: claro ? '#d8dbe0' : '#252525',
+      colorAxis: {
+        colors: claro
+          ? ['#f2e6c2', '#c9a227', '#6f5400']
+          : ['#282208', '#cca92c', '#ffd700'],
+      },
+      legend: { textStyle: { color: readToken('--text-secondary'), fontSize: 12, fontName: 'Outfit' } },
+      keepAspectRatio: true,
+      region: regionSelecionada,
+      tooltip: { isHtml: true, trigger: 'focus' },
+    }
+  }, [regionSelecionada, palette.mode])
 
   const optionsFinal = useMemo(() => ({
     ...chartOptions,
@@ -641,7 +736,7 @@ export default function GeoHeatmapView() {
         .__floater__open { z-index: 9999 !important; }
         .react-joyride__tooltip {
           background: rgba(15,15,15,0.97) !important;
-          border: 1px solid rgba(255,215,0,0.35) !important;
+          border: 1px solid var(--accent-a30) !important;
           border-radius: 16px !important;
           color: #fff !important;
           font-family: 'Outfit', sans-serif !important;
@@ -679,16 +774,16 @@ export default function GeoHeatmapView() {
           dismissKeyAction: false,
           primaryColor: '#ffd700',
           textColor: '#fff',
-          backgroundColor: 'rgba(15,15,15,0.97)',
+          backgroundColor: 'var(--surface-overlay)',
           arrowColor: 'rgba(15,15,15,0.97)',
           zIndex: 9999,
         }}
         styles={{
-          tooltipTitle: { color: '#ffd700', fontWeight: 800, fontSize: '1rem' },
-          tooltipContent: { color: 'rgba(255,255,255,0.8)', fontSize: '0.88rem' },
-          buttonPrimary: { background: '#ffd700', color: '#000', fontWeight: 700, borderRadius: '8px' },
-          buttonBack: { color: 'rgba(255,255,255,0.6)' },
-          buttonSkip: { color: 'rgba(255,255,255,0.4)', fontSize: '0.78rem' },
+          tooltipTitle: { color: 'var(--accent-ink)', fontWeight: 800, fontSize: '1rem' },
+          tooltipContent: { color: 'var(--text-secondary)', fontSize: '0.88rem' },
+          buttonPrimary: { backgroundColor: 'var(--accent)', color: 'var(--text-on-accent)', fontWeight: 700, borderRadius: '8px' },
+          buttonBack: { color: 'var(--text-muted)' },
+          buttonSkip: { color: 'var(--text-faint)', fontSize: '0.78rem' },
         }}
       />
       )}
@@ -707,8 +802,8 @@ export default function GeoHeatmapView() {
           sx={{
             fontFamily: 'Outfit, sans-serif',
             background: snackbarSeveridade === 'success' ? 'rgba(20,20,20,0.97)' : undefined,
-            border: '1px solid rgba(255,215,0,0.3)',
-            color: '#fff',
+            border: '1px solid var(--accent-a30)',
+            color: 'var(--text-primary)',
           }}
         >
           {snackbarMensagem}
@@ -731,16 +826,16 @@ export default function GeoHeatmapView() {
         />
       </div>
 
-      <section className="panel" style={{ marginTop: '20px', minHeight: '550px', backdropFilter: 'blur(16px)', background: 'rgba(20, 20, 20, 0.45)' }}>
+      <section className="panel" style={{ marginTop: '20px', minHeight: '550px', backdropFilter: 'blur(16px)', backgroundColor: 'var(--surface-panel)' }}>
 
         {/* Cabeçalho do painel */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 4 }}>
           <Box>
-            <Typography variant="h4" sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1.5, fontFamily: 'Outfit, sans-serif', fontWeight: 800, color: 'var(--color-primary)' }}>
+            <Typography variant="h4" sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1.5, fontFamily: 'Outfit, sans-serif', fontWeight: 800, color: 'var(--accent-ink)' }}>
               <MdPublic /> {t('globalHotspot') || 'Geopolítica de Mercado'}
             </Typography>
             <Typography variant="body1" sx={{ opacity: 0.7, fontSize: '0.95rem' }}>
-              Mapeamento global do interesse de busca pelo ativo, destacando as regiões que atualmente lideram a narrativa de mercado.
+              {t('heatmap.descricao') || 'Mapeamento global do interesse de busca pelo ativo, destacando as regiões que atualmente lideram a narrativa de mercado.'}
             </Typography>
           </Box>
 
@@ -760,11 +855,28 @@ export default function GeoHeatmapView() {
                     setIntervaloMapa(opt.value)
                     // Limpa cache ao mudar intervalo para forçar reload
                     setDadosDoCacheAtivo(false)
-                    setHeatmapData(null)
+                    setHeatmapRaw(null)
                   }}
                 >
                   {opt.label}
                 </button>
+              ))}
+            </div>
+
+            {/* Seletor de métrica do mapa: liderança × intensidade (sem refetch) */}
+            <div className="interval-selector-mini" data-tour="metrica">
+              {[
+                { label: t('heatmap.metricaLiderancaCurta') || 'Liderança', value: MapMetric.LIDERANCA, hint: t('heatmap.metricaLideranca') || 'Nº de vezes que o país liderou as buscas' },
+                { label: t('heatmap.metricaIntensidadeCurta') || 'Intensidade', value: MapMetric.INTENSIDADE, hint: t('heatmap.metricaIntensidade') || 'Intensidade média de busca (0-100)' },
+              ].map((opt) => (
+                <Tooltip key={opt.value} title={opt.hint} arrow>
+                  <button
+                    className={`interval-btn-mini ${metricaMapa === opt.value ? 'active' : ''}`}
+                    onClick={() => setMetricaMapa(opt.value)}
+                  >
+                    {opt.label}
+                  </button>
+                </Tooltip>
               ))}
             </div>
 
@@ -779,8 +891,8 @@ export default function GeoHeatmapView() {
                   onClick={handleCompartilhar}
                   startIcon={<MdShare />}
                   sx={{
-                    color: 'var(--color-primary)',
-                    borderColor: 'rgba(255,215,0,0.3)',
+                    color: 'var(--accent-ink)',
+                    borderColor: 'var(--accent-a30)',
                     textTransform: 'none',
                     fontFamily: 'Outfit, sans-serif',
                     fontWeight: 600,
@@ -805,8 +917,8 @@ export default function GeoHeatmapView() {
                   startIcon={<MdFileDownload />}
                   disabled={!heatmapData}
                   sx={{
-                    color: 'var(--color-primary)',
-                    borderColor: 'rgba(255,215,0,0.3)',
+                    color: 'var(--accent-ink)',
+                    borderColor: 'var(--accent-a30)',
                     textTransform: 'none',
                     fontFamily: 'Outfit, sans-serif',
                     fontWeight: 600,
@@ -816,8 +928,8 @@ export default function GeoHeatmapView() {
                       borderColor: 'var(--color-primary)',
                     },
                     '&.Mui-disabled': {
-                      borderColor: 'rgba(255,255,255,0.1)',
-                      color: 'rgba(255,255,255,0.2)',
+                      borderColor: 'var(--border-strong)',
+                      color: 'var(--text-faint)',
                     }
                   }}
                 >
@@ -830,26 +942,32 @@ export default function GeoHeatmapView() {
                 onClose={handleFecharExportar}
                 PaperProps={{
                   sx: {
-                    background: 'rgba(15,15,15,0.97)',
-                    border: '1px solid rgba(255,215,0,0.25)',
+                    backgroundColor: 'var(--surface-overlay)',
+                    border: '1px solid var(--accent-a30)',
                     borderRadius: '12px',
                     backdropFilter: 'blur(16px)',
-                    boxShadow: '0 12px 40px rgba(0,0,0,0.7)',
+                    boxShadow: '0 12px 40px var(--scrim-strong)',
                     mt: 0.5,
                   }
                 }}
               >
                 <MenuItem
                   onClick={() => handleExportar(ExportFormat.CSV)}
-                  sx={{ color: '#fff', fontFamily: 'Outfit, sans-serif', fontSize: '0.88rem', '&:hover': { background: 'rgba(255,215,0,0.08)' } }}
+                  sx={{ color: 'var(--text-primary)', fontFamily: 'Outfit, sans-serif', fontSize: '0.88rem', '&:hover': { backgroundColor: 'var(--accent-a08)' } }}
                 >
                   📄 {t('heatmap.exportarCSV') || 'Exportar CSV'}
                 </MenuItem>
                 <MenuItem
                   onClick={() => handleExportar(ExportFormat.JSON)}
-                  sx={{ color: '#fff', fontFamily: 'Outfit, sans-serif', fontSize: '0.88rem', '&:hover': { background: 'rgba(255,215,0,0.08)' } }}
+                  sx={{ color: 'var(--text-primary)', fontFamily: 'Outfit, sans-serif', fontSize: '0.88rem', '&:hover': { backgroundColor: 'var(--accent-a08)' } }}
                 >
                   🗂 {t('heatmap.exportarJSON') || 'Exportar JSON'}
+                </MenuItem>
+                <MenuItem
+                  onClick={() => handleExportar(ExportFormat.PNG)}
+                  sx={{ color: 'var(--text-primary)', fontFamily: 'Outfit, sans-serif', fontSize: '0.88rem', '&:hover': { backgroundColor: 'var(--accent-a08)' } }}
+                >
+                  🖼 {t('heatmap.exportarPNG') || 'Exportar PNG'}
                 </MenuItem>
               </Menu>
 
@@ -861,10 +979,10 @@ export default function GeoHeatmapView() {
                   size="small"
                   onClick={() => setTourRodando(true)}
                   sx={{
-                    color: 'rgba(255,255,255,0.4)',
+                    color: 'var(--text-faint)',
                     minWidth: 'auto',
                     p: '6px',
-                    '&:hover': { color: 'var(--color-primary)', background: 'rgba(255,215,0,0.06)' }
+                    '&:hover': { color: 'var(--accent-ink)', background: 'rgba(255,215,0,0.06)' }
                   }}
                 >
                   <MdTour size={18} />
@@ -880,11 +998,11 @@ export default function GeoHeatmapView() {
             <Box sx={{
               display: 'inline-flex', alignItems: 'center', gap: 0.8,
               px: 1.5, py: 0.5, mb: 2,
-              background: 'rgba(255,215,0,0.05)',
-              border: '1px solid rgba(255,215,0,0.15)',
+              backgroundColor: 'var(--accent-a05)',
+              border: '1px solid var(--accent-a15)',
               borderRadius: '20px',
               fontSize: '0.75rem',
-              color: 'rgba(255,255,255,0.5)',
+              color: 'var(--text-muted)',
               fontFamily: 'Outfit, sans-serif',
             }}>
               ⚡ {t('heatmap.cacheAtivo') || 'Dados em cache (< 5 min)'}
@@ -893,7 +1011,7 @@ export default function GeoHeatmapView() {
                 style={{ cursor: 'pointer', opacity: 0.6 }}
                 onClick={() => {
                   setDadosDoCacheAtivo(false)
-                  setHeatmapData(null)
+                  setHeatmapRaw(null)
                   carregarHeatmap(true)
                 }}
               />
@@ -905,36 +1023,43 @@ export default function GeoHeatmapView() {
         {paisSelecionado && (
           <Box sx={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            background: 'rgba(255, 215, 0, 0.08)', border: '1px solid rgba(255, 215, 0, 0.25)',
+            backgroundColor: 'var(--accent-a08)', border: '1px solid var(--accent-a30)',
             borderRadius: '12px', px: 2, py: 1, mb: 3, backdropFilter: 'blur(8px)',
             animation: 'fadeIn 0.4s ease'
           }}>
-            <Typography variant="body2" sx={{ color: '#fff', fontSize: '0.88rem', fontFamily: 'Outfit, sans-serif' }}>
-              🔍 Filtrando carrossel de ativos mais populares em: <strong>{getCountryName(paisSelecionado)}</strong>
+            <Typography variant="body2" sx={{ color: 'var(--text-primary)', fontSize: '0.88rem', fontFamily: 'Outfit, sans-serif' }}>
+              🔍 {t('heatmap.filtrandoPor') || 'Exibindo ativos cuja busca é liderada por:'} <strong>{nomePais(paisSelecionado)}</strong>
             </Typography>
             <Button
               size="small"
               onClick={() => { setPaisSelecionado(null); setRegionSelecionada(MapRegion.WORLD) }}
               startIcon={<MdClose />}
               sx={{
-                color: 'var(--color-primary)', textTransform: 'none', fontWeight: 'bold', fontSize: '0.8rem',
+                color: 'var(--accent-ink)', textTransform: 'none', fontWeight: 'bold', fontSize: '0.8rem',
                 '&:hover': { background: 'rgba(255, 215, 0, 0.12)' }
               }}
             >
-              Limpar Filtro
+              {t('heatmap.limparFiltro') || 'Limpar Filtro'}
             </Button>
           </Box>
         )}
 
         {/* Barra de Zoom Regional */}
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 3, alignItems: 'center' }} data-tour="zoom" ref={refZoom}>
-          <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)', mr: 1, textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>
-            Zoom Geográfico:
+          <Typography variant="caption" sx={{ color: 'var(--text-muted)', mr: 1, textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>
+            {t('heatmap.zoomGeografico') || 'Zoom Geográfico:'}
           </Typography>
           {Object.entries(MapRegion).map(([key, value]) => {
             const isSelected = regionSelecionada === value
             const isActive = activeRegions.has(value)
-            const label = { WORLD: 'Mundo', AMERICAS: 'Américas', EUROPE: 'Europa', ASIA: 'Ásia', AFRICA: 'África', OCEANIA: 'Oceania' }[key]
+            const label = {
+              WORLD: t('heatmap.regiaoMundo') || 'Mundo',
+              AMERICAS: t('heatmap.regiaoAmericas') || 'Américas',
+              EUROPE: t('heatmap.regiaoEuropa') || 'Europa',
+              ASIA: t('heatmap.regiaoAsia') || 'Ásia',
+              AFRICA: t('heatmap.regiaoAfrica') || 'África',
+              OCEANIA: t('heatmap.regiaoOceania') || 'Oceania',
+            }[key]
             return (
               <Box
                 key={key}
@@ -949,16 +1074,16 @@ export default function GeoHeatmapView() {
                 sx={{
                   px: 2, py: 0.6, borderRadius: '20px', fontSize: '0.78rem', fontWeight: 600,
                   cursor: isActive ? 'pointer' : 'not-allowed', fontFamily: 'Outfit, sans-serif',
-                  background: isSelected ? 'var(--color-primary)' : 'rgba(255, 255, 255, 0.04)',
-                  color: isSelected ? '#000' : (isActive ? 'rgba(255, 255, 255, 0.7)' : 'rgba(255, 255, 255, 0.2)'),
-                  border: '1px solid', borderColor: isSelected ? 'var(--color-primary)' : (isActive ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.02)'),
+                  background: isSelected ? 'var(--color-primary)' : 'var(--surface-fill)',
+                  color: isSelected ? 'var(--text-on-accent)' : (isActive ? 'var(--text-secondary)' : 'var(--text-faint)'),
+                  border: '1px solid', borderColor: isSelected ? 'var(--color-primary)' : (isActive ? 'var(--surface-fill-strong)' : 'var(--border-subtle)'),
                   opacity: isActive ? 1 : 0.45,
-                  boxShadow: isSelected ? '0 0 12px rgba(255, 215, 0, 0.25)' : 'none',
+                  boxShadow: isSelected ? '0 0 12px var(--accent-a30)' : 'none',
                   transition: 'all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1)',
                   '&:hover': isActive ? {
-                    background: isSelected ? 'var(--color-primary)' : 'rgba(255, 255, 255, 0.08)',
-                    borderColor: isSelected ? 'var(--color-primary)' : 'rgba(255, 215, 0, 0.3)',
-                    color: isSelected ? '#000' : '#fff'
+                    background: isSelected ? 'var(--color-primary)' : 'var(--surface-fill-strong)',
+                    borderColor: isSelected ? 'var(--color-primary)' : 'var(--accent-a30)',
+                    color: isSelected ? 'var(--text-on-accent)' : 'var(--text-primary)'
                   } : {}
                 }}
               >
@@ -973,16 +1098,16 @@ export default function GeoHeatmapView() {
           // Skeletons para melhor UX durante carregamento
           <Grid container spacing={4}>
             <Grid size={{ xs: 12, md: 8 }}>
-              <Skeleton variant="rounded" width="100%" height={450} sx={{ bgcolor: 'rgba(255,255,255,0.04)', borderRadius: '16px' }} />
+              <Skeleton variant="rounded" width="100%" height={450} sx={{ backgroundColor: 'var(--surface-hover)', borderRadius: '16px' }} />
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <Skeleton variant="text" width="60%" height={32} sx={{ bgcolor: 'rgba(255,255,255,0.04)' }} />
-                <Skeleton variant="text" width="90%" height={20} sx={{ bgcolor: 'rgba(255,255,255,0.04)' }} />
+                <Skeleton variant="text" width="60%" height={32} sx={{ backgroundColor: 'var(--surface-hover)' }} />
+                <Skeleton variant="text" width="90%" height={20} sx={{ backgroundColor: 'var(--surface-hover)' }} />
                 {[...Array(5)].map((_, i) => (
                   <Box key={i} sx={{ display: 'flex', flexDirection: 'column', gap: 0.8 }}>
-                    <Skeleton variant="text" width="80%" height={22} sx={{ bgcolor: 'rgba(255,255,255,0.04)' }} />
-                    <Skeleton variant="rounded" width="100%" height={6} sx={{ bgcolor: 'rgba(255,255,255,0.04)', borderRadius: '3px' }} />
+                    <Skeleton variant="text" width="80%" height={22} sx={{ backgroundColor: 'var(--surface-hover)' }} />
+                    <Skeleton variant="rounded" width="100%" height={6} sx={{ backgroundColor: 'var(--surface-hover)', borderRadius: '3px' }} />
                   </Box>
                 ))}
               </Box>
@@ -996,17 +1121,18 @@ export default function GeoHeatmapView() {
                 <Box sx={{
                   height: { xs: 'auto', md: '100%' }, display: 'flex', flexDirection: 'column',
                   borderRadius: '16px', overflow: 'hidden',
-                  background: 'rgba(10, 10, 10, 0.45)',
-                  border: '1px solid rgba(255, 255, 255, 0.06)',
-                  boxShadow: '0 12px 40px rgba(0,0,0,0.6)', p: 2, backdropFilter: 'blur(8px)',
+                  backgroundColor: 'var(--surface-panel)',
+                  border: '1px solid var(--border)',
+                  boxShadow: '0 12px 40px var(--scrim)', p: 2, backdropFilter: 'blur(8px)',
                   position: 'relative', transition: 'all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1)',
-                  '&:hover': { transform: 'translateY(-4px)', borderColor: 'var(--color-primary)', boxShadow: '0 18px 48px rgba(0,0,0,0.7), 0 0 20px rgba(255, 215, 0, 0.08)' }
+                  '&:hover': { transform: 'translateY(-4px)', borderColor: 'var(--color-primary)', boxShadow: '0 18px 48px var(--scrim-strong), 0 0 20px var(--accent-a08)' }
                 }}>
                   <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: chartHeight }}>
                     <NativeGeoChart
                       data={heatmapData}
                       options={optionsFinal}
                       onSelect={handleChartSelect}
+                      onChartReady={handleChartReady}
                     />
                   </Box>
                 </Box>
@@ -1020,21 +1146,25 @@ export default function GeoHeatmapView() {
                   sx={{
                     display: 'flex', flexDirection: 'column', gap: 2,
                     height: { xs: 'auto', md: '100%' },
-                    background: 'rgba(12, 12, 12, 0.65)',
-                    border: '1px solid rgba(255, 255, 255, 0.06)',
+                    backgroundColor: 'var(--surface-panel)',
+                    border: '1px solid var(--border)',
                     borderRadius: '16px', p: 3,
-                    boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
+                    boxShadow: '0 12px 40px var(--scrim)',
                     backdropFilter: 'blur(12px)',
                     transition: 'all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1)',
-                    '&:hover': { transform: 'translateY(-4px)', borderColor: 'var(--color-primary)', boxShadow: '0 18px 48px rgba(0,0,0,0.7), 0 0 20px rgba(255, 215, 0, 0.08)' }
+                    '&:hover': { transform: 'translateY(-4px)', borderColor: 'var(--color-primary)', boxShadow: '0 18px 48px var(--scrim-strong), 0 0 20px var(--accent-a08)' }
                   }}
                 >
-                  <Typography variant="h6" sx={{ color: 'var(--color-primary)', fontWeight: 800, fontFamily: 'Outfit, sans-serif', fontSize: '1.05rem', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
-                    Central de Inteligência
+                  <Typography variant="h6" sx={{ color: 'var(--accent-ink)', fontWeight: 800, fontFamily: 'Outfit, sans-serif', fontSize: '1.05rem', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
+                    {t('heatmap.centralInteligencia') || 'Central de Inteligência'}
                   </Typography>
                   <Typography variant="body2" sx={{ opacity: 0.6, fontSize: '0.85rem', lineHeight: 1.4 }}>
-                    Nível de aceleração e dominância de busca de narrativas por região geográfica para a moeda selecionada ({moedaSelecionada}).
+                    {t('heatmap.centralDescricao') || 'Nível de aceleração e dominância de busca de narrativas por região geográfica para a moeda selecionada'} ({moedaSelecionada}).
                   </Typography>
+
+                  {/* Pulso da narrativa + concentração geográfica + Fear & Greed
+                      (dados do /trend e /fear-greed já carregados pelo carrossel) */}
+                  <HeatmapInsights trend={moedaSelObj?.trend} fear={moedaSelObj?.fear} t={t} />
 
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, mt: 2 }}>
                     {topRegioes.length > 0 ? (
@@ -1049,28 +1179,28 @@ export default function GeoHeatmapView() {
                             background: paisSelecionado === reg.country ? 'rgba(255, 215, 0, 0.04)' : 'transparent',
                             border: '1px solid',
                             borderLeft: paisSelecionado === reg.country ? '4px solid var(--color-primary)' : '1px solid transparent',
-                            borderColor: paisSelecionado === reg.country ? 'rgba(255, 215, 0, 0.25)' : 'transparent',
-                            '&:hover': { background: 'rgba(255, 255, 255, 0.03)' }
+                            borderColor: paisSelecionado === reg.country ? 'var(--accent-a30)' : 'transparent',
+                            '&:hover': { backgroundColor: 'var(--surface-subtle)' }
                           }}
                         >
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                               <Box sx={{
                                 width: '26px', height: '26px', borderRadius: '50%',
-                                background: paisSelecionado === reg.country ? 'var(--color-primary)' : 'rgba(255, 215, 0, 0.08)',
-                                border: '1px solid rgba(255, 215, 0, 0.25)',
+                                background: paisSelecionado === reg.country ? 'var(--color-primary)' : 'var(--accent-a08)',
+                                border: '1px solid var(--accent-a30)',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 fontSize: '0.75rem', fontWeight: 800,
-                                color: paisSelecionado === reg.country ? '#000' : 'var(--color-primary)',
+                                color: paisSelecionado === reg.country ? 'var(--text-on-accent)' : 'var(--color-primary)',
                                 fontFamily: 'Outfit, sans-serif'
                               }}>
                                 {idx + 1}
                               </Box>
-                              <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#fff', fontSize: '0.88rem', fontFamily: 'Outfit, sans-serif' }}>
-                                {getCountryName(reg.country)}
+                              <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.88rem', fontFamily: 'Outfit, sans-serif' }}>
+                                {nomePais(reg.country)}
                               </Typography>
                             </Box>
-                            <Typography variant="body2" sx={{ fontWeight: 700, color: 'var(--color-primary)', fontSize: '0.88rem', fontFamily: 'Share Tech Mono, monospace' }}>
+                            <Typography variant="body2" sx={{ fontWeight: 700, color: 'var(--accent-ink)', fontSize: '0.88rem', fontFamily: 'Share Tech Mono, monospace' }}>
                               {reg.displayVal}%
                             </Typography>
                           </Box>
@@ -1079,11 +1209,11 @@ export default function GeoHeatmapView() {
                             value={reg.displayVal}
                             sx={{
                               height: '5px', borderRadius: '3px',
-                              background: 'rgba(255,255,255,0.03)',
+                              backgroundColor: 'var(--surface-subtle)',
                               '& .MuiLinearProgress-bar': {
-                                background: 'linear-gradient(90deg, #cca92c 0%, #ffd700 100%)',
+                                background: 'linear-gradient(90deg, #cca92c 0%, var(--accent) 100%)',
                                 borderRadius: '3px',
-                                boxShadow: '0 0 6px rgba(255, 215, 0, 0.35)'
+                                boxShadow: '0 0 6px var(--accent-a30)'
                               }
                             }}
                           />
@@ -1091,7 +1221,7 @@ export default function GeoHeatmapView() {
                       ))
                     ) : (
                       <Box sx={{ p: 4, textAlign: 'center', opacity: 0.4 }}>
-                        <Typography variant="body2" sx={{ fontStyle: 'italic' }}>Aguardando dados geográficos...</Typography>
+                        <Typography variant="body2" sx={{ fontStyle: 'italic' }}>{t('heatmap.aguardandoDados') || 'Aguardando dados geográficos...'}</Typography>
                       </Box>
                     )}
                   </Box>
@@ -1100,9 +1230,9 @@ export default function GeoHeatmapView() {
             </Grid>
           </Fade>
         ) : (
-          <Box sx={{ p: 6, textAlign: 'center', opacity: 0.5, background: 'rgba(10, 10, 10, 0.3)', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-            <MdAnalytics size={48} style={{ color: 'var(--color-primary)', marginBottom: '12px' }} />
-            <Typography sx={{ fontFamily: 'Outfit, sans-serif' }}>Dados de mapa não disponíveis para o ativo selecionado no período.</Typography>
+          <Box sx={{ p: 6, textAlign: 'center', opacity: 0.5, backgroundColor: 'var(--surface-panel)', borderRadius: '16px', border: '1px solid var(--border)' }}>
+            <MdAnalytics size={48} style={{ color: 'var(--accent-ink)', marginBottom: '12px' }} />
+            <Typography sx={{ fontFamily: 'Outfit, sans-serif' }}>{t('heatmap.semDados') || 'Dados de mapa não disponíveis para o ativo selecionado no período.'}</Typography>
           </Box>
         )}
       </section>

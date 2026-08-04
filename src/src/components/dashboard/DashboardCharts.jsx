@@ -1,9 +1,15 @@
 import React from 'react'
 import Box from '@mui/material/Box'
-import { Line } from 'react-chartjs-2'
-import { MdFullscreen } from 'react-icons/md'
-import { ChartType } from '../../utils/enums'
+import { Bar, Line } from 'react-chartjs-2'
+import { MdFullscreen, MdWarningAmber } from 'react-icons/md'
+import { ChartType, Normalization, PriceChartMode, SecondaryChart } from '../../utils/enums'
+import { toLocal } from '../../utils/dateUtils'
+import RotuloComAjuda from './RotuloComAjuda'
 import ExpandedChartModal from './ExpandedChartModal'
+
+// O visual da pílula vive em .pill-toggle no App.css, compartilhado com o
+// seletor de horizonte do laboratório.
+const classeAlternador = (ativo) => `pill-toggle ${ativo ? 'ativo' : ''}`
 
 /**
  * Exibe os gráficos do dashboard. Ao expandir um gráfico (modal),
@@ -24,52 +30,120 @@ import ExpandedChartModal from './ExpandedChartModal'
  * @param {object} props.trendAtual - Dados de tendência atual.
  * @param {Function} props.t - Função de tradução.
  */
-export default function DashboardCharts({ 
-  multiMoeda, 
-  normalizacao, 
-  setNormalizacao, 
-  expandedChart, 
+export default function DashboardCharts({
+  multiMoeda,
+  normalizacao,
+  setNormalizacao,
+  modoPreco,
+  setModoPreco,
+  painelSecundario,
+  setPainelSecundario,
+  temVelas,
+  modoVela,
+  expandedChart,
   setExpandedChart, 
-  dadosNegociados, 
-  dadosVariacao, 
-  opcoesPreco, 
-  opcoesVariacao, 
-  ultimoNegociado, 
-  ultimaVariacao, 
+  dadosNegociados,
+  dadosVariacao,
+  dadosVolume,
+  opcoesPreco,
+  opcoesVariacao,
+  opcoesVolume,
+  ultimoNegociado,
+  ultimaVariacao,
+  volumeAtual,
   trendAtual,
-  t 
+  cobertura,
+  t
 }) {
+  // Volume existe só com moeda única; em modo comparativo o seletor nem
+  // aparece, mas a guarda evita render vazio se o filtro mudar por baixo.
+  const mostraVolume = painelSecundario === SecondaryChart.VOLUME && Boolean(dadosVolume)
+
+  // A legenda descreve o que existe no gráfico agora; VWAP e bandas só entram
+  // com moeda única, então nem sempre estão lá.
+  const rotulosDesenhados = (dadosNegociados?.datasets || []).map((d) => d.label)
+  const temVwap = rotulosDesenhados.includes('VWAP')
+  const temBandas = rotulosDesenhados.some((r) => r === t('bollingerUpper'))
+
   return (
     <>
       <div style={{ marginTop: '40px', marginBottom: '16px', padding: '0 4px', display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
         <h2 style={{ margin: 0, fontSize: '1.25rem' }}>{t('sequence')}</h2>
+
+        {/* O período pedido pode ter mais candles do que a requisição traz.
+            Sem este aviso o eixo começa depois da data escolhida e nada
+            explica por quê. */}
+        {cobertura?.truncado && (
+          <span className="chart-truncated" title={t('truncatedHint')}>
+            <MdWarningAmber />
+            {t('truncatedRange', {
+              recebidos: cobertura.recebidos,
+              desde: toLocal(cobertura.desde),
+            })}
+          </span>
+        )}
         {multiMoeda && (
           <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.8rem', color: '#888', alignSelf: 'center' }}>Normalização:</span>
+            <span className="pill-group-label">{t('normalization')}:</span>
+            {/* Os rótulos ficam literais de propósito: Base 100, Min-Max e
+                Z-Score são nomes de métodos estatísticos, escritos igual nos
+                dois idiomas. Só a explicação em prosa passa pelo i18n. */}
             {[
-              { key: 'base100', label: 'Base 100', title: 'Performance relativa — começa em 100 para todas' },
-              { key: 'minmax', label: 'Min-Max', title: 'Escala 0 a 1 relativa ao período' },
-              { key: 'zscore', label: 'Z-Score', title: 'Volatilidade — desvios em relação à média' },
+              { key: Normalization.BASE_100, label: 'Base 100', title: t('normalizationBase100Hint') },
+              { key: Normalization.MIN_MAX, label: 'Min-Max', title: t('normalizationMinMaxHint') },
+              { key: Normalization.Z_SCORE, label: 'Z-Score', title: t('normalizationZScoreHint') },
             ].map(({ key, label, title }) => (
               <button
                 key={key}
                 title={title}
                 onClick={() => setNormalizacao(key)}
-                style={{
-                  padding: '4px 12px',
-                  fontSize: '0.78rem',
-                  borderRadius: '20px',
-                  border: normalizacao === key ? '1px solid #FFD700' : '1px solid #444',
-                  background: normalizacao === key ? 'rgba(255,215,0,0.12)' : 'transparent',
-                  color: normalizacao === key ? '#FFD700' : '#888',
-                  cursor: 'pointer',
-                  fontWeight: normalizacao === key ? 600 : 400,
-                  transition: 'all 0.2s',
-                }}
+                className={classeAlternador(normalizacao === key)}
               >
                 {label}
               </button>
             ))}
+          </div>
+        )}
+
+        {/* Dois controles independentes: "Visualização" muda COMO o preço é
+            desenhado, "Painel" muda O QUE o gráfico ao lado mostra. Amarrar os
+            dois faria o seletor de visualização trocar o conteúdo da tela.
+            Ambos exigem moeda única: candle de vários ativos no mesmo eixo não
+            se lê, e volume de moedas diferentes não se soma. */}
+        {!multiMoeda && temVelas && (
+          <div style={{ display: 'flex', gap: '18px', marginLeft: 'auto', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <span className="pill-group-label">{t('chartMode')}:</span>
+              {[
+                { key: PriceChartMode.LINE, label: t('chartModeLine'), title: t('chartModeLineHint') },
+                { key: PriceChartMode.CANDLE, label: t('chartModeCandle'), title: t('chartModeCandleHint') },
+              ].map(({ key, label, title }) => (
+                <button
+                  key={key}
+                  title={title}
+                  onClick={() => setModoPreco(key)}
+                  className={classeAlternador(modoPreco === key)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <span className="pill-group-label">{t('secondaryChart')}:</span>
+              {[
+                { key: SecondaryChart.VARIATION, label: t('percentVariation') },
+                { key: SecondaryChart.VOLUME, label: t('volume') },
+              ].map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => setPainelSecundario(key)}
+                  className={classeAlternador(painelSecundario === key)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -81,20 +155,57 @@ export default function DashboardCharts({
         >
           <div className="chart-expand-icon"><MdFullscreen /></div>
           <h2>{t('tradedValue')}</h2>
-          <div className="chart-note">{t('lastValue')}: {ultimoNegociado}</div>
+          {/* Em modo comparativo a série está normalizada, então um valor em
+              dólar de uma única moeda não descreve o que está desenhado. */}
+          <div className="chart-note">
+            {multiMoeda
+              ? t('comparingCoins', { count: dadosNegociados.datasets.length })
+              : `${t('lastValue')}: ${ultimoNegociado}`}
+          </div>
           <div className="chart-container">
             <Line data={dadosNegociados} options={opcoesPreco} />
           </div>
+
+          {/* O que está desenhado sobre o preço vive dentro do canvas e não
+              comporta ícone, então a explicação vem numa legenda embaixo. */}
+          <div className="chart-legenda">
+            {modoVela && (
+              <RotuloComAjuda texto={t('chartModeCandle')} ajuda={t('ajuda.velas')} />
+            )}
+            {temVwap && (
+              <span>
+                <i style={{ borderTopColor: '#9c27b0', borderTopStyle: 'dashed' }} />
+                <RotuloComAjuda texto="VWAP" ajuda={t('ajuda.linhaVwap')} />
+              </span>
+            )}
+            {temBandas && (
+              <span>
+                <i style={{ borderTopColor: 'rgba(33,150,243,0.55)' }} />
+                <RotuloComAjuda texto={t('bollingerBands')} ajuda={t('ajuda.faixaBollinger')} />
+              </span>
+            )}
+          </div>
         </Box>
+        {/* Assunto escolhido no seletor "Painel", não no de visualização.
+            Volume é útil como acompanhamento porque diz se o movimento teve
+            participação — dimensão que nem a linha nem o candle mostram. */}
         <Box
           className="panel chart-panel chart-panel-clickable"
           onClick={() => setExpandedChart(ChartType.PERCENT_VARIATION)}
         >
           <div className="chart-expand-icon"><MdFullscreen /></div>
-          <h2>{t('percentVariation')}</h2>
-          <div className="chart-note">{t('lastVariation')}: {ultimaVariacao}</div>
+          <h2>{mostraVolume ? t('volume') : t('percentVariation')}</h2>
+          <div className="chart-note">
+            {multiMoeda
+              ? t('comparingCoins', { count: dadosVariacao.datasets.length })
+              : mostraVolume
+                ? `${t('currentVolume')}: ${volumeAtual}`
+                : `${t('lastVariation')}: ${ultimaVariacao}`}
+          </div>
           <div className="chart-container">
-            <Line data={dadosVariacao} options={opcoesVariacao} />
+            {mostraVolume
+              ? <Bar data={dadosVolume} options={opcoesVolume} />
+              : <Line data={dadosVariacao} options={opcoesVariacao} />}
           </div>
         </Box>
       </div>
@@ -105,9 +216,12 @@ export default function DashboardCharts({
         setExpandedChart={setExpandedChart}
         dadosNegociados={dadosNegociados}
         dadosVariacao={dadosVariacao}
+        dadosVolume={dadosVolume}
         opcoesPreco={opcoesPreco}
         opcoesVariacao={opcoesVariacao}
+        opcoesVolume={opcoesVolume}
         trendAtual={trendAtual}
+        mostraVolume={mostraVolume}
         t={t}
       />
     </>

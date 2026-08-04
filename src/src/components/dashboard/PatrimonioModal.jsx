@@ -63,15 +63,15 @@ export default function PatrimonioModal({ visible, onClose, token, user, patrimo
   const inputSx = {
     width: '100%',
     '& .MuiOutlinedInput-root': {
-      bgcolor: 'rgba(255,255,255,0.03)',
+      backgroundColor: 'var(--surface-subtle)',
       borderRadius: '10px',
       transition: 'all 0.3s ease',
-      '&:hover': { bgcolor: 'rgba(255,255,255,0.06)' },
-      '&.Mui-focused': { bgcolor: 'rgba(255,255,255,0.08)' }
+      '&:hover': { backgroundColor: 'var(--surface-fill)' },
+      '&.Mui-focused': { backgroundColor: 'var(--surface-fill-strong)' }
     },
-    '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.1)' },
-    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,215,0,0.5)' },
-    '& .MuiInputBase-input': { color: '#fff', fontWeight: 600 }
+    '& .MuiOutlinedInput-notchedOutline': { borderColor: 'var(--border-strong)' },
+    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'var(--accent-a50)' },
+    '& .MuiInputBase-input': { color: 'var(--text-primary)', fontWeight: 600 }
   }
 
   const tableHeaderSx = {
@@ -79,13 +79,13 @@ export default function PatrimonioModal({ visible, onClose, token, user, patrimo
     fontWeight: 'bold !important',
     fontFamily: "'Share Tech Mono', monospace !important",
     textTransform: 'uppercase',
-    borderBottom: '1px solid rgba(255, 255, 255, 0.08) !important',
+    borderBottom: '1px solid var(--border) !important',
     bgcolor: 'rgba(10, 10, 10, 0.8) !important'
   }
 
   const tableCellSx = {
-    color: '#fff !important',
-    borderBottom: '1px solid rgba(255, 255, 255, 0.03) !important',
+    color: 'var(--text-primary) !important',
+    borderBottom: '1px solid var(--border-subtle) !important',
     fontFamily: "'Share Tech Mono', monospace !important"
   }
 
@@ -98,7 +98,7 @@ export default function PatrimonioModal({ visible, onClose, token, user, patrimo
 
         {/* Formulário de Novo Lançamento */}
         <Box component="form" onSubmit={handleSalvar} sx={{ display: 'flex', flexDirection: 'column', gap: 3, mb: 5 }}>
-          <Typography variant="subtitle2" sx={{ color: 'var(--color-primary)', fontFamily: "'Share Tech Mono', monospace", textTransform: 'uppercase', letterSpacing: '1px' }}>
+          <Typography variant="subtitle2" sx={{ color: 'var(--accent-ink)', fontFamily: "'Share Tech Mono', monospace", textTransform: 'uppercase', letterSpacing: '1px' }}>
             // {t('patrimonio.newRecord')}
           </Typography>
 
@@ -111,8 +111,8 @@ export default function PatrimonioModal({ visible, onClose, token, user, patrimo
               value={valorBRL}
               onChange={(e) => setValorBRL(e.target.value)}
               sx={inputSx}
-              InputProps={{ startAdornment: <Box sx={{ mr: 1, color: 'var(--color-primary)', fontWeight: 700 }}>R$</Box> }}
-              InputLabelProps={{ sx: { color: 'rgba(255,255,255,0.5)' } }}
+              InputProps={{ startAdornment: <Box sx={{ mr: 1, color: 'var(--accent-ink)', fontWeight: 700 }}>R$</Box> }}
+              InputLabelProps={{ sx: { color: 'var(--text-muted)' } }}
             />
             <TextField
               label={t('patrimonio.observation')}
@@ -121,12 +121,12 @@ export default function PatrimonioModal({ visible, onClose, token, user, patrimo
               value={observacao}
               onChange={(e) => setObservacao(e.target.value)}
               sx={inputSx}
-              InputLabelProps={{ sx: { color: 'rgba(255,255,255,0.5)' } }}
+              InputLabelProps={{ sx: { color: 'var(--text-muted)' } }}
             />
           </Box>
 
           {errorMsg && <Typography sx={{ color: '#ff5252', fontSize: '0.9rem', fontWeight: 600 }}>{errorMsg}</Typography>}
-          {successMsg && <Typography sx={{ color: '#81c784', fontSize: '0.9rem', fontWeight: 600 }}>{successMsg}</Typography>}
+          {successMsg && <Typography sx={{ color: 'var(--success-ink)', fontSize: '0.9rem', fontWeight: 600 }}>{successMsg}</Typography>}
 
           <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
             <Button
@@ -135,18 +135,18 @@ export default function PatrimonioModal({ visible, onClose, token, user, patrimo
               disabled={loading}
               startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <MdAdd />}
               sx={{
-                bgcolor: 'var(--color-primary)',
-                color: '#000',
+                backgroundColor: 'var(--accent)',
+                color: 'var(--text-on-accent)',
                 fontWeight: 800,
                 px: 4, py: 1.2,
                 borderRadius: '10px',
                 fontFamily: "'Share Tech Mono', monospace",
                 '&:hover': {
                   bgcolor: '#e6c200',
-                  boxShadow: '0 0 20px rgba(255, 215, 0, 0.4)'
+                  boxShadow: '0 0 20px var(--accent-a40)'
                 },
                 '&.Mui-disabled': {
-                  bgcolor: 'rgba(255, 215, 0, 0.3)',
+                  backgroundColor: 'var(--accent-a30)',
                 }
               }}
             >
@@ -157,16 +157,16 @@ export default function PatrimonioModal({ visible, onClose, token, user, patrimo
 
         {/* Histórico de Lançamentos */}
         <Box>
-          <Typography variant="subtitle2" sx={{ color: 'rgba(255, 255, 255, 0.6)', fontFamily: "'Share Tech Mono', monospace", textTransform: 'uppercase', letterSpacing: '1px', mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography variant="subtitle2" sx={{ color: 'var(--text-muted)', fontFamily: "'Share Tech Mono', monospace", textTransform: 'uppercase', letterSpacing: '1px', mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
             <MdHistory /> // {t('patrimonio.history')}
           </Typography>
 
           {!patrimonio?.registros || patrimonio.registros.length === 0 ? (
-            <Box sx={{ py: 4, textAlign: 'center', bgcolor: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px dashed rgba(255,255,255,0.05)' }}>
-              <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.9rem' }}>{t('patrimonio.noRecords')}</Typography>
+            <Box sx={{ py: 4, textAlign: 'center', backgroundColor: 'var(--surface-subtle)', borderRadius: '12px', border: '1px dashed var(--border)' }}>
+              <Typography sx={{ color: 'var(--text-faint)', fontSize: '0.9rem' }}>{t('patrimonio.noRecords')}</Typography>
             </Box>
           ) : (
-            <TableContainer component={Paper} sx={{ bgcolor: 'rgba(20, 20, 20, 0.5)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', maxHeight: '300px', overflowY: 'auto' }}>
+            <TableContainer component={Paper} sx={{ backgroundColor: 'var(--surface-panel)', borderRadius: '12px', border: '1px solid var(--border)', maxHeight: '300px', overflowY: 'auto' }}>
               <Table stickyHeader size="small">
                 <TableHead>
                   <TableRow>
@@ -180,7 +180,7 @@ export default function PatrimonioModal({ visible, onClose, token, user, patrimo
                   {patrimonio.registros.map((reg) => (
                     <TableRow key={reg.idPatrimonioTB} sx={{ '&:hover': { bgcolor: 'rgba(255, 215, 0, 0.02)' } }}>
                       <TableCell sx={tableCellSx}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'rgba(255,255,255,0.6)' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'var(--text-muted)' }}>
                           <MdOutlineCalendarToday />
                           {new Date(reg.dataHora).toLocaleString()}
                         </Box>
@@ -188,7 +188,7 @@ export default function PatrimonioModal({ visible, onClose, token, user, patrimo
                       <TableCell sx={{ ...tableCellSx, fontWeight: 700 }} align="right">
                         R$ {reg.valorBRL.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </TableCell>
-                      <TableCell sx={{ ...tableCellSx, color: 'var(--color-primary) !important' }} align="right">
+                      <TableCell sx={{ ...tableCellSx, color: 'var(--accent-ink) !important' }} align="right">
                         $ {reg.valorUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </TableCell>
                       <TableCell sx={{ ...tableCellSx, opacity: 0.8, maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={reg.observacao}>

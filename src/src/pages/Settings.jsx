@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
+  MdPerson,
+  MdDeleteForever,
   MdBrightness4,
   MdLanguage,
   MdNotifications,
@@ -33,7 +36,14 @@ import CircularProgress from '@mui/material/CircularProgress'
 import '../App.css'
 import { useAuth } from '../context/AuthContext'
 import useTranslation from '../hooks/useTranslation'
-import { apiRequest, MarketEndpoint, UserEndpoint, PlanosPagamentoEndpoint, HttpMethod } from '../utils/apiClient'
+import {
+  apiRequest,
+  AuthenticationEndpoint,
+  MarketEndpoint,
+  UserEndpoint,
+  PlanosPagamentoEndpoint,
+  HttpMethod,
+} from '../utils/apiClient'
 import { API_URL } from '../api'
 import {
   AlgorithmStyle,
@@ -45,11 +55,16 @@ import {
 import { isNotificationSupported } from '../utils/browser'
 import { executeNotificationWorkflow } from '../utils/workflow'
 import PlanosPagamentoModal from '../components/PlanosPagamentoModal'
+import ExcluirContaModal from '../components/ExcluirContaModal'
 
 function Settings() {
   const { t } = useTranslation()
-  const { token, user, prefs, updatePreferences } = useAuth()
+  const navigate = useNavigate()
+  const { token, user, prefs, login, logout, updatePreferences } = useAuth()
   const [localPrefs, setLocalPrefs] = useState(prefs)
+  const [nome, setNome] = useState(user?.nome || '')
+  const [loadingNome, setLoadingNome] = useState(false)
+  const [modalExcluirOpen, setModalExcluirOpen] = useState(false)
   const [toast, setToast] = useState('')
   const [moedas, setMoedas] = useState([])
   const [exchanges, setExchanges] = useState([])
@@ -58,6 +73,17 @@ function Settings() {
   const [planoAtivo, setPlanoAtivo] = useState(null)
   const [loadingPlano, setLoadingPlano] = useState(true)
   const [modalPlanosOpen, setModalPlanosOpen] = useState(false)
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  // ?planos=1 abre o modal de planos direto (usado pelo convite de upsell
+  // do Layout quando a API responde 403 em recurso de assinatura paga).
+  useEffect(() => {
+    if (searchParams.get('planos') === '1') {
+      setModalPlanosOpen(true)
+      searchParams.delete('planos')
+      setSearchParams(searchParams, { replace: true })
+    }
+  }, [searchParams, setSearchParams])
 
   const carregarPlanoAtivo = async () => {
     if (!token) return
@@ -103,6 +129,11 @@ function Settings() {
     if (prefs) setLocalPrefs(prefs)
   }, [prefs])
 
+  // O nome exibido vem do claim do token; o campo reflete a sessão atual.
+  useEffect(() => {
+    setNome(user?.nome || '')
+  }, [user?.nome])
+
   const confirm = () => {
     setToast(t('settingsSaved') || 'Configurações salvas!')
     setTimeout(() => setToast(''), 2000)
@@ -141,6 +172,47 @@ function Settings() {
     if (!Object.values(AlgorithmStyle).includes(val)) return
     updatePreferences({ estiloAlgoritmo: val })
     confirm()
+  }
+
+  const handleSalvarNome = async (e) => {
+    e.preventDefault()
+    const valor = nome.trim()
+    if (!valor) {
+      setToast(t('account.nameRequired'))
+      setTimeout(() => setToast(''), 3000)
+      return
+    }
+    if (valor === user?.nome) return
+
+    setLoadingNome(true)
+    try {
+      await apiRequest(UserEndpoint.UPDATE_PROFILE, {
+        method: HttpMethod.PUT,
+        body: { nome: valor },
+        suppressAuthRedirect: true,
+      })
+      // O nome exibido no Layout sai do claim do token: sem reemitir, a tela
+      // continuaria com o nome antigo até o próximo login.
+      const res = await apiRequest(AuthenticationEndpoint.RENOVAR, {
+        method: HttpMethod.POST,
+        suppressAuthRedirect: true,
+      })
+      const novoToken = res?.resultado?.tokenAutenticado
+      if (novoToken) await login(novoToken)
+      setToast(t('account.nameUpdated'))
+    } catch (err) {
+      console.error('Erro ao atualizar o nome:', err)
+      setToast(t('account.errorUpdatingName'))
+    } finally {
+      setLoadingNome(false)
+      setTimeout(() => setToast(''), 3000)
+    }
+  }
+
+  const handleContaExcluida = () => {
+    setModalExcluirOpen(false)
+    logout()
+    navigate('/login', { replace: true })
   }
 
   const handleTrocarSenha = async (e) => {
@@ -196,7 +268,7 @@ function Settings() {
         <Typography variant="h6" sx={{
           margin: 0,
           fontWeight: 800,
-          color: '#fff',
+          color: 'var(--text-primary)',
           letterSpacing: '1px',
           fontFamily: "'Share Tech Mono', monospace",
           textTransform: 'uppercase'
@@ -219,7 +291,7 @@ function Settings() {
       gap: 3,
       width: '100%',
       py: 1.5,
-      borderBottom: '1px solid rgba(255, 255, 255, 0.03)'
+      borderBottom: '1px solid var(--border-subtle)'
     }}>
       <Typography className="settings-field-label">
         {label}
@@ -232,18 +304,18 @@ function Settings() {
 
   const selectSx = {
     width: '100%',
-    bgcolor: 'rgba(255,255,255,0.03)',
+    backgroundColor: 'var(--surface-subtle)',
     borderRadius: '12px',
     transition: 'all 0.3s ease',
     '& .MuiOutlinedInput-notchedOutline': {
-      borderColor: 'rgba(255,255,255,0.1)',
+      borderColor: 'var(--border-strong)',
       borderWidth: '1px'
     },
     '&:hover': {
-      bgcolor: 'rgba(255,255,255,0.06)',
+      backgroundColor: 'var(--surface-fill)',
     },
     '&:hover .MuiOutlinedInput-notchedOutline': {
-      borderColor: 'rgba(255,215,0,0.5)',
+      borderColor: 'var(--accent-a50)',
     },
     '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
       borderColor: 'var(--color-primary)',
@@ -251,7 +323,7 @@ function Settings() {
     },
     '& .MuiSelect-select': {
       py: 1.2,
-      color: '#fff',
+      color: 'var(--text-primary)',
       fontWeight: 600,
       fontSize: '0.9rem'
     }
@@ -260,15 +332,15 @@ function Settings() {
   const inputSx = {
     width: '100%',
     '& .MuiOutlinedInput-root': {
-      bgcolor: 'rgba(255,255,255,0.03)',
+      backgroundColor: 'var(--surface-subtle)',
       borderRadius: '10px',
       transition: 'all 0.3s ease',
-      '&:hover': { bgcolor: 'rgba(255,255,255,0.06)' },
-      '&.Mui-focused': { bgcolor: 'rgba(255,255,255,0.08)' }
+      '&:hover': { backgroundColor: 'var(--surface-fill)' },
+      '&.Mui-focused': { backgroundColor: 'var(--surface-fill-strong)' }
     },
-    '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.1)' },
-    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,215,0,0.5)' },
-    '& .MuiInputBase-input': { color: '#fff', fontWeight: 600, fontFamily: "'Share Tech Mono', monospace" }
+    '& .MuiOutlinedInput-notchedOutline': { borderColor: 'var(--border-strong)' },
+    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'var(--accent-a50)' },
+    '& .MuiInputBase-input': { color: 'var(--text-primary)', fontWeight: 600, fontFamily: "'Share Tech Mono', monospace" }
   }
 
   return (
@@ -276,7 +348,7 @@ function Settings() {
       <header style={{ marginBottom: '64px', textAlign: 'center', width: '100%', animation: 'fadeInDown 0.8s ease-out' }}>
         <Typography variant="h2" sx={{
           fontWeight: 900,
-          color: '#fff',
+          color: 'var(--text-primary)',
           letterSpacing: '-2px',
           mb: 1,
           textTransform: 'uppercase',
@@ -292,7 +364,7 @@ function Settings() {
           borderRadius: '4px',
           boxShadow: '0 0 20px var(--color-primary)'
         }} />
-        <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '1rem', fontWeight: 500, letterSpacing: '0.5px' }}>
+        <Typography sx={{ color: 'var(--text-faint)', fontSize: '1rem', fontWeight: 500, letterSpacing: '0.5px' }}>
           {t('settingsSubtitle') || 'CONTROL_CENTER // CONFIGURAÇÃO_SISTEMA'}
         </Typography>
       </header>
@@ -305,16 +377,16 @@ function Settings() {
                 variant="outlined"
                 onClick={toggleTheme}
                 fullWidth
-                startIcon={prefs?.tema === Theme.LIGHT ? <MdBrightness4 /> : <Box sx={{ color: 'var(--color-primary)', display: 'flex' }}><MdBrightness4 /></Box>}
+                startIcon={prefs?.tema === Theme.LIGHT ? <MdBrightness4 /> : <Box sx={{ color: 'var(--accent-ink)', display: 'flex' }}><MdBrightness4 /></Box>}
                 sx={{
-                  borderColor: 'rgba(255,255,255,0.1)',
-                  color: '#fff',
+                  borderColor: 'var(--border-strong)',
+                  color: 'var(--text-primary)',
                   py: 1.2,
                   borderRadius: '12px',
-                  background: 'rgba(255,255,255,0.03)',
+                  backgroundColor: 'var(--surface-subtle)',
                   '&:hover': {
                     borderColor: 'var(--color-primary)',
-                    background: 'rgba(255,215,0,0.05)'
+                    backgroundColor: 'var(--accent-a05)'
                   }
                 }}
               >
@@ -380,9 +452,9 @@ function Settings() {
         {renderPanel(<MdPayment />, t('planos.title'), (
           <>
             {renderField(t('planos.currentPlan'), (
-              <Typography variant="body1" sx={{ color: 'var(--color-primary)', fontWeight: 800, fontFamily: "'Share Tech Mono', monospace" }}>
+              <Typography variant="body1" sx={{ color: 'var(--accent-ink)', fontWeight: 800, fontFamily: "'Share Tech Mono', monospace" }}>
                 {loadingPlano ? (
-                  <CircularProgress size={16} sx={{ color: 'var(--color-primary)' }} />
+                  <CircularProgress size={16} sx={{ color: 'var(--accent-ink)' }} />
                 ) : (
                   planoAtivo?.nome || 'Consultor (Básico)'
                 )}
@@ -393,16 +465,16 @@ function Settings() {
               onClick={() => setModalPlanosOpen(true)}
               fullWidth
               sx={{
-                borderColor: 'rgba(255,255,255,0.1)',
-                color: '#fff',
+                borderColor: 'var(--border-strong)',
+                color: 'var(--text-primary)',
                 py: 1.2,
                 borderRadius: '12px',
-                background: 'rgba(255,255,255,0.03)',
+                backgroundColor: 'var(--surface-subtle)',
                 fontFamily: "'Share Tech Mono', monospace",
                 fontWeight: 700,
                 '&:hover': {
                   borderColor: 'var(--color-primary)',
-                  background: 'rgba(255,215,0,0.05)'
+                  backgroundColor: 'var(--accent-a05)'
                 }
               }}
             >
@@ -426,7 +498,7 @@ function Settings() {
                   confirm()
                 }}
                 sx={inputSx}
-                InputProps={{ startAdornment: <Box sx={{ mr: 1, color: 'var(--color-primary)', fontWeight: 700, fontSize: '0.9rem' }}>$</Box> }}
+                InputProps={{ startAdornment: <Box sx={{ mr: 1, color: 'var(--accent-ink)', fontWeight: 700, fontSize: '0.9rem' }}>$</Box> }}
               />
             ))}
 
@@ -451,6 +523,46 @@ function Settings() {
           </>
         ))}
 
+        {renderPanel(<MdPerson />, t('account.title'), (
+          <Box
+            component="form"
+            onSubmit={handleSalvarNome}
+            sx={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1 }}
+          >
+            {renderField(t('account.name'), (
+              <TextField
+                fullWidth
+                size="small"
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+                sx={inputSx}
+              />
+            ))}
+            <Button
+              type="submit"
+              variant="outlined"
+              disabled={loadingNome}
+              fullWidth
+              sx={{
+                mt: 'auto',
+                borderColor: 'var(--border-strong)',
+                color: 'var(--text-primary)',
+                py: 1.2,
+                borderRadius: '12px',
+                backgroundColor: 'var(--surface-subtle)',
+                fontFamily: "'Share Tech Mono', monospace",
+                fontWeight: 700,
+                '&:hover': {
+                  borderColor: 'var(--color-primary)',
+                  backgroundColor: 'var(--accent-a05)'
+                }
+              }}
+            >
+              {loadingNome ? (t('saving') || 'SALVANDO...') : t('account.saveName').toUpperCase()}
+            </Button>
+          </Box>
+        ))}
+
         <div style={{ gridColumn: '1 / -1' }}>
           {renderPanel(<MdSecurity />, t('riskManagementTitle'), (
             <Grid container spacing={4}>
@@ -468,7 +580,7 @@ function Settings() {
                         confirm()
                       }}
                       sx={inputSx}
-                      InputProps={{ endAdornment: <Box sx={{ ml: 1, color: 'var(--color-primary)', fontWeight: 700 }}>%</Box> }}
+                      InputProps={{ endAdornment: <Box sx={{ ml: 1, color: 'var(--accent-ink)', fontWeight: 700 }}>%</Box> }}
                     />
                   ))}
 
@@ -553,7 +665,7 @@ function Settings() {
         <div style={{ gridColumn: '1 / -1' }}>
           {renderPanel(<MdLock />, t('security') || 'SEGURANÇA', (
             <Box component="form" onSubmit={handleTrocarSenha} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)', mb: 1 }}>
+              <Typography variant="body2" sx={{ color: 'var(--text-muted)', mb: 1 }}>
                 {t('changePasswordDescription') || 'Mantenha sua conta segura alterando sua senha periodicamente.'}
               </Typography>
               <Grid container spacing={3}>
@@ -565,7 +677,7 @@ function Settings() {
                     value={senha.atual}
                     onChange={(e) => setSenha(p => ({ ...p, atual: e.target.value }))}
                     sx={inputSx}
-                    InputLabelProps={{ sx: { color: 'rgba(255,255,255,0.5)' } }}
+                    InputLabelProps={{ sx: { color: 'var(--text-muted)' } }}
                   />
                 </Grid>
                 <Grid item xs={12} md={4}>
@@ -576,7 +688,7 @@ function Settings() {
                     value={senha.nova}
                     onChange={(e) => setSenha(p => ({ ...p, nova: e.target.value }))}
                     sx={inputSx}
-                    InputLabelProps={{ sx: { color: 'rgba(255,255,255,0.5)' } }}
+                    InputLabelProps={{ sx: { color: 'var(--text-muted)' } }}
                   />
                 </Grid>
                 <Grid item xs={12} md={4}>
@@ -587,7 +699,7 @@ function Settings() {
                     value={senha.confirma}
                     onChange={(e) => setSenha(p => ({ ...p, confirma: e.target.value }))}
                     sx={inputSx}
-                    InputLabelProps={{ sx: { color: 'rgba(255,255,255,0.5)' } }}
+                    InputLabelProps={{ sx: { color: 'var(--text-muted)' } }}
                   />
                 </Grid>
               </Grid>
@@ -597,18 +709,18 @@ function Settings() {
                   variant="contained"
                   disabled={loadingSenha}
                   sx={{
-                    bgcolor: 'var(--color-primary)',
-                    color: '#000',
+                    backgroundColor: 'var(--accent)',
+                    color: 'var(--text-on-accent)',
                     fontWeight: 800,
                     px: 4,
                     py: 1.2,
                     borderRadius: '10px',
                     '&:hover': {
                       bgcolor: '#e6c200',
-                      boxShadow: '0 0 20px rgba(255, 215, 0, 0.4)'
+                      boxShadow: '0 0 20px var(--accent-a40)'
                     },
                     '&.Mui-disabled': {
-                      bgcolor: 'rgba(255, 215, 0, 0.3)',
+                      backgroundColor: 'var(--accent-a30)',
                     }
                   }}
                 >
@@ -618,15 +730,50 @@ function Settings() {
             </Box>
           ))}
         </div>
+
+        <div style={{ gridColumn: '1 / -1' }}>
+          {renderPanel(<MdDeleteForever />, t('account.dangerZone'), (
+            <Box sx={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 2,
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <Typography variant="body2" sx={{ color: 'var(--text-muted)', maxWidth: '560px' }}>
+                {t('account.deleteAccountDescription')}
+              </Typography>
+              <Button
+                variant="outlined"
+                startIcon={<MdDeleteForever />}
+                onClick={() => setModalExcluirOpen(true)}
+                sx={{
+                  borderColor: 'var(--danger)',
+                  color: 'var(--danger-ink)',
+                  fontWeight: 800,
+                  px: 3,
+                  py: 1.2,
+                  borderRadius: '10px',
+                  '&:hover': {
+                    borderColor: 'var(--danger)',
+                    backgroundColor: 'var(--danger-a10)'
+                  }
+                }}
+              >
+                {t('account.deleteAccount').toUpperCase()}
+              </Button>
+            </Box>
+          ))}
+        </div>
       </div>
 
       <Box className={`toast${toast ? ' show' : ''}`} sx={{
         background: 'rgba(255, 215, 0, 0.9)',
-        color: '#000',
+        color: 'var(--text-on-accent)',
         fontWeight: 700,
         borderRadius: '12px',
         px: 3, py: 1.5,
-        boxShadow: '0 10px 30px rgba(255, 215, 0, 0.3)'
+        boxShadow: '0 10px 30px var(--accent-a30)'
       }}>
         {toast}
       </Box>
@@ -637,6 +784,12 @@ function Settings() {
         token={token}
         user={user}
         onRefresh={carregarPlanoAtivo}
+      />
+
+      <ExcluirContaModal
+        visible={modalExcluirOpen}
+        onClose={() => setModalExcluirOpen(false)}
+        onDeleted={handleContaExcluida}
       />
     </Box>
   )

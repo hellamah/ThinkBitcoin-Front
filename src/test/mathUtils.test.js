@@ -11,6 +11,10 @@ import {
   normalizeZScore,
   formatCurrency,
   formatPercent,
+  intervaloWilson,
+  mean,
+  median,
+  stdDev,
 } from '../src/utils/mathUtils'
 
 // Utilitário de comparação com tolerância para aritmética de ponto flutuante
@@ -136,5 +140,116 @@ describe('utils/mathUtils › formatPercent (Formatação Percentual)', () => {
 
   it('deve retornar placeholder para entradas não numéricas', () => {
     expect(formatPercent('NaN')).toBe('-')
+  })
+})
+
+describe('utils/mathUtils › median (Mediana)', () => {
+  it('deve retornar o valor central em séries de tamanho ímpar', () => {
+    expect(median([5, 1, 3])).toBe(3)
+  })
+
+  it('deve retornar a média dos dois centrais em séries de tamanho par', () => {
+    expect(median([4, 1, 3, 2])).toBe(2.5)
+  })
+
+  it('não deve ser distorcida por um valor atípico, ao contrário da média', () => {
+    // A média desta série é 204,4; a mediana ignora o candle fora da curva.
+    expect(median([1, 2, 3, 4, 1012])).toBe(3)
+  })
+
+  it('deve descartar valores nulos e não numéricos', () => {
+    expect(median([1, null, 3, undefined, 'abc', 5])).toBe(3)
+  })
+
+  it('não deve alterar o array recebido', () => {
+    const original = [3, 1, 2]
+    median(original)
+    expect(original).toEqual([3, 1, 2])
+  })
+
+  it('deve retornar null quando não houver valor válido', () => {
+    expect(median([])).toBeNull()
+    expect(median([null, 'abc'])).toBeNull()
+    expect(median(null)).toBeNull()
+  })
+})
+
+describe('utils/mathUtils › mean (Média)', () => {
+  it('deve calcular a média aritmética', () => {
+    expect(mean([2, 4, 6])).toBe(4)
+  })
+
+  it('deve descartar valores nulos e não numéricos', () => {
+    // A média é sobre 2 e 4; se null virasse zero o resultado cairia para 2.
+    expect(mean([2, null, 4, undefined, 'abc', ''])).toBe(3)
+  })
+
+  it('deve retornar null quando não houver valor válido', () => {
+    expect(mean([])).toBeNull()
+    expect(mean([null, 'abc'])).toBeNull()
+    expect(mean(null)).toBeNull()
+  })
+})
+
+describe('utils/mathUtils › stdDev (Desvio Padrão)', () => {
+  it('deve calcular o desvio padrão populacional', () => {
+    // Média 4; desvios -2, 0, 2 → variância 8/3.
+    expectClose(stdDev([2, 4, 6]), Math.sqrt(8 / 3))
+  })
+
+  it('deve retornar zero em série constante', () => {
+    expect(stdDev([5, 5, 5])).toBe(0)
+  })
+
+  it('deve descartar valores nulos e não numéricos', () => {
+    expect(stdDev([2, null, 4, 'abc', 6])).toBe(stdDev([2, 4, 6]))
+  })
+
+  it('deve retornar null quando não houver valor válido', () => {
+    expect(stdDev([])).toBeNull()
+    expect(stdDev(null)).toBeNull()
+  })
+})
+
+describe('utils/mathUtils › intervaloWilson (Intervalo de Confiança)', () => {
+  it('deve permanecer dentro de 0 e 100 mesmo nos extremos', () => {
+    // É por isso que Wilson foi escolhido: a aproximação normal devolveria
+    // limites fora de [0, 100] com proporção colada no extremo.
+    const tudoAlta = intervaloWilson(5, 5)
+    expect(tudoAlta.inferior).toBeGreaterThanOrEqual(0)
+    expect(tudoAlta.superior).toBeLessThanOrEqual(100)
+
+    const nadaAlta = intervaloWilson(0, 5)
+    expect(nadaAlta.inferior).toBeGreaterThanOrEqual(0)
+    expect(nadaAlta.superior).toBeLessThanOrEqual(100)
+  })
+
+  it('deve estreitar o intervalo conforme a amostra cresce', () => {
+    const largura = (k, n) => {
+      const i = intervaloWilson(k, n)
+      return i.superior - i.inferior
+    }
+    expect(largura(3, 6)).toBeGreaterThan(largura(30, 60))
+    expect(largura(30, 60)).toBeGreaterThan(largura(300, 600))
+  })
+
+  it('deve conter a proporção observada', () => {
+    const i = intervaloWilson(30, 60)
+    expect(i.inferior).toBeLessThan(50)
+    expect(i.superior).toBeGreaterThan(50)
+  })
+
+  it('deve ser largo demais para concluir qualquer coisa com n=2', () => {
+    // Com duas ocorrências, 100% de acerto ainda admite quase todo o espaço:
+    // é exatamente o caso que o laboratório precisa marcar como inconclusivo.
+    const i = intervaloWilson(2, 2)
+    expect(i.superior - i.inferior).toBeGreaterThan(50)
+  })
+
+  it('deve recusar entrada inválida', () => {
+    expect(intervaloWilson(1, 0)).toBeNull()
+    expect(intervaloWilson(3, 2)).toBeNull()
+    expect(intervaloWilson(-1, 5)).toBeNull()
+    expect(intervaloWilson(null, 5)).toBeNull()
   })
 })

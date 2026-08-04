@@ -40,9 +40,9 @@ function CookieBanner() {
       left: 0,
       right: 0,
       zIndex: 1400,
-      background: 'rgba(10, 10, 10, 0.96)',
+      backgroundColor: 'var(--surface-overlay)',
       backdropFilter: 'blur(16px)',
-      borderTop: '1px solid rgba(255, 215, 0, 0.15)',
+      borderTop: '1px solid var(--accent-a15)',
       px: { xs: 2, md: 6 },
       py: { xs: 2, md: 2.5 },
       display: 'flex',
@@ -51,12 +51,15 @@ function CookieBanner() {
       gap: { xs: 2, md: 4 },
     }}>
       <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, flex: 1 }}>
-        <MdCookie style={{ color: 'var(--color-primary)', fontSize: '1.3rem', flexShrink: 0, marginTop: 2 }} />
-        <Typography sx={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.82rem', lineHeight: 1.6 }}>
+        <MdCookie style={{ color: 'var(--accent-ink)', fontSize: '1.3rem', flexShrink: 0, marginTop: 2 }} />
+        <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.82rem', lineHeight: 1.6 }}>
           Utilizamos cookies essenciais para o funcionamento da plataforma e cookies de preferências para melhorar sua experiência.
           Consulte nossa{' '}
-          <Box component="a" href="https://minerthinkbitcoin.com/privacidade" target="_blank" rel="noopener"
-            sx={{ color: 'var(--color-primary)', textDecoration: 'none', fontWeight: 600, '&:hover': { opacity: 0.8 } }}>
+          {/* Caminho relativo, não a URL absoluta de produção: assim o link
+              funciona no preview e no localhost em vez de pular para o site
+              publicado. Abre em outra aba para não derrubar este banner. */}
+          <Box component="a" href="/privacidade" target="_blank" rel="noopener"
+            sx={{ color: 'var(--accent-ink)', textDecoration: 'none', fontWeight: 600, '&:hover': { opacity: 0.8 } }}>
             Política de Privacidade
           </Box>.
         </Typography>
@@ -68,12 +71,12 @@ function CookieBanner() {
           size="small"
           onClick={essenciais}
           sx={{
-            borderColor: 'rgba(255,255,255,0.2)',
-            color: 'rgba(255,255,255,0.55)',
+            borderColor: 'var(--border-strong)',
+            color: 'var(--text-muted)',
             borderRadius: '8px',
             fontSize: '0.78rem',
             px: 2,
-            '&:hover': { borderColor: 'rgba(255,255,255,0.4)', color: '#fff' },
+            '&:hover': { borderColor: 'var(--border-interactive)', color: 'var(--text-primary)' },
           }}
         >
           Apenas essenciais
@@ -83,8 +86,8 @@ function CookieBanner() {
           size="small"
           onClick={aceitar}
           sx={{
-            bgcolor: 'var(--color-primary)',
-            color: '#000',
+            backgroundColor: 'var(--accent)',
+            color: 'var(--text-on-accent)',
             borderRadius: '8px',
             fontSize: '0.78rem',
             fontWeight: 700,

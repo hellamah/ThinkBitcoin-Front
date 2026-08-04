@@ -56,6 +56,117 @@ export const normalizeZScore = (values) => {
 }
 
 /**
+ * Converte um valor para número, ou null se não houver leitura utilizável.
+ *
+ * Existe porque Number(null), Number(undefined ?? '') e Number('') valem 0, e
+ * 0 passa em Number.isFinite: converter antes de descartar faz uma medição
+ * ausente entrar na série como zero — que numa série de mercado é uma
+ * afirmação ("não variou", "não negociou"), não uma lacuna.
+ *
+ * @param {*} valor
+ * @returns {number|null}
+ */
+export const paraNumero = (valor) => {
+  if (valor === null || valor === undefined || valor === '') return null
+  const n = Number(valor)
+  return Number.isFinite(n) ? n : null
+}
+
+/**
+ * Extrai os números utilizáveis de uma série.
+ *
+ * @param {Array<number|null>} values
+ * @returns {number[]}
+ */
+const numerosValidos = (values) => {
+  if (!Array.isArray(values)) return []
+  return values.map(paraNumero).filter((v) => v !== null)
+}
+
+/**
+ * Média aritmética de uma série, ignorando valores não numéricos.
+ *
+ * @param {Array<number|null>} values
+ * @returns {number|null} - null se não houver valor válido.
+ */
+export const mean = (values) => {
+  const validos = numerosValidos(values)
+  if (validos.length === 0) return null
+  return validos.reduce((a, b) => a + b, 0) / validos.length
+}
+
+/**
+ * Desvio padrão populacional de uma série, ignorando valores não numéricos.
+ * Populacional (divide por n) porque a série é o período inteiro observado,
+ * não uma amostra dele.
+ *
+ * @param {Array<number|null>} values
+ * @returns {number|null} - null se não houver valor válido.
+ */
+export const stdDev = (values) => {
+  const validos = numerosValidos(values)
+  if (validos.length === 0) return null
+
+  const media = validos.reduce((a, b) => a + b, 0) / validos.length
+  const variancia =
+    validos.reduce((acc, v) => acc + (v - media) ** 2, 0) / validos.length
+  return Math.sqrt(variancia)
+}
+
+/**
+ * Calcula a mediana de uma série numérica, ignorando valores não numéricos.
+ * Preferida à média como referência de "normalidade" em séries de mercado,
+ * onde um único candle atípico distorce a média.
+ *
+ * @param {Array<number|null>} values - Array de valores numéricos ou null.
+ * @returns {number|null} - A mediana, ou null se não houver valor válido.
+ */
+export const median = (values) => {
+  const validos = numerosValidos(values).sort((a, b) => a - b)
+
+  if (validos.length === 0) return null
+
+  const meio = Math.floor(validos.length / 2)
+  return validos.length % 2 === 0
+    ? (validos[meio - 1] + validos[meio]) / 2
+    : validos[meio]
+}
+
+// z de 1,96 corresponde a 95% de confiança na normal padrão.
+const Z_95 = 1.96
+
+/**
+ * Intervalo de confiança de Wilson para uma proporção.
+ *
+ * Escolhido em vez da aproximação normal justamente porque as amostras aqui
+ * são pequenas: com n baixo ou proporção perto de 0% ou 100%, a aproximação
+ * normal produz intervalos que saem de [0, 1] e sugerem precisão que não
+ * existe. Wilson é assimétrico e permanece dentro dos limites.
+ *
+ * @param {number} sucessos
+ * @param {number} total
+ * @param {number} [z] - Escore normal; 1,96 = 95%.
+ * @returns {{inferior: number, superior: number}|null} - Em %, ou null sem amostra.
+ */
+export const intervaloWilson = (sucessos, total, z = Z_95) => {
+  const n = paraNumero(total)
+  const k = paraNumero(sucessos)
+  if (n === null || k === null || n <= 0 || k < 0 || k > n) return null
+
+  const p = k / n
+  const z2 = z * z
+  const denominador = 1 + z2 / n
+  const centro = (p + z2 / (2 * n)) / denominador
+  const margem =
+    (z / denominador) * Math.sqrt((p * (1 - p)) / n + z2 / (4 * n * n))
+
+  return {
+    inferior: Math.max(0, centro - margem) * 100,
+    superior: Math.min(1, centro + margem) * 100,
+  }
+}
+
+/**
  * Formata um valor numérico para moeda (USD por padrão).
  * 
  * @param {number|string} value - Valor a ser formatado.

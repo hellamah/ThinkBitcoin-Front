@@ -4,6 +4,27 @@
 import { MapRegion } from './enums';
 
 /**
+ * Resolve o nome localizado de um país a partir do código ISO usando a API
+ * nativa Intl.DisplayNames (cobre todos os países, em qualquer idioma).
+ * Instâncias são cacheadas por locale; códigos inválidos retornam o próprio código.
+ * @param {string} code - Código ISO do país (ex: BR, US, TR)
+ * @param {string} [locale='pt'] - Locale BCP 47 (ex: 'pt', 'en')
+ * @returns {string} Nome do país localizado, ou o código se não resolvido
+ */
+const displayNamesCache = {};
+export const getCountryName = (code, locale = 'pt') => {
+  const c = String(code || '').toUpperCase().trim();
+  try {
+    if (!displayNamesCache[locale]) {
+      displayNamesCache[locale] = new Intl.DisplayNames([locale], { type: 'region' });
+    }
+    return displayNamesCache[locale].of(c) || c;
+  } catch {
+    return c;
+  }
+};
+
+/**
  * Retorna o sentimento de mercado correspondente ao percentual de dominância/busca.
  * @param {number} value - Percentual de dominância
  * @returns {string} Frase de sentimento de mercado
@@ -21,40 +42,50 @@ export const getMarketSentiment = (value) => {
  * Gera a string de HTML para exibição do Tooltip customizado premium e com glassmorphism.
  * @param {string} countryName - Nome formatado do país
  * @param {string} coinSymbol - Símbolo da moeda selecionada (ex: BTC, ETH)
- * @param {number} value - Percentual de dominância
+ * @param {number} value - Participação percentual dentro do top 5
  * @param {object} [extras={}] - Dados extras opcionais para exibição no tooltip
- * @param {number} [extras.variacao24h] - Variação percentual nas últimas 24h
- * @param {number} [extras.volume] - Volume de negociação em USD
+ * @param {number} [extras.variacao24h] - Variação percentual recente do preço do ativo
+ * @param {number} [extras.lideranca] - Nº de vezes que o país liderou as buscas no período
+ * @param {number} [extras.intensidade] - Intensidade média de busca (0-100)
+ * @param {object} [labels={}] - Rótulos localizados (fallback em PT-BR)
  * @returns {string} String HTML
  */
-export const formatTooltipData = (countryName, coinSymbol, value, extras = {}) => {
+export const formatTooltipData = (countryName, coinSymbol, value, extras = {}, labels = {}) => {
   const sentiment = getMarketSentiment(value);
-  const { variacao24h, volume } = extras;
+  const { variacao24h, lideranca, intensidade } = extras;
+  const rotulos = {
+    participacao: labels.participacao || 'Participação no top 5',
+    lideranca: labels.lideranca || 'Liderança de buscas',
+    intensidade: labels.intensidade || 'Intensidade média',
+    variacao: labels.variacao || 'Variação',
+  };
 
   const corVariacao = variacao24h >= 0 ? '#4ade80' : '#f87171';
   const sinaisVariacao = variacao24h >= 0 ? '+' : '';
 
-  const blocoVariacao = variacao24h !== undefined ? `
+  const blocoVariacao = variacao24h !== undefined && variacao24h !== null ? `
     <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 6px;">
-      <span style="font-size: 12px; color: rgba(255,255,255,0.65);">Variação 24h:</span>
+      <span style="font-size: 12px; color: rgba(255,255,255,0.65);">${rotulos.variacao} ${coinSymbol}:</span>
       <span style="font-size: 13px; font-weight: 700; color: ${corVariacao}; font-family: 'Share Tech Mono', monospace;">
         ${sinaisVariacao}${Number(variacao24h).toFixed(2)}%
       </span>
     </div>
   ` : '';
 
-  const formatarVolume = (v) => {
-    if (v >= 1e9) return `$${(v / 1e9).toFixed(1)}B`;
-    if (v >= 1e6) return `$${(v / 1e6).toFixed(1)}M`;
-    if (v >= 1e3) return `$${(v / 1e3).toFixed(1)}K`;
-    return `$${v}`;
-  };
-
-  const blocoVolume = volume !== undefined ? `
+  const blocoLideranca = lideranca !== undefined && lideranca !== null ? `
     <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 6px;">
-      <span style="font-size: 12px; color: rgba(255,255,255,0.65);">Volume:</span>
+      <span style="font-size: 12px; color: rgba(255,255,255,0.65);">${rotulos.lideranca}:</span>
       <span style="font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.9); font-family: 'Share Tech Mono', monospace;">
-        ${formatarVolume(volume)}
+        ${lideranca}x
+      </span>
+    </div>
+  ` : '';
+
+  const blocoIntensidade = intensidade !== undefined && intensidade !== null && Number(intensidade) > 0 ? `
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 6px;">
+      <span style="font-size: 12px; color: rgba(255,255,255,0.65);">${rotulos.intensidade}:</span>
+      <span style="font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.9); font-family: 'Share Tech Mono', monospace;">
+        ${Number(intensidade).toFixed(0)}/100
       </span>
     </div>
   ` : '';
@@ -75,14 +106,16 @@ export const formatTooltipData = (countryName, coinSymbol, value, extras = {}) =
       <div style="font-size: 11px; text-transform: uppercase; color: #ffd700; font-weight: 800; letter-spacing: 0.8px; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 6px;">
         📍 ${countryName}
       </div>
+      ${Number(value) > 0 ? `
       <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 8px;">
-        <span style="font-size: 13px; color: rgba(255,255,255,0.75);">Dominância ${coinSymbol}:</span>
+        <span style="font-size: 13px; color: rgba(255,255,255,0.75);">${rotulos.participacao}:</span>
         <span style="font-size: 15px; font-weight: 800; color: #ffd700; font-family: 'Share Tech Mono', monospace;">
           ${value}%
         </span>
-      </div>
+      </div>` : ''}
+      ${blocoLideranca}
+      ${blocoIntensidade}
       ${blocoVariacao}
-      ${blocoVolume}
       <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.06); font-size: 11px; color: #fff; font-weight: 500; display: flex; align-items: center; gap: 4px;">
         ${sentiment}
       </div>
@@ -115,25 +148,19 @@ export const getRegionForCountry = (countryCode) => {
 
 /**
  * Filtra a lista de moedas com base no país selecionado (interatividade mapa-carrossel).
+ * Usa dado real: cada moeda do carrossel carrega o último registro de /trend com
+ * `geoTop1Code` (país que lidera as buscas por aquele ativo). Ficam no carrossel
+ * as moedas cujo país líder é o país clicado no mapa.
  * @param {string} countryCode - ISO do país
- * @param {Array} allCoins - Lista completa de moedas do carrossel
+ * @param {Array} allCoins - Lista completa de moedas do carrossel (com `trend` anexado)
  * @returns {Array} Lista filtrada de moedas
  */
 export const filterCoinsByCountry = (countryCode, allCoins) => {
   if (!countryCode || !allCoins) return allCoins;
   const code = String(countryCode).toUpperCase().trim();
-  
-  return allCoins.filter(coin => {
-    const sym = String(coin.simbolo).toUpperCase();
-    if (code === 'US') return true;
-    if (code === 'BR') return ['BTC', 'ETH', 'SOL', 'USDT'].includes(sym);
-    if (code === 'DE') return ['BTC', 'ETH', 'ADA', 'DOT'].includes(sym);
-    if (code === 'JP') return ['BTC', 'XRP', 'SOL', 'DOGE'].includes(sym);
-    if (code === 'CH') return ['ETH', 'SOL', 'AVAX', 'LINK'].includes(sym);
-    
-    // Hash determinístico simples para outros países
-    const val = (code.charCodeAt(0) + (code.charCodeAt(1) || 0) + sym.charCodeAt(0)) % 3;
-    return val === 0 || sym === 'BTC'; // Garante que BTC sempre apareça
-  });
+
+  return allCoins.filter(coin =>
+    String(coin?.trend?.geoTop1Code || '').toUpperCase().trim() === code
+  );
 };
 

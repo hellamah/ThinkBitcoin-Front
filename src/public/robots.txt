@@ -1,0 +1,14 @@
+# Todo o site é liberado para varredura.
+#
+# A linha Disallow vazia é a forma original de dizer "nada está bloqueado".
+# Vale mais que um "Allow: /" porque é entendida por qualquer robô, inclusive
+# os antigos, que não implementam a diretiva Allow.
+#
+# O arquivo precisa existir mesmo liberando tudo. Sem ele, a rewrite
+# /(.*) -> /index.html do vercel.json intercepta o caminho e devolve o HTML do
+# app com status 200: o robô pede um texto de regras e recebe uma página. Como
+# arquivo estático existente tem precedência sobre rewrite na Vercel, este
+# arquivo resolve isso simplesmente por estar aqui.
+
+User-agent: *
+Disallow:

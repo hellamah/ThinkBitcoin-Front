@@ -3,6 +3,11 @@ import { apiRequest, MarketEndpoint, VariavelExternaEndpoint } from '../utils/ap
 import { toUTCISO } from '../utils/dateUtils'
 import { useDashboard } from '../context/DashboardContext'
 
+// Quantos dias de candles são buscados antes do período escolhido, só para
+// aquecer os indicadores de janela móvel. Três dias cobrem 72 candles na
+// cadência horária do backend — folga sobre os 20 que Bollinger exige.
+const DIAS_DE_AQUECIMENTO = 3
+
 export default function useDashboardData({
   token,
   moedasCarousel,
@@ -19,6 +24,11 @@ export default function useDashboardData({
   const [trendPorMoeda, setTrendPorMoeda] = useState({})
   const [loadingSentiment, setLoadingSentiment] = useState(false)
   const [totalPaginas, setTotalPaginas] = useState(1)
+
+  // Quanto do período pedido realmente chegou. `quantidade` é um teto sobre a
+  // janela, então pedir 12 dias de candles horários (278) e receber 100 é o
+  // comportamento normal da API — o que não pode é a tela omitir o corte.
+  const [cobertura, setCobertura] = useState(null)
   const [historicoMoeda, setHistoricoMoeda] = useState(null)
   const [erro, setErro] = useState('')
 
@@ -63,7 +73,18 @@ export default function useDashboardData({
       setLoadingSentiment(true)
 
       const commonParams = new URLSearchParams()
-      if (dataInicio) commonParams.append('dataInicio', dataInicio.includes('T') ? dataInicio : toUTCISO(new Date(`${dataInicio}T00:00:00`)))
+      // Pede alguns dias ANTES do período escolhido. Indicadores de janela
+      // móvel — Bollinger de 20, RSI de 14 — precisam de candles anteriores ao
+      // primeiro ponto desenhado, senão a banda só começa no meio do gráfico.
+      //
+      // Estes candles extras não aparecem em lugar nenhum: tanto o gráfico
+      // (useDashboardCharts) quanto a tabela (Dashboard) refiltram por data no
+      // front. Servem só para o indicador chegar aquecido.
+      if (dataInicio) {
+        const inicio = new Date(dataInicio.includes('T') ? dataInicio : `${dataInicio}T00:00:00`)
+        inicio.setDate(inicio.getDate() - DIAS_DE_AQUECIMENTO)
+        commonParams.append('dataInicio', toUTCISO(inicio))
+      }
       if (dataFim) commonParams.append('dataFim', dataFim.includes('T') ? dataFim : toUTCISO(new Date(`${dataFim}T23:59:59`)))
       if (intervalo) commonParams.append('intervalo', intervalo)
       if (pagina) commonParams.append('pagina', pagina)
@@ -120,6 +141,20 @@ export default function useDashboardData({
       const novoTrend = {}
       const moedasComErro = []
 
+      // O corte é detectado pelo candle mais antigo que voltou, não por
+      // totalRegistros: com a margem de aquecimento aquele total passou a
+      // incluir candles anteriores ao período escolhido. Se o mais antigo
+      // dentro da janela ainda é posterior ao início pedido, houve corte.
+      const inicioPedido = dataInicio
+        ? new Date(dataInicio.includes('T') ? dataInicio : `${dataInicio}T00:00:00`).getTime()
+        : null
+
+      const instanteDe = (r) =>
+        new Date(r?.horaReferencia ?? r?.HoraReferencia ?? r?.dataHora ?? r?.DataHora).getTime()
+
+      let recebidos = 0
+      let maisAntigoNaJanela = null
+
       resultados.forEach(res => {
         if (!res) return
         if (res.error) {
@@ -131,6 +166,21 @@ export default function useDashboardData({
         const regsPreco = preco?.registros ?? (Array.isArray(preco) ? preco : [])
         const regsFear = fear?.registros ?? (Array.isArray(fear) ? fear : [])
         const regsTrend = trend?.registros ?? (Array.isArray(trend) ? trend : [])
+
+        // Só os candles do período escolhido contam; os de aquecimento não são
+        // exibidos e não devem aparecer na conta.
+        const naJanela = inicioPedido === null
+          ? regsPreco
+          : regsPreco.filter((r) => instanteDe(r) >= inicioPedido)
+
+        if (naJanela.length > recebidos) {
+          recebidos = naJanela.length
+          // A API entrega do mais recente ao mais antigo.
+          const ultimo = naJanela[naJanela.length - 1]
+          maisAntigoNaJanela = ultimo
+            ? (ultimo.horaReferencia ?? ultimo.HoraReferencia ?? ultimo.dataHora ?? ultimo.DataHora)
+            : null
+        }
 
         novoHistoricoPreco[sigla] = regsPreco
         novoFearGreed[sigla] = regsFear
@@ -148,6 +198,21 @@ export default function useDashboardData({
       if (moedasComErro.length > 0) {
         setErro(`Não foi possível carregar os dados de: ${moedasComErro.join(', ')}`)
       }
+
+      // Uma hora de tolerância: o candle mais antigo raramente cai exatamente
+      // na meia-noite do início pedido, e um desencontro de cadência não é
+      // corte.
+      const TOLERANCIA_MS = 60 * 60 * 1000
+      const truncado =
+        inicioPedido !== null &&
+        maisAntigoNaJanela !== null &&
+        new Date(maisAntigoNaJanela).getTime() - inicioPedido > TOLERANCIA_MS
+
+      setCobertura(
+        recebidos > 0
+          ? { recebidos, truncado, desde: maisAntigoNaJanela }
+          : null
+      )
 
       setHistoricosPorMoeda(novoHistoricoPreco)
       setFearGreedPorMoeda(novoFearGreed)
@@ -169,6 +234,7 @@ export default function useDashboardData({
     loadingSentiment,
     totalPaginas,
     historicoMoeda,
+    cobertura,
     erro,
     setErro
   }

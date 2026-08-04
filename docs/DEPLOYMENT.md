@@ -81,6 +81,38 @@ builder.Services.AddCors(options => {
 });
 ```
 
+### Cabeçalhos de segurança (`src/vercel.json`)
+
+A Vercel aplica os cabeçalhos declarados em `src/vercel.json` a toda resposta.
+Estão **em vigor**: `Strict-Transport-Security`, `X-Content-Type-Options`,
+`X-Frame-Options: DENY`, `Referrer-Policy` e `Permissions-Policy`.
+
+A **CSP está em modo `Report-Only`**, de propósito. A política precisa liberar
+três origens externas que o app realmente usa:
+
+| Origem | Por quê | Diretiva |
+|--------|---------|----------|
+| `https://www.gstatic.com` | loader do Google Charts (GeoHeatmap) | `script-src`, `img-src`, `connect-src` |
+| `https://fonts.googleapis.com` | `@import` das fontes em `src/App.css` | `style-src` |
+| `https://fonts.gstatic.com` | arquivos `.woff2` das mesmas fontes | `font-src` |
+
+Além disso, `style-src` precisa de `'unsafe-inline'` porque o Emotion (MUI)
+injeta `<style>` em runtime, e `img-src` precisa de `data:` por causa do QR code
+Pix, que chega como base64.
+
+**Para promover a `Content-Security-Policy` (enforced):**
+
+1. Faça um deploy de preview e navegue por todas as telas — em especial
+   `/heatmap`, que é a que carrega o Google Charts.
+2. Abra o console do navegador e procure por `Report Only` / violações.
+3. Se o console estiver limpo, renomeie a chave para `Content-Security-Policy`.
+   Se não, ajuste a diretiva reclamada antes de promover.
+
+> **Manutenção:** `connect-src` lista os hosts de API explicitamente. Ao trocar
+> `VITE_API_URL` ou `VITE_PYTHON_API_URL` para um domínio novo, o host precisa
+> entrar nessa lista — senão o navegador bloqueia toda chamada à API assim que a
+> CSP sair do modo report-only.
+
 ## 6. SSL e HTTPS
 A Vercel fornece HTTPS automático para o Frontend. Para o Backend local:
 - Recomenda-se o uso de **Cloudflare Tunnel** ou **Let's Encrypt** (via cert-manager) para garantir que o navegador não bloqueie chamadas de "conteúdo misto" (Site HTTPS chamando API HTTP).

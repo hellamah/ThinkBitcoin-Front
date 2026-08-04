@@ -60,13 +60,98 @@ describe('utils/mockApi › getMockResponse', () => {
       expect(resp.resultado.registros.length).toBeGreaterThan(0)
     })
 
+    // Campo constante no mock não quebra nada e não aparece em erro nenhum:
+    // o painel simplesmente exibe sempre o mesmo número, e a régua "N× a
+    // mediana" trava em 1,0. Já aconteceu quatro vezes neste arquivo.
+    it('não deve entregar campo analítico congelado ao longo da série', () => {
+      const resp = getMockResponse({
+        endpoint: '/ThinkBitcoin/moeda/BTC/valor?quantidade=40',
+        method: 'GET',
+      })
+      const registros = resp.resultado.registros
+      expect(registros.length).toBeGreaterThan(20)
+
+      // Campos que alimentam painel ou detector; cada um precisa de variação
+      // para o modo demo conseguir demonstrar a leitura que oferece.
+      const analiticos = [
+        'precoFechamento', 'precoAbertura', 'precoMaior', 'precoMenor',
+        'precoPercentualVariacao', 'precoAmplitude', 'precoVolume',
+        'precoCorpoCandle', 'precoSombraSuperior', 'precoSombraInferior',
+        'precoFinanceiroPorTrade', 'precoRatioCompraVenda',
+        'precoVolatilidadePercentual', 'volumeComprado', 'volumeVendido',
+        'dominanciaCompradoraPercentual', 'dominanciaVendedoraPercentual',
+        'volumeDelta',
+      ]
+
+      const congelados = analiticos.filter(
+        (campo) => new Set(registros.map((r) => r[campo])).size === 1
+      )
+
+      expect(congelados).toEqual([])
+    })
+
+    // Campo que varia no tempo mas é igual em todas as moedas passa no teste
+    // acima e ainda assim inutiliza qualquer comparação — foi o caso de
+    // precoVolatilidadePercentual, que dependia só do índice do candle.
+    it('não deve entregar série idêntica entre moedas diferentes', () => {
+      const serieDe = (sigla) =>
+        getMockResponse({
+          endpoint: `/ThinkBitcoin/moeda/${sigla}/valor?quantidade=30`,
+          method: 'GET',
+        }).resultado.registros
+
+      const btc = serieDe('BTC')
+      const eth = serieDe('ETH')
+
+      // Percentuais e razões, que não dependem da escala de preço da moeda e
+      // por isso poderiam coincidir sem ninguém notar.
+      const comparaveis = [
+        'precoPercentualVariacao',
+        'precoVolatilidadePercentual',
+        'dominanciaCompradoraPercentual',
+        'precoRatioCompraVenda',
+      ]
+
+      const iguais = comparaveis.filter((campo) =>
+        btc.every((r, i) => r[campo] === eth[i]?.[campo])
+      )
+
+      expect(iguais).toEqual([])
+    })
+
+    it('deve manter o fluxo comprador e vendedor coerente entre si', () => {
+      // As duas dominâncias somam 100, o delta é a diferença dos volumes e o
+      // ratio é a razão deles. Sem isso o painel mostra números que se
+      // contradizem — pressão de 60% com delta negativo, por exemplo.
+      const resp = getMockResponse({
+        endpoint: '/ThinkBitcoin/moeda/BTC/valor?quantidade=20',
+        method: 'GET',
+      })
+
+      resp.resultado.registros.forEach((r) => {
+        expect(r.dominanciaCompradoraPercentual + r.dominanciaVendedoraPercentual).toBeCloseTo(100, 4)
+        expect(r.volumeComprado + r.volumeVendido).toBeCloseTo(r.precoVolume, 4)
+        expect(r.volumeDelta).toBeCloseTo(r.volumeComprado - r.volumeVendido, 4)
+        expect(r.precoRatioCompraVenda).toBeCloseTo(r.volumeComprado / r.volumeVendido, 4)
+      })
+    })
+
+    // O preço passeia a partir da base ao longo de um ano de candles, então
+    // prendê-lo à base testaria a forma do gerador, não o contrato. O que
+    // importa é a moeda usar a base certa — se ETH herdasse a de BTC, o preço
+    // sairia vinte vezes fora desta banda.
+    const dentroDaBanda = (valor, base) => {
+      expect(valor).toBeGreaterThan(base * 0.5)
+      expect(valor).toBeLessThan(base * 1.5)
+    }
+
     it('retorna dados de valor para endpoint de ETH', () => {
       const resp = getMockResponse({
         endpoint: '/ThinkBitcoin/moeda/ETH/valor',
         method: 'GET',
       })
 
-      expect(resp?.resultado?.registros?.[0]?.precoFechamento).toBeCloseTo(3500, -3)
+      dentroDaBanda(resp?.resultado?.registros?.[0]?.precoFechamento, 3500)
     })
 
     it('retorna dados de valor para endpoint de DOGE (valor fracionário)', () => {
@@ -84,7 +169,7 @@ describe('utils/mockApi › getMockResponse', () => {
         method: 'GET',
       })
 
-      expect(resp?.resultado?.registros?.[0]?.precoFechamento).toBeCloseTo(100, -1)
+      dentroDaBanda(resp?.resultado?.registros?.[0]?.precoFechamento, 100)
     })
 
     it('aceita query string na URL do endpoint de moeda', () => {
@@ -215,23 +300,33 @@ describe('utils/mockApi › getMockResponse', () => {
   })
 
   describe('Variáveis Externas (Fear & Greed, Trend e Heatmap)', () => {
-    it('retorna mock de Fear & Greed para GET /variavel-externa/fear-greed', () => {
+    it('retorna série de Fear & Greed para GET /variavel-externa/fear-greed', () => {
       const resp = getMockResponse({
         endpoint: '/ThinkBitcoin/variavel-externa/fear-greed',
         method: 'GET',
       })
 
-      expect(resp).toMatchObject({
-        mensagem: expect.any(String),
-        resultado: {
-          registros: [
-            {
-              valor: expect.any(Number),
-              classificacao: expect.any(String),
-            }
-          ]
-        }
+      expect(resp.mensagem).toEqual(expect.any(String))
+      // Série, não ponto único: o dashboard desenha a evolução do sentimento.
+      expect(resp.resultado.registros.length).toBeGreaterThan(1)
+      expect(resp.resultado.registros[0]).toMatchObject({
+        valor: expect.any(Number),
+        classificacao: expect.any(String),
+        horaReferencia: expect.any(String),
       })
+    })
+
+    it('respeita quantidade e ordena do mais recente para o mais antigo', () => {
+      const resp = getMockResponse({
+        endpoint: '/ThinkBitcoin/variavel-externa/fear-greed?quantidade=5',
+        method: 'GET',
+      })
+
+      expect(resp.resultado.registros).toHaveLength(5)
+
+      // A API real usa ordemAsc=false: o índice 0 é sempre a leitura atual.
+      const datas = resp.resultado.registros.map((r) => new Date(r.horaReferencia).getTime())
+      expect(datas).toEqual([...datas].sort((a, b) => b - a))
     })
 
     it('retorna mock de Trend para GET /variavel-externa/trend', () => {

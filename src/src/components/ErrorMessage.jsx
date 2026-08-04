@@ -20,7 +20,7 @@ function ErrorMessage({ message, onClose }) {
         border: '1px solid rgba(211, 47, 47, 0.5)',
         paddingRight: '50px',
         '& .MuiAlert-icon': {
-          color: '#f44336'
+          color: 'var(--danger)'
         }
       }}
     >

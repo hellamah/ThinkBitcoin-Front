@@ -16,6 +16,7 @@ const Settings = lazy(() => import('./pages/Settings.jsx'))
 const GeoHeatmapView = lazy(() => import('./pages/GeoHeatmapView.jsx'))
 const TreinamentoEpisodios = lazy(() => import('./pages/TreinamentoEpisodios.jsx'))
 const RedefinirSenha = lazy(() => import('./pages/RedefinirSenha.jsx'))
+const DocumentoLegal = lazy(() => import('./pages/DocumentoLegal.jsx'))
 
 const PageLoader = () => (
   <Box
@@ -26,7 +27,7 @@ const PageLoader = () => (
       justifyContent: 'center',
     }}
   >
-    <CircularProgress sx={{ color: '#ffd700' }} />
+    <CircularProgress sx={{ color: 'var(--accent-ink)' }} />
   </Box>
 )
 
@@ -42,6 +43,12 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/redefinir-senha" element={<RedefinirSenha />} />
+              {/* Públicas de propósito: o banner de cookies aparece para
+                  visitante, e o overlay de cadastro pede o aceite antes de
+                  existir conta. Exigir login para ler o que se está aceitando
+                  seria o avesso do consentimento informado. */}
+              <Route path="/privacidade" element={<DocumentoLegal documento="privacidade" />} />
+              <Route path="/termos" element={<DocumentoLegal documento="termos" />} />
               <Route
                 path="/dashboard"
                 element={

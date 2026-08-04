@@ -1,8 +1,25 @@
 import { useMemo } from 'react'
+import { useTheme } from '@mui/material/styles'
 import * as mathUtils from '../utils/mathUtils'
 import { toLocalChartLabel } from '../utils/dateUtils'
+import { chartPalette } from '../utils/themeTokens'
+import {
+  construirVelas,
+  faixaDasVelas,
+  MAX_BODY_WIDTH,
+  BODY_RATIO,
+} from '../utils/candlestickChart'
+import { construirVolumes, estiloDasBarras } from '../utils/volumeChart'
+import { resumirVwap } from '../utils/vwap'
+import { calcularBollinger } from '../utils/oscillators'
+import { matrizCorrelacao } from '../utils/correlation'
+import { Normalization, PriceChartMode } from '../utils/enums'
 
 const CORES_SIMPLE = ['#FFD700', '#2196f3', '#4caf50', '#e91e63', '#9c27b0', '#ff9800', '#00bcd4']
+
+// Fração mínima do gráfico que a banda precisa cobrir para valer a pena
+// desenhá-la. Metade é o suficiente para o formato ser legível.
+const COBERTURA_MINIMA_BANDA = 0.5
 
 export default function useDashboardCharts({
   historicosPorMoeda,
@@ -11,8 +28,12 @@ export default function useDashboardCharts({
   resultadoFiltro,
   normalizacao,
   fearGreedPorMoeda,
-  trendPorMoeda
+  trendPorMoeda,
+  modoPreco = PriceChartMode.LINE,
+  t = (chave) => chave
 }) {
+  const { palette } = useTheme()
+
   const chartConfig = useMemo(() => {
     // 1. Timestamps comuns (após filtros globais)
     const allTimestampsSet = new Set()
@@ -68,9 +89,9 @@ export default function useDashboardCharts({
       // Aplicar Normalização se multi-moeda
       let dataFinal = dataRaw
       if (multi) {
-        if (normalizacao === 'base100') dataFinal = mathUtils.normalizeToBase100(dataRaw)
-        else if (normalizacao === 'minmax') dataFinal = mathUtils.normalizeMinMax(dataRaw)
-        else if (normalizacao === 'zscore') dataFinal = mathUtils.normalizeZScore(dataRaw)
+        if (normalizacao === Normalization.BASE_100) dataFinal = mathUtils.normalizeToBase100(dataRaw)
+        else if (normalizacao === Normalization.MIN_MAX) dataFinal = mathUtils.normalizeMinMax(dataRaw)
+        else if (normalizacao === Normalization.Z_SCORE) dataFinal = mathUtils.normalizeZScore(dataRaw)
       }
 
       return {
@@ -147,38 +168,144 @@ export default function useDashboardCharts({
       realTRMap.set(sig, m)
     })
 
-    // Garantimos que TODO timestamp do gráfico tenha um dado de sentimento (real ou fallback)
+    // Só entram no mapa os pontos com leitura real de sentimento. Um timestamp
+    // sem dado simplesmente não exibe a linha no tooltip — antes daqui saía um
+    // valor aleatório, indistinguível de sentimento medido de verdade.
     timestampsUnicos.forEach(ts => {
       const label = toLocalChartLabel(ts)
-      if (!sentimentMap.has(label)) sentimentMap.set(label, new Map())
-      const coinMap = sentimentMap.get(label)
 
       moedasOrdenadas.forEach(sigla => {
+        const fg = realFGMap.get(sigla)?.get(ts)
+        const tr = realTRMap.get(sigla)?.get(ts)
+        if (!fg && !tr) return
+
+        if (!sentimentMap.has(label)) sentimentMap.set(label, new Map())
+        const coinMap = sentimentMap.get(label)
         if (!coinMap.has(sigla)) coinMap.set(sigla, {})
+
         const target = coinMap.get(sigla)
-
-        // Tenta buscar o dado real, senão gera um mock sincronizado para este ponto exato
-        target.fg = realFGMap.get(sigla)?.get(ts) || { 
-          valor: 60 + Math.floor(Math.random() * 15), 
-          classificacao: 'Greed',
-          isMock: true 
-        }
-
-        target.tr = realTRMap.get(sigla)?.get(ts) || { 
-          valorAtual: 100 + Math.floor(Math.random() * 20),
-          mA5: 105, mA15: 110,
-          isMock: true 
-        }
+        if (fg) target.fg = fg
+        if (tr) target.tr = tr
       })
     })
 
+    // Candles só com uma moeda: sobrepor o OHLC de ativos diferentes no mesmo
+    // eixo não produz nada legível.
+    const velas = !multi && moedasOrdenadas.length === 1
+      ? construirVelas(historicosPorMoeda[moedasOrdenadas[0]], timestampsUnicos)
+      : []
+
+    // Volume acompanha as velas: mesmo eixo, mesma condição de moeda única.
+    const volumes = velas.length > 0
+      ? construirVolumes(historicosPorMoeda[moedasOrdenadas[0]], timestampsUnicos)
+      : []
+    const medianaVolume = mathUtils.median(volumes)
+
+    // VWAP acompanha o preço no mesmo eixo, então só faz sentido com moeda
+    // única — média ponderada de ativos diferentes não descreve nenhum deles.
+    //
+    // É calculado só sobre os instantes que o gráfico exibe. Como o VWAP é
+    // acumulado, incluir candles que os filtros removeram deslocaria a linha
+    // inteira em relação aos pontos desenhados ao lado dela.
+    const noEixo = new Set(timestampsUnicos)
+    const registrosNoEixo = velas.length > 0
+      ? (historicosPorMoeda[moedasOrdenadas[0]] || []).filter((r) =>
+          noEixo.has(r?.horaReferencia ?? r?.dataHora)
+        )
+      : []
+
+    const vwap = registrosNoEixo.length > 0 ? resumirVwap(registrosNoEixo) : null
+
+    // Bandas calculadas sobre a série INTEIRA e depois recortadas na janela.
+    //
+    // Bollinger é média móvel de 20 períodos, então calcular só sobre o que
+    // está desenhado gasta 20 dos 21 candles visíveis apenas para produzir o
+    // primeiro valor — a banda aparecia nos dois últimos pontos e parecia
+    // estática. Com o histórico anterior o indicador chega aquecido no
+    // primeiro ponto do gráfico, que é como plataforma de trade faz.
+    //
+    // Diferente do VWAP, que é ancorado no início da janela por definição e
+    // por isso continua sendo calculado só sobre ela.
+    const serieCompleta = [...(historicosPorMoeda[moedasOrdenadas[0]] || [])].reverse()
+    const bandasCompletas = velas.length > 0 ? calcularBollinger(serieCompleta) : []
+
+    const bandaPorInstante = new Map()
+    serieCompleta.forEach((r, i) => {
+      const ts = r?.horaReferencia ?? r?.dataHora
+      if (ts) bandaPorInstante.set(ts, bandasCompletas[i] ?? null)
+    })
+
+    const bandasNoEixo = velas.length > 0
+      ? timestampsUnicos.map((ts) => bandaPorInstante.get(ts) ?? null)
+      : []
+
+    // Banda que cobre um pedaço pequeno do gráfico não se lê: no filtro de 7d
+    // são 21 candles, e Bollinger(20) só produz valor nos dois últimos. O
+    // traço aparecia colado na borda direita, parecia estático e não dizia
+    // nada. Melhor não desenhar do que desenhar um toco.
+    const cobertura = bandasNoEixo.length > 0
+      ? bandasNoEixo.filter(Boolean).length / bandasNoEixo.length
+      : 0
+    const bandas = cobertura >= COBERTURA_MINIMA_BANDA ? bandasNoEixo : []
+
+    // Reaproveita os arrays de variação já alinhados em timestampsUnicos — a
+    // parte cara do cálculo (alinhar as séries) acabou de ser feita acima.
+    // Sobre variação, e não sobre preço: ver o cabeçalho de correlation.js.
+    const correlacao = multi
+      ? matrizCorrelacao(
+          datasetsVariacao.map(d => ({ sigla: d.label, valores: d.data }))
+        )
+      : null
+
+    // A linha do VWAP entra DEPOIS da série de preço: o plugin de candle
+    // cancela o desenho do índice 0, então a sobreposição precisa vir a
+    // seguir para sobreviver ao modo vela.
+    const sobreposicao = (label, dados, extra = {}) => ({
+      label,
+      data: dados,
+      borderWidth: 1.5,
+      pointRadius: 0,
+      pointHoverRadius: 0,
+      fill: false,
+      tension: 0,
+      spanGaps: true,
+      ...extra,
+    })
+
+    // A banda superior preenche até a inferior, desenhando o envelope. Só as
+    // duas extremas: a linha do meio é a média móvel simples, e o VWAP já
+    // ocupa esse papel visual com uma leitura mais informativa.
+    const temBandas = bandas.some(Boolean)
+    const datasetsComVwap = [
+      ...datasetsPreco,
+      ...(vwap ? [sobreposicao('VWAP', vwap.serie, {
+        borderColor: '#9c27b0',
+        borderDash: [6, 4],
+      })] : []),
+      ...(temBandas ? [
+        sobreposicao(t('bollingerUpper'), bandas.map((b) => b?.superior ?? null), {
+          borderColor: 'rgba(33,150,243,0.55)',
+          fill: '+1',
+          backgroundColor: 'rgba(33,150,243,0.06)',
+        }),
+        sobreposicao(t('bollingerLower'), bandas.map((b) => b?.inferior ?? null), {
+          borderColor: 'rgba(33,150,243,0.55)',
+        }),
+      ] : []),
+    ]
+
     return {
-      dadosGraficoPreco: { labels, datasets: datasetsPreco },
+      dadosGraficoPreco: { labels, datasets: datasetsComVwap },
       dadosGraficoVariacao: { labels, datasets: datasetsVariacao },
       multiMoeda: multi,
+      velas,
+      volumes,
+      medianaVolume,
+      vwap,
+      correlacao,
       sentimentMap
     }
-  }, [historicosPorMoeda, dataInicio, dataFim, resultadoFiltro, normalizacao, fearGreedPorMoeda, trendPorMoeda])
+  }, [historicosPorMoeda, dataInicio, dataFim, resultadoFiltro, normalizacao, fearGreedPorMoeda, trendPorMoeda, t])
 
   const sentimentFooter = (context) => {
     const label = context[0].label;
@@ -201,13 +328,76 @@ export default function useDashboardCharts({
     return null;
   };
 
+  // Cores lidas dos tokens a cada troca de tema: o canvas não resolve var(),
+  // então sem isto a legenda (#ccc) e o grid (branco a 3%) sumiam no claro.
+  const cores = useMemo(() => chartPalette(), [palette.mode])
+
+  const modoVela =
+    modoPreco === PriceChartMode.CANDLE && chartConfig.velas.length > 0
+
+  // O dataset da linha só carrega os fechamentos, então o eixo Y automático
+  // cortaria os pavios.
+  const faixaVelas = useMemo(() => {
+    if (!modoVela) return null
+
+    const faixa = faixaDasVelas(chartConfig.velas)
+    if (!faixa) return null
+
+    // As bandas de Bollinger costumam ultrapassar máxima e mínima dos candles.
+    // Como o eixo Y é forçado aqui, sem alargar a faixa elas sairiam cortadas
+    // justamente nos pontos em que interessam.
+    const extremos = (chartConfig.dadosGraficoPreco?.datasets || [])
+      .slice(1)
+      .flatMap((d) => d.data)
+      .filter((v) => Number.isFinite(v))
+
+    if (extremos.length === 0) return faixa
+
+    return {
+      min: Math.min(faixa.min, ...extremos),
+      max: Math.max(faixa.max, ...extremos),
+    }
+  }, [modoVela, chartConfig.velas, chartConfig.dadosGraficoPreco])
+
+  // Volume não depende de como o preço está desenhado: é o assunto do segundo
+  // painel, escolhido no seletor próprio dele. Existe sempre que há moeda
+  // única, tanto em linha quanto em candles.
+  const dadosVolume = useMemo(() => {
+    const { volumes, velas, medianaVolume } = chartConfig
+    if (!volumes || volumes.length === 0) return null
+
+    const estilo = estiloDasBarras(volumes, velas, medianaVolume, {
+      corAlta: cores.alta,
+      corBaixa: cores.baixa,
+      corDestaque: cores.legend,
+    })
+
+    return {
+      labels: chartConfig.dadosGraficoVariacao.labels,
+      datasets: [{
+        label: t('volume'),
+        data: volumes,
+        backgroundColor: estilo.fundo,
+        borderColor: estilo.borda,
+        borderWidth: estilo.espessura,
+        // Mesma espessura da vela: categoria ocupando o passo inteiro e a
+        // barra ocupando a mesma fração dele que o corpo do candle, com o
+        // mesmo teto em px. Os dois painéis ficam lado a lado e qualquer
+        // divergência de largura salta aos olhos.
+        categoryPercentage: 1,
+        barPercentage: BODY_RATIO,
+        maxBarThickness: MAX_BODY_WIDTH,
+      }],
+    }
+  }, [chartConfig, cores, t])
+
   const baseOpcoes = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       legend: {
         display: chartConfig.multiMoeda,
-        labels: { color: '#ccc', boxWidth: 10 }
+        labels: { color: cores.legend, boxWidth: 10 }
       },
       tooltip: {
         mode: 'index',
@@ -218,11 +408,11 @@ export default function useDashboardCharts({
       x: {
         display: true,
         grid: { display: false },
-        ticks: { color: '#666', font: { size: 10 } }
+        ticks: { color: cores.tickSubtle, font: { size: 10 } }
       },
       y: {
-        grid: { color: 'rgba(255,255,255,0.03)', borderDash: [5, 5] },
-        ticks: { color: '#888', font: { family: "'Share Tech Mono', monospace" } }
+        grid: { color: cores.grid, borderDash: [5, 5] },
+        ticks: { color: cores.tick, font: { family: "'Share Tech Mono', monospace" } }
       }
     }
   }
@@ -231,14 +421,40 @@ export default function useDashboardCharts({
     ...baseOpcoes,
     plugins: {
       ...baseOpcoes.plugins,
+      candlestick: {
+        enabled: modoVela,
+        velas: chartConfig.velas,
+        corAlta: cores.alta,
+        corBaixa: cores.baixa
+      },
       tooltip: {
         ...baseOpcoes.plugins.tooltip,
         callbacks: {
           label: (ctx) => {
+            // VWAP e bandas são datasets no mesmo eixo; sem isto o bloco OHLC
+            // sairia repetido a cada série sob o cursor.
+            if (ctx.datasetIndex > 0 && !chartConfig.multiMoeda) {
+              return `${ctx.dataset.label}: $${Number(ctx.parsed.y).toLocaleString('en-US')}`
+            }
+
+            // OHLC é a razão de existir do modo vela: o fechamento sozinho
+            // esconde exatamente o que o candle mostra.
+            if (modoVela && ctx.datasetIndex === 0) {
+              const vela = chartConfig.velas[ctx.dataIndex]
+              if (vela) {
+                const cifra = (v) => `$${Number(v).toLocaleString('en-US')}`
+                return [
+                  `O: ${cifra(vela.abertura)}`,
+                  `H: ${cifra(vela.maior)}`,
+                  `L: ${cifra(vela.menor)}`,
+                  `C: ${cifra(vela.fechamento)}`
+                ]
+              }
+            }
             const val = Number(ctx.parsed.y)
-            if (chartConfig.multiMoeda && normalizacao === 'base100') return `${ctx.dataset.label}: ${val.toFixed(2)} (Base 100)`
-            if (chartConfig.multiMoeda && normalizacao === 'minmax') return `${ctx.dataset.label}: ${val.toFixed(4)} (Min-Max)`
-            if (chartConfig.multiMoeda && normalizacao === 'zscore') return `${ctx.dataset.label}: ${val.toFixed(4)} (Z-Score)`
+            if (chartConfig.multiMoeda && normalizacao === Normalization.BASE_100) return `${ctx.dataset.label}: ${val.toFixed(2)} (Base 100)`
+            if (chartConfig.multiMoeda && normalizacao === Normalization.MIN_MAX) return `${ctx.dataset.label}: ${val.toFixed(4)} (Min-Max)`
+            if (chartConfig.multiMoeda && normalizacao === Normalization.Z_SCORE) return `${ctx.dataset.label}: ${val.toFixed(4)} (Z-Score)`
             return `${ctx.dataset.label}: $${val.toLocaleString('en-US')}`
           },
           footer: sentimentFooter
@@ -249,10 +465,11 @@ export default function useDashboardCharts({
       ...baseOpcoes.scales,
       y: {
         ...baseOpcoes.scales.y,
+        ...(faixaVelas ? { min: faixaVelas.min, max: faixaVelas.max } : {}),
         ticks: {
           ...baseOpcoes.scales.y.ticks,
           callback: (v) => {
-            if (chartConfig.multiMoeda && normalizacao !== 'bruto') return v.toFixed(2)
+            if (chartConfig.multiMoeda && normalizacao !== Normalization.RAW) return v.toFixed(2)
             return `$${Number(v).toLocaleString('en-US')}`
           }
         }
@@ -284,5 +501,59 @@ export default function useDashboardCharts({
     }
   }
 
-  return { ...chartConfig, opcoesPreco, opcoesVariacao }
+  const opcoesVolume = {
+    ...baseOpcoes,
+    plugins: {
+      ...baseOpcoes.plugins,
+      legend: { display: false },
+      tooltip: {
+        ...baseOpcoes.plugins.tooltip,
+        callbacks: {
+          label: (ctx) => {
+            const v = Number(ctx.parsed.y)
+            const linhas = [`${t('volume')}: ${mathUtils.formatCompact(v)}`]
+            // A razão contra a mediana é o que diz se o volume foi alto; o
+            // número absoluto sozinho não tem régua.
+            const mediana = chartConfig.medianaVolume
+            if (Number.isFinite(mediana) && mediana > 0) {
+              linhas.push(t('volumeVsMedian', { razao: (v / mediana).toFixed(1) }))
+            }
+            return linhas
+          },
+          footer: sentimentFooter
+        }
+      }
+    },
+    scales: {
+      ...baseOpcoes.scales,
+      y: {
+        ...baseOpcoes.scales.y,
+        beginAtZero: true,
+        ticks: {
+          ...baseOpcoes.scales.y.ticks,
+          callback: (v) => mathUtils.formatCompact(v)
+        }
+      }
+    }
+  }
+
+  // Última leitura da série alinhada, que é cronológica: o volume do candle
+  // mais recente.
+  const volumeAtual = useMemo(() => {
+    const lista = chartConfig.volumes || []
+    for (let i = lista.length - 1; i >= 0; i--) {
+      if (Number.isFinite(lista[i])) return mathUtils.formatCompact(lista[i])
+    }
+    return '-'
+  }, [chartConfig.volumes])
+
+  return {
+    ...chartConfig,
+    modoVela,
+    dadosGraficoVolume: dadosVolume,
+    volumeAtual,
+    opcoesPreco,
+    opcoesVariacao,
+    opcoesVolume,
+  }
 }

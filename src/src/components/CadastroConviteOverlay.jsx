@@ -153,28 +153,28 @@ const CadastroConviteOverlay = ({ onFechar }) => {
   const inputSx = {
     mb: 2.5,
     '& .MuiFilledInput-root': {
-      backgroundColor: 'rgba(255, 255, 255, 0.03)',
+      backgroundColor: 'var(--surface-subtle)',
       borderRadius: '16px',
-      border: '1px solid rgba(255, 255, 255, 0.08)',
+      border: '1px solid var(--border)',
       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
       '&:before, &:after': {
         display: 'none',
       },
       '&:hover': {
-        backgroundColor: 'rgba(255, 255, 255, 0.06)',
-        borderColor: 'rgba(255, 215, 0, 0.3)',
+        backgroundColor: 'var(--surface-fill)',
+        borderColor: 'var(--accent-a30)',
       },
       '&.Mui-focused': {
-        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+        backgroundColor: 'var(--surface-fill-strong)',
         borderColor: 'var(--color-primary)',
-        boxShadow: '0 0 0 3px rgba(255, 215, 0, 0.1)',
+        boxShadow: '0 0 0 3px var(--accent-a10)',
       },
     },
     '& .MuiInputLabel-root': {
-      color: 'rgba(255, 255, 255, 0.4)',
+      color: 'var(--text-faint)',
       fontSize: '0.85rem',
       '&.Mui-focused': {
-        color: 'var(--color-primary)',
+        color: 'var(--accent-ink)',
       },
     },
     '& .MuiSelect-select': {
@@ -187,7 +187,7 @@ const CadastroConviteOverlay = ({ onFechar }) => {
 
   const sectionTitleSx = {
     mb: 2.5,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: 'var(--text-muted)',
     fontWeight: 800,
     fontSize: '0.7rem',
     textTransform: 'uppercase',
@@ -196,7 +196,7 @@ const CadastroConviteOverlay = ({ onFechar }) => {
     alignItems: 'center',
     gap: 1.5,
     '& svg': {
-        color: 'var(--color-primary)',
+        color: 'var(--accent-ink)',
         fontSize: '0.9rem',
     },
     '&::after': {
@@ -211,22 +211,22 @@ const CadastroConviteOverlay = ({ onFechar }) => {
   const menuProps = {
     PaperProps: {
       sx: {
-        bgcolor: 'rgba(15, 15, 15, 0.98)',
+        backgroundColor: 'var(--surface-overlay)',
         backdropFilter: 'blur(20px)',
-        border: '1px solid rgba(255, 255, 255, 0.12)',
+        border: '1px solid var(--border-strong)',
         borderRadius: '16px',
         mt: 1,
-        boxShadow: '0 25px 60px rgba(0,0,0,0.8)',
+        boxShadow: '0 25px 60px var(--scrim-strong)',
         '& .MuiMenuItem-root': {
           fontSize: '0.9rem',
           py: 1.2,
           px: 2,
           '&:hover': {
-            bgcolor: 'rgba(255, 215, 0, 0.1)',
+            backgroundColor: 'var(--accent-a10)',
           },
           '&.Mui-selected': {
-            bgcolor: 'rgba(255, 215, 0, 0.2)',
-            color: 'var(--color-primary)',
+            backgroundColor: 'var(--accent-a20)',
+            color: 'var(--accent-ink)',
             fontWeight: 800,
           },
         },
@@ -263,7 +263,7 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                 className="convite-overlay-headline"
               >
                 {t('registerVisualTitle').split(' ')[0]}<br />
-                <span style={{ color: 'var(--color-primary)' }}>
+                <span style={{ color: 'var(--accent-ink)' }}>
                   {t('registerVisualTitle').split(' ').slice(1).join(' ')}
                 </span>
               </Typography>
@@ -281,7 +281,7 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                 <MdBolt
                   style={{
                     position: 'absolute', top: '50%', right: '0',
-                    color: 'var(--color-primary)',
+                    color: 'var(--accent-ink)',
                     transform: 'translate(50%, -50%)',
                     fontSize: '20px',
                   }}
@@ -293,7 +293,7 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                 <MdAutoGraph
                   style={{
                     position: 'absolute', bottom: '0', left: '50%',
-                    color: 'var(--color-primary)',
+                    color: 'var(--accent-ink)',
                     transform: 'translate(-50%, 50%)',
                     fontSize: '20px',
                   }}
@@ -305,7 +305,7 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                 <MdShield
                   style={{
                     position: 'absolute', top: '50%', left: '0',
-                    color: 'var(--color-primary)',
+                    color: 'var(--accent-ink)',
                     transform: 'translate(-50%, -50%)',
                     fontSize: '20px',
                   }}
@@ -319,10 +319,10 @@ const CadastroConviteOverlay = ({ onFechar }) => {
           {/* ── Lado direito — formulário ─────────────────────────── */}
           <div className="convite-overlay-form">
             <Box sx={{ mb: 4, maxWidth: 640, mx: 'auto', width: '100%', textAlign: 'center' }}>
-              <Typography variant="h4" sx={{ fontWeight: 900, color: '#fff', mb: 1, letterSpacing: '-1.5px', fontSize: '2.2rem' }}>
+              <Typography variant="h4" sx={{ fontWeight: 900, color: 'var(--text-primary)', mb: 1, letterSpacing: '-1.5px', fontSize: '2.2rem' }}>
                 Convidar Pessoa
               </Typography>
-              <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.9rem' }}>
+              <Typography sx={{ color: 'var(--text-faint)', fontSize: '0.9rem' }}>
                 Preencha os dados para cadastrar um novo acesso à plataforma.
               </Typography>
             </Box>
@@ -330,7 +330,7 @@ const CadastroConviteOverlay = ({ onFechar }) => {
             {sucesso ? (
               <div className="convite-sucesso">
                 <div className="convite-sucesso-icon">✓</div>
-                <Typography sx={{ color: 'var(--color-primary)', fontWeight: 700, fontSize: '1.1rem' }}>
+                <Typography sx={{ color: 'var(--accent-ink)', fontWeight: 700, fontSize: '1.1rem' }}>
                   Cadastro realizado com sucesso!
                 </Typography>
                 {avisoEmail ? (
@@ -338,11 +338,11 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                     ⚠ Não foi possível enviar o email de boas-vindas. Informe as credenciais manualmente.
                   </Typography>
                 ) : (
-                  <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem', mt: 1 }}>
+                  <Typography sx={{ color: 'var(--text-faint)', fontSize: '0.85rem', mt: 1 }}>
                     Email de boas-vindas enviado para {email}.
                   </Typography>
                 )}
-                <Typography sx={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.75rem', mt: 0.5 }}>
+                <Typography sx={{ color: 'var(--text-faint)', fontSize: '0.75rem', mt: 0.5 }}>
                   Fechando automaticamente...
                 </Typography>
               </div>
@@ -406,7 +406,7 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                             MenuProps={menuProps}
                             startAdornment={
                               <InputAdornment position="start">
-                                <MdTranslate style={{ color: 'var(--color-primary)', marginRight: 8 }} />
+                                <MdTranslate style={{ color: 'var(--accent-ink)', marginRight: 8 }} />
                               </InputAdornment>
                             }
                           >
@@ -433,7 +433,7 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                           InputProps={{
                             disableUnderline: true,
                             startAdornment: (
-                              <InputAdornment position="start" sx={{ color: 'var(--color-primary)', fontWeight: 700 }}>
+                              <InputAdornment position="start" sx={{ color: 'var(--accent-ink)', fontWeight: 700 }}>
                                 $
                               </InputAdornment>
                             ),
@@ -467,8 +467,8 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                                   {m.icone ? <img src={m.icone} alt={m.nome || m.sigla} style={{ width: 22, height: 22 }} /> : <MdCurrencyBitcoin size={22} />}
                                   <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                                    <Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: '#fff', lineHeight: 1.2 }}>{m.nome || m.sigla}</Typography>
-                                    <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)' }}>{m.sigla}</Typography>
+                                    <Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.2 }}>{m.nome || m.sigla}</Typography>
+                                    <Typography sx={{ fontSize: '0.7rem', color: 'var(--text-faint)' }}>{m.sigla}</Typography>
                                   </Box>
                                 </Box>
                               </MenuItem>
@@ -518,7 +518,7 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                   <Box sx={{
                     p: 2.5, borderRadius: '14px',
                     border: '1px solid rgba(255, 215, 0, 0.12)',
-                    background: 'rgba(255, 215, 0, 0.03)',
+                    backgroundColor: 'var(--accent-a03)',
                     display: 'flex', flexDirection: 'column', gap: 1,
                   }}>
                     <FormControlLabel
@@ -526,14 +526,16 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                         <Checkbox
                           checked={aceitouPrivacidade}
                           onChange={(e) => setAceitouPrivacidade(e.target.checked)}
-                          sx={{ color: 'rgba(255,255,255,0.3)', '&.Mui-checked': { color: 'var(--color-primary)' }, py: 0.5 }}
+                          sx={{ color: 'var(--text-faint)', '&.Mui-checked': { color: 'var(--accent-ink)' }, py: 0.5 }}
                         />
                       }
                       label={
-                        <Typography sx={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.55)', lineHeight: 1.4 }}>
+                        <Typography sx={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
                           Li e concordo com a{' '}
-                          <Link href="https://minerthinkbitcoin.com/privacidade" target="_blank" rel="noopener"
-                            sx={{ color: 'var(--color-primary)', fontWeight: 600, '&:hover': { opacity: 0.8 } }}>
+                          {/* Nova aba, e caminho relativo: navegar na mesma aba
+                              perderia o formulário de cadastro já preenchido. */}
+                          <Link href="/privacidade" target="_blank" rel="noopener"
+                            sx={{ color: 'var(--accent-ink)', fontWeight: 600, '&:hover': { opacity: 0.8 } }}>
                             Política de Privacidade
                           </Link>
                           {' '}e com o tratamento dos meus dados conforme a LGPD.
@@ -546,14 +548,14 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                         <Checkbox
                           checked={aceitouTermos}
                           onChange={(e) => setAceitouTermos(e.target.checked)}
-                          sx={{ color: 'rgba(255,255,255,0.3)', '&.Mui-checked': { color: 'var(--color-primary)' }, py: 0.5 }}
+                          sx={{ color: 'var(--text-faint)', '&.Mui-checked': { color: 'var(--accent-ink)' }, py: 0.5 }}
                         />
                       }
                       label={
-                        <Typography sx={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.55)', lineHeight: 1.4 }}>
+                        <Typography sx={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
                           Li e concordo com os{' '}
-                          <Link href="https://minerthinkbitcoin.com/termos" target="_blank" rel="noopener"
-                            sx={{ color: 'var(--color-primary)', fontWeight: 600, '&:hover': { opacity: 0.8 } }}>
+                          <Link href="/termos" target="_blank" rel="noopener"
+                            sx={{ color: 'var(--accent-ink)', fontWeight: 600, '&:hover': { opacity: 0.8 } }}>
                             Termos de Uso
                           </Link>
                           {' '}da plataforma ThinkBitcoin.
@@ -575,19 +577,19 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                       borderRadius: '16px',
                       fontSize: '1.1rem',
                       fontWeight: 900,
-                      bgcolor: 'var(--color-primary)',
-                      color: '#000',
+                      backgroundColor: 'var(--accent)',
+                      color: 'var(--text-on-accent)',
                       textTransform: 'uppercase',
                       letterSpacing: '1px',
-                      boxShadow: '0 8px 30px -8px rgba(255, 215, 0, 0.3)',
+                      boxShadow: '0 8px 30px -8px var(--accent-a30)',
                       '&:hover': {
                         bgcolor: '#f5cc00',
                         transform: 'translateY(-3px)',
-                        boxShadow: '0 15px 40px -10px rgba(255, 215, 0, 0.5)',
+                        boxShadow: '0 15px 40px -10px var(--accent-a50)',
                       },
                       '&.Mui-disabled': {
-                        bgcolor: 'rgba(255, 215, 0, 0.2)',
-                        color: 'rgba(0,0,0,0.4)',
+                        backgroundColor: 'var(--accent-a20)',
+                        color: 'var(--text-on-accent)',
                       },
                       transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
                     }}

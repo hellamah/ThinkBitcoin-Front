@@ -1,7 +1,8 @@
 import React, { useMemo, useState, useRef } from 'react';
-import { Line, getElementAtEvent } from 'react-chartjs-2';
+import { Bar, Line, getElementAtEvent } from 'react-chartjs-2';
 import { MdClose, MdAnalytics, MdTimeline, MdSpeed, MdUpdate, MdPublic } from 'react-icons/md';
 import { ChartType } from '../../utils/enums';
+import { readToken } from '../../utils/themeTokens';
 
 /**
  * Modal expandido para exibir o gráfico selecionado junto a um painel de inteligência
@@ -24,16 +25,24 @@ const ExpandedChartModal = ({
   setExpandedChart,
   dadosNegociados,
   dadosVariacao,
+  dadosVolume,
   opcoesPreco,
   opcoesVariacao,
+  opcoesVolume,
   trendAtual,
+  mostraVolume,
   t,
 }) => {
   if (!expandedChart) return null;
 
   const isTraded = expandedChart === ChartType.TRADED_VALUE;
-  const chartData = isTraded ? dadosNegociados : dadosVariacao;
-  const chartOptions = isTraded ? opcoesPreco : opcoesVariacao;
+  // O assunto do segundo painel vem do seletor "Painel", igual à versão
+  // reduzida — abrir o modal não muda o que está sendo mostrado.
+  const isBarra = !isTraded && Boolean(mostraVolume);
+  const ChartComp = isBarra ? Bar : Line;
+
+  const chartData = isTraded ? dadosNegociados : (isBarra ? dadosVolume : dadosVariacao);
+  const chartOptions = isTraded ? opcoesPreco : (isBarra ? opcoesVolume : opcoesVariacao);
 
   const chartRef = useRef(null);
   const [selectedIndex, setSelectedIndex] = useState(null);
@@ -88,6 +97,9 @@ const ExpandedChartModal = ({
   // Escondemos os pontos por padrão para limpar o visual e destacamos apenas o selecionado
   const processedData = useMemo(() => {
     if (!chartData?.datasets) return null;
+    // Barra não tem ponto nem tensão de linha para estilizar; o dataset já sai
+    // do hook com a cor por direção.
+    if (isBarra) return chartData;
     return {
       ...chartData,
       datasets: chartData.datasets.map((ds) => ({
@@ -136,9 +148,9 @@ const ExpandedChartModal = ({
         <button className="btn-close-premium" onClick={handleClose} aria-label={t('close')}>
           <MdClose size={32} />
         </button>
-        <h2>{isTraded ? t('tradedValue') : t('percentVariation')}</h2>
+        <h2>{isTraded ? t('tradedValue') : (isBarra ? t('volume') : t('percentVariation'))}</h2>
         <div className="chart-container">
-          <Line
+          <ChartComp
             ref={chartRef}
             data={processedData || chartData}
             options={{
@@ -150,7 +162,7 @@ const ExpandedChartModal = ({
                 tooltip: {
                   ...chartOptions.plugins?.tooltip,
                   enabled: true,
-                  backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                  backgroundColor: readToken('--scrim-strong'),
                   titleFont: { size: 14, weight: 'bold' },
                   padding: 12,
                   cornerRadius: 8,
@@ -166,14 +178,14 @@ const ExpandedChartModal = ({
                   ...chartOptions.scales?.x,
                   grid: {
                     display: true,
-                    color: 'rgba(255, 255, 255, 0.05)',
+                    color: 'var(--text-faint)',
                   }
                 },
                 y: {
                   ...chartOptions.scales?.y,
                   grid: {
                     display: true,
-                    color: 'rgba(255, 255, 255, 0.05)',
+                    color: 'var(--text-faint)',
                   }
                 }
               }
@@ -199,7 +211,7 @@ const ExpandedChartModal = ({
                         {intelFromChart.datasets.map((ds, i) => (
                           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <div style={{ width: '10px', height: '10px', borderRadius: '2px', backgroundColor: ds.color }}></div>
-                            <span style={{ color: '#aaa', minWidth: '40px' }}>{ds.label}:</span>
+                            <span style={{ color: 'var(--text-muted)', minWidth: '40px' }}>{ds.label}:</span>
                             <span>{ds.lastValue != null ? Number(ds.lastValue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 }) : '-'}</span>
                           </div>
                         ))}
@@ -214,7 +226,7 @@ const ExpandedChartModal = ({
                         {intelFromChart.datasets.map((ds, i) => (
                           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <div style={{ width: '10px', height: '10px', borderRadius: '2px', backgroundColor: ds.color }}></div>
-                            <span style={{ color: '#aaa', minWidth: '40px' }}>{ds.label}:</span>
+                            <span style={{ color: 'var(--text-muted)', minWidth: '40px' }}>{ds.label}:</span>
                             <span className={ds.changePercent !== null && ds.changePercent >= 0 ? 'up' : 'down'}>
                               {ds.changePercent !== null ? `${ds.changePercent > 0 ? '+' : ''}${ds.changePercent.toFixed(2)}%` : '-'}
                             </span>

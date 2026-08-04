@@ -1,39 +1,28 @@
-const parseUseMockFlag = (value) => {
-  if (typeof value === 'boolean') return value
-  if (typeof value === 'string') return value.toLowerCase() === 'true'
-  return false
-}
+// A flag mudou de casa (mockFlag.js) para que este arquivo possa ficar atrás de
+// um import dinâmico. Reexportada aqui só para quem já importava daqui.
+export { USE_MOCK_API } from './mockFlag'
 
-const resolveUseMockEnv = () => {
+// As preferências do modo demo vivem no localStorage: sem isso o GET devolve
+// sempre o mesmo objeto fixo e qualquer alteração do usuário (tema, idioma…)
+// é descartada no primeiro reload.
+const MOCK_PREFS_KEY = 'tb_mock_preferencias'
+
+const readMockPrefs = () => {
   try {
-    return import.meta.env?.VITE_USE_MOCK
+    const raw = globalThis.localStorage?.getItem(MOCK_PREFS_KEY)
+    return raw ? JSON.parse(raw) : null
   } catch {
-    return undefined
+    return null
   }
 }
 
-const resolveIsDevMode = () => {
+const writeMockPrefs = (prefs) => {
   try {
-    return Boolean(import.meta.env?.DEV)
+    globalThis.localStorage?.setItem(MOCK_PREFS_KEY, JSON.stringify(prefs))
   } catch {
-    return false
+    /* storage indisponível (SSR/teste): segue só em memória */
   }
 }
-
-const resolveIsTestMode = () => {
-  try {
-    return import.meta.env?.MODE === 'test'
-  } catch {
-    return false
-  }
-}
-
-const resolvedUseMockEnv = resolveUseMockEnv()
-
-export const USE_MOCK_API =
-  !resolveIsTestMode() &&
-  (parseUseMockFlag(resolvedUseMockEnv) ||
-   (resolvedUseMockEnv === undefined && resolveIsDevMode()))
 
 // Codifica em base64 usando bytes UTF-8 (simétrico ao decode em authentication.js).
 // btoa() puro trata cada caractere como Latin-1 e corrompe acentos: "á" vira o byte 0xE1,
@@ -90,56 +79,192 @@ const hashSymbol = (symbol) =>
     .split('')
     .reduce((acc, char) => acc + char.charCodeAt(0), 0)
 
+// Gerador pseudoaleatório semeado (mulberry32). Determinístico de propósito:
+// a mesma sigla produz sempre a mesma série, então o demo é reprodutível e
+// dois desenvolvedores veem os mesmos números. Não é Math.random.
+const geradorSemeado = (semente) => () => {
+  semente |= 0
+  semente = (semente + 0x6d2b79f5) | 0
+  let t = Math.imul(semente ^ (semente >>> 15), 1 | semente)
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+}
+
+// Quanto do movimento de ontem persiste hoje. É o que cria trechos de
+// tendência sustentada — sem isso o preço vira ruído sem direção e nenhum
+// oscilador chega perto de extremo.
+const PERSISTENCIA = 0.72
+
+// Escala do choque por candle.
+const CHOQUE = 0.028
+
+// Puxão de volta em direção ao preço-base. Um passeio livre acumula deriva ao
+// longo dos 1096 candles do mock e afasta o ativo do valor que o identifica —
+// ETH terminava em $1.013 com base $3.500. Com a reversão o preço passeia
+// numa banda plausível sem deixar de ter tendência.
+const REVERSAO = 0.012
+
+// Quantas horas de histórico o mock gera. 120 dias cobrem o preset de 1 mês
+// (~720 candles) com folga, sem pagar a geração de um ano inteiro de hora em
+// hora a cada requisição.
+const HORAS_DE_HISTORICO = 120 * 24
+
 const buildCoinValueResponse = (symbol, urlParams) => {
   const normalized = symbol.toUpperCase()
   const baseValue = MOCK_COIN_BASE_VALUE[normalized] ?? 100
   const variationFactor = ((hashSymbol(normalized) % 17) - 8) * 0.0025
 
   let registros = []
-  const agora = new Date()
+  // Fechamento do candle anterior, que vira a abertura do próximo.
+  let fechamentoAnterior = null
 
-  // Gera 1 ano de mock com 3 itens por dia (para o gráfico não ficar vazio nos filtros de 7 dias)
-  for (let d = 365; d >= 0; d--) {
-    for (let i = 0; i < 3; i++) {
-      const msOffset = d * 24 * 60 * 60 * 1000 - i * 8 * 60 * 60 * 1000
-      const dataPonto = new Date(agora.getTime() - msOffset)
-      
-      const globalIndex = d * 3 + i
-      const oscilacao = Math.sin(globalIndex + hashSymbol(normalized)) * 0.05 + variationFactor
-      const precoPonto = Number((baseValue * (1 + oscilacao)).toFixed(2))
-      const dVar = oscilacao * 100
+  // Estado do passeio. O laço abaixo percorre do mais antigo para o mais
+  // recente, então basta avançar o passeio a cada candle.
+  const sortear = geradorSemeado(hashSymbol(normalized))
+  let precoRelativo = 1
+  let momentum = 0
+  // Base truncada na hora para todas as moedas caírem na mesma grade de
+  // horários. Com `new Date()` puro cada moeda era gerada num milissegundo
+  // diferente, então nenhuma série se alinhava com outra: o gráfico multi-moeda
+  // ficava com um ponto por moeda por instante e a correlação não achava um
+  // par sequer. O backend real amostra em cadência fixa, que é o que isto imita.
+  const agora = new Date()
+  agora.setMinutes(0, 0, 0)
+
+  // Um candle por hora, como o backend real amostra.
+  //
+  // Eram 3 por dia. A diferença de cadência escondia uma classe inteira de
+  // problema: com 3/dia um filtro de 1 mês dá 90 candles e cabe em qualquer
+  // requisição, enquanto de hora em hora dá ~720 e estoura o teto. Foi por
+  // isso que o corte silencioso do período só apareceu em produção.
+  //
+  // Menos histórico que antes em dias, mas 4× mais candles: o que os
+  // indicadores consomem é quantidade de candles, não calendário.
+  for (let passo = HORAS_DE_HISTORICO; passo >= 0; passo--) {
+    {
+      const dataPonto = new Date(agora.getTime() - passo * 60 * 60 * 1000)
+
+      // Cresce com o tempo, do mais antigo para o mais recente.
+      const globalIndex = HORAS_DE_HISTORICO - passo
+      // Passeio aleatório com momentum, semeado pela sigla.
+      //
+      // Antes era soma de senos, e antes disso um seno puro. Ambos falhavam
+      // pelo mesmo motivo: oscilação periódica não tem tendência sustentada,
+      // então o RSI orbitava 50 (medido: 38 a 61 em 93 candles) e nunca
+      // cruzava 70/30 — o sinal existia no código e era impossível de ver.
+      //
+      // A correção não foi ajustar a frequência até o indicador acender, e sim
+      // trocar a forma da série: preço real se parece com passeio aleatório
+      // com persistência, não com senoide. Com isso o extremo de oscilador
+      // aparece por consequência, não por encomenda.
+      momentum =
+        momentum * PERSISTENCIA +
+        (sortear() - 0.5) * CHOQUE -
+        (precoRelativo - 1) * REVERSAO
+      precoRelativo *= 1 + momentum
+
+      const oscilacao = precoRelativo - 1 + variationFactor
+      const precoPonto = Number((baseValue * precoRelativo).toFixed(2))
+
+      // O volume acompanha a oscilação e leva um pico a cada 11 candles. Com o
+      // valor fixo que havia aqui a mediana era igual a todo registro, então o
+      // detector de anomalia nunca tinha o que marcar no modo demo. O ciclo é
+      // determinístico de propósito: dado sorteado não se distingue de medido.
+      const picoDeVolume = globalIndex % 11 === 3
+      const precoVolume = Number(
+        (150.5 * (1 + Math.abs(oscilacao) * 6) * (picoDeVolume ? 5 : 1)).toFixed(2)
+      )
+
+      // Ticket médio em ciclo próprio, deslocado do ciclo do volume de
+      // propósito: assim o demo produz hora de volume alto com ticket baixo
+      // (varejo) e hora de volume normal com ticket alto (baleia), que é
+      // justamente a distinção que o card e o sinal existem para mostrar.
+      // Era 450 fixo, e com mediana igual a todo registro nada era atípico.
+      const picoDeTicket = globalIndex % 13 === 6
+      const precoFinanceiroPorTrade = Number(
+        (450 * (1 + Math.abs(Math.sin(globalIndex * 0.4)) * 0.5) * (picoDeTicket ? 3 : 1)).toFixed(2)
+      )
+
+      // Fluxo comprador/vendedor. Tudo deriva de uma única dominância: assim os
+      // cinco campos continuam coerentes entre si (as duas dominâncias somam
+      // 100, o delta é a diferença dos volumes e o ratio é a razão deles), que
+      // é como o backend real entrega. Eram cinco constantes, então o painel
+      // Fluxo de Ordens ficava congelado no demo — pressão sempre 60,0% e
+      // "média do período" idêntica à leitura atual.
+      // A faixa imita a do backend real, que oscila entre ~44% e ~56%.
+      const dominanciaCompradora = 50 + Math.sin(globalIndex * 0.55 + hashSymbol(normalized)) * 6
+      const volumeComprado = precoVolume * (dominanciaCompradora / 100)
+      const volumeVendido = precoVolume - volumeComprado
+
+      // OHLC de verdade: a abertura é o fechamento do candle anterior, e as
+      // extremidades envolvem esse intervalo. Antes a abertura era fixada em
+      // 0,99 × fechamento, então fechamento > abertura sempre — toda vela saía
+      // verde e com o mesmo corpo, mesmo nos candles em que o preço caiu.
+      const abertura = fechamentoAnterior ?? Number((precoPonto * 0.995).toFixed(2))
+
+      // Segunda oscilação, de frequência diferente da do preço, para as sombras
+      // não saírem proporcionais ao corpo. É o que faz o demo exibir doji,
+      // martelo e marubozu em vez de 21 velas do mesmo formato.
+      const formato = Math.sin(globalIndex * 0.7 + hashSymbol(normalized))
+      const alcanceSuperior = 0.002 + Math.max(0, formato) * 0.01
+      const alcanceInferior = 0.002 + Math.max(0, -formato) * 0.01
+
+      const maior = Number((Math.max(abertura, precoPonto) * (1 + alcanceSuperior)).toFixed(2))
+      const menor = Number((Math.min(abertura, precoPonto) * (1 - alcanceInferior)).toFixed(2))
+      fechamentoAnterior = precoPonto
+
+      // Volatilidade derivada da amplitude real do candle, e não de um ciclo
+      // próprio. Antes dependia só do índice, então TODAS as moedas tinham a
+      // mesma série e a coluna de volatilidade do comparativo mostrava o mesmo
+      // número para todas — campo que varia no tempo mas não distingue os
+      // ativos passa despercebido em teste de campo congelado.
+      const precoVolatilidadePercentual = Number(
+        (((maior - menor) / precoPonto) * 100).toFixed(5)
+      )
+
+      // Contrato do backend: variação é o retorno DENTRO do candle, não o
+      // desvio em relação a um preço-base. O teste PreencherTbMoedaBinanceTests
+      // crava abertura=10, fechamento=12 e variação=20. Com a fórmula antiga
+      // (oscilacao * 100) o sinal da variação não tinha relação com a cor da
+      // vela, e a coluna da tabela contradizia o candle ao lado.
+      const dVar = ((precoPonto - abertura) / abertura) * 100
 
       registros.push({
         precoFechamento: precoPonto,
         horaReferencia: dataPonto.toISOString(),
-        precoMaior: precoPonto * 1.01,
-        precoMedio: precoPonto * 0.995,
-        precoMenor: precoPonto * 0.98,
-        precoAbertura: precoPonto * 0.99,
-        precoAmplitude: precoPonto * 0.03,
+        precoMaior: maior,
+        precoMedio: Number(((maior + menor) / 2).toFixed(2)),
+        precoMenor: menor,
+        precoAbertura: abertura,
+        // Amplitude é, por definição, máxima menos mínima; era 3% fixo do preço
+        // e não conversava com o OHLC ao lado.
+        precoAmplitude: Number((maior - menor).toFixed(2)),
         precoPercentualVariacao: Number(dVar.toFixed(2)),
-        precoRatioCompraVenda: 1.5,
-        precoTotalNegociada: precoPonto * 1000,
-        precoVolume: 150.5,
+        precoRatioCompraVenda: Number(
+          (volumeVendido > 0 ? volumeComprado / volumeVendido : 0).toFixed(5)
+        ),
+        // Nocional em dólar coerente com o volume da hora, para a contagem de
+        // trades derivada (nocional ÷ ticket) não sair absurda.
+        precoTotalNegociada: Number((precoVolume * precoPonto).toFixed(2)),
+        precoVolume,
         precoDeltaUltimoAbertura: precoPonto * 0.01,
         precoVariacaoAbsoluta: precoPonto * 0.01,
-        precoCorpoCandle: precoPonto * 0.01,
-        precoSombraSuperior: precoPonto * 0.005,
-        precoSombraInferior: precoPonto * 0.005,
+        // Anatomia derivada do próprio OHLC, como o backend faz. Eram frações
+        // fixas do preço e não descreviam a vela ao lado.
+        precoCorpoCandle: Number(Math.abs(precoPonto - abertura).toFixed(2)),
+        precoSombraSuperior: Number((maior - Math.max(abertura, precoPonto)).toFixed(2)),
+        precoSombraInferior: Number((Math.min(abertura, precoPonto) - menor).toFixed(2)),
         precoDirecao: dVar >= 0 ? 1 : -1,
-        precoVolatilidadePercentual: 0.5,
-        precoFinanceiroPorTrade: 450.0,
-        quantidadeNegociada: 150.5,
-        volumeComprado: 90.3,
-        volumeVendido: 60.2,
-        dominanciaCompradoraPercentual: 60.0,
-        dominanciaVendedoraPercentual: 40.0,
-        volumeDelta: 30.1,
-        taxaFinanciamento: 0.0005 * (Math.random() > 0.5 ? 1 : -1),
-        contratosAberto: 2000000 + Math.random() * 500000,
-        longShortRatio: 1.0 + Math.random(),
-        longAccount: 0.5 + Math.random() * 0.2,
-        shortAccount: 0.5 - Math.random() * 0.2,
+        precoVolatilidadePercentual,
+        precoFinanceiroPorTrade,
+        // No backend real quantidadeNegociada e precoVolume vêm com o mesmo
+        // valor; o mock reproduz isso em vez de inventar duas séries.
+        quantidadeNegociada: precoVolume,
+        volumeComprado: Number(volumeComprado.toFixed(5)),
+        volumeVendido: Number(volumeVendido.toFixed(5)),
+        dominanciaCompradoraPercentual: Number(dominanciaCompradora.toFixed(5)),
+        dominanciaVendedoraPercentual: Number((100 - dominanciaCompradora).toFixed(5)),
+        volumeDelta: Number((volumeComprado - volumeVendido).toFixed(5)),
       })
     }
   }
@@ -197,6 +322,44 @@ const buildCoinValueResponse = (symbol, urlParams) => {
 
   return {
     mensagem: 'Operação realizada com sucesso',
+    resultado: {
+      totalRegistros: registros.length,
+      totalPaginas: 1,
+      paginaAtual: 1,
+      registros,
+    },
+  }
+}
+
+// Faixas do índice Fear & Greed, iguais às da fonte externa (alternative.me).
+const classificarFearGreed = (valor) => {
+  if (valor <= 24) return 'Extreme Fear'
+  if (valor <= 44) return 'Fear'
+  if (valor <= 54) return 'Neutral'
+  if (valor <= 74) return 'Greed'
+  return 'Extreme Greed'
+}
+
+// O índice real é uma série diária. Devolver um ponto só deixava o modo demo
+// sem como exercitar a evolução do sentimento no dashboard.
+const buildFearGreedResponse = (urlParams) => {
+  const quantidadeParam = parseInt(urlParams?.get('quantidade'), 10)
+  const quantidade = Math.min(Math.max(quantidadeParam || 30, 1), 90)
+  const agora = Date.now()
+
+  // Do mais recente para o mais antigo, como a API real (ordemAsc=false).
+  const registros = Array.from({ length: quantidade }, (_, i) => {
+    const valor = Math.round(58 + Math.sin(i / 3.5) * 17)
+    return {
+      valor,
+      classificacao: classificarFearGreed(valor),
+      timeUntilUpdateSeg: 1800,
+      horaReferencia: new Date(agora - i * 24 * 60 * 60 * 1000).toISOString(),
+    }
+  })
+
+  return {
+    mensagem: 'Fear & Greed Index mock retornado com sucesso',
     resultado: {
       totalRegistros: registros.length,
       totalPaginas: 1,
@@ -339,15 +502,167 @@ const criarMockCobranca = (body) => {
   return mockCobranca
 }
 
+// ─── Mock: Treinamento de IA (episódios) ──────────────────────────────────
+// Espelha o contrato de /api/TreinamentoEpisodio (LIST paginado por janela de
+// datas, RESUMO e SERIE) para que /treinamento-episodios funcione em modo mock
+// como as demais telas. Sem este mock, a página cai no backend real com o token
+// mockado, leva 401 e desloga a sessão inteira. Gera um treino sintético "ao
+// vivo" com 3 ciclos (separados por pausas > 30min, detectadas como ciclos) nas
+// últimas ~4h, moedas alternando. Ancorado no load do módulo (determinístico).
+const TREINO_COINS = ['BTC', 'ETH', 'SOL', 'XRP', 'ADA', 'LINK', 'BNB', 'LTC', 'DOGE']
+const TREINO_VERSAO = 'v3.2.1'
+const TREINO_STEP_MS = 20 * 1000
+const TREINO_CICLOS_MIN = [50, 60, 45] // duração de cada ciclo
+const TREINO_PAUSA_MIN = 40            // pausa entre ciclos (> 30min ⇒ novo ciclo)
+const TREINO_ANCHOR = Date.now()
+
+const treinoPad = (n) => String(n).padStart(2, '0')
+// dataHora local-naive (YYYY-MM-DDTHH:mm:ss), formato que o front compara/parseia.
+const treinoLocalNaive = (ms) => {
+  const d = new Date(ms)
+  return `${d.getFullYear()}-${treinoPad(d.getMonth() + 1)}-${treinoPad(d.getDate())}T${treinoPad(d.getHours())}:${treinoPad(d.getMinutes())}:${treinoPad(d.getSeconds())}`
+}
+
+let treinoCache = null
+const buildTreinoEpisodios = () => {
+  if (treinoCache) return treinoCache
+  const cicloSteps = TREINO_CICLOS_MIN.map((min) => Math.floor((min * 60000) / TREINO_STEP_MS))
+  const totalEps = cicloSteps.reduce((a, b) => a + b, 0)
+  const totalMs = TREINO_CICLOS_MIN.reduce((a, b) => a + b, 0) * 60000 + TREINO_PAUSA_MIN * 60000 * (TREINO_CICLOS_MIN.length - 1)
+  let cursor = TREINO_ANCHOR - totalMs
+  const eps = []
+  let ep = 0
+  for (let c = 0; c < cicloSteps.length; c++) {
+    for (let s = 0; s < cicloSteps[c]; s++) {
+      const ts = cursor + s * TREINO_STEP_MS
+      const prog = ep / totalEps
+      const noise = (Math.sin(ep * 1.3) + Math.cos(ep * 0.7)) * 0.05
+      const reward = 0.1 + prog * 0.6 + noise
+      eps.push({
+        idTreinamentoEpisodio: `mock-treino-${ep}`,
+        episodio: ep + 1,
+        dataHora: treinoLocalNaive(ts),
+        _ms: ts,
+        moeda: TREINO_COINS[ep % TREINO_COINS.length],
+        versaoModelo: TREINO_VERSAO,
+        rewardMedio: reward,
+        rewardTotal: reward * 100,
+        lossMedia: 2.5 * (1 - prog) + 0.2 + Math.abs(noise),
+        epsilon: Math.max(0.05, 1 - prog),
+        winRate: Math.min(0.65, 0.15 + prog * 0.45 + noise * 0.3),
+        duracaoSegundos: 8 + (ep % 7) * 1.5,
+        acoesHold: 40 + (ep % 20),
+        acoesCompra: 20 + (ep % 15),
+        acoesVenda: 15 + (ep % 12),
+        totalSteps: 75,
+      })
+      ep++
+    }
+    cursor += cicloSteps[c] * TREINO_STEP_MS + TREINO_PAUSA_MIN * 60000
+  }
+  treinoCache = eps
+  return eps
+}
+
+const treinoQuery = (endpoint) =>
+  endpoint.includes('?') ? new URLSearchParams(endpoint.split('?')[1]) : new URLSearchParams()
+// Remove o campo interno _ms antes de devolver ao front.
+const treinoStrip = ({ _ms, ...rest }) => rest
+
+const mockTreinoList = (endpoint) => {
+  const q = treinoQuery(endpoint)
+  const moeda = q.get('moeda'), versao = q.get('versaoModelo')
+  const dataInicio = q.get('dataInicio'), dataFim = q.get('dataFim')
+  const quantidade = q.get('quantidade') ? parseInt(q.get('quantidade'), 10) : 50
+  const pagina = q.get('pagina') ? parseInt(q.get('pagina'), 10) : 1
+  const asc = q.get('ordenarAscendente') === 'true'
+
+  let lista = buildTreinoEpisodios()
+  if (moeda) lista = lista.filter((e) => e.moeda === moeda)
+  if (versao) lista = lista.filter((e) => e.versaoModelo === versao)
+  if (dataInicio) { const ini = new Date(dataInicio).getTime(); lista = lista.filter((e) => e._ms >= ini) }
+  if (dataFim) { const fim = new Date(dataFim).getTime(); lista = lista.filter((e) => e._ms < fim) }
+  lista = [...lista].sort((a, b) => asc ? a._ms - b._ms : b._ms - a._ms)
+
+  const totalRegistros = lista.length
+  const totalPaginas = Math.max(1, Math.ceil(totalRegistros / quantidade))
+  const inicio = (pagina - 1) * quantidade
+  const pageItems = lista.slice(inicio, inicio + quantidade).map(treinoStrip)
+  return {
+    mensagem: 'Episódios de treinamento (mock)',
+    resultado: { lista: pageItems, pagina, quantidade, totalRegistros, totalPaginas },
+  }
+}
+
+const mockTreinoResumo = (endpoint) => {
+  const versao = treinoQuery(endpoint).get('versaoModelo')
+  let eps = buildTreinoEpisodios()
+  if (versao) eps = eps.filter((e) => e.versaoModelo === versao)
+  const byCoin = {}
+  for (const e of eps) (byCoin[e.moeda] = byCoin[e.moeda] || []).push(e)
+  const resultado = Object.entries(byCoin).map(([moeda, arr]) => ({
+    moeda,
+    episodios: arr.length,
+    rewardInicial: arr[0].rewardMedio,
+    rewardAtual: arr[arr.length - 1].rewardMedio,
+    winRateInicial: arr[0].winRate,
+    winRateAtual: arr[arr.length - 1].winRate,
+    lossMedio: arr.reduce((s, r) => s + r.lossMedia, 0) / arr.length,
+    dataHoraAtual: arr[arr.length - 1].dataHora,
+  }))
+  return { mensagem: 'Resumo de treinamento (mock)', resultado }
+}
+
+const mockTreinoSerie = (endpoint) => {
+  const moeda = treinoQuery(endpoint).get('moeda')
+  let eps = buildTreinoEpisodios()
+  if (moeda) eps = eps.filter((e) => e.moeda === moeda)
+  eps = [...eps].sort((a, b) => a._ms - b._ms)
+  const mm = (arr, i, key) => {
+    const s = Math.max(0, i - 4)
+    const slice = arr.slice(s, i + 1)
+    return slice.reduce((a, r) => a + r[key], 0) / slice.length
+  }
+  const resultado = eps.map((e, i) => ({
+    dataHora: e.dataHora,
+    rewardMedio: e.rewardMedio,
+    rewardMedioMediaMovel: mm(eps, i, 'rewardMedio'),
+    lossMedia: e.lossMedia,
+    epsilon: e.epsilon,
+    winRate: e.winRate,
+    winRateMediaMovel: mm(eps, i, 'winRate'),
+  }))
+  return { mensagem: 'Série de treinamento (mock)', resultado }
+}
+
 const mockHandlers = [
   {
+    method: 'GET',
+    match: (endpoint) => endpoint.split('?')[0] === '/api/TreinamentoEpisodio/resumo',
+    response: (endpoint) => mockTreinoResumo(endpoint),
+  },
+  {
+    method: 'GET',
+    match: (endpoint) => endpoint.split('?')[0] === '/api/TreinamentoEpisodio/serie',
+    response: (endpoint) => mockTreinoSerie(endpoint),
+  },
+  {
+    method: 'GET',
+    match: (endpoint) => endpoint.split('?')[0] === '/api/TreinamentoEpisodio',
+    response: (endpoint) => mockTreinoList(endpoint),
+  },
+  {
     method: 'POST',
-    match: (endpoint) => endpoint === '/ThinkBitcoin/gerarTokenBearer',
+    match: (endpoint) =>
+      endpoint === '/ThinkBitcoin/gerarTokenBearer' ||
+      endpoint === '/ThinkBitcoin/gerarTokenBearer/renovar',
     response: () => {
       // Cria um payload mock no padrão JWT para o decode da aplicação
       const payload = {
         'idUsuarioTB': 'b282e124-4dd8-4ccd-a9c6-5b6b0c324a50',
-        'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name': 'Usuário Teste',
+        // Igual à API: o nome sai do banco na reemissão, então o que o usuário
+        // salvou em /settings precisa aparecer aqui depois de renovar.
+        'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name': readMockPrefs()?.nome || 'Usuário Teste',
         'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress': 'teste@thinkbitcoin.com'
       }
       const base64Payload = base64FromUtf8(JSON.stringify(payload))
@@ -377,7 +692,9 @@ const mockHandlers = [
         riscoMaximoPerda: 2.5,
         perfilRisco: 'moderado',
         siglaMoedaUltimaInteracaoIA: 'ETH',
-        dataUltimaInteracaoIA: new Date().toISOString()
+        dataUltimaInteracaoIA: new Date().toISOString(),
+        // O que o usuário já alterou nesta sessão vence os valores fixos acima.
+        ...(readMockPrefs() || {}),
       },
     }),
   },
@@ -397,8 +714,36 @@ const mockHandlers = [
     method: 'PUT',
     match: (endpoint) => endpoint === '/ThinkBitcoin/preferencias',
     response: (endpoint, body) => {
-      console.log('Mock PUT Preferences:', body);
+      writeMockPrefs({ ...(readMockPrefs() || {}), ...(body || {}) })
       return { mensagem: 'Preferências mock atualizadas com sucesso' };
+    },
+  },
+  {
+    method: 'PUT',
+    match: (endpoint) => endpoint === '/ThinkBitcoin/usuariosTB/meu-perfil',
+    response: (endpoint, body) => {
+      const nome = body?.nome?.trim()
+      if (!nome) {
+        const err = new Error('Nome não pode ser vazio.')
+        err.status = 400
+        throw err
+      }
+      writeMockPrefs({ ...(readMockPrefs() || {}), nome })
+      return { mensagem: 'Perfil mock atualizado com sucesso' }
+    },
+  },
+  {
+    method: 'POST',
+    match: (endpoint) => endpoint === '/ThinkBitcoin/usuariosTB/excluir-conta',
+    response: (endpoint, body) => {
+      // O mock não guarda a senha do usuário demo: aceita qualquer uma, menos
+      // este valor sentinela, que existe para exercitar o caminho de erro.
+      if (!body?.senha || body.senha === 'senha-errada') {
+        const err = new Error('A senha informada está incorreta.')
+        err.status = 400
+        throw err
+      }
+      return { mensagem: 'Conta mock excluída com sucesso' }
     },
   },
   {
@@ -454,26 +799,24 @@ const mockHandlers = [
   {
     method: 'GET',
     match: (endpoint) => !!endpoint.match(/^\/ThinkBitcoin\/variavel-externa\/fear-greed(\?.*)?$/i),
-    response: () => ({
-      mensagem: 'Fear & Greed Index mock retornado com sucesso',
-      resultado: {
-        totalRegistros: 1,
-        totalPaginas: 1,
-        paginaAtual: 1,
-        registros: [
-          {
-            valor: 75,
-            classificacao: 'Greed',
-            horaReferencia: new Date().toISOString(),
-          }
-        ]
-      }
-    }),
+    response: (endpoint) => {
+      const urlQuery = endpoint.includes('?') ? new URLSearchParams(endpoint.split('?')[1]) : null
+      return buildFearGreedResponse(urlQuery)
+    },
   },
   {
     method: 'GET',
     match: (endpoint) => !!endpoint.match(/^\/ThinkBitcoin\/variavel-externa\/trend(\?.*)?$/i),
-    response: () => ({
+    response: (endpoint) => {
+      // País líder varia por moeda para exercitar o filtro real do carrossel
+      // (clicar num país do mapa filtra por trend.geoTop1Code).
+      const urlQuery = endpoint.includes('?') ? new URLSearchParams(endpoint.split('?')[1]) : null
+      const idMoedaStr = urlQuery?.get('idMoeda') || ''
+      const hash = idMoedaStr.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+      const paisesLideres = ['US', 'BR', 'CH', 'DE', 'JP']
+      const geoTop1Code = paisesLideres[hash % paisesLideres.length]
+
+      return {
       mensagem: 'Trend mock retornado com sucesso',
       resultado: {
         totalRegistros: 1,
@@ -482,6 +825,7 @@ const mockHandlers = [
         registros: [
           {
             valorAtual: 130,
+            mediaPeriodo: 96.4,
             mA5: 120,
             mA15: 121,
             delta5: 19,
@@ -489,12 +833,19 @@ const mockHandlers = [
             volatilidade15: 30.45,
             minutosDesdePico: 115,
             rankNoMinuto: 6,
-            geoTop1Code: 'CH',
+            spreadTop2: 12.5,
+            geoTop1Code,
             geoTop1Value: 100,
+            geoTop5Std: 14.2,
+            geoHHI: 0.31,
+            isTimeseriesOk: true,
+            isGeoOk: true,
+            horaReferencia: new Date().toISOString(),
           }
         ]
       }
-    })
+      }
+    }
   },
   {
     method: 'GET',
@@ -583,6 +934,13 @@ const mockHandlers = [
           { geoTop1Code: 'KR', frequenciaLideranca: Math.round(5 - (factor % 2)) }
         ]
       }
+
+      // Intensidade média derivada da frequência para exercitar o toggle
+      // Liderança × Intensidade e o tooltip enriquecido.
+      registros = registros.map((r, idx) => ({
+        ...r,
+        mediaIntensidade: Math.max(5, Math.min(100, Math.round(r.frequenciaLideranca * 0.75 + ((idx * 7) % 20)))),
+      }))
 
       return {
         mensagem: 'Heatmap mock retornado com sucesso',

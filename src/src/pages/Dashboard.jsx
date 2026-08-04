@@ -5,6 +5,7 @@ import {
   LinearScale,
   PointElement,
   LineElement,
+  BarElement,
   Title,
   Tooltip,
   Legend,
@@ -20,8 +21,14 @@ import useTranslation from '../hooks/useTranslation'
 import useCoinPrices from '../hooks/useCoinPrices'
 import useDashboardData from '../hooks/useDashboardData'
 import useDashboardCharts from '../hooks/useDashboardCharts'
+import useMarketAnalytics from '../hooks/useMarketAnalytics'
 import * as mathUtils from '../utils/mathUtils'
+import { calcularLimites } from '../utils/marketStats'
+import { compararMoedas } from '../utils/marketAnalytics'
+import { analisarSinais } from '../utils/signalLab'
 import { getTourVisto, setTourVisto } from '../utils/preferences'
+import { candlestickPlugin } from '../utils/candlestickChart'
+import { Normalization, PriceChartMode, SecondaryChart } from '../utils/enums'
 
 // Sub-componentes Refatorados
 import DashboardHeader from '../components/dashboard/DashboardHeader'
@@ -29,6 +36,11 @@ import PatrimonioCard from '../components/dashboard/PatrimonioCard'
 import CoinCarousel from '../components/dashboard/CoinCarousel'
 import DashboardFilters from '../components/dashboard/DashboardFilters'
 import IntelligencePanel from '../components/dashboard/IntelligencePanel'
+import AnalyticsPanel from '../components/dashboard/AnalyticsPanel'
+import PeriodStatsPanel from '../components/dashboard/PeriodStatsPanel'
+import CorrelationMatrix from '../components/dashboard/CorrelationMatrix'
+import CoinComparisonPanel from '../components/dashboard/CoinComparisonPanel'
+import SignalLabPanel from '../components/dashboard/SignalLabPanel'
 import DashboardCharts from '../components/dashboard/DashboardCharts'
 import HistoryTable from '../components/dashboard/HistoryTable'
 import ErrorMessage from '../components/ErrorMessage'
@@ -38,10 +50,15 @@ ChartJS.register(
   LinearScale,
   PointElement,
   LineElement,
+  // Barras da variação no modo candle.
+  BarElement,
   Title,
   Tooltip,
   Legend,
   Filler,
+  // Inerte enquanto options.plugins.candlestick.enabled for falso, então não
+  // interfere no gráfico de variação nem no modo linha.
+  candlestickPlugin,
 )
 
 ChartJS.defaults.color = '#e0e0e0'
@@ -66,7 +83,10 @@ export default function Dashboard() {
   const [moedasFiltro, setMoedasFiltro] = useState([]) 
 
   // Estados Visuais Locais
-  const [normalizacao, setNormalizacao] = useState('base100')
+  const [normalizacao, setNormalizacao] = useState(Normalization.BASE_100)
+  const [modoPreco, setModoPreco] = useState(PriceChartMode.LINE)
+  const [painelSecundario, setPainelSecundario] = useState(SecondaryChart.VARIATION)
+  const [horizonteSinal, setHorizonteSinal] = useState(1)
   const [expandedChart, setExpandedChart] = useState(null)
 
   const hasInitializedPref = useRef(false)
@@ -178,6 +198,7 @@ export default function Dashboard() {
     trendPorMoeda,
     totalPaginas,
     historicoMoeda,
+    cobertura,
     erro,
     setErro
   } = useDashboardData({
@@ -243,8 +264,35 @@ export default function Dashboard() {
     if (!sigla || !trendPorMoeda[sigla]) return null
     const regs = trendPorMoeda[sigla]
     if (!Array.isArray(regs) || regs.length === 0) return null
-    return regs[regs.length - 1]
+    return regs[0]
   }, [trendPorMoeda, moedasFiltro])
+
+  // Fluxo de ordens, volatilidade e sentimento: tudo derivado dos dados que já
+  // foram carregados acima, sem nenhuma requisição adicional.
+  const analytics = useMarketAnalytics({
+    historicosPorMoeda,
+    fearGreedPorMoeda,
+    moedasFiltro
+  })
+
+  // Régua de anomalia por moeda. Sai da série completa (historicosPorMoeda), e
+  // não da página exibida: volume de BTC e de DOGE não se comparam, e limites
+  // tirados de 20 linhas mudariam a cada troca de página.
+  const limitesPorMoeda = useMemo(() => {
+    const limites = {}
+    Object.keys(historicosPorMoeda || {}).forEach(sigla => {
+      const l = calcularLimites(historicosPorMoeda[sigla])
+      if (l) limites[sigla] = l
+    })
+    return limites
+  }, [historicosPorMoeda])
+
+  // Desfecho dos sinais. Só faz sentido com uma moeda: misturar os retornos de
+  // ativos diferentes numa mesma taxa não descreve nenhum deles.
+  const analiseSinais = useMemo(() => {
+    if (moedasFiltro.length !== 1) return null
+    return analisarSinais(historicosPorMoeda?.[moedasFiltro[0]], { horizonte: horizonteSinal })
+  }, [historicosPorMoeda, moedasFiltro, horizonteSinal])
 
   // Processamento de Gráficos (Hook Customizado)
   const chartConfig = useDashboardCharts({
@@ -254,14 +302,27 @@ export default function Dashboard() {
     resultadoFiltro,
     normalizacao,
     fearGreedPorMoeda,
-    trendPorMoeda
+    trendPorMoeda,
+    modoPreco,
+    t
   })
 
+  const comparativo = useMemo(
+    () => compararMoedas(historicosPorMoeda, moedasFiltro),
+    [historicosPorMoeda, moedasFiltro]
+  )
+
+  // As consultas usam ordemAsc=false, então o backend devolve da leitura mais
+  // recente para a mais antiga: o registro atual é o índice 0, não o último.
+  //
+  // No modo comparativo estes dois valores não são exibidos: eram do primeiro
+  // da lista, sem dizer de qual moeda, e em dólar enquanto o gráfico está
+  // normalizado — três números diferentes na tela para a mesma coisa.
   const ultimoNegociado = useMemo(() => {
     const sigla = moedasFiltro[0]
     const hist = (historicosPorMoeda && sigla) ? (historicosPorMoeda[sigla] || []) : []
     if (!hist.length) return '-'
-    const last = hist[hist.length - 1]
+    const last = hist[0]
     const val = last?.precoFechamento ?? last?.PrecoFechamento ?? last?.valor ?? last?.Valor ?? last?.valorNegociado ?? last?.ValorNegociado ?? 0
     return mathUtils.formatCurrency(val)
   }, [historicosPorMoeda, moedasFiltro])
@@ -270,7 +331,7 @@ export default function Dashboard() {
     const sigla = moedasFiltro[0]
     const hist = (historicosPorMoeda && sigla) ? (historicosPorMoeda[sigla] || []) : []
     if (!hist.length) return '-'
-    const last = hist[hist.length - 1]
+    const last = hist[0]
     const val = last?.precoPercentualVariacao ?? last?.PrecoPercentualVariacao ?? last?.variacaoPercentual ?? last?.VariacaoPercentual ?? last?.variacao ?? last?.Variacao ?? 0
     return mathUtils.formatPercent(val)
   }, [historicosPorMoeda, moedasFiltro])
@@ -309,21 +370,21 @@ export default function Dashboard() {
               dismissKeyAction: false,
               primaryColor: '#ffd700',
               textColor: '#fff',
-              backgroundColor: 'rgba(15,15,15,0.97)',
+              backgroundColor: 'var(--surface-overlay)',
               arrowColor: 'rgba(15,15,15,0.97)',
               zIndex: 9999,
             }}
             styles={{
               tooltip: {
-                border: '1px solid rgba(255,215,0,0.35)',
+                border: '1px solid var(--accent-a30)',
                 borderRadius: 16,
-                boxShadow: '0 20px 60px rgba(0,0,0,0.8)',
+                boxShadow: '0 20px 60px var(--scrim-strong)',
               },
-              tooltipTitle: { color: '#ffd700', fontWeight: 800, fontSize: '1rem' },
-              tooltipContent: { color: 'rgba(255,255,255,0.8)', fontSize: '0.88rem' },
-              buttonPrimary: { background: '#ffd700', color: '#000', fontWeight: 700, borderRadius: '8px' },
-              buttonBack: { color: 'rgba(255,255,255,0.6)' },
-              buttonSkip: { color: 'rgba(255,255,255,0.4)', fontSize: '0.78rem' },
+              tooltipTitle: { color: 'var(--accent-ink)', fontWeight: 800, fontSize: '1rem' },
+              tooltipContent: { color: 'var(--text-secondary)', fontSize: '0.88rem' },
+              buttonPrimary: { backgroundColor: 'var(--accent)', color: 'var(--text-on-accent)', fontWeight: 700, borderRadius: '8px' },
+              buttonBack: { color: 'var(--text-muted)' },
+              buttonSkip: { color: 'var(--text-faint)', fontSize: '0.78rem' },
             }}
           />
         )}
@@ -356,18 +417,43 @@ export default function Dashboard() {
           multiMoeda={chartConfig.multiMoeda}
           normalizacao={normalizacao}
           setNormalizacao={setNormalizacao}
+          modoPreco={modoPreco}
+          setModoPreco={setModoPreco}
+          painelSecundario={painelSecundario}
+          setPainelSecundario={setPainelSecundario}
+          temVelas={chartConfig.velas.length > 0}
+          modoVela={chartConfig.modoVela}
           expandedChart={expandedChart}
           setExpandedChart={setExpandedChart}
           dadosNegociados={chartConfig.dadosGraficoPreco}
           dadosVariacao={chartConfig.dadosGraficoVariacao}
+          dadosVolume={chartConfig.dadosGraficoVolume}
           opcoesPreco={chartConfig.opcoesPreco}
           opcoesVariacao={chartConfig.opcoesVariacao}
+          opcoesVolume={chartConfig.opcoesVolume}
           ultimoNegociado={ultimoNegociado}
           ultimaVariacao={ultimaVariacao}
+          volumeAtual={chartConfig.volumeAtual}
+          cobertura={cobertura}
           trendAtual={trendAtual}
           t={t}
         />
         </div>
+
+        <PeriodStatsPanel desempenho={analytics?.desempenho} t={t} />
+
+        <AnalyticsPanel analytics={analytics} t={t} />
+
+        <CoinComparisonPanel comparativo={comparativo} t={t} />
+
+        <CorrelationMatrix correlacao={chartConfig.correlacao} t={t} />
+
+        <SignalLabPanel
+          analise={analiseSinais}
+          horizonte={horizonteSinal}
+          setHorizonte={setHorizonteSinal}
+          t={t}
+        />
 
         {moedasFiltro.length === 1 && trendAtual && (
           <IntelligencePanel trendAtual={trendAtual} t={t} />
@@ -378,6 +464,7 @@ export default function Dashboard() {
             historicoMoeda={historicoMoeda}
             historicoFiltrado={historicoFiltrado}
             moedasFiltro={moedasFiltro}
+            limitesPorMoeda={limitesPorMoeda}
             totalPaginas={totalPaginas}
             pagina={pagina}
             setPagina={setPagina}

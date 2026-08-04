@@ -26,7 +26,7 @@ export default class ErrorBoundary extends Component {
           sx={{
             p: 5,
             color: '#ff5252',
-            background: '#0a0a0a',
+            backgroundColor: 'var(--surface-base)',
             minHeight: '100vh',
             display: 'flex',
             alignItems: 'center',
@@ -38,7 +38,7 @@ export default class ErrorBoundary extends Component {
           <Typography sx={{ mt: 2, opacity: 0.7 }}>{this.state.error.message}</Typography>
           <Button
             variant="outlined"
-            sx={{ mt: 4, color: '#ffd700', borderColor: '#ffd700' }}
+            sx={{ mt: 4, color: 'var(--accent-ink)', borderColor: 'var(--accent)' }}
             onClick={() => window.location.reload()}
           >
             Recarregar Página

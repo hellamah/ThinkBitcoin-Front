@@ -1,5 +1,5 @@
 import { API_URL } from '../api'
-import { getMockResponse, USE_MOCK_API } from './mockApi'
+import { USE_MOCK_API } from './mockFlag'
 import { getCache, setCache } from './cache'
 import { getStoredToken } from './preferences'
 
@@ -13,12 +13,17 @@ export const HttpMethod = Object.freeze({
 export const ApiEndpoint = Object.freeze({
   AUTHENTICATION: Object.freeze({
     LOGIN: '/ThinkBitcoin/gerarTokenBearer',
+    // Reemite o token com os claims atuais (o cargo muda ao trocar de plano).
+    RENOVAR: '/ThinkBitcoin/gerarTokenBearer/renovar',
   }),
   USER: Object.freeze({
     ME: (id) => `/ThinkBitcoin/usuariosTB/${id}`,
     LIST: '/ThinkBitcoin/usuariosTB/',
     CREATE: '/ThinkBitcoin/usuariosTB/',
     DELETE: (id) => `/ThinkBitcoin/usuariosTB/${id}`,
+    // Autoatendimento: o backend resolve o usuário pelo token, sem id na rota.
+    UPDATE_PROFILE: '/ThinkBitcoin/usuariosTB/meu-perfil',
+    DELETE_ACCOUNT: '/ThinkBitcoin/usuariosTB/excluir-conta',
     CHANGE_PASSWORD: '/ThinkBitcoin/usuariosTB/AlterarSenha',
     RECUPERAR_SENHA: '/ThinkBitcoin/usuariosTB/recuperar-senha',
     REDEFINIR_SENHA: '/ThinkBitcoin/usuariosTB/redefinir-senha',
@@ -184,6 +189,9 @@ export const apiRequest = async (
   }
 
   if (USE_MOCK_API) {
+    // Import dinâmico: em produção a flag é estaticamente falsa e o Rollup joga
+    // o mockApi num chunk separado, que o navegador nunca chega a buscar.
+    const { getMockResponse } = await import('./mockApi')
     const mockResponse = getMockResponse({ endpoint, method, body })
     if (mockResponse) {
       const normalizedMock = normalizeApiKeys(mockResponse)
@@ -202,6 +210,11 @@ export const apiRequest = async (
   if (!response.ok) {
     if (response.status === 401 && !suppressAuthRedirect && typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('auth-expired'))
+    }
+    // 403 = autenticado mas sem o cargo exigido: recurso de assinatura paga.
+    // O Layout escuta este evento e exibe o convite para migrar de plano.
+    if (response.status === 403 && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('subscription-required', { detail: { endpoint } }))
     }
     const backendMessage = await extractErrorMessage(response)
     const error = new Error(backendMessage || 'Falha na requisição à API')
