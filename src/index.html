@@ -15,15 +15,31 @@
 
     <title>ThinkBitcoin</title>
 
-    <!-- Prévia ao compartilhar o link (WhatsApp, X, Slack). Sem og:image por
-         enquanto: falta um PNG 1200x630 desenhado para isso. -->
+    <!-- Prévia ao compartilhar o link (WhatsApp, X, Slack).
+         A URL da imagem precisa ser absoluta: o crawler não roda no nosso
+         domínio e não tem como resolver caminho relativo. Regerar o PNG a
+         partir de og-image.html (as instruções estão lá dentro).
+         Os crawlers cacheiam a imagem por bastante tempo; ao trocá-la, revalide
+         no Sharing Debugger do Facebook / Card Validator do X, ou publique com
+         nome novo em vez de sobrescrever. -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="ThinkBitcoin" />
     <meta property="og:locale" content="pt_BR" />
     <meta property="og:url" content="https://minerthinkbitcoin.com/" />
     <meta property="og:title" content="ThinkBitcoin — painel de análise de criptoativos" />
     <meta property="og:description" content="Acompanhe cotações com candles, VWAP, RSI e bandas de Bollinger, e meça o desfecho de cada sinal no laboratório." />
-    <meta name="twitter:card" content="summary" />
+    <meta property="og:image" content="https://minerthinkbitcoin.com/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="ThinkBitcoin — painel de análise de criptoativos, com um gráfico de candles em tendência de alta e a linha de VWAP." />
+
+    <!-- summary_large_image, e não summary: é o que troca a miniatura pequena
+         ao lado do título pelo cartão com a imagem ocupando a largura toda. -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="ThinkBitcoin — painel de análise de criptoativos" />
+    <meta name="twitter:description" content="Acompanhe cotações com candles, VWAP, RSI e bandas de Bollinger, e meça o desfecho de cada sinal no laboratório." />
+    <meta name="twitter:image" content="https://minerthinkbitcoin.com/og-image.png" />
   </head>
   <body>
     <div id="root"></div>
