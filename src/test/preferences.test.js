@@ -4,7 +4,7 @@
  * Este conjunto de testes valida a persistência de configurações, saneamento 
  * de entradas e o ciclo de vida de preferências do investidor no ThinkBitcoin.
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { IDIOMA_PADRAO } from '../src/lang'
 import {
   AlgorithmStyle,
@@ -37,6 +37,25 @@ const criarMockStorage = () => {
     store
   }
 }
+
+// getInitialPreferences passou a consultar o idioma do navegador. O Node 22
+// define um `navigator` real, com o idioma do sistema operacional, então todo
+// teste que toca nisso precisa fixá-lo — senão a suíte passa na máquina de quem
+// a escreveu e falha num runner configurado em outro idioma.
+const navigatorOriginal = Object.getOwnPropertyDescriptor(globalThis, 'navigator')
+
+const comNavegador = (valor) => {
+  Object.defineProperty(globalThis, 'navigator', {
+    value: valor,
+    configurable: true,
+    writable: true,
+  })
+}
+
+afterEach(() => {
+  if (navigatorOriginal) Object.defineProperty(globalThis, 'navigator', navigatorOriginal)
+  else delete globalThis.navigator
+})
 
 describe('utils/preferences › Enums & Constantes', () => {
   it('deve expor temas (Light/Dark) como constantes imutáveis', () => {
@@ -123,9 +142,23 @@ describe('utils/preferences › Persistência (LocalStorage)', () => {
 
   it('deve inicializar as preferências combinando valores padrão e persistidos', () => {
     localStorage.setItem('theme', 'light')
+    // Navegador em idioma não suportado: isola o teste do tema, que é o que ele
+    // afere. Sem fixar o navigator, o idioma sairia do sistema operacional da
+    // máquina que roda a suíte.
+    comNavegador({ languages: ['ja-JP'], language: 'ja-JP' })
     const initial = getInitialPreferences()
     expect(initial.tema).toBe(Theme.LIGHT)
-    expect(initial.idioma).toBe(IDIOMA_PADRAO) // Padrão pois não estava no storage
+    expect(initial.idioma).toBe(IDIOMA_PADRAO) // Nem no storage, nem no navegador
+  })
+
+  it('deve adotar o idioma do navegador quando o usuário nunca escolheu', () => {
+    comNavegador({ languages: ['fr-FR', 'en-US'], language: 'fr-FR' })
+    expect(getInitialPreferences().idioma).toBe('fr')
+  })
+
+  it('deve cair no padrão quando o navegador pede um idioma não suportado', () => {
+    comNavegador({ languages: ['ko-KR'], language: 'ko-KR' })
+    expect(getInitialPreferences().idioma).toBe(IDIOMA_PADRAO)
   })
 })
 

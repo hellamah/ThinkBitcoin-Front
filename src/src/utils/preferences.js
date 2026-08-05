@@ -1,4 +1,4 @@
-import { LANGUAGE_CODES, IDIOMA_PADRAO } from '../lang'
+import { LANGUAGE_CODES, IDIOMA_PADRAO, detectarIdiomaDoNavegador } from '../lang'
 
 const getWindow = () =>
   typeof window !== 'undefined' ? window : undefined
@@ -154,8 +154,19 @@ export const clearStoredToken = () => {
   storage.removeItem('token')
 }
 
+// O idioma do navegador entra aqui, e não no sanitizePreferences: aquele é uma
+// função de saneamento de dados, que deve devolver a mesma coisa para a mesma
+// entrada. Esta é o começo de sessão — já lê o tema do storage, e ler também a
+// preferência declarada no sistema é o mesmo tipo de decisão.
+//
+// A ordem é: escolha explícita do usuário (que chega depois, do backend ou do
+// storage) > idioma do navegador > IDIOMA_PADRAO. Quem já escolheu não é
+// mexido; quem nunca escolheu recebe o idioma em que já navega.
 export const getInitialPreferences = () =>
-  sanitizePreferences({ tema: getStoredTheme() })
+  sanitizePreferences({
+    tema: getStoredTheme(),
+    idioma: detectarIdiomaDoNavegador(),
+  })
 
 // ---------------------------------------------------------------------------
 // Tours de onboarding (react-joyride)

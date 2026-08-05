@@ -41,6 +41,41 @@ export const IDIOMA_PADRAO = 'en'
 // padrão seria o único a esperar uma requisição para renderizar.
 export const dicionarioPadrao = en
 
+/**
+ * Descobre qual dos idiomas suportados o navegador prefere.
+ *
+ * Lê `navigator.languages`, que já vem ordenado pela preferência declarada nas
+ * configurações do sistema — `navigator.language` sozinho traz só o primeiro e
+ * perderia a segunda escolha de quem tem mais de um idioma configurado.
+ *
+ * A região é descartada: `pt-BR`, `pt-PT` e `pt` compartilham dicionário, e
+ * exigir a etiqueta completa faria um navegador em `en-GB` cair no padrão sem
+ * necessidade.
+ *
+ * Lido no momento da chamada, e não na carga do módulo, para que o teste possa
+ * trocar o navigator — o Node 22 define um `navigator` real, com o idioma do
+ * sistema operacional, e sem isso a suíte passaria na máquina de quem a escreve
+ * e falharia num runner configurado em outro idioma.
+ *
+ * @returns {string|null} Código suportado, ou null se nenhum servir
+ */
+export const detectarIdiomaDoNavegador = () => {
+  const nav = typeof globalThis !== 'undefined' ? globalThis.navigator : undefined
+  if (!nav) return null
+
+  const preferidos = Array.isArray(nav.languages) && nav.languages.length > 0
+    ? nav.languages
+    : [nav.language]
+
+  for (const etiqueta of preferidos) {
+    if (typeof etiqueta !== 'string') continue
+    const base = etiqueta.toLowerCase().split('-')[0]
+    if (LANGUAGE_CODES.includes(base)) return base
+  }
+
+  return null
+}
+
 /** Devolve os metadados do idioma, caindo no padrão quando o código é inválido. */
 export const idiomaDe = (codigo) =>
   LANGUAGES.find((l) => l.codigo === codigo) ??
