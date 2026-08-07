@@ -108,6 +108,54 @@ describe('utils/preferences › sanitizePreferences (Saneamento de Dados)', () =
     expect(prefs.nome).toBe('Trader X')
     expect(prefs.idPreferenciasUsuarioTB).toBe('P001')
   })
+
+  it('deve aceitar as siglas de moeda e corretora vindas da API', () => {
+    const prefs = sanitizePreferences({
+      siglaMoedaPreferida: 'BTC',
+      siglaEmpresaExterna: 'MB',
+      siglaMoedaSaldoSeguranca: 'USDT',
+    })
+    expect(prefs.siglaMoedaPreferida).toBe('BTC')
+    expect(prefs.siglaEmpresaExterna).toBe('MB')
+    expect(prefs.siglaMoedaSaldoSeguranca).toBe('USDT')
+  })
+
+  // Regressão: a resposta da API traz o Guid ao lado da sigla. Enquanto o Guid
+  // servia de fallback, ele virava "sigla" e voltava assim no PUT seguinte — o
+  // backend não achava moeda com aquele código e gravava null por cima, de modo
+  // que trocar o tema apagava a moeda preferida do usuário.
+  it('não deve aceitar o Guid do vínculo como se fosse a sigla', () => {
+    const prefs = sanitizePreferences({
+      idMoedaPreferida: '4FBFEC54-EC8A-4D0E-AAF8-095102896310',
+      idEmpresaExterna: '6143DB57-A01F-4713-B9DA-C4DD4C6DD312',
+      idMoedaSaldoSeguranca: '0A1B2C3D-4E5F-6071-8293-A4B5C6D7E8F9',
+    })
+    expect(prefs.siglaMoedaPreferida).toBeNull()
+    expect(prefs.siglaEmpresaExterna).toBeNull()
+    expect(prefs.siglaMoedaSaldoSeguranca).toBeNull()
+  })
+
+  it('deve manter a sigla quando ela chega junto do Guid', () => {
+    const prefs = sanitizePreferences({
+      idMoedaPreferida: '4FBFEC54-EC8A-4D0E-AAF8-095102896310',
+      siglaMoedaPreferida: 'BTC',
+    })
+    expect(prefs.siglaMoedaPreferida).toBe('BTC')
+  })
+
+  // A string vazia é o "Padrão" da tela, e o backend a distingue de null: null
+  // deixa o vínculo como está, "" o desfaz. Trocá-la por null aqui tiraria do
+  // usuário a única forma de limpar a escolha.
+  it('deve preservar a string vazia, que é o pedido de limpar o vínculo', () => {
+    const prefs = sanitizePreferences({
+      siglaMoedaPreferida: '',
+      siglaMoedaSaldoSeguranca: '',
+      siglaEmpresaExterna: '',
+    })
+    expect(prefs.siglaMoedaPreferida).toBe('')
+    expect(prefs.siglaMoedaSaldoSeguranca).toBe('')
+    expect(prefs.siglaEmpresaExterna).toBe('')
+  })
 })
 
 describe('utils/preferences › Persistência (LocalStorage)', () => {

@@ -54,6 +54,7 @@ export const DEFAULT_PREFERENCES = Object.freeze({
   siglaMoedaPreferida: null,
   siglaEmpresaExterna: null,
   saldoSeguranca: 0,
+  siglaMoedaSaldoSeguranca: null,
   siglaMoedaUltimaInteracaoIA: null,
   dataUltimaInteracaoIA: null,
   frequenciaReview: 'diaria',
@@ -121,9 +122,16 @@ export const sanitizePreferences = (prefs = {}) => {
     notificacoes: notificacoes ?? DEFAULT_PREFERENCES.notificacoes,
     investimentoInicial: merged.investimentoInicial ?? DEFAULT_PREFERENCES.investimentoInicial,
     riscoMaximoPerda: merged.riscoMaximoPerda ?? DEFAULT_PREFERENCES.riscoMaximoPerda,
-    siglaMoedaPreferida: merged.siglaMoedaPreferida ?? merged.SiglaMoedaPreferida ?? merged.idMoedaPreferida ?? DEFAULT_PREFERENCES.siglaMoedaPreferida,
-    siglaEmpresaExterna: merged.siglaEmpresaExterna ?? merged.SiglaEmpresaExterna ?? merged.idEmpresaExterna ?? DEFAULT_PREFERENCES.siglaEmpresaExterna,
+    // Só sigla entra aqui. O fallback para o Guid (idMoedaPreferida) parecia uma
+    // rede de segurança, mas era o contrário: a API devolvia só o Guid, ele virava
+    // "sigla" e voltava assim no PUT seguinte — e a alteração, não achando moeda
+    // com aquele código, gravava null por cima. Trocar o tema apagava a moeda
+    // preferida. A API agora devolve a sigla junto do Guid; quem não tiver vínculo
+    // vem com null, que é a resposta certa.
+    siglaMoedaPreferida: merged.siglaMoedaPreferida ?? merged.SiglaMoedaPreferida ?? DEFAULT_PREFERENCES.siglaMoedaPreferida,
+    siglaEmpresaExterna: merged.siglaEmpresaExterna ?? merged.SiglaEmpresaExterna ?? DEFAULT_PREFERENCES.siglaEmpresaExterna,
     saldoSeguranca: merged.saldoSeguranca ?? DEFAULT_PREFERENCES.saldoSeguranca,
+    siglaMoedaSaldoSeguranca: merged.siglaMoedaSaldoSeguranca ?? merged.SiglaMoedaSaldoSeguranca ?? DEFAULT_PREFERENCES.siglaMoedaSaldoSeguranca,
     siglaMoedaUltimaInteracaoIA: merged.siglaMoedaUltimaInteracaoIA ?? merged.SiglaMoedaUltimaInteracaoIA ?? DEFAULT_PREFERENCES.siglaMoedaUltimaInteracaoIA,
     dataUltimaInteracaoIA: merged.dataUltimaInteracaoIA ?? merged.DataUltimaInteracaoIA ?? DEFAULT_PREFERENCES.dataUltimaInteracaoIA,
     frequenciaReview: merged.frequenciaReview ?? DEFAULT_PREFERENCES.frequenciaReview,

@@ -689,6 +689,8 @@ const mockHandlers = [
         siglaEmpresaExterna: 'MB',
         investimentoInicial: 1000.0,
         riscoMaximoPerda: 2.5,
+        saldoSeguranca: 500.0,
+        siglaMoedaSaldoSeguranca: 'USDT',
         perfilRisco: 'moderado',
         siglaMoedaUltimaInteracaoIA: 'ETH',
         dataUltimaInteracaoIA: new Date().toISOString(),

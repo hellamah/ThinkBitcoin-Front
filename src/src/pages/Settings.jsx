@@ -626,11 +626,11 @@ function Settings() {
                       />
 
                       <Select
-                        value={localPrefs?.siglaMoedaUltimaInteracaoIA || ''}
+                        value={localPrefs?.siglaMoedaSaldoSeguranca || ''}
                         onChange={(e) => {
                           const val = e.target.value
-                          setLocalPrefs(p => ({ ...p, siglaMoedaUltimaInteracaoIA: val }))
-                          updatePreferences({ siglaMoedaUltimaInteracaoIA: val })
+                          setLocalPrefs(p => ({ ...p, siglaMoedaSaldoSeguranca: val }))
+                          updatePreferences({ siglaMoedaSaldoSeguranca: val })
                           confirm()
                         }}
                         size="small"
