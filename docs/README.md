@@ -34,7 +34,7 @@ Mesmo com backend privado, a experiência visual do produto pode ser avaliada po
 ## Visão Geral
 - Interface responsiva com Material UI e gráficos em tempo real fornecidos pelo Chart.js.
 - Suporte a autenticação com persistência de token e preferências armazenadas no navegador.
-- Internacionalização com suporte para português e inglês.
+- Internacionalização em cinco idiomas — inglês, português, espanhol, francês e italiano —, com o idioma inicial seguindo o do navegador.
 - Utilização de *hooks* customizados para preços (`useCoinPrices`) e tradução (`useTranslation`).
 - Planejamento evolutivo documentado no arquivo `ROADMAP.md`.
 
