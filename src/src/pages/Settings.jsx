@@ -6,7 +6,6 @@ import {
   MdBrightness4,
   MdLanguage,
   MdNotifications,
-  MdTune,
   MdAccountBalanceWallet,
   MdTrendingDown,
   MdCurrencyBitcoin,
@@ -46,10 +45,8 @@ import {
 } from '../utils/apiClient'
 import { API_URL } from '../api'
 import {
-  AlgorithmStyle,
   Language,
   Theme,
-  RiskProfile,
   ReviewFrequency,
 } from '../utils/preferences'
 import { LANGUAGES, IDIOMA_PADRAO } from '../lang'
@@ -166,13 +163,6 @@ function Settings() {
     updatePreferences({ notificacoes: result.shouldEnableNotifications })
     setToast(t(result.messageKey))
     setTimeout(() => setToast(''), 2000)
-  }
-
-  const changeEstilo = (e) => {
-    const val = e.target.value
-    if (!Object.values(AlgorithmStyle).includes(val)) return
-    updatePreferences({ estiloAlgoritmo: val })
-    confirm()
   }
 
   const handleSalvarNome = async (e) => {
@@ -417,25 +407,6 @@ function Settings() {
           </>
         ))}
 
-        {renderPanel(<MdTune />, t('algorithmStyle'), (
-          renderField(t('algorithmStyle') || 'Estilo do Robô', (
-            <Select
-              value={localPrefs?.estiloAlgoritmo || AlgorithmStyle.BALANCED}
-              onChange={(e) => {
-                const val = e.target.value
-                setLocalPrefs(p => ({ ...p, estiloAlgoritmo: val }))
-                changeEstilo(e)
-              }}
-              size="small"
-              sx={selectSx}
-            >
-              <MenuItem value={AlgorithmStyle.CONSERVATIVE}>{t('conservative')}</MenuItem>
-              <MenuItem value={AlgorithmStyle.BALANCED}>{t('balanced')}</MenuItem>
-              <MenuItem value={AlgorithmStyle.AGGRESSIVE}>{t('aggressive')}</MenuItem>
-            </Select>
-          ))
-        ))}
-
         {renderPanel(<MdNotifications />, t('notifications'), (
           renderField(t('emailNotifications'), (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -642,23 +613,6 @@ function Settings() {
                         ))}
                       </Select>
                     </Box>
-                  ))}
-                  {renderField(t('riskProfile'), (
-                    <Select
-                      value={localPrefs?.perfilRisco || RiskProfile.MODERATE}
-                      onChange={(e) => {
-                        const val = e.target.value
-                        setLocalPrefs(p => ({ ...p, perfilRisco: val }))
-                        updatePreferences({ perfilRisco: val })
-                        confirm()
-                      }}
-                      size="small"
-                      sx={selectSx}
-                    >
-                      <MenuItem value={RiskProfile.CONSERVATIVE}>{t('conservative')}</MenuItem>
-                      <MenuItem value={RiskProfile.MODERATE}>{t('moderate')}</MenuItem>
-                      <MenuItem value={RiskProfile.AGGRESSIVE}>{t('aggressive')}</MenuItem>
-                    </Select>
                   ))}
                 </Box>
               </Grid>

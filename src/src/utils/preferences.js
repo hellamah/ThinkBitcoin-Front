@@ -26,6 +26,15 @@ export const Language = Object.freeze(
   Object.fromEntries(LANGUAGE_CODES.map((codigo) => [codigo.toUpperCase(), codigo]))
 )
 
+// Estilo do algoritmo e perfil de risco saíram da interface: eram a mesma
+// pergunta feita duas vezes — mesma escala, e "Conservador"/"Agressivo" escritos
+// com a mesma palavra nos dois seletores — e nada no sistema lia a resposta.
+//
+// As colunas continuam no banco, então o valor precisa seguir sendo enviado: a
+// alteração grava `preferencia.EstiloAlgoritmo = parametro.EstiloAlgoritmo`
+// direto, sem guarda, e o default do banco só vale no INSERT. Parar de mandar
+// gravaria null por cima. Daí estes valores permanecerem aqui, agora como
+// constantes e não mais como opções.
 export const AlgorithmStyle = Object.freeze({
   CONSERVATIVE: 'conservador',
   BALANCED: 'equilibrado',

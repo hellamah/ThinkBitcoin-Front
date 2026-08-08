@@ -23,12 +23,7 @@ import { apiRequest, HttpMethod, UserEndpoint, MarketEndpoint } from '../utils/a
 import { authenticate } from '../utils/authentication'
 import { useAuth } from '../context/AuthContext'
 import useTranslation from '../hooks/useTranslation'
-import {
-  DEFAULT_PREFERENCES,
-  AlgorithmStyle,
-  RiskProfile,
-  ReviewFrequency,
-} from '../utils/preferences'
+import { DEFAULT_PREFERENCES } from '../utils/preferences'
 import { LANGUAGES } from '../lang'
 
 
@@ -421,10 +416,10 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                     </Grid>
                   </Box>
 
-                  {/* Algoritmo */}
+                  {/* Laboratório de Trader */}
                   <Box>
                     <Typography sx={sectionTitleSx}>
-                        <MdSettings /> {t('algorithmStyle')}
+                        <MdSettings /> {t('traderLabTitle')}
                     </Typography>
                     <Grid container spacing={2} justifyContent="center">
                       <Grid item xs={12} sm={6}>
@@ -476,38 +471,6 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                                 </Box>
                               </MenuItem>
                             ))}
-                          </Select>
-                        </FormControl>
-                      </Grid>
-                      <Grid item xs={12} sm={6}>
-                        <FormControl fullWidth variant="filled" sx={{ ...inputSx }}>
-                          <InputLabel id="cadastro-risco-label" shrink>{t('riskProfile')}</InputLabel>
-                          <Select
-                            labelId="cadastro-risco-label"
-                            value={preferencias.perfilRisco}
-                            onChange={(e) => handlePrefChange('perfilRisco', e.target.value)}
-                            disableUnderline
-                            MenuProps={menuProps}
-                          >
-                            <MenuItem value={RiskProfile.CONSERVATIVE}>{t('conservative')}</MenuItem>
-                            <MenuItem value={RiskProfile.MODERATE}>{t('moderate')}</MenuItem>
-                            <MenuItem value={RiskProfile.AGGRESSIVE}>{t('aggressive')}</MenuItem>
-                          </Select>
-                        </FormControl>
-                      </Grid>
-                      <Grid item xs={12} sm={6}>
-                        <FormControl fullWidth variant="filled" sx={{ ...inputSx }}>
-                          <InputLabel id="cadastro-algoritmo-label" shrink>{t('algorithmStyle')}</InputLabel>
-                          <Select
-                            labelId="cadastro-algoritmo-label"
-                            value={preferencias.estiloAlgoritmo}
-                            onChange={(e) => handlePrefChange('estiloAlgoritmo', e.target.value)}
-                            disableUnderline
-                            MenuProps={menuProps}
-                          >
-                            <MenuItem value={AlgorithmStyle.CONSERVATIVE}>{t('conservative')}</MenuItem>
-                            <MenuItem value={AlgorithmStyle.BALANCED}>{t('balanced')}</MenuItem>
-                            <MenuItem value={AlgorithmStyle.AGGRESSIVE}>{t('aggressive')}</MenuItem>
                           </Select>
                         </FormControl>
                       </Grid>
