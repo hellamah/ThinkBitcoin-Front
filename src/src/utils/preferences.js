@@ -66,8 +66,8 @@ export const DEFAULT_PREFERENCES = Object.freeze({
   siglaMoedaSaldoSeguranca: null,
   siglaMoedaUltimaInteracaoIA: null,
   dataUltimaInteracaoIA: null,
-  frequenciaReview: 'diaria',
-  perfilRisco: 'moderado',
+  frequenciaReview: ReviewFrequency.DAILY,
+  perfilRisco: RiskProfile.MODERATE,
 })
 
 const getStorage = () => {
