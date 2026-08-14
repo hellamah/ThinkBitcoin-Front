@@ -42,6 +42,58 @@ const resumir = (retornos) => {
 }
 
 /**
+ * Vocabulário de sinais de cada candle, em ordem CRONOLÓGICA.
+ *
+ * Função pura sobre a série já carregada: sem requisição, sem conexão, sem
+ * estado. Fica separada de `analisarSinais` porque o simulador de estratégias
+ * precisa do MESMO vocabulário no MESMO alinhamento — duplicar este laço faria
+ * os dois divergirem no primeiro sinal novo que alguém acrescentasse.
+ *
+ * O alinhamento é a parte delicada e o motivo de existir um lugar só: padrão de
+ * candle e anomalia são avaliados registro a registro, mas divergência, VWAP e
+ * osciladores chegam prontos, como array indexado por posição cronológica
+ * montado fora do laço. Errar o índice de um desses não quebra nada visível —
+ * só atribui o sinal ao candle vizinho e muda todos os números depois dele.
+ *
+ * @param {Array<object>} registros - Série na ordem da API (mais recente
+ *   primeiro, ordemAsc=false).
+ * @returns {Array<{registro: object, sinais: string[]}>} - Uma entrada por
+ *   candle, do mais antigo ao mais recente. Vazia sem série utilizável.
+ */
+export const montarSerieDeSinais = (registros) => {
+  if (!Array.isArray(registros) || registros.length === 0) return []
+
+  // O desfecho é cronológico; a API entrega ao contrário.
+  const cronologico = [...registros].reverse()
+  const limites = calcularLimites(registros)
+
+  // Já vem em ordem cronológica, alinhado com `cronologico` posição a posição.
+  const divergencias = detectarDivergencias(registros, limites?.medianaVolume)
+  const cruzamentosVwap = resumirVwap(registros)?.cruzamentos ?? []
+  // Cada posição pode carregar mais de uma marca (RSI e banda no mesmo candle).
+  const osciladores = resumirOsciladores(registros)?.marcas ?? []
+
+  return cronologico.map((registro, i) => {
+    const sinais = []
+
+    const padrao = classificarCandle(registro)
+    // NEUTRO é a ausência de padrão; agrupá-lo produziria uma linha que é
+    // quase a própria base e não ensina nada.
+    if (padrao && padrao !== CandlePattern.NEUTRO) sinais.push(padrao)
+
+    const anomalia = avaliarAnomalia(registro, limites)
+    if (anomalia?.volume) sinais.push(SignalKey.VOLUME_ATIPICO)
+    if (anomalia?.variacao) sinais.push(SignalKey.VARIACAO_ATIPICA)
+    if (anomalia?.ticket) sinais.push(SignalKey.TICKET_ALTO)
+    if (divergencias[i]) sinais.push(divergencias[i])
+    if (cruzamentosVwap[i]) sinais.push(cruzamentosVwap[i])
+    ;(osciladores[i] || []).forEach((marca) => sinais.push(marca))
+
+    return { registro, sinais }
+  })
+}
+
+/**
  * Cruza cada sinal com o retorno dos candles seguintes.
  *
  * @param {Array<object>} registros - Série na ordem da API (mais recente
@@ -57,15 +109,7 @@ export const analisarSinais = (registros, { horizonte = 1 } = {}) => {
   if (!Array.isArray(registros) || registros.length === 0) return null
   if (!Number.isInteger(horizonte) || horizonte < 1) return null
 
-  // O desfecho é cronológico; a API entrega ao contrário.
-  const cronologico = [...registros].reverse()
-  const limites = calcularLimites(registros)
-
-  // Já vem em ordem cronológica, alinhado com `cronologico` posição a posição.
-  const divergencias = detectarDivergencias(registros, limites?.medianaVolume)
-  const cruzamentosVwap = resumirVwap(registros)?.cruzamentos ?? []
-  // Cada posição pode carregar mais de uma marca (RSI e banda no mesmo candle).
-  const osciladores = resumirOsciladores(registros)?.marcas ?? []
+  const serie = montarSerieDeSinais(registros)
 
   const porSinal = new Map()
   const retornosBase = []
@@ -73,36 +117,18 @@ export const analisarSinais = (registros, { horizonte = 1 } = {}) => {
   // Os últimos `horizonte` candles não têm futuro dentro da janela carregada.
   // Ficam de fora do sinal E da base, senão a comparação deixa de ser
   // sobre o mesmo conjunto de instantes.
-  for (let i = 0; i < cronologico.length - horizonte; i++) {
-    const atual = fechamentoDe(cronologico[i])
-    const futuro = fechamentoDe(cronologico[i + horizonte])
+  for (let i = 0; i < serie.length - horizonte; i++) {
+    const atual = fechamentoDe(serie[i].registro)
+    const futuro = fechamentoDe(serie[i + horizonte].registro)
     if (atual === null || futuro === null) continue
 
     const retorno = ((futuro - atual) / atual) * 100
     retornosBase.push(retorno)
 
-    const registro = cronologico[i]
-
-    const padrao = classificarCandle(registro)
-    // NEUTRO é a ausência de padrão; agrupá-lo produziria uma linha que é
-    // quase a própria base e não ensina nada.
-    if (padrao && padrao !== CandlePattern.NEUTRO) {
-      if (!porSinal.has(padrao)) porSinal.set(padrao, [])
-      porSinal.get(padrao).push(retorno)
-    }
-
-    const anomalia = avaliarAnomalia(registro, limites)
-    const marcar = (chave) => {
+    serie[i].sinais.forEach((chave) => {
       if (!porSinal.has(chave)) porSinal.set(chave, [])
       porSinal.get(chave).push(retorno)
-    }
-
-    if (anomalia?.volume) marcar(SignalKey.VOLUME_ATIPICO)
-    if (anomalia?.variacao) marcar(SignalKey.VARIACAO_ATIPICA)
-    if (anomalia?.ticket) marcar(SignalKey.TICKET_ALTO)
-    if (divergencias[i]) marcar(divergencias[i])
-    if (cruzamentosVwap[i]) marcar(cruzamentosVwap[i])
-    ;(osciladores[i] || []).forEach(marcar)
+    })
   }
 
   const base = resumir(retornosBase)
