@@ -58,8 +58,8 @@ A seção 3 é o contrato que impede isso.
 | V16 | `HoraReferencia` é única por tabela de moeda | ✅ | **Zero duplicatas nas 10 moedas.** O índice não é `IsUnique`, mas a inserção idempotente por `IdColeta` sustenta na prática |
 | V17 | Quanto histórico existe por moeda | ✅ | **~20.500 candles, 866–887 dias.** Destravou D-03 |
 | V18 | `signalLab.test.js` cobre o refactor | ✅ | Era ❌ (A-01). Resolvido no passo 0: 13 → 22 testes, alinhamento cravado por `retornoMedio` |
-| V19 | Série da simulação é imune à paginação | ❌ | **Não é.** Ver A-02 — `pagina` é dep do efeito |
-| V20 | Formato de `horaReferencia` igual em mock e produção | ❌ | **Diverge.** Ver A-03 — mock com `Z`, produção sem |
+| V19 | Série da simulação é imune à paginação | ✅ | Era ❌ (A-02). Resolvido pelo D-03: o painel tem busca própria e não depende de `pagina` |
+| V20 | Formato de `horaReferencia` igual em mock e produção | ✅ | Era ❌ (A-03). Resolvido na fronteira: `normalizeApiKeys` marca UTC, então as duas formas chegam idênticas |
 | V21 | `HoraReferencia` = abertura do candle | ✅ | `FuncaoPreencherTbMoedaBinance` — `= p.dataHoraAberturaUtc` |
 
 ---
@@ -355,7 +355,15 @@ registro dentro do laço, sem array paralelo.
 descobertas, escritos contra o comportamento atual, **antes** de mover qualquer
 linha. Sem isso o refactor é uma troca de código sem rede.
 
-### A-02 — A paginação da tabela troca a série da simulação 🔴
+### A-02 — A paginação da tabela troca a série 🟠 **resolvido para a simulação**
+
+> **Estado atual:** a simulação ficou imune quando o D-03 lhe deu busca própria
+> — `useSimulationData` não depende de `pagina`. O acoplamento **continua** para
+> gráficos, laboratório de sinais e matriz de correlação, que seguem consumindo
+> `historicosPorMoeda`. É defeito pré-existente, não criado por esta entrega, e
+> só se manifesta em janela customizada longa o bastante para paginar.
+>
+> O diagnóstico abaixo permanece como registro.
 
 `historicosPorMoeda[sigla]` recebe a resposta **paginada**, e `pagina` é
 dependência do efeito em [useDashboardData.js:234](../src/src/hooks/useDashboardData.js:234).
@@ -941,15 +949,19 @@ Consultas por faixa de data cobertas. **Nada a fazer.**
 ### BD-02 ✅ Precisão `decimal(15,5)` adequada
 Sobra precisão para os 10 pares acompanhados. **Nada a fazer.**
 
-### BD-03 ⬜ Densidade de buracos — **a revisão que importa**
-Ver R-01 e a query da seção 7.
+### BD-03 ✅ Densidade de buracos — medida
+~1,5% das horas faltam. 30 buracos no histórico do BTC, 366h perdidas; nos
+últimos 180 dias são 24 buracos, o maior de 19h. Números completos na seção 7,
+tratamento em R-01.
 
-### BD-04 ⬜ Unicidade de `HoraReferencia`
-O índice não é `IsUnique`. A inserção é idempotente por `IdColeta`
-(`FuncaoPreencherTbMoedaBinance` checa antes de inserir) e a FK `Coleta` é 1:1,
-o que na prática deveria garantir unicidade por hora. **Confirmar com a segunda
-query da seção 7** — candle duplicado contaria o mesmo movimento duas vezes na
-curva de capital.
+### BD-04 ✅ Unicidade de `HoraReferencia` — confirmada
+**Zero duplicatas nas 10 moedas** (medido na seção 7). O índice não é `IsUnique`,
+mas a inserção idempotente por `IdColeta` e a FK 1:1 com `Coleta` sustentam a
+unicidade na prática. A curva de capital não corre risco de contar o mesmo
+movimento duas vezes.
+
+Fica a ressalva de que a garantia é comportamental, não estrutural: nada no
+esquema impede a duplicata, só o código que insere.
 
 ### BD-05 🟡 Persistência de simulação — decisão de produto
 Não existe tabela de simulação. A v1 roda inteira no navegador e **não persiste
