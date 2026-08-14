@@ -381,7 +381,38 @@ que a paginação de outro componente pode trocar não serve de base para simula
 Vale como observação separada que gráficos e laboratório **já** têm esse
 acoplamento hoje, em janela customizada longa. Não é criado por esta entrega.
 
-### A-03 — Fuso: o mock e a produção discordam 🟠
+### A-03 — Fuso: o mock e a produção discordam ✅ **corrigido**
+
+> Confirmado contra a API real em 2026-08-14:
+> `"horaReferencia":"2026-08-14T11:00:00"` — sem `Z`, como deduzido.
+>
+> **Corrigido em dois lugares**, cada um certo por si:
+>
+> 1. **`normalizeApiKeys`** ([apiClient.js](../src/src/utils/apiClient.js))
+>    passa a marcar como UTC todo carimbo ISO que chegue sem fuso. Corrigir na
+>    fronteira, e não em cada `new Date(...)`, porque são **mais de trinta**
+>    pontos de leitura espalhados — e o próximo a ser escrito voltaria a errar.
+> 2. **A guarda morta** ([dateUtils.js](../src/src/utils/dateUtils.js)) virou
+>    `/(Z|[+-]\d{2}:?\d{2})$/` — marca de fuso **no fim**, não em qualquer
+>    lugar.
+>
+> **Efeito visível:** um candle de UTC 11:00 era exibido como "11:00" e agora
+> aparece como "08:00" em São Paulo. O produto mostrava horário UTC com rótulo
+> de horário local; o desvio passava despercebido porque rótulo e filtro erravam
+> **juntos**, então a tela parecia coerente consigo mesma. Aparecia só na borda:
+> escolher "1 de abril" trazia candles a partir das 21h de 31 de março.
+>
+> Corrige de quebra um erro no próprio D-03: a janela da simulação é construída
+> a partir de `new Date()` (UTC de verdade) e era comparada com candles lidos
+> como locais — a borda dos 180 dias estava deslocada em 3 horas.
+>
+> Os testes cravam a **equivalência** entre as duas formas do carimbo, não um
+> horário literal: um literal dependeria do fuso da máquina, passando em CI e
+> falhando na mesa de alguém. Verificado por injeção: remover a normalização de
+> fronteira derruba 3 testes; devolver a guarda antiga derruba outros 3.
+
+<details>
+<summary>Diagnóstico original</summary>
 
 Três achados que se compõem:
 
@@ -412,6 +443,8 @@ duas formas de string.
 A guarda morta do `toLocal` **não** é corrigida nesta entrega — é bug
 pré-existente de exibição, com alcance maior que a simulação (afeta rótulos de
 gráfico e tabela). Fica anotado na seção 12.
+
+</details>
 
 ### A-04 — `HoraReferencia` é a **abertura** do candle 🟡
 
@@ -834,6 +867,17 @@ dashboard responder 400, e o sintoma (tela vazia) não apontaria para a causa.
 
 Testes: 6 novos em `ObterValorMoedaTests` (20 → 26) e 3 no front.
 
+> **Correção ao que ficou registrado no commit.** Escrevi que o pedido partia
+> "de qualquer usuário autenticado". Está errado, e para pior: `ValorMoedaController`
+> **não tem `[Authorize]`** e o `Startup` chama `UseAuthorization()` sem política
+> de fallback, então o endpoint é **anônimo**. Verificado com uma requisição sem
+> token, que responde 200.
+>
+> O teto continua valendo igual — ele não depende de autenticação. Mas o
+> endpoint ser público é decisão de produto que vale revisar à parte: dados de
+> mercado públicos podem ser intencionais, e nesse caso o que falta é limite de
+> taxa, não `[Authorize]`.
+
 > **O primeiro teste que escrevi aqui não servia para nada.** Ele afirmava só o
 > **tipo** da exceção. Como o caso não preparava dado no banco, a função também
 > falhava com `"Nenhum registro encontrado"` — a **mesma**
@@ -931,10 +975,6 @@ entre front e .NET. O Python é referência de leitura (seção 3) e nada mais.
 - **Janela longa com busca própria.** Ver D-03 (b). Depende de B-01 e da V17.
 - **Portfólio multi-ativo.** Depende de B-04.
 - **Taxa efetiva da corretora.** Ver B-05.
-- **Guarda morta em `dateUtils.toLocal`** (A-03). `includes('-')` é sempre
-  verdadeiro para data ISO, então o `Z` nunca é anexado e todo rótulo de hora do
-  produto está deslocado pelo offset do usuário. Correção própria — mexe em
-  gráfico e tabela, não só na simulação.
 - **Alinhar o critério de período do laboratório de sinais** (A-05). Mudaria
   números já exibidos.
 - **Desacoplar a paginação da tabela da série dos painéis** (A-02). Hoje afeta

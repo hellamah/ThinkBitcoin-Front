@@ -57,6 +57,46 @@ describe('utils/apiClient › normalizeApiKeys (Normalização PascalCase → ca
     expect(normalizeApiKeys(bruto)).toEqual({ BTC: 1, US: 2, MA5: 3 })
   })
 
+  // A API .NET serializa DateTime sem sufixo de fuso quando o Kind é
+  // Unspecified — que é o que o EF Core devolve lendo datetime2. Os valores são
+  // UTC, mas sem a marca o `new Date()` os lê como hora local, deslocando todo
+  // instante do produto pelo fuso do usuário.
+  it('deve marcar como UTC o carimbo que chega sem fuso', () => {
+    expect(normalizeApiKeys({ horaReferencia: '2026-08-14T11:00:00' }))
+      .toEqual({ horaReferencia: '2026-08-14T11:00:00Z' })
+  })
+
+  it('deve marcar também o carimbo com fração de segundo', () => {
+    expect(normalizeApiKeys({ criadoEm: '2026-08-14T11:00:00.123' }))
+      .toEqual({ criadoEm: '2026-08-14T11:00:00.123Z' })
+  })
+
+  it('não deve mexer no carimbo que já traz fuso', () => {
+    const comFuso = {
+      a: '2026-08-14T11:00:00Z',
+      b: '2026-08-14T11:00:00-03:00',
+      c: '2026-08-14T11:00:00+0000',
+    }
+    expect(normalizeApiKeys(comFuso)).toEqual(comFuso)
+  })
+
+  it('não deve confundir texto comum com carimbo', () => {
+    // O `$` da expressão é o que impede isto: sem ele, qualquer string que
+    // COMECE com uma data ganharia um Z no fim.
+    const texto = {
+      sigla: 'BTC',
+      descricao: '2026-08-14 foi um bom dia',
+      soData: '2026-08-14',
+      quase: '2026-08-14T11:00:00 (aprox)',
+    }
+    expect(normalizeApiKeys(texto)).toEqual(texto)
+  })
+
+  it('deve marcar carimbos dentro de arrays e de objetos aninhados', () => {
+    expect(normalizeApiKeys({ Registros: [{ HoraReferencia: '2026-08-14T11:00:00' }] }))
+      .toEqual({ registros: [{ horaReferencia: '2026-08-14T11:00:00Z' }] })
+  })
+
   it('deve manter a variante camelCase quando a resposta trouxer as duas', () => {
     const bruto = { Valor: 1, valor: 2 }
     expect(normalizeApiKeys(bruto)).toEqual({ valor: 2 })

@@ -129,9 +129,36 @@ const JSON_HEADERS = Object.freeze({ 'Content-Type': 'application/json' })
 // seguida de minúscula) para não corromper chaves-código como "BTC" ou "US".
 const PASCAL_KEY = /^[A-Z][a-z]/
 
+// Carimbo ISO 8601 sem nenhuma marca de fuso: "2026-08-14T11:00:00", com ou sem
+// fração de segundo. O `$` é essencial — um valor que já termine em Z ou em
+// ±hh:mm não casa e passa intacto.
+const ISO_SEM_FUSO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?$/
+
+/**
+ * Marca como UTC o carimbo que a API entrega sem fuso.
+ *
+ * A API .NET serializa `DateTime` sem sufixo quando o Kind é `Unspecified` —
+ * que é o que o EF Core devolve ao ler `datetime2`. Os valores SÃO UTC
+ * (`HoraReferencia` vem de `dataHoraAberturaUtc` da Binance), mas sem a marca
+ * `new Date()` os interpreta como hora LOCAL. Numa máquina em UTC-3, todo
+ * instante do produto nascia três horas deslocado.
+ *
+ * O desvio passava despercebido porque era uniforme: rótulo e filtro erravam
+ * juntos, então a tela parecia coerente consigo mesma. Aparecia só na borda —
+ * escolher "1 de abril" trazia candles a partir das 21h de 31 de março, e o
+ * mock (que emite `toISOString()`, com Z) se comportava diferente da produção.
+ *
+ * Corrigir aqui, na fronteira, em vez de em cada `new Date(...)` espalhado:
+ * são mais de trinta pontos de leitura, e o próximo a ser escrito voltaria a
+ * errar. Depois disto, todo consumidor recebe um carimbo que `new Date()` lê
+ * corretamente, sem precisar saber de nada disso.
+ */
+const marcarUtcQuandoFaltarFuso = (value) =>
+  typeof value === 'string' && ISO_SEM_FUSO.test(value) ? `${value}Z` : value
+
 export const normalizeApiKeys = (value) => {
   if (Array.isArray(value)) return value.map(normalizeApiKeys)
-  if (value === null || typeof value !== 'object') return value
+  if (value === null || typeof value !== 'object') return marcarUtcQuandoFaltarFuso(value)
   const out = {}
   for (const [key, val] of Object.entries(value)) {
     const camel = PASCAL_KEY.test(key)
