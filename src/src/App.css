@@ -3364,10 +3364,50 @@
   margin-bottom: 10px;
 }
 
-.simulation-holdout {
+.simulation-holdout,
+.simulation-ranking {
   margin-top: 24px;
   padding-top: 18px;
   border-top: 1px solid var(--border-subtle);
+}
+
+/* Nome do sinal na tabela de ranking: é um botão que troca a simulação em
+   detalhe, mas visualmente precisa continuar sendo o rótulo da linha. */
+.simulation-link-sinal {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--accent-ink);
+  cursor: pointer;
+  text-align: left;
+}
+
+.simulation-link-sinal:hover,
+.simulation-link-sinal:focus-visible {
+  text-decoration: underline;
+}
+
+/* Linha da estratégia que está sendo simulada em detalhe acima. */
+.simulation-linha-ativa th[scope="row"],
+.simulation-linha-ativa td {
+  background: var(--surface-subtle);
+}
+
+.simulation-alerta-sobreajuste {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 12px;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.simulation-alerta-sobreajuste svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--warning, #ff9800);
 }
 
 .simulation-trades {

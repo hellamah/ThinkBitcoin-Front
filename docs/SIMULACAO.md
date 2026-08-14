@@ -1033,17 +1033,68 @@ com parâmetros + métricas e `TbSimulacaoTrade` filha. É Fase 3 do
 
 ---
 
+## 11b. Comparação de estratégias ✅
+
+Item **"Comparação de Estratégias"** da Fase 3 do [ROADMAP.md](ROADMAP.md:107).
+
+`compararEstrategias` roda a **mesma** regra de saída sobre **todos** os sinais
+que ocorrem na série e ranqueia por alfa. O laboratório de sinais responde "este
+sinal desloca a probabilidade?"; esta tabela responde a pergunta seguinte: "e
+operando cada um, com custo, qual teria sobrado?". São coisas diferentes — um
+sinal pode deslocar a taxa de alta e ainda assim perder dinheiro, porque a taxa
+não sabe do custo nem do tamanho dos movimentos.
+
+A série de sinais é montada **uma vez** e reaproveitada. Sem isso, comparar 14
+estratégias recalcularia RSI, Bollinger, VWAP e divergências 14 vezes sobre os
+mesmos candles. `simular` passou a aceitar `serieDeSinais`, e **recusa** uma
+série cujo tamanho não bata com o dos registros: ela é indexada por posição, e
+uma série de outro array alinharia sinais com candles errados.
+
+### O alerta de sobreajuste não é decorativo
+
+Esta tela torna o R-02 **mais fácil de cometer**: são 14 estratégias numa lista
+ordenada, e a primeira parece a resposta. A 95% de confiança, testar 14 hipóteses
+já faz esperar que menos de uma pareça boa por puro acaso.
+
+Por isso a coluna de validação é a única que **não** participa da ordenação — e
+o rodapé da tabela diz isso com todas as letras.
+
+A leitura real da primeira execução mostra por que a coluna importa:
+
+| Sinal | Janela cheia | Validação |
+|---|---|---|
+| Rompeu banda superior | +545,4% | +53,7% (11 ops) |
+| Martelo | −29,9% | **+27,5%** (49 ops) |
+
+O primeiro colocado perde 90% do alfa fora da amostra; o penúltimo **inverte de
+sinal**. Ordenar por qualquer uma das duas colunas isoladamente daria uma
+resposta diferente — e é isso que a tabela precisa deixar visível em vez de
+resolver por conta própria.
+
+### Por que a comparação com o robô ficou de fora
+
+Era a recomendação anterior, e ela **morreu na verificação**: `TbSequenciaRetorno`,
+`TbPosicaoDecisao` e `TbHistoricoDecisao` estão **todas vazias** (medido em
+2026-08-14). O robô foi treinado — 73.663 episódios, 6 modelos salvos — mas nunca
+operou. Não há decisão nem trade para confrontar.
+
+Descartada também a ideia de comparar com as métricas de treino: o `WinRate` de
+`TbTreinamentoEpisodio` é fração de *steps* com recompensa positiva, não taxa de
+acerto de operação. Cruzar os dois numa mesma tabela seria exatamente a
+comparação enganosa que o resto desta plataforma se recusa a fazer.
+
+---
+
 ## 12. Fora de escopo, anotado
 
 **Qualquer alteração no `ThinkBitcoin-Back-Python`.** A entrega inteira acontece
 entre front e .NET. O Python é referência de leitura (seção 3) e nada mais.
 
-- **Comparar com o robô.** `TbSequenciaRetorno` guarda o histórico executado com
-  `ValorGanho`, `LucroAcumulado`, `TaxaAcerto` e `Drawdown`, e o front já tem o
-  endpoint (`MarketEndpoint.RETURN_SEQUENCE`). Confrontar a estratégia simulada
-  com o que o robô **realmente decidiu** é a evolução natural desta tela — e
-  seria feita **sem tocar em Python**, porque o dado já está no SQL Server e o
-  .NET já o expõe.
+- **Comparar com o robô.** 🚫 **Bloqueado por falta de dado**, não por escopo.
+  `TbSequenciaRetorno`, `TbPosicaoDecisao` e `TbHistoricoDecisao` estão vazias
+  (ver 11b). O esquema existe e o endpoint também
+  (`MarketEndpoint.RETURN_SEQUENCE`, com `[Authorize(Roles = AcessoIA)]`);
+  faltam as linhas. Destravar depende de o robô operar, não de front.
 - **Janela longa com busca própria.** Ver D-03 (b). Depende de B-01 e da V17.
 - **Portfólio multi-ativo.** Depende de B-04.
 - **Taxa efetiva da corretora.** Ver B-05.

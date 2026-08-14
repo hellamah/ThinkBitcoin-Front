@@ -2,10 +2,13 @@ import { describe, expect, it } from 'vitest'
 import {
   simular,
   dividirParaValidacao,
+  compararEstrategias,
+  stopPorAtr,
   CUSTO_PADRAO_PERCENTUAL,
   FRACAO_VALIDACAO_PADRAO,
+  ATR_STOP_MINIMO_PERCENTUAL,
+  ATR_STOP_MAXIMO_PERCENTUAL,
 } from '../src/utils/backtest'
-import { stopPorAtr, ATR_STOP_MINIMO_PERCENTUAL, ATR_STOP_MAXIMO_PERCENTUAL } from '../src/utils/backtest'
 import { ExitReason, StopMode, TradeDirection } from '../src/utils/enums'
 import { ATR_PERIOD } from '../src/utils/marketStats'
 import { CandlePattern } from '../src/utils/candlePatterns'
@@ -23,6 +26,7 @@ const candle = ({
   fechamento,
   hora,
   martelo = false,
+  estrela = false,
   volume = 100,
   // A amplitude alimenta DUAS coisas: a proporção que classifica o candle e o
   // ATR. Por padrão ela acompanha a geometria fixa do padrão (42 no martelo,
@@ -39,10 +43,11 @@ const candle = ({
   horaReferencia: hora,
   // Sombra inferior ≥ 2× o corpo e maior que a superior: martelo.
   // Corpo no meio da amplitude, sombras iguais: neutro.
-  precoCorpoCandle: martelo ? 10 : 50,
-  precoSombraSuperior: martelo ? 2 : 25,
-  precoSombraInferior: martelo ? 30 : 25,
-  precoAmplitude: amplitude ?? (martelo ? 42 : 100),
+  precoCorpoCandle: martelo || estrela ? 10 : 50,
+  // Estrela cadente e o espelho do martelo: sombra SUPERIOR longa.
+  precoSombraSuperior: estrela ? 30 : martelo ? 2 : 25,
+  precoSombraInferior: martelo ? 30 : estrela ? 2 : 25,
+  precoAmplitude: amplitude ?? (martelo || estrela ? 42 : 100),
   // Constantes em toda a série para que nenhuma anomalia dispare sem ser
   // pedida: desvio zero na variação, razão 1 no volume e no ticket.
   precoPercentualVariacao: 0,
@@ -625,6 +630,135 @@ describe('utils/backtest › divisão para validação', () => {
     const corte = new Date(d.aPartirDeValidacao).getTime()
     expect(new Date(ajuste.trades[0].instanteEntrada).getTime()).toBeLessThan(corte)
     expect(new Date(validacao.trades[0].instanteEntrada).getTime()).toBeGreaterThanOrEqual(corte)
+  })
+})
+
+describe('utils/backtest › comparação de estratégias', () => {
+  // Série com dois sinais distintos e desfechos opostos: o martelo é sempre
+  // seguido de alta, a estrela cadente sempre de queda. A comparação tem de
+  // separar os dois e colocar o martelo em cima.
+  const serieComDoisSinais = () => {
+    const defs = []
+    let preco = 100
+    for (let i = 0; i < 60; i++) {
+      const anterior = defs[i - 1]
+
+      // O candle SEGUINTE ao sinal é o que a estratégia segura, então o
+      // movimento precisa acontecer DENTRO dele — entre a abertura e o
+      // fechamento. Numa versão anterior desta fixture abertura e fechamento
+      // eram iguais e o preço só mudava entre candles: toda operação rendia
+      // exatamente zero, os quatro sinais empatavam em alfa e o teste de
+      // ordenação passava com o `sort` invertido.
+      let fechamento = preco
+      if (anterior?.martelo) fechamento = preco * 1.03
+      else if (anterior?.estrela) fechamento = preco * 0.97
+
+      defs.push({
+        abertura: preco,
+        maior: Math.max(preco, fechamento) * 1.001,
+        menor: Math.min(preco, fechamento) * 0.999,
+        fechamento,
+        martelo: i % 6 === 0,
+        estrela: i % 6 === 3,
+      })
+      preco = fechamento
+    }
+    return serie(defs)
+  }
+
+  const PARAMS = { saidaPorTempo: 1, custoPercentual: 0 }
+
+  it('deve testar todos os sinais presentes na série', () => {
+    const r = compararEstrategias(serieComDoisSinais(), PARAMS)
+    const chaves = r.linhas.map((l) => l.sinal)
+    expect(chaves).toContain(CandlePattern.MARTELO)
+    expect(chaves).toContain(CandlePattern.ESTRELA)
+  })
+
+  it('deve ordenar por alfa, maior primeiro', () => {
+    const r = compararEstrategias(serieComDoisSinais(), PARAMS)
+
+    const martelo = r.linhas.find((l) => l.sinal === CandlePattern.MARTELO)
+    const estrela = r.linhas.find((l) => l.sinal === CandlePattern.ESTRELA)
+
+    // Antes da ordem, o pré-requisito: os dois sinais precisam ter alfas
+    // DIFERENTES. Com todos empatados qualquer ordenação satisfaz a
+    // comparação, e o teste não testa nada.
+    expect(martelo.metricas.alfa).toBeGreaterThan(estrela.metricas.alfa)
+
+    for (let i = 1; i < r.linhas.length; i++) {
+      expect(r.linhas[i - 1].metricas.alfa).toBeGreaterThanOrEqual(r.linhas[i].metricas.alfa)
+    }
+
+    // E o sinal seguido de alta tem de estar acima do seguido de queda.
+    expect(r.linhas.indexOf(martelo)).toBeLessThan(r.linhas.indexOf(estrela))
+  })
+
+  it('deve separar estratégia que ganha da que perde', () => {
+    // O martelo é sempre seguido de +3% dentro do candle segurado; a estrela,
+    // de -3%. Se os dois saíssem parecidos, a tabela inteira seria decorativa.
+    const r = compararEstrategias(serieComDoisSinais(), PARAMS)
+    const martelo = r.linhas.find((l) => l.sinal === CandlePattern.MARTELO)
+    const estrela = r.linhas.find((l) => l.sinal === CandlePattern.ESTRELA)
+
+    expect(martelo.metricas.retornoTotal).toBeGreaterThan(0)
+    expect(estrela.metricas.retornoTotal).toBeLessThan(0)
+  })
+
+  it('não deve testar sinal que não ocorre na série', () => {
+    // Pedir explicitamente um sinal ausente devolveria uma linha vazia, que o
+    // usuário leria como "não presta" em vez de "não aconteceu".
+    const r = compararEstrategias(serieComDoisSinais(), {
+      ...PARAMS,
+      sinais: [CandlePattern.MARTELO, CandlePattern.MARUBOZU],
+    })
+    expect(r.linhas.map((l) => l.sinal)).toEqual([CandlePattern.MARTELO])
+  })
+
+  it('deve devolver o mesmo resultado que simular chamado direto', () => {
+    // A série de sinais compartilhada é otimização, não mudança de semântica.
+    const registros = serieComDoisSinais()
+    const r = compararEstrategias(registros, { ...PARAMS, sinais: [CandlePattern.MARTELO] })
+    const direto = simular(registros, { ...PARAMS, sinalEntrada: CandlePattern.MARTELO })
+
+    expect(r.linhas[0].metricas.retornoTotal).toBeCloseTo(direto.metricas.retornoTotal, 10)
+    expect(r.linhas[0].trades).toBe(direto.trades.length)
+  })
+
+  it('deve recusar série de sinais que não descreve estes registros', () => {
+    // Série indexada por posição vinda de outro array alinharia sinais com
+    // candles errados — o motor precisa detectar e montar a sua.
+    const registros = serieComDoisSinais()
+    const alheia = [{ registro: {}, sinais: [CandlePattern.MARTELO] }]
+    const comAlheia = simular(registros, {
+      ...PARAMS,
+      sinalEntrada: CandlePattern.MARTELO,
+      serieDeSinais: alheia,
+    })
+    const normal = simular(registros, { ...PARAMS, sinalEntrada: CandlePattern.MARTELO })
+    expect(comAlheia.trades.length).toBe(normal.trades.length)
+  })
+
+  it('deve separar o alfa da validação do alfa da janela cheia', () => {
+    const r = compararEstrategias(serieComDoisSinais(), PARAMS)
+    const linha = r.linhas[0]
+    expect(linha).toHaveProperty('alfaValidacao')
+    expect(linha).toHaveProperty('tradesValidacao')
+    // A validação é medida em outro trecho, então não pode ser cópia.
+    expect(r.candlesValidacao).toBeGreaterThan(0)
+  })
+
+  it('deve expor o buy and hold uma vez, como régua comum', () => {
+    const r = compararEstrategias(serieComDoisSinais(), PARAMS)
+    // Mesma janela e mesmo ativo para todas as linhas.
+    r.linhas.forEach((l) => expect(l.metricas.buyAndHold).toBeCloseTo(r.buyAndHold, 10))
+  })
+
+  it('deve recusar entrada sem sinal nenhum', () => {
+    const paradas = serie(Array.from({ length: 10 }, () => parado(100)))
+    expect(compararEstrategias(paradas, PARAMS)).toBeNull()
+    expect(compararEstrategias([], PARAMS)).toBeNull()
+    expect(compararEstrategias(null, PARAMS)).toBeNull()
   })
 })
 

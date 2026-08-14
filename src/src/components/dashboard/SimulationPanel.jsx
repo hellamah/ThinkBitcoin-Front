@@ -5,6 +5,7 @@ import {
   MdPlayCircleOutline,
   MdWarningAmber,
   MdContentCut,
+  MdLeaderboard,
 } from 'react-icons/md'
 
 import * as mathUtils from '../../utils/mathUtils'
@@ -54,6 +55,7 @@ const pct = (v, casas = 2, comSinal = true) =>
  * @param {object} props.parametros - Estado dos controles.
  * @param {Function} props.onParametro - Altera um parâmetro: (nome, valor).
  * @param {Array<string>} props.sinaisDisponiveis - Chaves oferecidas no seletor.
+ * @param {object|null} props.comparativo - Retorno de `compararEstrategias`.
  * @param {boolean} props.carregando - A série de 180 dias ainda está vindo.
  * @param {string} props.erro - Mensagem de falha na busca da série.
  * @param {number} props.candlesAnalisados - Tamanho da série recebida.
@@ -66,6 +68,7 @@ export default function SimulationPanel({
   parametros,
   onParametro,
   sinaisDisponiveis,
+  comparativo,
   carregando,
   erro,
   candlesAnalisados,
@@ -479,6 +482,82 @@ export default function SimulationPanel({
             </div>
           ) : (
             <p className="simulation-vazio">{t('simulationTooShort')}</p>
+          )}
+
+          {/* ---------- Ranking de estratégias ---------- */}
+          {comparativo && comparativo.linhas.length > 1 && (
+            <div className="simulation-ranking">
+              <h3>
+                <MdLeaderboard style={{ verticalAlign: 'middle', marginRight: '8px' }} />
+                <RotuloComAjuda
+                  texto={t('simulationRanking')}
+                  ajuda={t('ajuda.simRanking')}
+                />
+              </h3>
+              <p className="correlation-hint">
+                {t('simulationRankingHint', { total: comparativo.linhas.length })}
+              </p>
+              <div className="correlation-scroll">
+                <table className="signal-lab-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">{t('simulationSignal')}</th>
+                      <th scope="col">{t('simulationTrades')}</th>
+                      <th scope="col">{t('simulationReturn')}</th>
+                      <th scope="col">{t('simulationAlpha')}</th>
+                      <th scope="col">
+                        <RotuloComAjuda
+                          texto={t('simulationValidation')}
+                          ajuda={t('ajuda.simHoldout')}
+                        />
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {comparativo.linhas.map((linha) => (
+                      <tr
+                        key={linha.sinal}
+                        className={[
+                          linha.metricas.amostraInsuficiente ? 'signal-lab-fraco' : '',
+                          linha.sinal === parametros.sinalEntrada ? 'simulation-linha-ativa' : '',
+                        ].filter(Boolean).join(' ') || undefined}
+                      >
+                        <th scope="row">
+                          {/* Trocar o sinal simulado a partir da tabela: sem
+                              isto, ler o ranking e depois procurar a linha no
+                              seletor lá em cima é trabalho manual à toa. */}
+                          <button
+                            type="button"
+                            className="simulation-link-sinal"
+                            onClick={() => onParametro('sinalEntrada', linha.sinal)}
+                          >
+                            {t(`signal_${linha.sinal}`)}
+                          </button>
+                        </th>
+                        <td>{linha.metricas.tradesConcluidos}</td>
+                        <td className={classeSinal(linha.metricas.retornoTotal)}>
+                          {pct(linha.metricas.retornoTotal)}
+                        </td>
+                        <td className={classeSinal(linha.metricas.alfa)}>
+                          {pct(linha.metricas.alfa)}
+                        </td>
+                        {/* "Não operou" não é "rendeu zero": a coluna fica
+                            vazia em vez de fingir um resultado. */}
+                        <td className={classeSinal(linha.alfaValidacao)}>
+                          {linha.alfaValidacao === null
+                            ? '—'
+                            : `${pct(linha.alfaValidacao)} (${linha.tradesValidacao})`}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="simulation-alerta-sobreajuste">
+                <MdWarningAmber />
+                <span>{t('simulationRankingWarning', { total: comparativo.linhas.length })}</span>
+              </p>
+            </div>
           )}
 
           {/* ---------- Operações ---------- */}

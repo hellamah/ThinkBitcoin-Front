@@ -275,6 +275,11 @@ export const simular = (registros, opcoes = {}) => {
     capitalInicial = CAPITAL_PADRAO,
     aPartirDe = null,
     toleranciaBuracoMs = null,
+    // Série de sinais já montada, para quem vai simular a MESMA série várias
+    // vezes. Comparar 14 estratégias recalcularia RSI, Bollinger, VWAP e
+    // divergências 14 vezes sobre os mesmos candles — trabalho idêntico e
+    // jogado fora. Omitido, o motor monta a sua.
+    serieDeSinais = null,
   } = opcoes
 
   if (!Array.isArray(registros) || registros.length < 2) return null
@@ -293,7 +298,13 @@ export const simular = (registros, opcoes = {}) => {
   ) return null
   if (!(capitalInicial > 0)) return null
 
-  const serie = montarSerieDeSinais(registros)
+  // A série recebida precisa descrever ESTES registros: ela é indexada por
+  // posição, e uma série de outro array alinharia sinais com candles errados.
+  const serie =
+    Array.isArray(serieDeSinais) && serieDeSinais.length === registros.length
+      ? serieDeSinais
+      : montarSerieDeSinais(registros)
+
   // Alinhado com `serie` posição a posição — é o que permite ler a volatilidade
   // como ela era no candle da entrada, e não como está hoje.
   const atrPorPosicao = stopPorVolatilidade ? calcularAtrSerie(registros) : null
@@ -525,6 +536,123 @@ export const simular = (registros, opcoes = {}) => {
       capitalFinal: capital,
       candlesEmPosicao,
     }),
+  }
+}
+
+/**
+ * Roda a MESMA regra de saída sobre todos os sinais de entrada disponíveis.
+ *
+ * O laboratório de sinais responde "este sinal desloca a probabilidade?". Esta
+ * função responde a pergunta seguinte: "e operando cada um deles, com custo,
+ * qual teria sobrado?". São coisas diferentes — um sinal pode deslocar a taxa
+ * de alta e ainda assim perder dinheiro, porque a taxa não sabe do custo nem do
+ * tamanho dos movimentos.
+ *
+ * A série de sinais é montada UMA vez e reaproveitada em todas as estratégias.
+ * Sem isso, comparar catorze sinais recalcularia RSI, Bollinger, VWAP e
+ * divergências catorze vezes sobre os mesmos candles.
+ *
+ * Cada linha traz o resultado na janela cheia e no trecho de validação. A
+ * ordenação é pelo alfa da janela cheia — é o que tem mais operações e menos
+ * ruído —, mas quem decide se a linha significa algo é a coluna de validação.
+ *
+ * **Sobre escolher a melhor:** testar N estratégias e ficar com a de cima é
+ * sobreajuste por construção. Com catorze sinais a 95% de confiança, espera-se
+ * que **menos de uma** pareça boa por puro acaso. Por isso a validação não é
+ * enfeite da tela: é a única coluna que não foi usada para ordenar.
+ *
+ * @param {Array<object>} registros - Série na ordem da API.
+ * @param {object} opcoes - As mesmas de `simular`, mais:
+ * @param {Array<string>} [opcoes.sinais] - Chaves a testar. Omitido, testa
+ *   todas as que ocorrem na série.
+ * @param {number|null} [opcoes.fracaoValidacao] - null desliga o corte.
+ * @returns {{linhas: Array<object>, buyAndHold: number|null}|null}
+ */
+export const compararEstrategias = (registros, opcoes = {}) => {
+  const {
+    sinais = null,
+    fracaoValidacao = FRACAO_VALIDACAO_PADRAO,
+    aPartirDe = null,
+    ...comuns
+  } = opcoes
+
+  if (!Array.isArray(registros) || registros.length < 2) return null
+
+  const serieCompleta = montarSerieDeSinais(registros)
+  if (serieCompleta.length === 0) return null
+
+  // Só os sinais que de fato ocorrem. Testar um sinal ausente devolveria uma
+  // linha vazia que o usuário leria como "não presta", quando o certo é
+  // "não aconteceu".
+  const presentes = new Set()
+  serieCompleta.forEach(({ sinais: doCandle }) => doCandle.forEach((s) => presentes.add(s)))
+
+  const aTestar = (sinais ?? [...presentes]).filter((s) => presentes.has(s))
+  if (aTestar.length === 0) return null
+
+  const corte =
+    fracaoValidacao !== null
+      ? dividirParaValidacao(registros, fracaoValidacao, { aPartirDe })
+      : null
+
+  // A série do trecho de ajuste é outro array, então precisa da sua própria
+  // montagem — mas também só de uma, compartilhada entre todas as estratégias.
+  const serieAjuste = corte ? montarSerieDeSinais(corte.registrosAjuste) : null
+
+  const linhas = aTestar
+    .map((sinalEntrada) => {
+      const cheia = simular(registros, {
+        ...comuns,
+        sinalEntrada,
+        aPartirDe,
+        serieDeSinais: serieCompleta,
+      })
+      if (!cheia) return null
+
+      const validacao = corte
+        ? simular(corte.registrosValidacao, {
+            ...comuns,
+            sinalEntrada,
+            aPartirDe: corte.aPartirDeValidacao,
+            serieDeSinais: serieCompleta,
+          })
+        : null
+
+      const ajuste = corte
+        ? simular(corte.registrosAjuste, {
+            ...comuns,
+            sinalEntrada,
+            aPartirDe,
+            serieDeSinais: serieAjuste,
+          })
+        : null
+
+      return {
+        sinal: sinalEntrada,
+        metricas: cheia.metricas,
+        trades: cheia.trades.length,
+        // null quando o corte não coube ou a estratégia não operou no trecho —
+        // e "não operou" não é "rendeu zero".
+        alfaValidacao:
+          validacao && validacao.trades.length > 0 ? validacao.metricas.alfa : null,
+        tradesValidacao: validacao ? validacao.metricas.tradesConcluidos : null,
+        alfaAjuste: ajuste && ajuste.trades.length > 0 ? ajuste.metricas.alfa : null,
+      }
+    })
+    .filter(Boolean)
+
+  if (linhas.length === 0) return null
+
+  // Maior alfa primeiro: a pergunta desta tabela é "qual sobrou melhor que não
+  // fazer nada", e a resposta tem de estar na primeira linha.
+  linhas.sort((a, b) => (b.metricas.alfa ?? -Infinity) - (a.metricas.alfa ?? -Infinity))
+
+  return {
+    linhas,
+    // Igual para todas as linhas: é a mesma janela e o mesmo ativo. Fica fora
+    // da linha para a tabela poder exibi-lo uma vez, como régua.
+    buyAndHold: linhas[0]?.metricas?.buyAndHold ?? null,
+    candlesValidacao: corte?.candlesValidacao ?? null,
   }
 }
 

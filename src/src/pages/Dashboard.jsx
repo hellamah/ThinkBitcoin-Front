@@ -27,7 +27,7 @@ import * as mathUtils from '../utils/mathUtils'
 import { calcularLimites } from '../utils/marketStats'
 import { compararMoedas } from '../utils/marketAnalytics'
 import { analisarSinais, montarSerieDeSinais } from '../utils/signalLab'
-import { simular, dividirParaValidacao, CUSTO_PADRAO_PERCENTUAL } from '../utils/backtest'
+import { simular, dividirParaValidacao, compararEstrategias, CUSTO_PADRAO_PERCENTUAL } from '../utils/backtest'
 import { getTourVisto, setTourVisto } from '../utils/preferences'
 import { candlestickPlugin } from '../utils/candlestickChart'
 import { Normalization, PriceChartMode, SecondaryChart, StopMode, TradeDirection } from '../utils/enums'
@@ -413,6 +413,16 @@ export default function Dashboard() {
     }
   }, [serieSimulacao, sinalEntrada, opcoesSimulacao, inicioSimulacao])
 
+  // Ranking de todas as estratégias sobre a MESMA série e os mesmos parâmetros
+  // de saída. Responde a pergunta que o painel de uma estratégia só não
+  // responde: entre os sinais disponíveis, qual sobrou melhor que não fazer
+  // nada. Roda uma vez e reaproveita a série de sinais internamente.
+  const comparativoEstrategias = useMemo(() => {
+    if (!serieSimulacao) return null
+    const { sinalEntrada: _ignorado, ...saida } = opcoesSimulacao
+    return compararEstrategias(serieSimulacao, { ...saida, aPartirDe: inicioSimulacao })
+  }, [serieSimulacao, opcoesSimulacao, inicioSimulacao])
+
   // Processamento de Gráficos (Hook Customizado)
   const chartConfig = useDashboardCharts({
     historicosPorMoeda,
@@ -583,6 +593,7 @@ export default function Dashboard() {
             parametros={{ ...paramsSimulacao, sinalEntrada }}
             onParametro={alterarParamSimulacao}
             sinaisDisponiveis={sinaisDisponiveis}
+            comparativo={comparativoEstrategias}
             carregando={carregandoSimulacao}
             erro={erroSimulacao}
             candlesAnalisados={serieSimulacao?.length ?? 0}
