@@ -86,7 +86,13 @@ export default function useDashboardData({
         commonParams.append('dataInicio', toUTCISO(inicio))
       }
       if (dataFim) commonParams.append('dataFim', dataFim.includes('T') ? dataFim : toUTCISO(new Date(`${dataFim}T23:59:59`)))
-      if (intervalo) commonParams.append('intervalo', intervalo)
+      // `intervalo` NÃO vai na query. A assinatura de ObterValorMoeda no
+      // backend não tem esse parâmetro, então o ASP.NET o descartava em
+      // silêncio — parâmetro morto sugerindo um contrato que não existe.
+      //
+      // Ele nunca foi para o servidor de verdade: serve só para o
+      // DashboardContext calcular dataInicio e dataFim, que são o que a API
+      // realmente lê.
       if (pagina) commonParams.append('pagina', pagina)
       if (quantidade) commonParams.append('quantidade', quantidade)
       commonParams.append('ordemAsc', 'false')
