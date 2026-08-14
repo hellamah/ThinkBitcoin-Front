@@ -70,6 +70,20 @@ export const ExitReason = Object.freeze({
 });
 
 /**
+ * Como a distância do stop é decidida.
+ *
+ * PERCENTUAL – número fixo digitado pelo usuário, igual para toda a janela.
+ * ATR – dimensionado pela volatilidade medida no candle da entrada. Um stop de
+ *   2% é apertado num ativo que oscila 5% ao dia e frouxo num que oscila 0,5%;
+ *   o ATR ajusta a distância ao que o ativo estava de fato fazendo naquele
+ *   momento, em vez de aplicar o mesmo palpite a períodos calmos e agitados.
+ */
+export const StopMode = Object.freeze({
+  PERCENTUAL: 'percentual',
+  ATR: 'atr',
+});
+
+/**
  * Lado da posição simulada.
  *
  * Existe porque metade do vocabulário de sinais é de baixa — divergência

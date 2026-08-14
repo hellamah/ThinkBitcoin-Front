@@ -20,8 +20,37 @@
 // Não há requisição aqui: é aritmética sobre o array que o dashboard já tem.
 
 import { intervaloWilson, median, paraNumero } from './mathUtils'
+import { calcularAtrSerie } from './marketStats'
 import { montarSerieDeSinais } from './signalLab'
-import { ExitReason, TradeDirection } from './enums'
+import { ExitReason, StopMode, TradeDirection } from './enums'
+
+// Multiplicador e limites do stop por ATR. Copiados do ambiente de simulação do
+// backend (`dynamic_stop_pct = max(0.01, min(0.10, atr_pct * 2.0))`), para que
+// as duas ferramentas não dimensionem a mesma proteção de formas diferentes.
+//
+// Os limites não são detalhe: sem o piso, um período de calmaria produziria um
+// stop de 0,1% que qualquer oscilação normal derruba; sem o teto, um candle de
+// pânico produziria um stop de 40% que não protege de nada.
+export const ATR_MULTIPLICADOR_STOP = 2
+export const ATR_STOP_MINIMO_PERCENTUAL = 1
+export const ATR_STOP_MAXIMO_PERCENTUAL = 10
+
+/**
+ * Distância do stop, em %, a partir do ATR daquele candle.
+ *
+ * @param {number|null} atr - ATR absoluto na posição da entrada.
+ * @param {number} preco - Preço de entrada, para converter o ATR em percentual.
+ * @returns {number|null} - null quando não há ATR ainda (início da série).
+ */
+export const stopPorAtr = (atr, preco) => {
+  if (atr === null || !Number.isFinite(atr) || atr <= 0) return null
+  if (!Number.isFinite(preco) || preco <= 0) return null
+  const atrPercentual = (atr / preco) * 100
+  return Math.max(
+    ATR_STOP_MINIMO_PERCENTUAL,
+    Math.min(ATR_STOP_MAXIMO_PERCENTUAL, atrPercentual * ATR_MULTIPLICADOR_STOP)
+  )
+}
 
 // Taxa por perna, em %. Espelha o `fee_rate = 0.001` do ambiente de simulação
 // do backend, que por sua vez é a taxa taker de spot.
@@ -239,6 +268,7 @@ export const simular = (registros, opcoes = {}) => {
     sinalEntrada,
     direcao = TradeDirection.COMPRA,
     saidaPorTempo = 5,
+    modoStop = StopMode.PERCENTUAL,
     stopPercentual = null,
     alvoPercentual = null,
     custoPercentual = CUSTO_PADRAO_PERCENTUAL,
@@ -253,10 +283,20 @@ export const simular = (registros, opcoes = {}) => {
   if (saidaPorTempo !== null && (!Number.isInteger(saidaPorTempo) || saidaPorTempo < 1)) return null
   // Sem nenhuma regra de saída a posição nunca fecha e a simulação não descreve
   // estratégia nenhuma — só a primeira entrada segurada até o fim da janela.
-  if (saidaPorTempo === null && stopPercentual === null && alvoPercentual === null) return null
+  const stopPorVolatilidade = modoStop === StopMode.ATR
+  // No modo ATR o stop existe sempre, então ele já é regra de saída suficiente.
+  if (
+    saidaPorTempo === null &&
+    !stopPorVolatilidade &&
+    stopPercentual === null &&
+    alvoPercentual === null
+  ) return null
   if (!(capitalInicial > 0)) return null
 
   const serie = montarSerieDeSinais(registros)
+  // Alinhado com `serie` posição a posição — é o que permite ler a volatilidade
+  // como ela era no candle da entrada, e não como está hoje.
+  const atrPorPosicao = stopPorVolatilidade ? calcularAtrSerie(registros) : null
   if (serie.length < 2) return null
 
   const instantes = serie.map((s) => instanteDe(s.registro))
@@ -332,6 +372,10 @@ export const simular = (registros, opcoes = {}) => {
       capitalAntes,
       capitalDepois: capital,
       barrasSeguradas: i - posicao.indice + 1,
+      // Qual distância valeu nesta operação. No modo ATR ela muda a cada
+      // entrada, e sem este campo a tabela mostraria "Stop" como motivo sem
+      // dizer stop de quanto.
+      stopPercentualAplicado: posicao.stopPercentualAplicado,
     })
     posicao = null
   }
@@ -364,13 +408,22 @@ export const simular = (registros, opcoes = {}) => {
       // Buraco entre o sinal e a execução invalida a entrada: o preço de
       // abertura já não é a continuação do candle que gerou o sinal.
       if (abertura !== null && !quebraEm[i]) {
+        // No modo ATR a distância sai da volatilidade DESTE candle; no modo
+        // percentual, do número que o usuário digitou. Sem ATR ainda — começo
+        // da série, antes de a média fechar — a posição abre sem stop, e sai
+        // pelo tempo ou pelo alvo. Inventar uma distância ali seria pior.
+        const distanciaStop = stopPorVolatilidade
+          ? stopPorAtr(atrPorPosicao?.[i] ?? null, abertura)
+          : stopPercentual
+
         posicao = {
           indice: i,
           registro,
           precoEntrada: abertura,
+          stopPercentualAplicado: distanciaStop,
           precoStop:
-            stopPercentual !== null
-              ? abertura * (1 - direcao * (stopPercentual / 100))
+            distanciaStop !== null
+              ? abertura * (1 - direcao * (distanciaStop / 100))
               : null,
           precoAlvo:
             alvoPercentual !== null
@@ -451,6 +504,7 @@ export const simular = (registros, opcoes = {}) => {
       sinalEntrada,
       direcao,
       saidaPorTempo,
+      modoStop,
       stopPercentual,
       alvoPercentual,
       custoPercentual,

@@ -3337,6 +3337,12 @@
   opacity: 0.55;
 }
 
+/* Distância do stop que valeu na operação. Discreta: acompanha o motivo, não
+   compete com ele. */
+.simulation-stop-aplicado {
+  color: var(--text-faint);
+}
+
 .simulation-curva {
   margin-top: 22px;
 }

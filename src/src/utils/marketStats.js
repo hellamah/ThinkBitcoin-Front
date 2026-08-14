@@ -120,6 +120,66 @@ export const calcularAtr = (registros, periodo = ATR_PERIOD) => {
 }
 
 /**
+ * ATR em CADA posição da série, e não só na última.
+ *
+ * `calcularAtr` responde "qual é o ATR agora?" — o suficiente para um card.
+ * Dimensionar um stop no instante de uma entrada passada exige outra coisa: o
+ * ATR como ele era naquele candle. Um único escalar aplicado a todas as
+ * entradas usaria a volatilidade de hoje para uma operação de seis meses atrás.
+ *
+ * A diferença de implementação está no tratamento de buraco. `calcularAtr`
+ * FILTRA as amplitudes inválidas, o que encurta o array e destrói a
+ * correspondência com as posições — inofensivo lá, porque só o último valor
+ * importa, e fatal aqui. Nesta versão a posição é preservada e a amplitude
+ * ausente apenas não atualiza a média: o ATR anterior segue valendo, em vez de
+ * ser puxado para baixo por um zero que ninguém mediu.
+ *
+ * @param {Array<object>} registros - Série na ordem da API (mais recente primeiro).
+ * @param {number} [periodo]
+ * @returns {Array<number|null>} - Em ordem CRONOLÓGICA, alinhado posição a
+ *   posição. null enquanto não houver histórico suficiente.
+ */
+export const calcularAtrSerie = (registros, periodo = ATR_PERIOD) => {
+  if (!Array.isArray(registros) || registros.length === 0) return []
+
+  const cronologico = [...registros].reverse()
+  const amplitudes = cronologico.map((r) => {
+    const v = paraNumero(r?.precoAmplitude)
+    return v !== null && v >= 0 ? v : null
+  })
+
+  const saida = new Array(cronologico.length).fill(null)
+
+  // Semeadura: média simples das primeiras `periodo` amplitudes válidas. O
+  // índice onde isso se completa é onde a série passa a existir.
+  const validas = []
+  let inicio = -1
+  for (let i = 0; i < amplitudes.length; i++) {
+    if (amplitudes[i] === null) continue
+    validas.push(amplitudes[i])
+    if (validas.length === periodo) {
+      inicio = i
+      break
+    }
+  }
+
+  if (inicio < 0) return saida
+
+  let atr = mean(validas) ?? 0
+  saida[inicio] = atr
+
+  // A partir daí, suavização de Wilder — mesma mecânica do RSI.
+  for (let i = inicio + 1; i < amplitudes.length; i++) {
+    if (amplitudes[i] !== null) {
+      atr = (atr * (periodo - 1) + amplitudes[i]) / periodo
+    }
+    saida[i] = atr
+  }
+
+  return saida
+}
+
+/**
  * Régua de normalidade do período, usada para marcar candles atípicos.
  *
  * Calculada sobre a série inteira da moeda, não sobre a página exibida: o que

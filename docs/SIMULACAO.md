@@ -109,14 +109,36 @@ sem custo**, por dois motivos independentes:
 
 O motivo 1 se sustenta sozinho, mesmo se o backtest do Python for aposentado.
 
-### D-02 — Stop/alvo em % fixo ou por ATR? **Recomendação aplicada**
+### D-02 — Stop em % fixo ou por ATR? ✅ **os dois, à escolha**
 
-v1 usa **% fixo digitado pelo usuário**. Quando entrar o ATR, usa a fórmula do
-V10 — não uma nova.
+Entregue como modo: **Fixo** (número digitado, igual o período inteiro) ou **Por
+volatilidade** (dimensionado pelo ATR do candle da entrada).
 
-Motivo de não ser v1: `calcularAtr` ([marketStats.js:92](../src/src/utils/marketStats.js:92))
-devolve um escalar do último candle, não uma série. Dimensionar o stop no
-instante da entrada exige uma `calcularAtrSerie`, que é função nova e teste novo.
+A fórmula é a do V10, copiada do backend — `clamp(ATR% × 2, 1%, 10%)`. Os
+limites não são detalhe: sem o piso, um período de calmaria produz um stop de
+0,1% que qualquer oscilação normal derruba; sem o teto, um candle de pânico
+produz um stop de 40% que não protege de nada.
+
+Exigiu `calcularAtrSerie`
+([marketStats.js](../src/src/utils/marketStats.js)), porque a `calcularAtr` que
+já existia devolve um escalar do último candle — aplicá-lo a todas as entradas
+usaria a volatilidade de hoje para uma operação de seis meses atrás.
+
+A diferença entre as duas não é só o formato: a antiga **filtra** as amplitudes
+inválidas, o que encurta o array e destrói a correspondência com as posições.
+Inofensivo lá, onde só o último valor importa; fatal aqui. Na versão em série a
+posição é preservada e a amplitude ausente apenas não atualiza a média — o ATR
+anterior segue valendo, em vez de ser puxado para baixo por um zero que ninguém
+mediu.
+
+Sem ATR ainda (começo da série), a posição abre **sem stop** e sai pelo tempo ou
+pelo alvo. Inventar uma distância ali seria pior.
+
+A tabela de operações mostra a distância que valeu em cada uma — no modo ATR ela
+muda a cada entrada, e "Stop" sem o número não diz stop de quanto.
+
+**Verificado por injeção de defeito:** trocar o multiplicador, remover o piso ou
+usar o ATR do fim da série em vez do da entrada derruba um teste cada.
 
 ### D-03 — De onde vem a série? **A decisão que define o alcance da ferramenta**
 
@@ -908,7 +930,6 @@ entre front e .NET. O Python é referência de leitura (seção 3) e nada mais.
   .NET já o expõe.
 - **Janela longa com busca própria.** Ver D-03 (b). Depende de B-01 e da V17.
 - **Portfólio multi-ativo.** Depende de B-04.
-- **Stop por ATR.** Ver D-02 da seção 3.
 - **Taxa efetiva da corretora.** Ver B-05.
 - **Guarda morta em `dateUtils.toLocal`** (A-03). `includes('-')` é sempre
   verdadeiro para data ISO, então o `Z` nunca é anexado e todo rótulo de hora do

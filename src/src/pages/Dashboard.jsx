@@ -30,7 +30,7 @@ import { analisarSinais, montarSerieDeSinais } from '../utils/signalLab'
 import { simular, dividirParaValidacao, CUSTO_PADRAO_PERCENTUAL } from '../utils/backtest'
 import { getTourVisto, setTourVisto } from '../utils/preferences'
 import { candlestickPlugin } from '../utils/candlestickChart'
-import { Normalization, PriceChartMode, SecondaryChart, TradeDirection } from '../utils/enums'
+import { Normalization, PriceChartMode, SecondaryChart, StopMode, TradeDirection } from '../utils/enums'
 
 // Sub-componentes Refatorados
 import DashboardHeader from '../components/dashboard/DashboardHeader'
@@ -99,6 +99,7 @@ export default function Dashboard() {
   const [paramsSimulacao, setParamsSimulacao] = useState({
     direcao: TradeDirection.COMPRA,
     saidaPorTempo: 5,
+    modoStop: StopMode.PERCENTUAL,
     stopPercentual: null,
     alvoPercentual: null,
     custoPercentual: CUSTO_PADRAO_PERCENTUAL,

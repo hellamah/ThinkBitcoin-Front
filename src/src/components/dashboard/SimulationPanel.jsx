@@ -13,7 +13,7 @@ import { chartPalette } from '../../utils/themeTokens'
 import { montarPontosDaCurva, folgaDoEixo } from '../../utils/equityChart'
 import { MINIMO_TRADES_CONCLUSIVO, FRACAO_VALIDACAO_PADRAO } from '../../utils/backtest'
 import { DIAS_JANELA_SIMULACAO } from '../../utils/simulationWindow'
-import { ExitReason, TradeDirection } from '../../utils/enums'
+import { ExitReason, StopMode, TradeDirection } from '../../utils/enums'
 import { toLocalChartLabel } from '../../utils/dateUtils'
 
 // Quantos candles segurar. Três opções em vez de campo livre: o número aqui não
@@ -253,20 +253,48 @@ export default function SimulationPanel({
           </div>
         </div>
 
-        <label className="simulation-campo simulation-campo-num">
+        <div className="simulation-campo">
           <RotuloComAjuda
             className="pill-group-label"
-            texto={t('simulationStop')}
-            ajuda={t('ajuda.simStop')}
+            texto={t('simulationStopMode')}
+            ajuda={t('ajuda.simStopAtr')}
           />
-          <input
-            type="number" min="0" step="0.5" placeholder="—"
-            value={parametros.stopPercentual ?? ''}
-            onChange={(e) =>
-              onParametro('stopPercentual', e.target.value === '' ? null : Number(e.target.value))
-            }
-          />
-        </label>
+          <div className="simulation-pills">
+            {[
+              [StopMode.PERCENTUAL, 'simulationStopFixed'],
+              [StopMode.ATR, 'simulationStopAtr'],
+            ].map(([valor, chave]) => (
+              <button
+                key={valor}
+                type="button"
+                className={`pill-toggle ${parametros.modoStop === valor ? 'ativo' : ''}`}
+                onClick={() => onParametro('modoStop', valor)}
+              >
+                {t(chave)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* O campo de distância só existe no modo percentual. No modo ATR a
+            distância é calculada por entrada, e deixar um campo editável ali
+            faria parecer que ele ainda manda em alguma coisa. */}
+        {parametros.modoStop === StopMode.PERCENTUAL && (
+          <label className="simulation-campo simulation-campo-num">
+            <RotuloComAjuda
+              className="pill-group-label"
+              texto={t('simulationStop')}
+              ajuda={t('ajuda.simStop')}
+            />
+            <input
+              type="number" min="0" step="0.5" placeholder="—"
+              value={parametros.stopPercentual ?? ''}
+              onChange={(e) =>
+                onParametro('stopPercentual', e.target.value === '' ? null : Number(e.target.value))
+              }
+            />
+          </label>
+        )}
 
         <label className="simulation-campo simulation-campo-num">
           <RotuloComAjuda
@@ -476,7 +504,17 @@ export default function SimulationPanel({
                     <td>{mathUtils.formatCurrency(op.precoEntrada)}</td>
                     <td>{mathUtils.formatCurrency(op.precoSaida)}</td>
                     <td>{op.barrasSeguradas}</td>
-                    <td>{t(`exit_${op.motivoSaida}`)}</td>
+                    <td>
+                      {t(`exit_${op.motivoSaida}`)}
+                      {/* No modo ATR a distância muda a cada entrada; sem
+                          mostrá-la, "Stop" não diz stop de quanto. */}
+                      {op.motivoSaida === ExitReason.STOP &&
+                        op.stopPercentualAplicado !== null && (
+                          <span className="simulation-stop-aplicado">
+                            {' '}({op.stopPercentualAplicado.toFixed(1)}%)
+                          </span>
+                        )}
+                    </td>
                     <td className={classeSinal(op.retornoLiquido)}>
                       {pct(op.retornoLiquido)}
                     </td>

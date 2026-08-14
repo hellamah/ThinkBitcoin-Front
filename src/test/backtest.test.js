@@ -5,7 +5,9 @@ import {
   CUSTO_PADRAO_PERCENTUAL,
   FRACAO_VALIDACAO_PADRAO,
 } from '../src/utils/backtest'
-import { ExitReason, TradeDirection } from '../src/utils/enums'
+import { stopPorAtr, ATR_STOP_MINIMO_PERCENTUAL, ATR_STOP_MAXIMO_PERCENTUAL } from '../src/utils/backtest'
+import { ExitReason, StopMode, TradeDirection } from '../src/utils/enums'
+import { ATR_PERIOD } from '../src/utils/marketStats'
 import { CandlePattern } from '../src/utils/candlePatterns'
 
 // O martelo é o sinal de entrada de toda a suíte: é puramente geométrico e
@@ -22,6 +24,11 @@ const candle = ({
   hora,
   martelo = false,
   volume = 100,
+  // A amplitude alimenta DUAS coisas: a proporção que classifica o candle e o
+  // ATR. Por padrão ela acompanha a geometria fixa do padrão (42 no martelo,
+  // 100 no neutro), porque é isso que a maioria dos casos precisa. Quem testa
+  // volatilidade passa o valor explicitamente.
+  amplitude = null,
 }) => ({
   precoAbertura: abertura,
   precoMaior: maior,
@@ -35,7 +42,7 @@ const candle = ({
   precoCorpoCandle: martelo ? 10 : 50,
   precoSombraSuperior: martelo ? 2 : 25,
   precoSombraInferior: martelo ? 30 : 25,
-  precoAmplitude: martelo ? 42 : 100,
+  precoAmplitude: amplitude ?? (martelo ? 42 : 100),
   // Constantes em toda a série para que nenhuma anomalia dispare sem ser
   // pedida: desvio zero na variação, razão 1 no volume e no ticket.
   precoPercentualVariacao: 0,
@@ -433,6 +440,97 @@ describe('utils/backtest › métricas', () => {
     // Quatro candles na curva, um deles em posição.
     expect(r.metricas.candlesSimulados).toBe(4)
     expect(r.metricas.exposicao).toBeCloseTo(25, 6)
+  })
+})
+
+describe('utils/backtest › stop por ATR', () => {
+  it('deve dobrar o ATR percentual, como o ambiente do backend', () => {
+    // ATR de 20 sobre preço 1000 é 2%; a fórmula copiada do backend é ×2.
+    expect(stopPorAtr(20, 1000)).toBeCloseTo(4, 10)
+  })
+
+  it('deve respeitar o piso em período de calmaria', () => {
+    // Sem piso, um ativo parado produziria um stop de 0,04% — que qualquer
+    // oscilação normal derruba, transformando a proteção em gerador de perdas.
+    expect(stopPorAtr(0.2, 1000)).toBe(ATR_STOP_MINIMO_PERCENTUAL)
+  })
+
+  it('deve respeitar o teto em candle de pânico', () => {
+    // Sem teto, um candle violento produziria um stop de 60%, que não protege
+    // de nada — só garante que a perda seja grande antes de fechar.
+    expect(stopPorAtr(300, 1000)).toBe(ATR_STOP_MAXIMO_PERCENTUAL)
+  })
+
+  it('deve recusar entrada sem ATR ou sem preço', () => {
+    expect(stopPorAtr(null, 1000)).toBeNull()
+    expect(stopPorAtr(0, 1000)).toBeNull()
+    expect(stopPorAtr(20, 0)).toBeNull()
+  })
+
+  it('deve dimensionar cada entrada pela volatilidade daquele candle', () => {
+    // Série calma que fica violenta na segunda metade. Dois martelos, um em
+    // cada regime: se o motor usasse um ATR único, os dois trades sairiam com
+    // a mesma distância de stop.
+    // Regime calmo: amplitude 1 sobre preço 100 = 1% → stop de 2%.
+    const defs = []
+    for (let i = 0; i < ATR_PERIOD + 4; i++) {
+      defs.push({ abertura: 100, maior: 100.5, menor: 99.5, fechamento: 100, amplitude: 1 })
+    }
+    defs[ATR_PERIOD] = { ...defs[ATR_PERIOD], martelo: true, amplitude: 1 }
+    // Regime agitado: amplitude 4 sobre preço 100 = 4% → stop tenderia a 8%.
+    for (let i = 0; i < ATR_PERIOD * 3; i++) {
+      defs.push({ abertura: 100, maior: 102, menor: 98, fechamento: 100, amplitude: 4 })
+    }
+    defs[defs.length - 6] = { ...defs[defs.length - 6], martelo: true, amplitude: 4 }
+
+    const r = simular(serie(defs), {
+      sinalEntrada: CandlePattern.MARTELO,
+      modoStop: StopMode.ATR,
+      saidaPorTempo: 2,
+      custoPercentual: 0,
+    })
+
+    expect(r.trades.length).toBeGreaterThanOrEqual(2)
+    const primeiro = r.trades[0].stopPercentualAplicado
+    const ultimo = r.trades[r.trades.length - 1].stopPercentualAplicado
+    // O regime violento tem de produzir um stop mais largo que o calmo.
+    expect(ultimo).toBeGreaterThan(primeiro)
+    // E ambos dentro dos limites.
+    ;[primeiro, ultimo].forEach((d) => {
+      expect(d).toBeGreaterThanOrEqual(ATR_STOP_MINIMO_PERCENTUAL)
+      expect(d).toBeLessThanOrEqual(ATR_STOP_MAXIMO_PERCENTUAL)
+    })
+  })
+
+  it('deve abrir sem stop enquanto o ATR não existe', () => {
+    // No começo da série a média ainda não fechou. Inventar uma distância ali
+    // seria pior do que sair pelo tempo.
+    const defs = [{ ...parado(100), martelo: true }, parado(100), parado(100)]
+    const r = simular(serie(defs), {
+      sinalEntrada: CandlePattern.MARTELO,
+      modoStop: StopMode.ATR,
+      saidaPorTempo: 1,
+      custoPercentual: 0,
+    })
+
+    expect(r.trades).toHaveLength(1)
+    expect(r.trades[0].stopPercentualAplicado).toBeNull()
+    expect(r.trades[0].motivoSaida).toBe(ExitReason.TEMPO)
+  })
+
+  it('deve aceitar o modo ATR como única regra de saída', () => {
+    // No percentual, sem stop, alvo e tempo a posição nunca fecharia — e a
+    // função recusa. No modo ATR o stop existe sempre, então é regra bastante.
+    const defs = Array.from({ length: ATR_PERIOD + 6 }, () => parado(100))
+    defs[2] = { ...parado(100), martelo: true }
+
+    expect(
+      simular(serie(defs), {
+        sinalEntrada: CandlePattern.MARTELO,
+        modoStop: StopMode.ATR,
+        saidaPorTempo: null,
+      })
+    ).not.toBeNull()
   })
 })
 

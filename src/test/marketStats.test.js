@@ -3,6 +3,7 @@ import {
   ATR_PERIOD,
   avaliarAnomalia,
   calcularAtr,
+  calcularAtrSerie,
   calcularDesempenho,
   calcularLimites,
 } from '../src/utils/marketStats'
@@ -208,5 +209,55 @@ describe('utils/marketStats › calcularAtr', () => {
   it('deve devolver percentual nulo sem preço para comparar', () => {
     const registros = new Array(ATR_PERIOD).fill(null).map(() => ({ precoAmplitude: 50 }))
     expect(calcularAtr(registros).percentual).toBeNull()
+  })
+})
+
+describe('utils/marketStats › calcularAtrSerie', () => {
+  const serie = (amplitudes) =>
+    [...amplitudes].reverse().map((precoAmplitude) => ({ precoAmplitude, precoFechamento: 1000 }))
+
+  it('deve preservar a posição de cada candle', () => {
+    // O alinhamento é o motivo de esta função existir: quem dimensiona um stop
+    // no instante da entrada precisa do ATR daquele candle, não do último.
+    const s = calcularAtrSerie(serie(new Array(ATR_PERIOD + 5).fill(50)))
+    expect(s).toHaveLength(ATR_PERIOD + 5)
+  })
+
+  it('deve ficar null enquanto não houver histórico para semear', () => {
+    const s = calcularAtrSerie(serie(new Array(ATR_PERIOD + 3).fill(50)))
+    // A média simples só fecha no candle de índice ATR_PERIOD - 1.
+    expect(s.slice(0, ATR_PERIOD - 1).every((v) => v === null)).toBe(true)
+    expect(s[ATR_PERIOD - 1]).toBeCloseTo(50, 10)
+  })
+
+  it('deve concordar com calcularAtr no último candle', () => {
+    // As duas funções descrevem a mesma grandeza; divergir aqui significaria
+    // que o card e o stop da simulação leem volatilidades diferentes.
+    const amplitudes = [...new Array(ATR_PERIOD).fill(50), 500, 60, 40]
+    const registros = serie(amplitudes)
+    const s = calcularAtrSerie(registros)
+    expect(s[s.length - 1]).toBeCloseTo(calcularAtr(registros).valor, 8)
+  })
+
+  it('deve suavizar ao longo da série, não acompanhar o candle', () => {
+    const amplitudes = [...new Array(ATR_PERIOD).fill(50), 500]
+    const s = calcularAtrSerie(serie(amplitudes))
+    expect(s[ATR_PERIOD]).toBeCloseTo((50 * 13 + 500) / 14, 6)
+  })
+
+  it('deve carregar o valor anterior quando a amplitude falta', () => {
+    // Amplitude ausente não é amplitude zero. Tratá-la como zero puxaria o ATR
+    // para baixo por uma medição que ninguém fez — e é justamente num buraco de
+    // coleta que o stop não pode encolher sem motivo.
+    const amplitudes = [...new Array(ATR_PERIOD).fill(50), null, null]
+    const s = calcularAtrSerie(serie(amplitudes))
+    expect(s[ATR_PERIOD]).toBeCloseTo(50, 10)
+    expect(s[ATR_PERIOD + 1]).toBeCloseTo(50, 10)
+  })
+
+  it('deve recusar série sem amplitude válida suficiente', () => {
+    expect(calcularAtrSerie(serie(new Array(ATR_PERIOD - 1).fill(50))).every((v) => v === null)).toBe(true)
+    expect(calcularAtrSerie([])).toEqual([])
+    expect(calcularAtrSerie(null)).toEqual([])
   })
 })
