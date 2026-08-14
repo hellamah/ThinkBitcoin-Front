@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react'
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -21,14 +21,16 @@ import useTranslation from '../hooks/useTranslation'
 import useCoinPrices from '../hooks/useCoinPrices'
 import useDashboardData from '../hooks/useDashboardData'
 import useDashboardCharts from '../hooks/useDashboardCharts'
+import useSimulationData from '../hooks/useSimulationData'
 import useMarketAnalytics from '../hooks/useMarketAnalytics'
 import * as mathUtils from '../utils/mathUtils'
 import { calcularLimites } from '../utils/marketStats'
 import { compararMoedas } from '../utils/marketAnalytics'
-import { analisarSinais } from '../utils/signalLab'
+import { analisarSinais, montarSerieDeSinais } from '../utils/signalLab'
+import { simular, dividirParaValidacao, CUSTO_PADRAO_PERCENTUAL } from '../utils/backtest'
 import { getTourVisto, setTourVisto } from '../utils/preferences'
 import { candlestickPlugin } from '../utils/candlestickChart'
-import { Normalization, PriceChartMode, SecondaryChart } from '../utils/enums'
+import { Normalization, PriceChartMode, SecondaryChart, TradeDirection } from '../utils/enums'
 
 // Sub-componentes Refatorados
 import DashboardHeader from '../components/dashboard/DashboardHeader'
@@ -41,6 +43,7 @@ import PeriodStatsPanel from '../components/dashboard/PeriodStatsPanel'
 import CorrelationMatrix from '../components/dashboard/CorrelationMatrix'
 import CoinComparisonPanel from '../components/dashboard/CoinComparisonPanel'
 import SignalLabPanel from '../components/dashboard/SignalLabPanel'
+import SimulationPanel from '../components/dashboard/SimulationPanel'
 import DashboardCharts from '../components/dashboard/DashboardCharts'
 import HistoryTable from '../components/dashboard/HistoryTable'
 import ErrorMessage from '../components/ErrorMessage'
@@ -89,6 +92,23 @@ export default function Dashboard() {
   const [horizonteSinal, setHorizonteSinal] = useState(1)
   const [expandedChart, setExpandedChart] = useState(null)
 
+  // Parâmetros da simulação. Ficam aqui, e não no DashboardContext, porque não
+  // são filtro: nenhum outro painel os consulta e nenhuma requisição depende
+  // deles. Levá-los ao contexto global faria toda a tela reagir a um ajuste que
+  // só interessa a um painel.
+  const [paramsSimulacao, setParamsSimulacao] = useState({
+    direcao: TradeDirection.COMPRA,
+    saidaPorTempo: 5,
+    stopPercentual: null,
+    alvoPercentual: null,
+    custoPercentual: CUSTO_PADRAO_PERCENTUAL,
+    sinalEntrada: null,
+  })
+
+  const alterarParamSimulacao = useCallback((nome, valor) => {
+    setParamsSimulacao((atual) => ({ ...atual, [nome]: valor }))
+  }, [])
+
   const hasInitializedPref = useRef(false)
 
   // ------ tour onboarding (react-joyride v3) ------
@@ -119,12 +139,26 @@ export default function Dashboard() {
       title: t('dashboardTour.passo4Titulo') || 'Gráficos',
       content: t('dashboardTour.passo4Descricao') || 'Compare preço e variação e expanda para ver em detalhe.',
     },
+    // A simulação vem antes do histórico porque é essa a ordem na tela — o
+    // Joyride rola até cada alvo, e um passo fora de ordem faria a página
+    // saltar para trás no meio do tour.
+    //
+    // Só entra com uma moeda selecionada, que é a condição de o painel existir.
+    // A verificação é sobre o ESTADO, não sobre o DOM: no primeiro render nada
+    // está montado ainda, e um `querySelector` aqui filtraria o tour inteiro.
+    ...(moedasFiltro.length === 1
+      ? [{
+          target: '[data-tour="dash-simulacao"]',
+          title: t('dashboardTour.passo5Titulo') || 'Simulação de Estratégia',
+          content: t('dashboardTour.passo5Descricao') || 'Teste uma regra de entrada e veja o que ela teria rendido.',
+        }]
+      : []),
     {
       target: '[data-tour="dash-historico"]',
-      title: t('dashboardTour.passo5Titulo') || 'Histórico',
-      content: t('dashboardTour.passo5Descricao') || 'Veja o histórico de operações filtrado.',
+      title: t('dashboardTour.passo6Titulo') || 'Histórico',
+      content: t('dashboardTour.passo6Descricao') || 'Veja o histórico de operações filtrado.',
     },
-  ], [t])
+  ], [t, moedasFiltro.length])
 
   // Inicia o tour automaticamente na primeira visita, após os dados carregarem.
   useEffect(() => {
@@ -294,6 +328,79 @@ export default function Dashboard() {
     return analisarSinais(historicosPorMoeda?.[moedasFiltro[0]], { horizonte: horizonteSinal })
   }, [historicosPorMoeda, moedasFiltro, horizonteSinal])
 
+  // ------ simulação de estratégia ------
+  //
+  // Restrita a uma moeda, como o laboratório: misturar ativos numa única curva
+  // de capital não descreve carteira nenhuma.
+  //
+  // A série NÃO é a do dashboard. Ela é buscada à parte, numa janela de 180
+  // dias, porque a do dashboard é curta demais para a amostra fechar e é a
+  // resposta paginada — que a tabela de histórico troca por baixo de todos os
+  // painéis. Ver utils/simulationWindow.js.
+  const siglaSimulacao = moedasFiltro.length === 1 ? moedasFiltro[0] : null
+
+  const {
+    registros: serieSimulacao,
+    aPartirDe: inicioSimulacao,
+    carregando: carregandoSimulacao,
+    erro: erroSimulacao,
+  } = useSimulationData({ token, sigla: siglaSimulacao })
+
+  // O seletor oferece os sinais presentes na SÉRIE DA SIMULAÇÃO, não na do
+  // laboratório: são janelas diferentes, e um sinal que existe em 180 dias pode
+  // não existir nos 7 que o laboratório analisa. Oferecer o vocabulário inteiro
+  // faria o usuário escolher "marubozu", receber "nenhuma operação" e não ter
+  // como saber se a estratégia é ruim ou se o sinal simplesmente não ocorreu.
+  const sinaisDisponiveis = useMemo(() => {
+    if (!serieSimulacao?.length) return []
+    const presentes = new Set()
+    montarSerieDeSinais(serieSimulacao).forEach(({ sinais }) =>
+      sinais.forEach((s) => presentes.add(s))
+    )
+    return [...presentes].sort()
+  }, [serieSimulacao])
+
+  // A escolha do usuário pode deixar de existir ao trocar de moeda ou período.
+  // Cair no primeiro disponível mantém o painel útil em vez de vazio.
+  const sinalEntrada = sinaisDisponiveis.includes(paramsSimulacao.sinalEntrada)
+    ? paramsSimulacao.sinalEntrada
+    : sinaisDisponiveis[0] ?? null
+
+  // `aPartirDe` vem da janela da simulação, não do filtro do dashboard: é o que
+  // separa os candles de aquecimento do período que de fato vira operação.
+  const opcoesSimulacao = useMemo(
+    () => ({ ...paramsSimulacao, sinalEntrada, aPartirDe: inicioSimulacao }),
+    [paramsSimulacao, sinalEntrada, inicioSimulacao]
+  )
+
+  const simulacao = useMemo(
+    () => (serieSimulacao && sinalEntrada ? simular(serieSimulacao, opcoesSimulacao) : null),
+    [serieSimulacao, sinalEntrada, opcoesSimulacao]
+  )
+
+  // Corte de validação: o usuário ajusta os parâmetros olhando o trecho de
+  // ajuste, e a coluna de validação mostra como aquilo se sai no pedaço que ele
+  // não usou para escolher. Sem isso, testar dez combinações e ficar com a
+  // melhor é sobreajuste com aparência de método.
+  const holdout = useMemo(() => {
+    if (!serieSimulacao || !sinalEntrada) return null
+    const corte = dividirParaValidacao(serieSimulacao, undefined, {
+      aPartirDe: inicioSimulacao,
+    })
+    if (!corte) return null
+
+    return {
+      ajuste: simular(corte.registrosAjuste, opcoesSimulacao),
+      // A validação recebe a série inteira e só abre posição depois do corte:
+      // assim os indicadores de janela móvel chegam aquecidos ao primeiro
+      // candle validado.
+      validacao: simular(corte.registrosValidacao, {
+        ...opcoesSimulacao,
+        aPartirDe: corte.aPartirDeValidacao,
+      }),
+    }
+  }, [serieSimulacao, sinalEntrada, opcoesSimulacao, inicioSimulacao])
+
   // Processamento de Gráficos (Hook Customizado)
   const chartConfig = useDashboardCharts({
     historicosPorMoeda,
@@ -454,6 +561,23 @@ export default function Dashboard() {
           setHorizonte={setHorizonteSinal}
           t={t}
         />
+
+        {siglaSimulacao && (
+          <div data-tour="dash-simulacao">
+          <SimulationPanel
+            resultado={simulacao}
+            ajuste={holdout?.ajuste ?? null}
+            validacao={holdout?.validacao ?? null}
+            parametros={{ ...paramsSimulacao, sinalEntrada }}
+            onParametro={alterarParamSimulacao}
+            sinaisDisponiveis={sinaisDisponiveis}
+            carregando={carregandoSimulacao}
+            erro={erroSimulacao}
+            candlesAnalisados={serieSimulacao?.length ?? 0}
+            t={t}
+          />
+          </div>
+        )}
 
         {moedasFiltro.length === 1 && trendAtual && (
           <IntelligencePanel trendAtual={trendAtual} t={t} />

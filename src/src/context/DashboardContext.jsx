@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import { subDays, subMonths } from 'date-fns';
 import { FilterResult, FilterInterval } from '../utils/enums';
+import { QUANTIDADE_MAXIMA_CANDLES } from '../utils/apiClient';
 
 const DashboardContext = createContext();
 
@@ -12,7 +13,12 @@ const DashboardContext = createContext();
 // Fica numa constante porque o valor era repetido no estado inicial e dentro
 // de setFilterInterval — trocar só o primeiro deixava os presets no valor
 // antigo, que foi exatamente o que aconteceu.
-const CANDLES_POR_REQUISICAO = 1000;
+//
+// NÃO pode passar de QUANTIDADE_MAXIMA_CANDLES: acima do teto da API toda
+// requisição do dashboard passa a responder 400. Quem for esticar a janela para
+// a simulação de estratégias precisa subir os dois lados — este valor e o
+// `QuantidadeMaxima` do backend — e há teste travando a relação.
+export const CANDLES_POR_REQUISICAO = 1000;
 
 export function DashboardProvider({ children }) {
   // Filtros Globais

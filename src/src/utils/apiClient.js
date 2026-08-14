@@ -108,6 +108,19 @@ export const ApiEndpoint = Object.freeze({
   }),
 })
 
+/**
+ * Teto de candles que `/moeda/{sigla}/valor` aceita por requisição.
+ *
+ * Espelha o `FuncaoObterValorMoeda.QuantidadeMaxima` do backend. Acima disto a
+ * API responde 400 — antes ela aceitava qualquer número e materializava o
+ * resultado inteiro em memória, que era o problema que o teto resolveu.
+ *
+ * Está aqui, e não no DashboardContext, porque é contrato da API e não escolha
+ * de tela: qualquer consumidor futuro precisa respeitá-lo. Na cadência horária
+ * da coleta são cerca de 208 dias.
+ */
+export const QUANTIDADE_MAXIMA_CANDLES = 5000
+
 const JSON_HEADERS = Object.freeze({ 'Content-Type': 'application/json' })
 
 // A API .NET ora serializa em PascalCase, ora em camelCase. Normalizar aqui,

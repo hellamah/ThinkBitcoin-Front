@@ -47,6 +47,45 @@ export const FilterInterval = Object.freeze({
   CUSTOM: 'custom',
 });
 
+/**
+ * Por que uma posição simulada foi fechada.
+ *
+ * STOP – o preço tocou o limite de perda.
+ * ALVO – o preço tocou o limite de ganho.
+ * TEMPO – esgotou o horizonte em candles sem tocar stop nem alvo.
+ * DESCONTINUIDADE – a série pulou mais tempo do que a cadência tolera (hora sem
+ *   coleta). A posição fecha no último preço conhecido: dentro do buraco não se
+ *   sabe o que aconteceu, e seguir segurando seria inventar. Conta no win rate,
+ *   porque a saída ocorreu a um preço real.
+ * FIM_DA_SERIE – a janela carregada acabou com a posição ainda aberta. Entra na
+ *   curva de capital, mas fica FORA do win rate: o desfecho não aconteceu, e
+ *   contá-lo como acerto ou erro seria inventar o que não se sabe.
+ */
+export const ExitReason = Object.freeze({
+  STOP: 'stop',
+  ALVO: 'alvo',
+  TEMPO: 'tempo',
+  DESCONTINUIDADE: 'descontinuidade',
+  FIM_DA_SERIE: 'fimDaSerie',
+});
+
+/**
+ * Lado da posição simulada.
+ *
+ * Existe porque metade do vocabulário de sinais é de baixa — divergência
+ * baixista, RSI em sobrecompra, estrela cadente. Medir esses sinais apenas
+ * comprado não descreve nada.
+ *
+ * O valor é numérico, e não a string dos outros enums deste arquivo, porque ele
+ * É o multiplicador do retorno: `direcao * (saida - entrada) / entrada` vale
+ * para os dois lados sem ramificação. Mesma convenção do ambiente de simulação
+ * do backend.
+ */
+export const TradeDirection = Object.freeze({
+  COMPRA: 1,
+  VENDA: -1,
+});
+
 export const MapRegion = Object.freeze({
   WORLD: 'world',
   AMERICAS: '019',

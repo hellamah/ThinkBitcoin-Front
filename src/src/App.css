@@ -3240,6 +3240,153 @@
   color: var(--warning, #ff9800);
 }
 
+/* Simulação de estratégia */
+.simulation-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 18px;
+  margin: 16px 0 20px;
+}
+
+.simulation-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* O rótulo do campo alinha à esquerda; o .pill-group-label centraliza por
+   padrão porque nasceu ao lado de botões, não acima deles. */
+.simulation-campo .pill-group-label {
+  align-self: flex-start;
+}
+
+.simulation-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.simulation-campo-num input,
+.simulation-campo select {
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.85rem;
+  padding: 7px 10px;
+}
+
+.simulation-campo-num input {
+  /* Largura fixa: os três campos numéricos ficam alinhados entre si, e o
+     campo não estica ao digitar. */
+  width: 92px;
+}
+
+.simulation-campo select {
+  min-width: 190px;
+}
+
+.simulation-campo-num input:focus,
+.simulation-campo select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.simulation-aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--surface-subtle);
+  border-left: 3px solid var(--warning, #ff9800);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.simulation-aviso svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--warning, #ff9800);
+}
+
+.simulation-vazio {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  padding: 14px 0;
+}
+
+/* Janela analisada. Discreta de propósito: é contexto permanente, não alerta —
+   mas precisa estar visível, porque separa "a estratégia não funciona" de "a
+   janela não tinha dado". */
+.simulation-janela {
+  color: var(--text-faint);
+  font-size: 0.76rem;
+  margin: -8px 0 16px;
+  font-family: "Share Tech Mono", monospace;
+}
+
+/* Amostra curta demais para concluir: os números continuam legíveis, mas
+   param de parecer resultado. Mesmo tratamento da linha sem significância no
+   laboratório de sinais. */
+.simulation-fraco {
+  opacity: 0.55;
+}
+
+.simulation-curva {
+  margin-top: 22px;
+}
+
+/* O Chart.js dimensiona o canvas pelo contêiner posicionado mais próximo.
+   Sem `position: relative` aqui ele mede o ancestral errado e o canvas nasce
+   mais largo que o painel — mesmo motivo pelo qual .chart-container existe. */
+.simulation-curva-container {
+  position: relative;
+  width: 100%;
+  height: 220px;
+}
+
+.simulation-curva h3,
+.simulation-holdout h3 {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+
+.simulation-holdout {
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.simulation-trades {
+  margin-top: 22px;
+  /* A lista de operações pode ser longa; rolar dentro do painel evita que ela
+     empurre o resto do dashboard para fora da tela. */
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+@media (max-width: 600px) {
+  .simulation-controls {
+    gap: 14px;
+  }
+
+  .simulation-campo select {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .simulation-campo:has(select) {
+    width: 100%;
+  }
+}
+
 /* Selo de candle atípico na tabela de histórico */
 .anomaly-badge {
   display: inline-flex;
