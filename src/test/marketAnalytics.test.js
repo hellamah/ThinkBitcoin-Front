@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { compararMoedas, derivarAnalytics } from '../src/utils/marketAnalytics'
+import { compararMoedas, derivarAnalytics, recortarJanela } from '../src/utils/marketAnalytics'
 
 // A API entrega do mais recente ao mais antigo (ordemAsc=false).
 const registro = (over = {}) => ({
@@ -22,6 +22,97 @@ const entrada = (historico, fg = []) => ({
   historicosPorMoeda: { BTC: historico },
   fearGreedPorMoeda: { BTC: fg },
   moedasFiltro: ['BTC'],
+})
+
+describe('utils/marketAnalytics › recortarJanela', () => {
+  // A série carregada traz alguns dias ANTES do período escolhido para que
+  // Bollinger e RSI cheguem aquecidos. Esses candles alimentam indicador, mas
+  // não são período de análise: contá-los faz o painel anunciar mais candles do
+  // que o filtro da tela pediu.
+  const comHora = (hora) => registro({ horaReferencia: hora })
+
+  const SERIE = [
+    comHora('2026-01-01T05:00:00Z'),
+    comHora('2026-01-01T04:00:00Z'),
+    comHora('2026-01-01T03:00:00Z'),
+    comHora('2026-01-01T02:00:00Z'), // aquecimento
+    comHora('2026-01-01T01:00:00Z'), // aquecimento
+  ]
+
+  it('deve manter apenas o que está dentro da janela', () => {
+    expect(recortarJanela(SERIE, '2026-01-01T03:00:00Z')).toHaveLength(3)
+  })
+
+  it('deve devolver a série inteira sem recorte pedido', () => {
+    expect(recortarJanela(SERIE, null)).toHaveLength(5)
+    expect(recortarJanela(SERIE, undefined)).toHaveLength(5)
+  })
+
+  it('deve degradar para a série inteira com recorte inutilizável', () => {
+    // Carimbo em formato inesperado quase nunca significa "janela vazia";
+    // significa que a leitura falhou. Apagar o painel seria pior do que voltar
+    // ao comportamento anterior.
+    expect(recortarJanela(SERIE, 'nao e data')).toHaveLength(5)
+    expect(recortarJanela(SERIE, '2027-01-01T00:00:00Z')).toHaveLength(5)
+  })
+
+  it('deve recusar entrada que não é série', () => {
+    expect(recortarJanela(null, '2026-01-01T03:00:00Z')).toEqual([])
+  })
+})
+
+describe('utils/marketAnalytics › janela do desempenho', () => {
+  const comPreco = (hora, preco) =>
+    registro({ horaReferencia: hora, precoFechamento: preco })
+
+  // Cronologicamente: 50 → 100 no aquecimento, depois 100 → 110 na janela.
+  const SERIE = [
+    comPreco('2026-01-01T04:00:00Z', 110),
+    comPreco('2026-01-01T03:00:00Z', 100),
+    comPreco('2026-01-01T02:00:00Z', 50),
+  ]
+
+  it('deve medir o retorno só do período escolhido', () => {
+    const semRecorte = derivarAnalytics({
+      historicosPorMoeda: { BTC: SERIE },
+      fearGreedPorMoeda: { BTC: [] },
+      moedasFiltro: ['BTC'],
+    })
+    // Sem recorte, o retorno pega o salto do aquecimento: 50 → 110.
+    expect(semRecorte.desempenho.retorno).toBeCloseTo(120, 6)
+    expect(semRecorte.desempenho.amostras).toBe(3)
+
+    const comRecorte = derivarAnalytics({
+      historicosPorMoeda: { BTC: SERIE },
+      fearGreedPorMoeda: { BTC: [] },
+      moedasFiltro: ['BTC'],
+      aPartirDe: '2026-01-01T03:00:00Z',
+    })
+    // Com recorte, só 100 → 110.
+    expect(comRecorte.desempenho.retorno).toBeCloseTo(10, 6)
+    expect(comRecorte.desempenho.amostras).toBe(2)
+  })
+
+  it('deve manter as leituras de estado sobre a série inteira', () => {
+    // ATR, VWAP e osciladores precisam do aquecimento; só o desempenho é
+    // recortado. `amostras` continua descrevendo a série carregada.
+    const r = derivarAnalytics({
+      historicosPorMoeda: { BTC: SERIE },
+      fearGreedPorMoeda: { BTC: [] },
+      moedasFiltro: ['BTC'],
+      aPartirDe: '2026-01-01T03:00:00Z',
+    })
+    expect(r.amostras).toBe(3)
+  })
+
+  it('deve recortar também o comparativo entre moedas', () => {
+    const c = compararMoedas(
+      { BTC: SERIE, ETH: SERIE },
+      ['BTC', 'ETH'],
+      '2026-01-01T03:00:00Z'
+    )
+    c.forEach((linha) => expect(linha.retorno).toBeCloseTo(10, 6))
+  })
 })
 
 describe('utils/marketAnalytics › derivarAnalytics', () => {

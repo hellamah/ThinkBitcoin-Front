@@ -18,6 +18,40 @@ const SPARKLINE_POINTS = 40
 const somar = (registros, campo) =>
   registros.reduce((acc, r) => acc + (paraNumero(r?.[campo]) ?? 0), 0)
 
+/**
+ * Recorta a série ao período escolhido, descartando a margem de aquecimento.
+ *
+ * A distinção importa porque as leituras deste módulo são de dois tipos. As de
+ * ESTADO — fluxo, volatilidade, ticket, ATR, VWAP, osciladores — descrevem
+ * "como está agora" e precisam dos candles anteriores para o indicador chegar
+ * aquecido. As de PERÍODO — retorno, drawdown, win rate — descrevem "o que
+ * aconteceu na janela", e incluir o aquecimento nelas faz o painel medir dias
+ * que o usuário não pediu e anunciar mais candles do que o filtro escolheu.
+ *
+ * @param {Array<object>} registros
+ * @param {string|number|null} aPartirDe
+ * @returns {Array<object>} - A própria série quando não há recorte utilizável.
+ */
+export const recortarJanela = (registros, aPartirDe) => {
+  if (!Array.isArray(registros)) return []
+  if (aPartirDe === null || aPartirDe === undefined) return registros
+
+  const limite = new Date(aPartirDe).getTime()
+  if (!Number.isFinite(limite)) return registros
+
+  const recortado = registros.filter((r) => {
+    const bruto = r?.horaReferencia ?? r?.HoraReferencia ?? r?.dataHora ?? r?.DataHora
+    if (!bruto) return false
+    const t = new Date(bruto).getTime()
+    return Number.isFinite(t) && t >= limite
+  })
+
+  // Recorte que não sobra nada quase sempre significa carimbo em formato
+  // inesperado, e não janela vazia. Devolver a série inteira degrada para o
+  // comportamento anterior em vez de apagar o painel.
+  return recortado.length > 0 ? recortado : registros
+}
+
 // Leitura pontual onde ausência e zero são equivalentes para a exibição: o
 // card mostra "0" de qualquer forma.
 const valorOuZero = (v) => paraNumero(v) ?? 0
@@ -35,19 +69,23 @@ const valorOuZero = (v) => paraNumero(v) ?? 0
  * @returns {Array<object>|null} - Ordenado por retorno; null fora do modo
  *   comparativo, onde o painel de moeda única já cobre.
  */
-export const compararMoedas = (historicosPorMoeda, moedasFiltro) => {
+export const compararMoedas = (historicosPorMoeda, moedasFiltro, aPartirDe = null) => {
   if (!Array.isArray(moedasFiltro) || moedasFiltro.length < 2) return null
 
   const linhas = moedasFiltro
     .map((sigla) => {
       const historico = historicosPorMoeda?.[sigla] || []
-      const desempenho = calcularDesempenho(historico)
+      // Retorno e drawdown descrevem o período escolhido; o VWAP é acumulado e
+      // fica com a série inteira, que é o que dá sentido a "preço médio do
+      // período" na primeira leitura.
+      const naJanela = recortarJanela(historico, aPartirDe)
+      const desempenho = calcularDesempenho(naJanela)
       if (!desempenho) return null
 
       return {
         sigla,
         ...desempenho,
-        volatilidade: median(historico.map((r) => r?.precoVolatilidadePercentual)),
+        volatilidade: median(naJanela.map((r) => r?.precoVolatilidadePercentual)),
         // Onde o preço está em relação ao custo médio ponderado do período.
         desvioVwap: resumirVwap(historico)?.desvioAtual ?? null,
       }
@@ -74,6 +112,7 @@ export const derivarAnalytics = ({
   historicosPorMoeda,
   fearGreedPorMoeda,
   moedasFiltro,
+  aPartirDe = null,
 }) => {
   // Fluxo e volatilidade são leituras de um ativo específico: somar moedas
   // diferentes não produz nenhum número interpretável.
@@ -165,7 +204,11 @@ export const derivarAnalytics = ({
     vwap: resumirVwap(historico),
     osciladores: resumirOsciladores(historico),
     atr: calcularAtr(historico),
-    desempenho: calcularDesempenho(historico),
+    // A ÚNICA leitura de período deste bloco. Todas as acima descrevem o estado
+    // atual e precisam da margem de aquecimento; esta descreve a janela, e
+    // incluir o aquecimento nela faria o painel anunciar mais candles do que o
+    // filtro da tela pediu.
+    desempenho: calcularDesempenho(recortarJanela(historico, aPartirDe)),
     amostras: historico.length,
   }
 }

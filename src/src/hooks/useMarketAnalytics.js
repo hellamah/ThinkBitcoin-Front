@@ -10,9 +10,10 @@ export default function useMarketAnalytics({
   historicosPorMoeda,
   fearGreedPorMoeda,
   moedasFiltro,
+  aPartirDe = null,
 }) {
   return useMemo(
-    () => derivarAnalytics({ historicosPorMoeda, fearGreedPorMoeda, moedasFiltro }),
-    [historicosPorMoeda, fearGreedPorMoeda, moedasFiltro]
+    () => derivarAnalytics({ historicosPorMoeda, fearGreedPorMoeda, moedasFiltro, aPartirDe }),
+    [historicosPorMoeda, fearGreedPorMoeda, moedasFiltro, aPartirDe]
   )
 }

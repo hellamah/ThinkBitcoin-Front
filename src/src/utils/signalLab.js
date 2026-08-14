@@ -98,18 +98,40 @@ export const montarSerieDeSinais = (registros) => {
  *
  * @param {Array<object>} registros - Série na ordem da API (mais recente
  *   primeiro, ordemAsc=false).
- * @param {{horizonte?: number}} opcoes - Quantos candles à frente medir.
+ * @param {{horizonte?: number, aPartirDe?: string|number|null}} opcoes -
+ *   `horizonte` é quantos candles à frente medir. `aPartirDe` delimita o
+ *   período ANALISADO: os candles anteriores continuam alimentando os
+ *   indicadores de janela móvel, mas não entram na base nem nas ocorrências.
  * @returns {{
  *   horizonte: number,
  *   base: {ocorrencias: number, taxaAlta: number, retornoMedio: number},
  *   sinais: Array<object>
  * }|null}
  */
-export const analisarSinais = (registros, { horizonte = 1 } = {}) => {
+export const analisarSinais = (registros, { horizonte = 1, aPartirDe = null } = {}) => {
   if (!Array.isArray(registros) || registros.length === 0) return null
   if (!Number.isInteger(horizonte) || horizonte < 1) return null
 
   const serie = montarSerieDeSinais(registros)
+
+  // A série carregada inclui a margem de aquecimento: o dashboard pede alguns
+  // dias ANTES do período escolhido para que Bollinger e RSI cheguem prontos ao
+  // primeiro candle exibido. Esses candles alimentam o indicador, mas não são
+  // período de análise — contá-los faria o painel dizer "239 candles" onde o
+  // usuário pediu sete dias, e discordar da simulação ao lado sobre a mesma
+  // janela.
+  const limite = aPartirDe !== null ? new Date(aPartirDe).getTime() : null
+  const dentroDaJanela = (entrada) => {
+    if (limite === null || !Number.isFinite(limite)) return true
+    const bruto =
+      entrada?.registro?.horaReferencia ??
+      entrada?.registro?.HoraReferencia ??
+      entrada?.registro?.dataHora ??
+      entrada?.registro?.DataHora
+    if (!bruto) return false
+    const t = new Date(bruto).getTime()
+    return Number.isFinite(t) && t >= limite
+  }
 
   const porSinal = new Map()
   const retornosBase = []
@@ -118,6 +140,8 @@ export const analisarSinais = (registros, { horizonte = 1 } = {}) => {
   // Ficam de fora do sinal E da base, senão a comparação deixa de ser
   // sobre o mesmo conjunto de instantes.
   for (let i = 0; i < serie.length - horizonte; i++) {
+    if (!dentroDaJanela(serie[i])) continue
+
     const atual = fechamentoDe(serie[i].registro)
     const futuro = fechamentoDe(serie[i + horizonte].registro)
     if (atual === null || futuro === null) continue

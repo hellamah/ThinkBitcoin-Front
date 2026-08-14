@@ -307,7 +307,11 @@ export default function Dashboard() {
   const analytics = useMarketAnalytics({
     historicosPorMoeda,
     fearGreedPorMoeda,
-    moedasFiltro
+    moedasFiltro,
+    // Recorta as leituras de PERÍODO à janela escolhida. As de estado — fluxo,
+    // volatilidade, ATR, VWAP — seguem usando a série inteira, que é onde a
+    // margem de aquecimento serve.
+    aPartirDe: dataInicio || null
   })
 
   // Régua de anomalia por moeda. Sai da série completa (historicosPorMoeda), e
@@ -326,8 +330,15 @@ export default function Dashboard() {
   // ativos diferentes numa mesma taxa não descreve nenhum deles.
   const analiseSinais = useMemo(() => {
     if (moedasFiltro.length !== 1) return null
-    return analisarSinais(historicosPorMoeda?.[moedasFiltro[0]], { horizonte: horizonteSinal })
-  }, [historicosPorMoeda, moedasFiltro, horizonteSinal])
+    // `aPartirDe` recorta o período ANALISADO. A série carregada traz alguns
+    // dias a mais só para aquecer Bollinger e RSI; sem o recorte, o painel
+    // media esses candles junto e anunciava mais amostras do que o filtro da
+    // tela pediu.
+    return analisarSinais(historicosPorMoeda?.[moedasFiltro[0]], {
+      horizonte: horizonteSinal,
+      aPartirDe: dataInicio || null,
+    })
+  }, [historicosPorMoeda, moedasFiltro, horizonteSinal, dataInicio])
 
   // ------ simulação de estratégia ------
   //
@@ -416,8 +427,8 @@ export default function Dashboard() {
   })
 
   const comparativo = useMemo(
-    () => compararMoedas(historicosPorMoeda, moedasFiltro),
-    [historicosPorMoeda, moedasFiltro]
+    () => compararMoedas(historicosPorMoeda, moedasFiltro, dataInicio || null),
+    [historicosPorMoeda, moedasFiltro, dataInicio]
   )
 
   // As consultas usam ordemAsc=false, então o backend devolve da leitura mais

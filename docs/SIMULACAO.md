@@ -481,6 +481,36 @@ Segurar 1 na simulação cobre um candle; horizonte 1 no laboratório atravessa
 dois fechamentos. Os dois painéis **não vão bater** para o mesmo número — e não
 deveriam, porque medem coisas diferentes.
 
+### A-05 — Painéis mediam a margem de aquecimento ✅ **corrigido**
+
+> `analisarSinais` ganhou `aPartirDe`, e as leituras de **período** de
+> `marketAnalytics` passaram por `recortarJanela`. Os sinais e os indicadores
+> continuam sendo calculados sobre a série inteira — é ali que o aquecimento
+> serve —, mas a base, as ocorrências e o desempenho contam só a janela
+> escolhida.
+>
+> **O escopo cresceu durante a correção, e por um bom motivo.** Consertar só o
+> laboratório deixou na tela `167` candles ao lado de um card anunciando `240`:
+> dois painéis vizinhos se contradizendo, o que é pior que os dois errarem
+> junto. `calcularDesempenho` e `compararMoedas` foram junto.
+>
+> A separação que ficou explícita no código: `derivarAnalytics` produz leituras
+> de **estado** (fluxo, volatilidade, ticket, ATR, VWAP, osciladores), que
+> precisam do aquecimento, e **uma** leitura de período (`desempenho`), que não.
+> Só essa última é recortada.
+>
+> **Efeito visível na janela de 7 dias:** o laboratório passou de 239 para 167
+> ocorrências na base, o card de 240 para 168 candles, e o retorno do período de
+> `+9,29%` para `−6,50%` — o valor anterior incluía a alta que aconteceu durante
+> os três dias de aquecimento.
+>
+> `recortarJanela` degrada para a série inteira quando o recorte não deixa nada:
+> carimbo em formato inesperado quase nunca significa janela vazia, e apagar o
+> painel seria pior que voltar ao comportamento anterior.
+
+<details>
+<summary>Diagnóstico original</summary>
+
 ### A-05 — O laboratório de sinais **não** filtra pelo período 🟡
 
 `analisarSinais` roda sobre a série inteira recebida, **incluindo os 3 dias de
@@ -493,6 +523,8 @@ alguém a reporte como bug.
 
 Corrigir o laboratório está fora desta entrega: mudaria números já exibidos hoje,
 o que é decisão própria.
+
+</details>
 
 ---
 
@@ -923,10 +955,38 @@ não tem trabalho a fazer no servidor: quem descreve o período são `dataInicio
 > remoção seria construir estrutura para provar uma linha apagada. Verificado
 > pelo fonte e pela ausência de regressão nos 445 testes.
 
-### B-03 — `Count()` antes da paginação 🟡
+### B-03 — `Count()` antes da paginação ✅ **medido, e a premissa estava errada**
+
+Medido em 2026-08-14 contra o banco do cluster, com a janela que a simulação de
+fato pede (183 dias de BTC, tabela com 20.958 linhas):
+
+| Etapa | Tempo | Leituras lógicas |
+|---|---|---|
+| `COUNT(*)` com filtro de data | **0 ms** | **27** |
+| Página de 4.285 linhas com a projeção | ~77 ms | 1.173 |
+
+**O `Count()` não é o custo.** 27 leituras confirmam que ele resolve pelo índice
+de `HoraReferencia` sem tocar na tabela. O que custa é a projeção — e ela seria
+paga de qualquer forma, com ou sem a contagem.
+
+Uma observação que a medição revelou e que vale guardar: as 1.173 leituras são
+menos que as 4.285 linhas, ou seja, o otimizador está **varrendo** a tabela em
+vez de fazer 4.285 buscas de chave. A consequência é que o custo de uma janela
+de tamanho fixo cresce com o tamanho **total** da tabela, não com o da janela.
+Hoje são 24 linhas por dia por moeda, então isso demora anos para importar.
+
+**Nada a fazer.** Um índice cobrindo as ~25 colunas resolveria, mas duplicaria a
+tabela em disco para economizar 60 ms numa operação que acontece a cada troca de
+moeda. Fica anotado como o que fazer *se* o volume ou o uso crescerem.
+
+<details>
+<summary>Diagnóstico original</summary>
+
 `FuncaoObterValorMoeda.ObterHistorico` conta a query inteira antes de paginar.
 Com o índice do V2 o custo é aceitável na janela filtrada; vale medir se B-01
 esticar a janela.
+
+</details>
 
 ### B-04 — Switch fixo de 10 moedas 🟡
 O roteamento sigla→tabela é `switch` literal. **Simulador de portfólio = N

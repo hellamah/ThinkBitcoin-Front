@@ -157,6 +157,62 @@ describe('utils/signalLab › significância estatística', () => {
   })
 })
 
+describe('utils/signalLab › janela analisada', () => {
+  // A série carregada inclui a margem de aquecimento que o dashboard pede antes
+  // do período escolhido. Sem `aPartirDe`, o laboratório media aqueles candles
+  // também — e reportava mais amostras do que o filtro da tela pediu, além de
+  // discordar da simulação ao lado sobre a mesma janela.
+
+  const comHora = (close, hora, forma = NEUTRO) => ({
+    precoFechamento: close,
+    precoCorpoCandle: forma.corpo,
+    precoSombraSuperior: forma.sup,
+    precoSombraInferior: forma.inf,
+    precoAmplitude: forma.corpo + forma.sup + forma.inf,
+    precoVolume: 100,
+    precoPercentualVariacao: 0,
+    horaReferencia: hora,
+  })
+
+  // Seis candles horários; os três primeiros são aquecimento.
+  const SERIE = comoDaApi([
+    comHora(100, '2026-01-01T00:00:00Z'),
+    comHora(110, '2026-01-01T01:00:00Z'),
+    comHora(120, '2026-01-01T02:00:00Z'),
+    comHora(130, '2026-01-01T03:00:00Z'),
+    comHora(140, '2026-01-01T04:00:00Z'),
+    comHora(150, '2026-01-01T05:00:00Z'),
+  ])
+
+  it('deve medir a série inteira quando não há recorte', () => {
+    // Cinco candles têm futuro dentro da janela.
+    expect(analisarSinais(SERIE).base.ocorrencias).toBe(5)
+  })
+
+  it('deve contar apenas os candles do período escolhido', () => {
+    // A partir das 03:00 sobram três candles, e o último não tem futuro.
+    const r = analisarSinais(SERIE, { aPartirDe: '2026-01-01T03:00:00Z' })
+    expect(r.base.ocorrencias).toBe(2)
+  })
+
+  it('deve medir os retornos do período, não os do aquecimento', () => {
+    // 130→140 e 140→150. Se o aquecimento entrasse, a média incluiria os saltos
+    // de 100→110 e 110→120, que são percentualmente maiores.
+    const r = analisarSinais(SERIE, { aPartirDe: '2026-01-01T03:00:00Z' })
+    const esperado = ((10 / 130) * 100 + (10 / 140) * 100) / 2
+    expect(r.base.retornoMedio).toBeCloseTo(esperado, 6)
+  })
+
+  it('deve ignorar recorte inutilizável em vez de zerar a análise', () => {
+    expect(analisarSinais(SERIE, { aPartirDe: 'nao e data' }).base.ocorrencias).toBe(5)
+    expect(analisarSinais(SERIE, { aPartirDe: null }).base.ocorrencias).toBe(5)
+  })
+
+  it('deve devolver null quando o recorte não deixa nada para medir', () => {
+    expect(analisarSinais(SERIE, { aPartirDe: '2027-01-01T00:00:00Z' })).toBeNull()
+  })
+})
+
 describe('utils/signalLab › famílias de alinhamento posicional', () => {
   // Por que este bloco existe:
   //
