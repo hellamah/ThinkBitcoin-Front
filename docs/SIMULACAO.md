@@ -985,6 +985,38 @@ que a validação era "a única coluna não usada para ordenar", o que deixou de
 verdade. Agora aponta o par e diz que é **a queda entre eles** que separa achado
 de sorte.
 
+### A-15 — A tabela listava mais operações do que o card contava ✅ **corrigido**
+
+A tabela renderiza **todas** as operações; o card de retorno conta
+`tradesConcluidos`, que exclui as que terminaram por fim da janela. Quem
+contasse as linhas achava um número e lia outro logo acima, sem nada na tela
+explicando a diferença.
+
+A linha já saía esmaecida, mas isso sinaliza que ela é **diferente**, não que
+ela está **fora da conta** — e é a segunda coisa que reconcilia os dois números.
+
+A tabela ganhou título com o total, e a ressalva aparece **só quando há
+divergência**: anunciar "0 sem desfecho" no caso normal responderia uma pergunta
+que ninguém fez.
+
+Conferido na tela nos dois casos. Segurando 5 candles: `Operações: 49` no título
+e 49 no card, sem ressalva. Segurando 24, que deixa posição aberta na borda:
+
+| | |
+|---|---|
+| Título da tabela | `Operações: 40` |
+| Linhas | 40, uma esmaecida com motivo "Janela acabou" |
+| Card de retorno | `Operações: 39` |
+| Ressalva | *"1 operação(ões) ainda aberta(s) quando a janela acabou… as métricas contam as 39 que tiveram desfecho."* |
+
+O título e a ressalva ficam **fora** do contêiner que rola. Presos lá dentro,
+sumiriam na primeira rolagem — justamente quando a lista é longa o bastante para
+alguém querer saber quantas linhas ela tem.
+
+A forma "operação(ões)" acompanha o `simulationGaps`, que é o vizinho mais
+próximo em função (uma contagem com explicação). Consistência com quem está do
+lado vale mais que a redação marginalmente melhor de uma chave isolada.
+
 ### A-07 — Zero operações não é retorno zero 🟡
 
 Encontrado ao ver a tela funcionando, não nos testes.

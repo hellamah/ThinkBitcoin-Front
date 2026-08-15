@@ -3380,6 +3380,7 @@
 }
 
 .simulation-curva h3,
+.simulation-operacoes h3,
 .simulation-holdout h3 {
   font-size: 0.9rem;
   font-weight: 700;
@@ -3433,8 +3434,14 @@
   color: var(--warning, #ff9800);
 }
 
-.simulation-trades {
+/* O título e a ressalva ficam FORA do contêiner que rola: presos lá dentro,
+   sumiriam na primeira rolagem, justamente quando a lista é longa o bastante
+   para alguém querer saber quantas linhas ela tem. */
+.simulation-operacoes {
   margin-top: 22px;
+}
+
+.simulation-trades {
   /* A lista de operações pode ser longa; rolar dentro do painel evita que ela
      empurre o resto do dashboard para fora da tela. */
   max-height: 320px;

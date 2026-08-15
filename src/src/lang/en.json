@@ -232,6 +232,7 @@
   "simulationWinRate": "Win rate",
   "simulationProfitFactor": "Profit factor",
   "simulationTrades": "Trades",
+  "simulationOpenAtEnd": "{{count}} trade(s) still open when the window ended. They move the equity curve, but they are neither a win nor a loss — the metrics count the {{concluidas}} that reached an outcome.",
   "simulationExposure": "Exposure",
   "simulationTotalCost": "Total cost",
   "simulationEquity": "Equity curve",

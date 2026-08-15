@@ -257,6 +257,12 @@ export default function SimulationPanel({
   const { metricas, trades, descontinuidades } = resultado
   const fraco = metricas.amostraInsuficiente
 
+  // Operações que a janela não viu terminar. Elas movem a curva de capital —
+  // o dinheiro foi comprometido — mas não são acerto nem erro, então ficam fora
+  // do win rate e do profit factor. É a diferença entre o total da tabela e a
+  // contagem que o card exibe.
+  const naoConcluidas = metricas.totalTrades - metricas.tradesConcluidos
+
   return (
     <section className="panel simulation-panel">
       {cabecalho}
@@ -648,8 +654,29 @@ export default function SimulationPanel({
           )}
 
           {/* ---------- Operações ---------- */}
-          <div className="correlation-scroll simulation-trades">
-            <table className="signal-lab-table">
+          {/* A tabela lista TODAS as operações; o card de retorno conta só as
+              concluídas. Sem dizer isso, quem contasse as linhas achava um
+              número e lia outro logo acima, sem nada na tela explicando a
+              diferença — o esmaecimento da linha sinaliza que ela é diferente,
+              não que ela está fora da conta.
+
+              O título traz o total, e a ressalva só aparece quando há de fato
+              divergência. Anunciar "0 sem desfecho" no caso normal seria
+              responder uma pergunta que ninguém fez. */}
+          <div className="simulation-operacoes">
+            <h3>
+              {t('simulationTrades')}: {metricas.totalTrades}
+            </h3>
+            {naoConcluidas > 0 && (
+              <p className="correlation-hint">
+                {t('simulationOpenAtEnd', {
+                  count: naoConcluidas,
+                  concluidas: metricas.tradesConcluidos,
+                })}
+              </p>
+            )}
+            <div className="correlation-scroll simulation-trades">
+              <table className="signal-lab-table">
               <thead>
                 <tr>
                   <th scope="col">{t('simulationTradeEntry')}</th>
@@ -702,7 +729,8 @@ export default function SimulationPanel({
                   </tr>
                 ))}
               </tbody>
-            </table>
+              </table>
+            </div>
           </div>
         </>
       )}

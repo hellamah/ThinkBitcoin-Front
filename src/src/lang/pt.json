@@ -232,6 +232,7 @@
   "simulationWinRate": "Taxa de acerto",
   "simulationProfitFactor": "Profit factor",
   "simulationTrades": "Operações",
+  "simulationOpenAtEnd": "{{count}} operação(ões) ainda aberta(s) quando a janela acabou. Elas movem a curva de capital, mas não são acerto nem erro — as métricas contam as {{concluidas}} que tiveram desfecho.",
   "simulationExposure": "Exposição",
   "simulationTotalCost": "Custo total",
   "simulationEquity": "Curva de capital",

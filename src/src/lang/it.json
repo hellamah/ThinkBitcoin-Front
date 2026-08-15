@@ -232,6 +232,7 @@
   "simulationWinRate": "Tasso di successo",
   "simulationProfitFactor": "Profit factor",
   "simulationTrades": "Operazioni",
+  "simulationOpenAtEnd": "{{count}} operazione/i ancora aperta/e alla fine della finestra. Muovono la curva di capitale, ma non sono né successo né errore — le metriche contano le {{concluidas}} che hanno avuto un esito.",
   "simulationExposure": "Esposizione",
   "simulationTotalCost": "Costo totale",
   "simulationEquity": "Curva di capitale",
