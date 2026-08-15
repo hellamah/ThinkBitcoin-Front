@@ -872,6 +872,92 @@ foram simulados.
 A `prop` `candlesAnalisados` saiu do painel junto: o dado já chegava dentro de
 `resultado`, e mantê-la seria oferecer duas respostas para a mesma pergunta.
 
+### A-11 — A régua sumia justamente do elemento mais olhado ✅ **corrigido**
+
+O cabeçalho deste painel declara o princípio: *"O buy & hold fica LADO A LADO
+com o retorno, não escondido num rodapé. Um retorno de 12% não significa nada
+sem saber que segurar rendeu 15%."* Os cards cumpriam. **A curva de capital
+não** — ela desenhava só a estratégia e a exposição.
+
+O gráfico é o elemento maior e o mais olhado dos dois, então desenhar só a
+estratégia ali desfazia no desenho o que os números faziam questão de dizer. E
+o par de percentuais não responde à pergunta que as duas linhas lado a lado
+respondem: **perdeu para o buy & hold o caminho todo, ou ganhou até o fim e
+devolveu no último mês?**
+
+A régua entra em unidades de **capital**, não em percentual — é o que permite as
+duas dividirem o eixo — e parte do mesmo primeiro fechamento que o card usa. Se
+as duas leituras divergissem, a tela estaria discutindo consigo mesma sobre o
+mesmo número; um teste crava a igualdade.
+
+Detalhes que a verificação na tela mudou, e não os testes:
+
+- **A cor.** `--text-faint` (0,4 de opacidade) desenhava uma linha que existia
+  nos pixels e não dava para seguir com o olho. Subiu para `--text-muted`.
+  Cinza, e não colorida, para não disputar com o ouro da curva nem com o verde
+  da exposição.
+- **A legenda passou a existir.** Com três linhas no mesmo eixo, sem ela o
+  leitor adivinha qual é qual — e adivinhar errado aqui inverte a conclusão. O
+  tooltip ganhou o nome da série pelo mesmo motivo.
+- **A altura do contêiner subiu de 220 para 250px**, porque a legenda come uma
+  faixa embaixo e o que ela ganhava em clareza a curva perdia em altura.
+
+**Verificado por injeção:** fazer o motor parar de emitir `precoFechamento` na
+curva derruba 2 testes; medir a régua a partir de outro candle derruba 4. O
+teste que liga motor e desenho é o que importa — os de `equityChart` rodam sobre
+pontos sintéticos e continuariam passando com o motor mudo.
+
+### A-12 — A tabela de operações não dizia *quando* ✅ **corrigido**
+
+Entrada, saída, candles, motivo, resultado — e nenhuma data. `instanteEntrada` e
+`instanteSaida` já viajavam em todo trade desde o passo 3 e nunca eram
+renderizados.
+
+Em 180 dias e 76 operações, isso torna duas leituras impossíveis: saber se os
+ganhos estão concentrados num mês só, e achar na tabela a linha correspondente a
+um trecho da curva de capital.
+
+O instante entra como segunda linha **sob o preço**, não como coluna nova: ele
+pertence ao preço que acompanha, e separá-los faria o olho percorrer a tabela
+inteira para juntar de novo o que é um dado só.
+
+### A-13 — O ranking não declarava sob qual saída foi montado ✅ **corrigido**
+
+O texto dizia "com a MESMA saída e o MESMO custo" sem dizer **qual**. A ordem
+das linhas é inteiramente condicional a direção, horizonte, stop, alvo e custo —
+trocar qualquer um reordena a tabela —, e sem declará-los o ranking se lia como
+veredito sobre os sinais em vez de sobre a combinação que está na tela.
+
+A linha é montada a partir dos rótulos que os próprios controles já usam:
+**nenhuma chave de tradução nova**, e nenhuma chance de ela discordar dos botões
+logo acima. Os rótulos trazem o `%` embutido ("Alvo %"), o que serve num campo
+de formulário e atrapalha numa frase — a unidade sai do rótulo e volta junto do
+número.
+
+### A-14 — A coluna que faltava era o AJUSTE, não a validação ✅ **corrigido**
+
+`alfaAjuste` era calculado para as catorze estratégias e **nunca exibido** —
+única ocorrência do campo em todo o `src/`. Custava um terço das passadas do
+ranking para não ir a lugar nenhum.
+
+A saída óbvia era apagá-lo. Foi o contrário, e por um motivo que só apareceu ao
+olhar o que a tabela comparava: **a coluna de alfa é da janela cheia, que CONTÉM
+o trecho de validação.** Comparar as duas é comparar um número com um pedaço
+dele mesmo. Ajuste e validação não se sobrepõem — a queda entre os dois é a
+única medida limpa de quanto o resultado sobrevive fora da amostra.
+
+Primeira leitura na tela, que é o argumento inteiro em três números:
+
+| Sinal | Alfa (janela cheia) | Ajuste | Validação |
+|---|---|---|---|
+| Rompeu banda superior | +545,2% | +324,4% (37 ops) | **+53,7%** (11 ops) |
+| RSI em sobrecompra | +426,9% | +247,6% (48 ops) | **+53,0%** (9 ops) |
+
+O `simulationRankingWarning` foi reescrito nos cinco idiomas junto: ele afirmava
+que a validação era "a única coluna não usada para ordenar", o que deixou de ser
+verdade. Agora aponta o par e diz que é **a queda entre eles** que separa achado
+de sorte.
+
 ### A-07 — Zero operações não é retorno zero 🟡
 
 Encontrado ao ver a tela funcionando, não nos testes.

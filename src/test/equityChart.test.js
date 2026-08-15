@@ -1,10 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { montarPontosDaCurva, folgaDoEixo } from '../src/utils/equityChart'
 
-const ponto = (capital, emPosicao = false, instante = '2026-01-01T00:00:00Z') => ({
+const ponto = (
+  capital,
+  emPosicao = false,
+  instante = '2026-01-01T00:00:00Z',
+  precoFechamento = null
+) => ({
   instante,
   capital,
   emPosicao,
+  precoFechamento,
 })
 
 describe('utils/equityChart › montarPontosDaCurva', () => {
@@ -41,6 +47,65 @@ describe('utils/equityChart › montarPontosDaCurva', () => {
     )
 
     expect(p.rotulos).toEqual(['2026-01-01T00:00:00Z', '2026-01-01T01:00:00Z'])
+  })
+
+  it('deve desenhar o buy and hold em unidades de capital, partindo do inicial', () => {
+    // As duas linhas dividem o mesmo eixo, então a régua precisa sair em
+    // capital e não em percentual. E precisa PARTIR do capital inicial: se
+    // começassem em pontos diferentes, a distância entre elas mostraria
+    // diferença de escala em vez de diferença de desempenho.
+    const p = montarPontosDaCurva(
+      [
+        ponto(1000, false, '2026-01-01T00:00:00Z', 100),
+        ponto(1000, false, '2026-01-01T01:00:00Z', 110),
+        ponto(1000, false, '2026-01-01T02:00:00Z', 120),
+      ],
+      1000
+    )
+
+    expect(p.buyAndHold).toEqual([1000, 1100, 1200])
+  })
+
+  it('deve medir a régua a partir do primeiro preço, igual à métrica do card', () => {
+    // O card calcula buyAndHold do primeiro ao último fechamento da janela. Se
+    // o gráfico usasse outro ponto de partida, a tela discutiria consigo mesma
+    // sobre o mesmo número — a linha terminaria num lugar que o card desmente.
+    const p = montarPontosDaCurva(
+      [
+        ponto(1000, false, '2026-01-01T00:00:00Z', 200),
+        ponto(1000, false, '2026-01-01T01:00:00Z', 150),
+      ],
+      1000
+    )
+
+    const buyHoldDoCard = ((150 - 200) / 200) * 100
+    const finalDaLinha = p.buyAndHold[p.buyAndHold.length - 1]
+    expect(((finalDaLinha - 1000) / 1000) * 100).toBeCloseTo(buyHoldDoCard, 10)
+  })
+
+  it('deve caber a régua dentro dos limites do eixo', () => {
+    // Fora dos limites, uma alta forte do ativo sairia cortada pelo topo e a
+    // estratégia parada pareceria estar acompanhando o mercado.
+    const p = montarPontosDaCurva(
+      [
+        ponto(1000, false, '2026-01-01T00:00:00Z', 100),
+        ponto(1000, false, '2026-01-01T01:00:00Z', 300),
+      ],
+      1000
+    )
+
+    expect(p.maximo).toBeGreaterThanOrEqual(3000)
+  })
+
+  it('deve sair toda null quando a curva não traz preço', () => {
+    // Curva antiga, ou candle sem fechamento utilizável: o gráfico simplesmente
+    // não desenha a régua. Inventar um preço ali seria desenhar uma comparação
+    // que ninguém mediu.
+    const p = montarPontosDaCurva([ponto(1000), ponto(1050)], 1000)
+
+    expect(p.buyAndHold).toEqual([null, null])
+    // E sem a régua os limites continuam sendo os de antes.
+    expect(p.maximo).toBe(1050)
   })
 
   it('deve recusar curva vazia ou sem valor utilizável', () => {

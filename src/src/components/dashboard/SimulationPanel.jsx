@@ -27,6 +27,41 @@ const rotuloHorizonte = (n, t) =>
 
 const classeSinal = (v) => (v > 0 ? 'up' : v < 0 ? 'down' : undefined)
 
+/**
+ * A regra de saída em vigor, em uma linha.
+ *
+ * O ranking compara catorze entradas sob a MESMA saída, e sem declarar qual ele
+ * se lê como absoluto: "o martelo rende 27%", quando o que a tabela mede é "o
+ * martelo rende 27% comprado, segurando 5 candles, sem stop e pagando 0,1% por
+ * perna". Trocar qualquer um desses reordena a tabela inteira.
+ *
+ * Montada a partir dos rótulos que os próprios controles já usam — nenhuma
+ * chave de tradução nova, e nenhuma chance de a linha discordar dos botões
+ * logo acima dela.
+ */
+const resumoDaSaida = (parametros, t) => {
+  // Os rótulos dos controles carregam o "%" embutido ("Alvo %", "Custo por
+  // perna %"). Isso serve num campo de formulário e atrapalha numa frase, então
+  // aqui a unidade sai do rótulo e volta junto do número, onde pertence. Vale
+  // nos cinco idiomas — todos terminam o rótulo no mesmo sinal.
+  const semUnidade = (chave) => t(chave).replace(/\s*%\s*$/, '')
+  const percentual = (v) => (v === null || v === undefined ? '—' : mathUtils.formatPercent(v, 2, false))
+
+  return [
+    parametros.direcao === TradeDirection.VENDA ? t('simulationShort') : t('simulationLong'),
+    `${t('simulationHold')}: ${
+      parametros.saidaPorTempo === null ? '—' : rotuloHorizonte(parametros.saidaPorTempo, t)
+    }`,
+    `${t('simulationStopMode')}: ${
+      parametros.modoStop === StopMode.ATR
+        ? t('simulationStopAtr')
+        : percentual(parametros.stopPercentual)
+    }`,
+    `${semUnidade('simulationTarget')}: ${percentual(parametros.alvoPercentual)}`,
+    `${semUnidade('simulationCost')}: ${percentual(parametros.custoPercentual)}`,
+  ].join(' · ')
+}
+
 // Percentual que pode ser null sem virar "0,00%" — a diferença entre "mediu e
 // deu zero" e "não havia o que medir" é justamente o que esta tela não pode
 // borrar.
@@ -105,6 +140,24 @@ export default function SimulationPanel({
           tension: 0.1,
           spanGaps: false,
         },
+        {
+          // A régua. Tracejada, fina e dessaturada de propósito: ela é o fundo
+          // contra o qual a estratégia se mede, não uma segunda estratégia
+          // competindo por atenção. Cinza e não colorida justamente para não
+          // disputar com o ouro da curva nem com o verde da exposição.
+          //
+          // `tick` e não `tickSubtle`: a 0,4 de opacidade a linha existia mas
+          // não dava para seguir ao longo do gráfico, o que é o mesmo que não
+          // desenhá-la.
+          label: t('simulationBuyHold'),
+          data: pontos.buyAndHold,
+          borderColor: cores.tick,
+          backgroundColor: 'transparent',
+          borderWidth: 1.5,
+          borderDash: [5, 4],
+          pointRadius: 0,
+          tension: 0.1,
+        },
       ],
     }
   }, [pontos, cores, t])
@@ -129,12 +182,24 @@ export default function SimulationPanel({
       normalized: true,
       interaction: { mode: 'index', intersect: false },
       plugins: {
-        legend: { display: false },
+        // A legenda passou a ser necessária quando a régua do buy & hold entrou:
+        // com três linhas no mesmo eixo, sem ela o leitor tem de adivinhar qual
+        // é qual — e adivinhar errado aqui inverte a conclusão.
+        legend: {
+          display: true,
+          position: 'bottom',
+          labels: { color: cores.tick, boxWidth: 12, usePointStyle: false },
+        },
         tooltip: {
           backgroundColor: cores.tooltipBg,
           callbacks: {
+            // O nome da série vai junto do valor pelo mesmo motivo da legenda:
+            // três números empilhados sem rótulo não dizem qual é a estratégia
+            // e qual é a régua.
             label: (ctx) =>
-              ctx.parsed.y === null ? null : mathUtils.formatCurrency(ctx.parsed.y),
+              ctx.parsed.y === null
+                ? null
+                : `${ctx.dataset.label}: ${mathUtils.formatCurrency(ctx.parsed.y)}`,
           },
         },
       },
@@ -504,6 +569,11 @@ export default function SimulationPanel({
               <p className="correlation-hint">
                 {t('simulationRankingHint', { total: comparativo.linhas.length })}
               </p>
+              {/* Sob qual saída a tabela foi montada. A ordem das linhas é
+                  inteiramente condicional a isto, e sem declará-lo o ranking se
+                  lê como um veredito sobre os sinais em vez de sobre a
+                  combinação sinal + saída que está na tela agora. */}
+              <p className="simulation-regra-saida">{resumoDaSaida(parametros, t)}</p>
               <div className="correlation-scroll">
                 <table className="signal-lab-table">
                   <thead>
@@ -512,6 +582,11 @@ export default function SimulationPanel({
                       <th scope="col">{t('simulationTrades')}</th>
                       <th scope="col">{t('simulationReturn')}</th>
                       <th scope="col">{t('simulationAlpha')}</th>
+                      {/* Ajuste e validação, lado a lado. É o par que mede
+                          degradação de verdade: eles não se sobrepõem, enquanto
+                          a coluna de alfa (janela cheia) CONTÉM o trecho de
+                          validação e por isso não serve de comparação limpa. */}
+                      <th scope="col">{t('simulationTuning')}</th>
                       <th scope="col">
                         <RotuloComAjuda
                           texto={t('simulationValidation')}
@@ -548,8 +623,13 @@ export default function SimulationPanel({
                         <td className={classeSinal(linha.metricas.alfa)}>
                           {pct(linha.metricas.alfa)}
                         </td>
-                        {/* "Não operou" não é "rendeu zero": a coluna fica
-                            vazia em vez de fingir um resultado. */}
+                        {/* "Não operou" não é "rendeu zero": as colunas ficam
+                            vazias em vez de fingir um resultado. */}
+                        <td className={classeSinal(linha.alfaAjuste)}>
+                          {linha.alfaAjuste === null
+                            ? '—'
+                            : `${pct(linha.alfaAjuste)} (${linha.tradesAjuste})`}
+                        </td>
                         <td className={classeSinal(linha.alfaValidacao)}>
                           {linha.alfaValidacao === null
                             ? '—'
@@ -587,8 +667,23 @@ export default function SimulationPanel({
                       op.motivoSaida === ExitReason.FIM_DA_SERIE ? 'signal-lab-fraco' : undefined
                     }
                   >
-                    <td>{mathUtils.formatCurrency(op.precoEntrada)}</td>
-                    <td>{mathUtils.formatCurrency(op.precoSaida)}</td>
+                    {/* O instante acompanha cada preço. Sem ele a tabela diz
+                        quanto cada operação rendeu e nunca QUANDO: em 180 dias
+                        e dezenas de linhas, não dá para saber se os ganhos
+                        estão concentrados num mês só nem para achar a linha
+                        correspondente a um trecho da curva de capital. */}
+                    <td>
+                      {mathUtils.formatCurrency(op.precoEntrada)}
+                      <span className="simulation-instante">
+                        {toLocalChartLabel(op.instanteEntrada)}
+                      </span>
+                    </td>
+                    <td>
+                      {mathUtils.formatCurrency(op.precoSaida)}
+                      <span className="simulation-instante">
+                        {toLocalChartLabel(op.instanteSaida)}
+                      </span>
+                    </td>
                     <td>{op.barrasSeguradas}</td>
                     <td>
                       {t(`exit_${op.motivoSaida}`)}

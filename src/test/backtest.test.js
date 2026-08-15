@@ -10,6 +10,7 @@ import {
   ATR_STOP_MAXIMO_PERCENTUAL,
 } from '../src/utils/backtest'
 import { montarSerieDeSinais } from '../src/utils/signalLab'
+import { montarPontosDaCurva } from '../src/utils/equityChart'
 import { ExitReason, StopMode, TradeDirection } from '../src/utils/enums'
 import { ATR_PERIOD } from '../src/utils/marketStats'
 import { CandlePattern } from '../src/utils/candlePatterns'
@@ -631,6 +632,40 @@ describe('utils/backtest › divisão para validação', () => {
     const corte = new Date(d.aPartirDeValidacao).getTime()
     expect(new Date(ajuste.trades[0].instanteEntrada).getTime()).toBeLessThan(corte)
     expect(new Date(validacao.trades[0].instanteEntrada).getTime()).toBeGreaterThanOrEqual(corte)
+  })
+})
+
+describe('utils/backtest › curva e a régua do buy & hold', () => {
+  it('deve levar o fechamento junto de cada ponto da curva', () => {
+    // O gráfico desenha a régua a partir daqui. Sem este campo, `buyAndHold`
+    // sai todo null e a linha some da tela sem nenhum erro — o modo de falha
+    // mais silencioso possível, e o motivo de a asserção estar no motor e não
+    // só no util de gráfico.
+    const r = simular(
+      serie([{ ...parado(100), martelo: true }, parado(110), parado(120)]),
+      { ...PADRAO, saidaPorTempo: 1 }
+    )
+
+    expect(r.curva.length).toBeGreaterThan(0)
+    r.curva.forEach((ponto) => expect(ponto.precoFechamento).toBeGreaterThan(0))
+  })
+
+  it('deve fazer a régua do gráfico terminar onde a métrica do card diz', () => {
+    // A ponte entre o motor e o desenho. Os testes de `equityChart` rodam sobre
+    // pontos sintéticos: se o motor parasse de emitir preço, ou emitisse a
+    // partir de outro candle, eles continuariam passando e a tela mostraria uma
+    // régua que o card ao lado desmente.
+    const r = simular(
+      serie([{ ...parado(100), martelo: true }, parado(110), parado(90), parado(130)]),
+      { ...PADRAO, saidaPorTempo: 1 }
+    )
+
+    const pontos = montarPontosDaCurva(r.curva, r.parametros.capitalInicial)
+    const finalDaLinha = pontos.buyAndHold[pontos.buyAndHold.length - 1]
+    const emPercentual = ((finalDaLinha - r.parametros.capitalInicial) /
+      r.parametros.capitalInicial) * 100
+
+    expect(emPercentual).toBeCloseTo(r.metricas.buyAndHold, 8)
   })
 })
 

@@ -247,7 +247,7 @@
   "simulationHoldoutHint": "Il {{fracao}}% più recente della finestra resta riservato. Regola i parametri guardando la colonna di taratura; quella di validazione mostra come si comporta sul tratto che non hai usato per scegliere.",
   "simulationRanking": "Confronto tra strategie",
   "simulationRankingHint": "Le {{total}} regole di ingresso disponibili, con la STESSA uscita e lo STESSO costo, ordinate per quanto hanno superato il buy & hold. Clicca sul nome per simulare quella regola in dettaglio qui sopra.",
-  "simulationRankingWarning": "Scegliere la migliore su {{total}} è sovradattamento per costruzione: più regole provi, più è probabile che una sembri buona per caso. La colonna di validazione è l'unica non usata per ordinare — è quella che separa una scoperta dalla fortuna.",
+  "simulationRankingWarning": "Scegliere la migliore su {{total}} è sovradattamento per costruzione: più regole provi, più è probabile che una sembri buona per caso. Confronta taratura e validazione — la taratura è il tratto su cui la regola è stata scelta, la validazione è ciò che ha fatto dopo. Nessuna delle due ordina la tabella: è il calo tra loro che separa una scoperta dalla fortuna.",
   "simulationTuning": "Taratura",
   "simulationValidation": "Validazione",
   "simulationTooShort": "Finestra troppo corta per riservare una validazione.",

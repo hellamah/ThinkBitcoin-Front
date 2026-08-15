@@ -3343,6 +3343,26 @@
   color: var(--text-faint);
 }
 
+/* Quando a operação aconteceu, sob o preço dela. Segunda linha em vez de coluna
+   nova: o instante pertence ao preço que acompanha, e separá-los faria o olho
+   percorrer a tabela inteira para juntar de novo o que é um dado só. */
+.simulation-instante {
+  display: block;
+  color: var(--text-faint);
+  font-size: 0.72rem;
+  font-family: "Share Tech Mono", monospace;
+  margin-top: 2px;
+}
+
+/* A regra de saída sob a qual o ranking foi montado. Mesma discrição da linha
+   de janela: é contexto obrigatório para ler a tabela, não um resultado. */
+.simulation-regra-saida {
+  color: var(--text-faint);
+  font-size: 0.76rem;
+  font-family: "Share Tech Mono", monospace;
+  margin: -6px 0 14px;
+}
+
 .simulation-curva {
   margin-top: 22px;
 }
@@ -3353,7 +3373,10 @@
 .simulation-curva-container {
   position: relative;
   width: 100%;
-  height: 220px;
+  /* 250 e não 220: a legenda entrou junto com a régua do buy & hold e come uma
+     faixa embaixo. Sem a folga, o que a legenda ganha em clareza a área de
+     desenho perde em altura, e a curva fica achatada. */
+  height: 250px;
 }
 
 .simulation-curva h3,

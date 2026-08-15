@@ -247,7 +247,7 @@
   "simulationHoldoutHint": "The most recent {{fracao}}% of the window is held back. Tune the parameters against the tuning column; the validation column shows how that holds up on the stretch you did not use to choose.",
   "simulationRanking": "Strategy comparison",
   "simulationRankingHint": "All {{total}} available entry rules, with the SAME exit and the SAME cost, ranked by how much they beat buy & hold. Click a name to simulate that rule in detail above.",
-  "simulationRankingWarning": "Picking the best of {{total}} is overfitting by construction: the more rules you test, the likelier one looks good by chance. The validation column is the only one not used for ranking — it is what separates a finding from luck.",
+  "simulationRankingWarning": "Picking the best of {{total}} is overfitting by construction: the more rules you test, the likelier one looks good by chance. Compare tuning against validation — tuning is the stretch the rule was picked on, validation is what it did afterwards. Neither one orders the table: the drop between them is what separates a finding from luck.",
   "simulationTuning": "Tuning",
   "simulationValidation": "Validation",
   "simulationTooShort": "Window too short to hold back a validation split.",

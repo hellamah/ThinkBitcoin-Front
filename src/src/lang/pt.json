@@ -247,7 +247,7 @@
   "simulationHoldoutHint": "Os {{fracao}}% mais recentes da janela ficam reservados. Ajuste os parâmetros olhando a coluna de ajuste; a de validação mostra como isso se sai no trecho que você não usou para escolher.",
   "simulationRanking": "Comparação de estratégias",
   "simulationRankingHint": "As {{total}} regras de entrada disponíveis, com a MESMA saída e o MESMO custo, ordenadas por quanto superaram o buy & hold. Clique no nome para simular aquela regra em detalhe acima.",
-  "simulationRankingWarning": "Escolher a melhor de {{total}} é sobreajuste por construção: quanto mais regras você testa, maior a chance de uma parecer boa por acaso. A coluna de validação é a única que não foi usada para ordenar — é ela que separa achado de sorte.",
+  "simulationRankingWarning": "Escolher a melhor de {{total}} é sobreajuste por construção: quanto mais regras você testa, maior a chance de uma parecer boa por acaso. Compare ajuste com validação — o ajuste é o trecho em que a regra foi escolhida, a validação é o que ela fez depois. Nenhuma das duas ordena a tabela: é a queda entre elas que separa achado de sorte.",
   "simulationTuning": "Ajuste",
   "simulationValidation": "Validação",
   "simulationTooShort": "Janela curta demais para reservar validação.",

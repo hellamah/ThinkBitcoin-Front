@@ -482,12 +482,12 @@ export const simular = (registros, opcoes = {}) => {
     // 4. Ponto da curva, marcado a mercado. Uma curva que só degrau nos
     //    fechamentos esconde o quanto a posição chegou a perder no meio — que é
     //    justamente o que o drawdown deveria medir.
+    const fechamentoDoCandle = paraNumero(registro.precoFechamento)
     let capitalMarcado = capital
     if (posicao) {
-      const fechamento = paraNumero(registro.precoFechamento)
       const naoRealizado =
-        fechamento !== null
-          ? retornoBrutoDe(posicao.precoEntrada, fechamento, direcao)
+        fechamentoDoCandle !== null
+          ? retornoBrutoDe(posicao.precoEntrada, fechamentoDoCandle, direcao)
           : 0
       capitalMarcado = capital * (1 + naoRealizado / 100)
     }
@@ -496,6 +496,11 @@ export const simular = (registros, opcoes = {}) => {
       instante: registro?.horaReferencia ?? null,
       capital: capitalMarcado,
       emPosicao: Boolean(posicao),
+      // O fechamento viaja junto com o ponto para o gráfico poder desenhar o
+      // buy & hold no MESMO eixo, sem precisar da série de candles de volta.
+      // Sem ele, a régua que os cards exibem lado a lado com o retorno some
+      // justamente do elemento que as pessoas de fato olham.
+      precoFechamento: fechamentoDoCandle,
     })
   }
 
@@ -664,7 +669,14 @@ export const compararEstrategias = (registros, opcoes = {}) => {
         alfaValidacao:
           validacao && validacao.trades.length > 0 ? validacao.metricas.alfa : null,
         tradesValidacao: validacao ? validacao.metricas.tradesConcluidos : null,
+        // O par que a tabela precisa mostrar é AJUSTE contra VALIDAÇÃO, e não
+        // janela cheia contra validação: a janela cheia CONTÉM o trecho de
+        // validação, então comparar as duas é comparar um número com um pedaço
+        // dele mesmo. Ajuste e validação não se sobrepõem — a degradação entre
+        // os dois é a única medida limpa de quanto o resultado sobrevive fora
+        // da amostra.
         alfaAjuste: ajuste && ajuste.trades.length > 0 ? ajuste.metricas.alfa : null,
+        tradesAjuste: ajuste ? ajuste.metricas.tradesConcluidos : null,
       }
     })
     .filter(Boolean)

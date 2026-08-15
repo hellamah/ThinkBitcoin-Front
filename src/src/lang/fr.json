@@ -247,7 +247,7 @@
   "simulationHoldoutHint": "Les {{fracao}}% les plus récents de la fenêtre sont mis de côté. Réglez les paramètres sur la colonne de réglage ; celle de validation montre ce que cela donne sur la portion que vous n'avez pas utilisée pour choisir.",
   "simulationRanking": "Comparaison des stratégies",
   "simulationRankingHint": "Les {{total}} règles d'entrée disponibles, avec la MÊME sortie et le MÊME coût, classées selon ce qu'elles ont dépassé le buy & hold. Cliquez sur un nom pour simuler cette règle en détail ci-dessus.",
-  "simulationRankingWarning": "Choisir la meilleure sur {{total}} est du surajustement par construction : plus vous testez de règles, plus il est probable que l'une paraisse bonne par hasard. La colonne de validation est la seule qui n'a pas servi au classement — c'est elle qui sépare une trouvaille de la chance.",
+  "simulationRankingWarning": "Choisir la meilleure sur {{total}} est du surajustement par construction : plus vous testez de règles, plus il est probable que l'une paraisse bonne par hasard. Comparez le réglage à la validation — le réglage est la portion sur laquelle la règle a été choisie, la validation est ce qu'elle a fait ensuite. Aucune des deux ne classe le tableau : c'est la chute entre elles qui sépare une trouvaille de la chance.",
   "simulationTuning": "Réglage",
   "simulationValidation": "Validation",
   "simulationTooShort": "Fenêtre trop courte pour réserver une validation.",
