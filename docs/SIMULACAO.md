@@ -515,20 +515,6 @@ linha do tempo inteira anda um candle.
 Confirmado também que `PrecoAbertura` vem direto da Binance
 (`PrecoAbertura = p.precoAbertura`), não é derivado.
 
-### A-06 — `saidaPorTempo` e `horizonte` **não** são a mesma coisa 🟡
-
-Decidido durante a implementação, e é fonte garantida de confusão se ficar
-implícito:
-
-- O laboratório usa **horizonte**: retorno de fechamento a fechamento, `h`
-  candles à frente.
-- A simulação usa **candles segurados**: entra na abertura e, segurando 1
-  candle, sai no fechamento **do mesmo candle**.
-
-Segurar 1 na simulação cobre um candle; horizonte 1 no laboratório atravessa
-dois fechamentos. Os dois painéis **não vão bater** para o mesmo número — e não
-deveriam, porque medem coisas diferentes.
-
 ### A-05 — Painéis mediam a margem de aquecimento ✅ **corrigido**
 
 > `analisarSinais` ganhou `aPartirDe`, e as leituras de **período** de
@@ -557,9 +543,7 @@ deveriam, porque medem coisas diferentes.
 > painel seria pior que voltar ao comportamento anterior.
 
 <details>
-<summary>Diagnóstico original</summary>
-
-### A-05 — O laboratório de sinais **não** filtra pelo período 🟡
+<summary>Diagnóstico original — o laboratório de sinais não filtra pelo período</summary>
 
 `analisarSinais` roda sobre a série inteira recebida, **incluindo os 3 dias de
 aquecimento**. A simulação, com `aPartirDe`, vai excluí-los (R-04).
@@ -573,6 +557,20 @@ Corrigir o laboratório está fora desta entrega: mudaria números já exibidos 
 o que é decisão própria.
 
 </details>
+
+### A-06 — `saidaPorTempo` e `horizonte` **não** são a mesma coisa 🟡
+
+Decidido durante a implementação, e é fonte garantida de confusão se ficar
+implícito:
+
+- O laboratório usa **horizonte**: retorno de fechamento a fechamento, `h`
+  candles à frente.
+- A simulação usa **candles segurados**: entra na abertura e, segurando 1
+  candle, sai no fechamento **do mesmo candle**.
+
+Segurar 1 na simulação cobre um candle; horizonte 1 no laboratório atravessa
+dois fechamentos. Os dois painéis **não vão bater** para o mesmo número — e não
+deveriam, porque medem coisas diferentes.
 
 ---
 
