@@ -70,7 +70,7 @@ ChartJS.defaults.borderColor = '#333'
 export default function Dashboard() {
   const { token, user: usuario, prefs } = useAuth()
   const { moedas: moedasCarousel, erro: erroMoedas, setErro: setErroMoedas } = useCoinPrices()
-  const { t } = useTranslation()
+  const { t, idioma } = useTranslation()
   const isMobile = useMediaQuery('(max-width:600px)')
 
   const {
@@ -379,8 +379,19 @@ export default function Dashboard() {
     if (!serieDeSinaisSimulacao) return []
     const presentes = new Set()
     serieDeSinaisSimulacao.forEach(({ sinais }) => sinais.forEach((s) => presentes.add(s)))
-    return [...presentes].sort()
-  }, [serieDeSinaisSimulacao])
+    // Ordenado pelo RÓTULO traduzido, não pela chave. Pela chave, `marubozu`
+    // vinha antes de `martelo` numa lista que exibe "Martelo" antes de
+    // "Marubozu"; em inglês é pior, porque a chave `estrela` cai no meio das de
+    // "d" enquanto o rótulo é "Shooting Star". `localeCompare` no idioma
+    // corrente, que é quem sabe onde o acento entra na ordem.
+    //
+    // Não é só cosmético: quando a escolha do usuário deixa de existir na
+    // janela, o painel cai no PRIMEIRO da lista. Ordenando pelo rótulo, esse
+    // primeiro passa a ser o que ele vê no topo do seletor.
+    return [...presentes].sort((a, b) =>
+      t(`signal_${a}`).localeCompare(t(`signal_${b}`), idioma.intl)
+    )
+  }, [serieDeSinaisSimulacao, t, idioma])
 
   // A escolha do usuário pode deixar de existir ao trocar de moeda ou período.
   // Cair no primeiro disponível mantém o painel útil em vez de vazio.
