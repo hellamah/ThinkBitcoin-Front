@@ -403,13 +403,42 @@ registro dentro do laço, sem array paralelo.
 descobertas, escritos contra o comportamento atual, **antes** de mover qualquer
 linha. Sem isso o refactor é uma troca de código sem rede.
 
-### A-02 — A paginação da tabela troca a série 🟠 **resolvido para a simulação**
+### A-02 — A paginação da tabela troca a série ✅ **corrigido**
 
-> **Estado atual:** a simulação ficou imune quando o D-03 lhe deu busca própria
-> — `useSimulationData` não depende de `pagina`. O acoplamento **continua** para
-> gráficos, laboratório de sinais e matriz de correlação, que seguem consumindo
-> `historicosPorMoeda`. É defeito pré-existente, não criado por esta entrega, e
-> só se manifesta em janela customizada longa o bastante para paginar.
+> **Resolvido em 2026-08-15.** A série de análise deixou de ser paginada:
+> `useDashboardData` fixa a primeira página, e a tabela passou a ter busca
+> própria em [useHistoryPage.js](../src/src/hooks/useHistoryPage.js). São dois
+> trabalhos diferentes — **analisar** quer a janela estável, **navegar** quer uma
+> página de cada vez — e estavam numa requisição só.
+>
+> A separação é a mesma que a simulação já fazia desde o D-03. A diferença é que
+> lá ela nasceu de uma necessidade de tamanho de janela, e aqui de correção.
+>
+> **Medido na tela**, janela customizada de 117 dias (2.881 candles, 3 páginas):
+>
+> | Ao clicar na página 2 | Antes | Depois |
+> |---|---|---|
+> | Painéis de análise que mudaram | **5** | **0** |
+> | Retorno acumulado do período | −2,28% → **−12,71%** | −2,28%, cravado |
+> | Drawdown máximo | −39,84% → −42,12% | −39,84%, cravado |
+>
+> Os cinco eram: os dois gráficos, Desempenho do Período, Fluxo de Ordens e o
+> Laboratório de Sinais. Navegar numa tabela reescrevia o retorno do período em
+> mais de dez pontos percentuais.
+>
+> **Verificado por injeção:** devolver `pagina` às dependências de
+> `useDashboardData` reproduz os cinco painéis mudando. Como o ambiente de teste
+> é `node` e não alcança hooks, esta é a prova que existe — e por isso ela está
+> registrada aqui com os números, não só afirmada.
+>
+> Três coisas que a correção arrumou de passagem:
+>
+> - `cobertura` — o aviso de "o período foi cortado" — era recalculado sobre a
+>   página nova. Ele descreve a janela, não a página.
+> - A tabela recebia `pagina`/`setPagina` como prop **e** os ignorava, lendo do
+>   contexto global. Quem lesse a chamada no Dashboard via uma ligação que não
+>   existia. Agora existe uma só, e é a que aparece na chamada.
+> - Recebia também `historicoMoeda`, que nunca usou.
 >
 > O diagnóstico abaixo permanece como registro.
 
@@ -1247,6 +1276,6 @@ entre front e .NET. O Python é referência de leitura (seção 3) e nada mais.
 - **Taxa efetiva da corretora.** Ver B-05.
 - **Alinhar o critério de período do laboratório de sinais** (A-05). Mudaria
   números já exibidos.
-- **Desacoplar a paginação da tabela da série dos painéis** (A-02). Hoje afeta
-  gráficos e laboratório em janela customizada longa; a simulação apenas herdaria
-  o problema.
+- ~~**Desacoplar a paginação da tabela da série dos painéis** (A-02).~~ ✅ Feito
+  em 2026-08-15: a tabela ganhou busca própria e a série de análise fixou a
+  primeira página. Ver A-02.

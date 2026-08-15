@@ -22,6 +22,7 @@ import useCoinPrices from '../hooks/useCoinPrices'
 import useDashboardData from '../hooks/useDashboardData'
 import useDashboardCharts from '../hooks/useDashboardCharts'
 import useSimulationData from '../hooks/useSimulationData'
+import useHistoryPage from '../hooks/useHistoryPage'
 import useMarketAnalytics from '../hooks/useMarketAnalytics'
 import * as mathUtils from '../utils/mathUtils'
 import { calcularLimites } from '../utils/marketStats'
@@ -231,8 +232,6 @@ export default function Dashboard() {
     historicosPorMoeda,
     fearGreedPorMoeda,
     trendPorMoeda,
-    totalPaginas,
-    historicoMoeda,
     cobertura,
     erro,
     setErro
@@ -243,8 +242,25 @@ export default function Dashboard() {
     dataInicio,
     dataFim,
     intervalo,
-    pagina,
     quantidade
+  })
+
+  // A página da tabela tem busca própria. Enquanto ela saía da mesma requisição
+  // dos painéis, navegar no histórico trocava a série analisada por gráficos,
+  // laboratório de sinais e matriz de correlação. Ver utils/useHistoryPage.js.
+  //
+  // Só no modo de moeda única, que é a única condição em que o controle de
+  // paginação aparece.
+  const {
+    registros: paginaHistorico,
+    totalPaginas,
+  } = useHistoryPage({
+    token,
+    sigla: moedasFiltro.length === 1 ? moedasFiltro[0] : null,
+    dataInicio,
+    dataFim,
+    pagina,
+    quantidade,
   })
 
   const selecionarMoeda = (simbolo) => {
@@ -260,7 +276,7 @@ export default function Dashboard() {
     let registros = []
 
     if (moedasFiltro.length === 1) {
-      registros = (historicoMoeda?.registros || []).map(r => ({ ...r, sigla: moedasFiltro[0] }))
+      registros = paginaHistorico.map(r => ({ ...r, sigla: moedasFiltro[0] }))
     } else if (moedasFiltro.length > 1) {
       moedasFiltro.forEach(sigla => {
         const hist = historicosPorMoeda[sigla] || []
@@ -292,7 +308,7 @@ export default function Dashboard() {
       })
     }
     return registros
-  }, [historicoMoeda, historicosPorMoeda, moedasFiltro, dataInicio, dataFim, resultadoFiltro])
+  }, [paginaHistorico, historicosPorMoeda, moedasFiltro, dataInicio, dataFim, resultadoFiltro])
 
   const trendAtual = useMemo(() => {
     const sigla = moedasFiltro[0]
@@ -685,7 +701,6 @@ export default function Dashboard() {
 
         <div data-tour="dash-historico">
           <HistoryTable
-            historicoMoeda={historicoMoeda}
             historicoFiltrado={historicoFiltrado}
             moedasFiltro={moedasFiltro}
             limitesPorMoeda={limitesPorMoeda}

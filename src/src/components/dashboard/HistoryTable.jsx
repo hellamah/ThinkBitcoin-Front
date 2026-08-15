@@ -14,17 +14,19 @@ import { toLocal } from '../../utils/dateUtils'
 import * as mathUtils from '../../utils/mathUtils'
 import { avaliarAnomalia } from '../../utils/marketStats'
 
-import { useDashboard } from '../../context/DashboardContext'
-
 export default function HistoryTable({
-  historicoMoeda,
   historicoFiltrado,
   moedasFiltro,
   limitesPorMoeda = {},
   totalPaginas,
+  pagina,
+  setPagina,
   t
 }) {
-  const { pagina, setPagina } = useDashboard()
+  // `pagina` e `setPagina` chegam por prop. Antes vinham do contexto global E
+  // como prop — as props eram passadas e ignoradas, então quem lesse a chamada
+  // no Dashboard via uma ligação que não existia. Agora existe uma só, e ela é
+  // a que aparece na chamada.
   const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' })
 
   const handleSort = (key) => {

@@ -8,6 +8,21 @@ import { useDashboard } from '../context/DashboardContext'
 // cadência horária do backend — folga sobre os 20 que Bollinger exige.
 const DIAS_DE_AQUECIMENTO = 3
 
+// Esta é a série de ANÁLISE, e ela é sempre a primeira página. Não é uma escolha
+// de conveniência: quem consome daqui — gráficos, laboratório de sinais, matriz
+// de correlação, `cobertura` — precisa olhar sempre o MESMO trecho do período
+// escolhido. Enquanto `pagina` era estado global e entrava aqui, clicar na
+// página 2 da tabela de histórico trocava a série dos três painéis e recalculava
+// o aviso de corte, sem nenhuma relação aparente para quem estava navegando.
+//
+// A tabela pagina por conta própria, em `useHistoryPage`. São dois trabalhos
+// diferentes — analisar quer a janela estável, navegar quer uma página de cada
+// vez — e estavam numa requisição só.
+//
+// O valor vai explícito, e não omitido: o parâmetro é obrigatório do lado da
+// API, que responde 400 para `Pagina < 1`.
+const PAGINA_DA_ANALISE = 1
+
 export default function useDashboardData({
   token,
   moedasCarousel,
@@ -15,7 +30,6 @@ export default function useDashboardData({
   dataInicio,
   dataFim,
   intervalo,
-  pagina,
   quantidade
 }) {
   const { refreshTrigger } = useDashboard()
@@ -23,13 +37,11 @@ export default function useDashboardData({
   const [fearGreedPorMoeda, setFearGreedPorMoeda] = useState({})
   const [trendPorMoeda, setTrendPorMoeda] = useState({})
   const [loadingSentiment, setLoadingSentiment] = useState(false)
-  const [totalPaginas, setTotalPaginas] = useState(1)
 
   // Quanto do período pedido realmente chegou. `quantidade` é um teto sobre a
   // janela, então pedir 12 dias de candles horários (278) e receber 100 é o
   // comportamento normal da API — o que não pode é a tela omitir o corte.
   const [cobertura, setCobertura] = useState(null)
-  const [historicoMoeda, setHistoricoMoeda] = useState(null)
   const [erro, setErro] = useState('')
 
   const filterSummaryRef = useRef('')
@@ -93,12 +105,12 @@ export default function useDashboardData({
       // Ele nunca foi para o servidor de verdade: serve só para o
       // DashboardContext calcular dataInicio e dataFim, que são o que a API
       // realmente lê.
-      if (pagina) commonParams.append('pagina', pagina)
+      commonParams.append('pagina', PAGINA_DA_ANALISE)
       if (quantidade) commonParams.append('quantidade', quantidade)
       commonParams.append('ordemAsc', 'false')
       const queryString = commonParams.toString() ? `?${commonParams.toString()}` : ''
 
-      const currentFilterKey = `${intervalo}-${dataInicio}-${dataFim}-${pagina}-${quantidade}`
+      const currentFilterKey = `${intervalo}-${dataInicio}-${dataFim}-${quantidade}`
       const isSameFilter = filterSummaryRef.current === currentFilterKey
       filterSummaryRef.current = currentFilterKey
 
@@ -199,12 +211,6 @@ export default function useDashboardData({
         novoHistoricoPreco[sigla] = regsPreco
         novoFearGreed[sigla] = regsFear
         novoTrend[sigla] = regsTrend
-
-        if (sigla === moedasFiltro[0]) {
-          const paginasTotal = preco?.totalPaginas ?? 1
-          setTotalPaginas(paginasTotal)
-          setHistoricoMoeda({ registros: regsPreco, totalPaginas: paginasTotal })
-        }
       })
 
       if (moedasComErro.length > 0) {
@@ -237,15 +243,13 @@ export default function useDashboardData({
     return () => {
       controller.abort()
     }
-  }, [moedasFiltro, dataInicio, dataFim, pagina, quantidade, intervalo, token, siglaParaIdMap, refreshTrigger])
+  }, [moedasFiltro, dataInicio, dataFim, quantidade, intervalo, token, siglaParaIdMap, refreshTrigger])
 
   return {
     historicosPorMoeda,
     fearGreedPorMoeda,
     trendPorMoeda,
     loadingSentiment,
-    totalPaginas,
-    historicoMoeda,
     cobertura,
     erro,
     setErro
