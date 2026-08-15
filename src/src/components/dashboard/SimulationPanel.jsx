@@ -58,7 +58,6 @@ const pct = (v, casas = 2, comSinal = true) =>
  * @param {object|null} props.comparativo - Retorno de `compararEstrategias`.
  * @param {boolean} props.carregando - A série de 180 dias ainda está vindo.
  * @param {string} props.erro - Mensagem de falha na busca da série.
- * @param {number} props.candlesAnalisados - Tamanho da série recebida.
  * @param {Function} props.t - Função de tradução.
  */
 export default function SimulationPanel({
@@ -71,7 +70,6 @@ export default function SimulationPanel({
   comparativo,
   carregando,
   erro,
-  candlesAnalisados,
   t,
 }) {
   const theme = useTheme()
@@ -202,9 +200,18 @@ export default function SimulationPanel({
 
       {/* Quantos candles a simulação analisou de fato. Sem este número, a
           diferença entre "a estratégia não funciona" e "a janela não tinha
-          dado" fica invisível. */}
+          dado" fica invisível.
+
+          É `candlesSimulados`, não o tamanho da série recebida: esta vem com os
+          3 dias de margem de aquecimento, que alimentam RSI e Bollinger mas não
+          são período de análise. Contá-los fazia a linha anunciar 4.392 candles
+          ao lado de "180 dias", que são 4.320 — o mesmo desencontro que os
+          painéis vizinhos já corrigiram. */}
       <p className="simulation-janela">
-        {t('simulationWindow', { dias: DIAS_JANELA_SIMULACAO, candles: candlesAnalisados })}
+        {t('simulationWindow', {
+          dias: DIAS_JANELA_SIMULACAO,
+          candles: metricas.candlesSimulados,
+        })}
       </p>
 
       {/* ---------- Controles ---------- */}

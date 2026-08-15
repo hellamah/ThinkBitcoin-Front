@@ -9,6 +9,7 @@ import {
   ATR_STOP_MINIMO_PERCENTUAL,
   ATR_STOP_MAXIMO_PERCENTUAL,
 } from '../src/utils/backtest'
+import { montarSerieDeSinais } from '../src/utils/signalLab'
 import { ExitReason, StopMode, TradeDirection } from '../src/utils/enums'
 import { ATR_PERIOD } from '../src/utils/marketStats'
 import { CandlePattern } from '../src/utils/candlePatterns'
@@ -737,6 +738,49 @@ describe('utils/backtest › comparação de estratégias', () => {
     })
     const normal = simular(registros, { ...PARAMS, sinalEntrada: CandlePattern.MARTELO })
     expect(comAlheia.trades.length).toBe(normal.trades.length)
+  })
+
+  it('deve aceitar as séries de sinais já montadas sem mudar o resultado', () => {
+    // O painel monta a série de sinais uma vez e a repassa: sem isso ela era
+    // remontada cinco vezes por troca de parâmetro sobre os mesmos candles.
+    // Reaproveitar é otimização, e otimização que muda número é defeito.
+    const registros = serieComDoisSinais()
+    const corte = dividirParaValidacao(registros, FRACAO_VALIDACAO_PADRAO, { aPartirDe: null })
+
+    const semReuso = compararEstrategias(registros, PARAMS)
+    const comReuso = compararEstrategias(registros, {
+      ...PARAMS,
+      serieDeSinais: montarSerieDeSinais(registros),
+      serieDeSinaisAjuste: montarSerieDeSinais(corte.registrosAjuste),
+    })
+
+    expect(comReuso.linhas.map((l) => l.sinal)).toEqual(semReuso.linhas.map((l) => l.sinal))
+    comReuso.linhas.forEach((linha, i) => {
+      expect(linha.metricas.retornoTotal).toBeCloseTo(semReuso.linhas[i].metricas.retornoTotal, 10)
+      expect(linha.alfaValidacao).toBe(semReuso.linhas[i].alfaValidacao)
+      expect(linha.alfaAjuste).toBe(semReuso.linhas[i].alfaAjuste)
+    })
+  })
+
+  it('deve recusar séries de sinais que não descrevem estes registros', () => {
+    // Mesma régua de `simular`: a série é indexada por posição, e uma de outro
+    // array alinharia sinais com candles errados. Não batendo o tamanho, o certo
+    // é remontar — nunca confiar no que veio.
+    const registros = serieComDoisSinais()
+    const alheia = [{ registro: {}, sinais: [CandlePattern.MARTELO] }]
+
+    const comAlheia = compararEstrategias(registros, {
+      ...PARAMS,
+      serieDeSinais: alheia,
+      serieDeSinaisAjuste: alheia,
+    })
+    const normal = compararEstrategias(registros, PARAMS)
+
+    expect(comAlheia.linhas.map((l) => l.sinal)).toEqual(normal.linhas.map((l) => l.sinal))
+    comAlheia.linhas.forEach((linha, i) => {
+      expect(linha.metricas.retornoTotal).toBeCloseTo(normal.linhas[i].metricas.retornoTotal, 10)
+      expect(linha.alfaAjuste).toBe(normal.linhas[i].alfaAjuste)
+    })
   })
 
   it('deve separar o alfa da validação do alfa da janela cheia', () => {

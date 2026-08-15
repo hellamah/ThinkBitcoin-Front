@@ -566,6 +566,11 @@ export const simular = (registros, opcoes = {}) => {
  * @param {Array<string>} [opcoes.sinais] - Chaves a testar. Omitido, testa
  *   todas as que ocorrem na série.
  * @param {number|null} [opcoes.fracaoValidacao] - null desliga o corte.
+ * @param {Array<object>|null} [opcoes.serieDeSinais] - Série de sinais de
+ *   `registros`, já montada. Quem chama isto normalmente já a tem em mãos para
+ *   outra coisa, e remontá-la aqui é ~15 ms de trabalho idêntico.
+ * @param {Array<object>|null} [opcoes.serieDeSinaisAjuste] - Idem para o trecho
+ *   de ajuste. É outro array, então precisa da sua própria.
  * @returns {{linhas: Array<object>, buyAndHold: number|null}|null}
  */
 export const compararEstrategias = (registros, opcoes = {}) => {
@@ -573,12 +578,24 @@ export const compararEstrategias = (registros, opcoes = {}) => {
     sinais = null,
     fracaoValidacao = FRACAO_VALIDACAO_PADRAO,
     aPartirDe = null,
+    serieDeSinais = null,
+    serieDeSinaisAjuste = null,
     ...comuns
   } = opcoes
 
   if (!Array.isArray(registros) || registros.length < 2) return null
 
-  const serieCompleta = montarSerieDeSinais(registros)
+  // Mesma régua de `simular`: a série é indexada por posição, então uma série de
+  // outro array alinharia sinais com candles errados. Não batendo o tamanho, o
+  // certo é remontar, não confiar.
+  //
+  // Aqui a régua faz mais do que em `simular`: é desta série que sai o conjunto
+  // de sinais PRESENTES, ou seja, quais estratégias entram na tabela. Uma série
+  // alheia não produziria só números errados — produziria a lista errada.
+  const serieCompleta =
+    Array.isArray(serieDeSinais) && serieDeSinais.length === registros.length
+      ? serieDeSinais
+      : montarSerieDeSinais(registros)
   if (serieCompleta.length === 0) return null
 
   // Só os sinais que de fato ocorrem. Testar um sinal ausente devolveria uma
@@ -597,7 +614,18 @@ export const compararEstrategias = (registros, opcoes = {}) => {
 
   // A série do trecho de ajuste é outro array, então precisa da sua própria
   // montagem — mas também só de uma, compartilhada entre todas as estratégias.
-  const serieAjuste = corte ? montarSerieDeSinais(corte.registrosAjuste) : null
+  //
+  // A conferência de tamanho aqui é de CUSTO, não de correção: `simular` já
+  // recusa uma série que não descreva os registros que recebe, então passar uma
+  // alheia não produziria número errado — produziria catorze remontagens em vez
+  // de uma. Verificado por injeção: remover esta guarda não derruba teste
+  // nenhum, e é por isso que ela está anotada em vez de afirmada.
+  const serieAjuste = corte
+    ? (Array.isArray(serieDeSinaisAjuste) &&
+       serieDeSinaisAjuste.length === corte.registrosAjuste.length
+        ? serieDeSinaisAjuste
+        : montarSerieDeSinais(corte.registrosAjuste))
+    : null
 
   const linhas = aTestar
     .map((sinalEntrada) => {

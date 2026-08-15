@@ -358,19 +358,29 @@ export default function Dashboard() {
     erro: erroSimulacao,
   } = useSimulationData({ token, sigla: siglaSimulacao })
 
+  // A série de sinais é montada UMA vez por série de candles, e todo o resto do
+  // painel a recebe pronta. Antes ela era remontada cinco vezes a cada troca de
+  // parâmetro — pelo seletor, pela simulação, pelas duas pontas do holdout e
+  // pelo ranking — sobre exatamente os mesmos candles. Medido em 4.392 candles:
+  // ~15 ms cada, ~77 ms de trabalho idêntico por clique.
+  //
+  // Como só depende da série, ela sobrevive a qualquer ajuste de parâmetro.
+  const serieDeSinaisSimulacao = useMemo(
+    () => (serieSimulacao?.length ? montarSerieDeSinais(serieSimulacao) : null),
+    [serieSimulacao]
+  )
+
   // O seletor oferece os sinais presentes na SÉRIE DA SIMULAÇÃO, não na do
   // laboratório: são janelas diferentes, e um sinal que existe em 180 dias pode
   // não existir nos 7 que o laboratório analisa. Oferecer o vocabulário inteiro
   // faria o usuário escolher "marubozu", receber "nenhuma operação" e não ter
   // como saber se a estratégia é ruim ou se o sinal simplesmente não ocorreu.
   const sinaisDisponiveis = useMemo(() => {
-    if (!serieSimulacao?.length) return []
+    if (!serieDeSinaisSimulacao) return []
     const presentes = new Set()
-    montarSerieDeSinais(serieSimulacao).forEach(({ sinais }) =>
-      sinais.forEach((s) => presentes.add(s))
-    )
+    serieDeSinaisSimulacao.forEach(({ sinais }) => sinais.forEach((s) => presentes.add(s)))
     return [...presentes].sort()
-  }, [serieSimulacao])
+  }, [serieDeSinaisSimulacao])
 
   // A escolha do usuário pode deixar de existir ao trocar de moeda ou período.
   // Cair no primeiro disponível mantém o painel útil em vez de vazio.
@@ -378,16 +388,70 @@ export default function Dashboard() {
     ? paramsSimulacao.sinalEntrada
     : sinaisDisponiveis[0] ?? null
 
+  // O corte de validação não depende de parâmetro nenhum: é função da série e da
+  // janela. Fica à parte para o holdout e o ranking usarem o MESMO corte, em vez
+  // de cada um recortar o seu — e para a série de sinais do trecho de ajuste,
+  // que é outro array e portanto precisa da sua, ser montada uma vez só.
+  const corteSimulacao = useMemo(() => {
+    if (!serieSimulacao) return null
+    const corte = dividirParaValidacao(serieSimulacao, undefined, {
+      aPartirDe: inicioSimulacao,
+    })
+    if (!corte) return null
+    return { ...corte, serieDeSinaisAjuste: montarSerieDeSinais(corte.registrosAjuste) }
+  }, [serieSimulacao, inicioSimulacao])
+
+  // Os parâmetros de SAÍDA, sem o sinal de entrada. O ranking roda a mesma regra
+  // de saída sobre todos os sinais, então ele não depende de qual está
+  // selecionado — e memoizá-lo sobre o objeto inteiro fazia clicar num nome da
+  // tabela, que é o que o próprio rodapé convida a fazer, recalcular catorze
+  // estratégias para produzir a tabela idêntica.
+  const {
+    direcao: direcaoSimulacao,
+    saidaPorTempo,
+    modoStop,
+    stopPercentual,
+    alvoPercentual,
+    custoPercentual,
+  } = paramsSimulacao
+
   // `aPartirDe` vem da janela da simulação, não do filtro do dashboard: é o que
   // separa os candles de aquecimento do período que de fato vira operação.
+  const opcoesSaidaSimulacao = useMemo(
+    () => ({
+      direcao: direcaoSimulacao,
+      saidaPorTempo,
+      modoStop,
+      stopPercentual,
+      alvoPercentual,
+      custoPercentual,
+      aPartirDe: inicioSimulacao,
+    }),
+    [
+      direcaoSimulacao,
+      saidaPorTempo,
+      modoStop,
+      stopPercentual,
+      alvoPercentual,
+      custoPercentual,
+      inicioSimulacao,
+    ]
+  )
+
   const opcoesSimulacao = useMemo(
-    () => ({ ...paramsSimulacao, sinalEntrada, aPartirDe: inicioSimulacao }),
-    [paramsSimulacao, sinalEntrada, inicioSimulacao]
+    () => ({ ...opcoesSaidaSimulacao, sinalEntrada }),
+    [opcoesSaidaSimulacao, sinalEntrada]
   )
 
   const simulacao = useMemo(
-    () => (serieSimulacao && sinalEntrada ? simular(serieSimulacao, opcoesSimulacao) : null),
-    [serieSimulacao, sinalEntrada, opcoesSimulacao]
+    () =>
+      serieSimulacao && sinalEntrada
+        ? simular(serieSimulacao, {
+            ...opcoesSimulacao,
+            serieDeSinais: serieDeSinaisSimulacao,
+          })
+        : null,
+    [serieSimulacao, sinalEntrada, opcoesSimulacao, serieDeSinaisSimulacao]
   )
 
   // Corte de validação: o usuário ajusta os parâmetros olhando o trecho de
@@ -395,33 +459,36 @@ export default function Dashboard() {
   // não usou para escolher. Sem isso, testar dez combinações e ficar com a
   // melhor é sobreajuste com aparência de método.
   const holdout = useMemo(() => {
-    if (!serieSimulacao || !sinalEntrada) return null
-    const corte = dividirParaValidacao(serieSimulacao, undefined, {
-      aPartirDe: inicioSimulacao,
-    })
-    if (!corte) return null
+    if (!corteSimulacao || !sinalEntrada) return null
 
     return {
-      ajuste: simular(corte.registrosAjuste, opcoesSimulacao),
+      ajuste: simular(corteSimulacao.registrosAjuste, {
+        ...opcoesSimulacao,
+        serieDeSinais: corteSimulacao.serieDeSinaisAjuste,
+      }),
       // A validação recebe a série inteira e só abre posição depois do corte:
       // assim os indicadores de janela móvel chegam aquecidos ao primeiro
-      // candle validado.
-      validacao: simular(corte.registrosValidacao, {
+      // candle validado. Sendo a série inteira, a série de sinais dela serve.
+      validacao: simular(corteSimulacao.registrosValidacao, {
         ...opcoesSimulacao,
-        aPartirDe: corte.aPartirDeValidacao,
+        aPartirDe: corteSimulacao.aPartirDeValidacao,
+        serieDeSinais: serieDeSinaisSimulacao,
       }),
     }
-  }, [serieSimulacao, sinalEntrada, opcoesSimulacao, inicioSimulacao])
+  }, [corteSimulacao, sinalEntrada, opcoesSimulacao, serieDeSinaisSimulacao])
 
   // Ranking de todas as estratégias sobre a MESMA série e os mesmos parâmetros
   // de saída. Responde a pergunta que o painel de uma estratégia só não
   // responde: entre os sinais disponíveis, qual sobrou melhor que não fazer
-  // nada. Roda uma vez e reaproveita a série de sinais internamente.
+  // nada.
   const comparativoEstrategias = useMemo(() => {
     if (!serieSimulacao) return null
-    const { sinalEntrada: _ignorado, ...saida } = opcoesSimulacao
-    return compararEstrategias(serieSimulacao, { ...saida, aPartirDe: inicioSimulacao })
-  }, [serieSimulacao, opcoesSimulacao, inicioSimulacao])
+    return compararEstrategias(serieSimulacao, {
+      ...opcoesSaidaSimulacao,
+      serieDeSinais: serieDeSinaisSimulacao,
+      serieDeSinaisAjuste: corteSimulacao?.serieDeSinaisAjuste ?? null,
+    })
+  }, [serieSimulacao, opcoesSaidaSimulacao, serieDeSinaisSimulacao, corteSimulacao])
 
   // Processamento de Gráficos (Hook Customizado)
   const chartConfig = useDashboardCharts({
@@ -596,7 +663,6 @@ export default function Dashboard() {
             comparativo={comparativoEstrategias}
             carregando={carregandoSimulacao}
             erro={erroSimulacao}
-            candlesAnalisados={serieSimulacao?.length ?? 0}
             t={t}
           />
           </div>

@@ -207,6 +207,9 @@ provada) sem pintar a plataforma num canto.
 
 ### A-08 — O gargalo que eu previ não existia 🟢
 
+> **Esta medição venceu.** Ela é anterior ao ranking (11b), que multiplicou o
+> trabalho por estratégia testada. Remedido em 2026-08-15 — ver A-09.
+
 Eu tinha anotado que 3 chamadas de `simular` por mudança de parâmetro poderiam
 pesar com a janela grande. Medi antes de otimizar, e a previsão estava errada:
 
@@ -231,6 +234,51 @@ dele afirmava uma causa que a medição desmentiu.
 dentro desse teto ainda depende da V17. Meu palpite de trabalho é 3–6 meses
 (~2.200–4.400 candles, ~1–2 MB), que já dá centenas de trades e um holdout com
 significado, sem pagar o preço de um ano inteiro.
+
+### A-09 — O ranking venceu a medição do A-08 ✅ **corrigido**
+
+Remedido em **2026-08-15**, sobre 4.392 candles sintéticos com 7 famílias de
+sinal presentes (a série real tem 14, então os números abaixo são piso, não
+teto). O A-08 media um painel que ainda não tinha o ranking de 11b.
+
+**Achado: `montarSerieDeSinais` rodava cinco vezes por troca de parâmetro sobre
+exatamente os mesmos candles** — uma pelo seletor de sinais (que montava a série
+e descartava, guardando só as chaves), uma pela simulação do topo, duas pelas
+pontas do holdout e duas dentro de `compararEstrategias`. A ~15 ms cada, eram
+~77 ms de trabalho idêntico por clique.
+
+E o ranking era refeito ao **trocar o sinal de entrada**, que é justamente o que
+o rodapé da tabela convida a fazer: `comparativoEstrategias` descartava
+`sinalEntrada` do cálculo mas dependia do objeto de opções inteiro, então clicar
+num nome da tabela recalculava catorze estratégias para reconstruir a tabela
+idêntica.
+
+| Ciclo | Antes | Depois |
+|---|---|---|
+| Troca de parâmetro de **saída** (hold, stop, alvo, custo) | 150 ms | **63 ms** |
+| Troca do **sinal de entrada** | 150 ms | **8 ms** |
+
+O que mudou:
+
+- A série de sinais é montada **uma vez por série de candles** e repassada. Vale
+  para a simulação, as duas pontas do holdout e o ranking. Como só depende da
+  série, sobrevive a qualquer ajuste de parâmetro.
+- O corte de validação também: ele é função da série e da janela, não dos
+  parâmetros. O holdout e o ranking passam a usar **o mesmo** corte, em vez de
+  cada um recortar o seu.
+- `compararEstrategias` ganhou `serieDeSinais` e `serieDeSinaisAjuste`, com a
+  mesma régua de tamanho que `simular` já usava.
+- O ranking passou a depender só dos parâmetros de **saída**.
+
+**Verificado por injeção:** remover a conferência de tamanho de `serieDeSinais`
+derruba o teste novo — e por um motivo que não era o esperado. É dessa série que
+sai o conjunto de sinais **presentes**, ou seja, quais estratégias entram na
+tabela; uma série alheia não produz números errados, produz a **lista** errada.
+
+A conferência equivalente do trecho de ajuste **não** derruba teste nenhum, e
+está anotada como tal no código: `simular` já recusa série que não descreva seus
+registros, então ali a guarda é de custo (uma remontagem em vez de catorze), não
+de correção. Guarda que não se prova fica declarada como o que é.
 
 ---
 
@@ -808,6 +856,21 @@ O que só existe na tela foi conferido rodando o dashboard em modo mock:
 > O passo é incluído por **estado** (`moedasFiltro.length === 1`), não por
 > `document.querySelector`: no primeiro render nada está montado, e uma consulta
 > ao DOM ali filtraria o tour inteiro.
+
+### A-10 — O contador de candles media a margem de aquecimento ✅ **corrigido**
+
+Encontrado na revisão de 2026-08-15. A linha `simulationWindow` exibia o tamanho
+da **série recebida**, que vem com os 3 dias de aquecimento: anunciava
+*"Analisando 180 dias — 4.392 candles"*, e 4.392 são 183 dias.
+
+É a mesma classe do A-05 e do commit `e401150`, corrigida no laboratório de
+sinais e nos cards de período, que sobreviveu aqui. O número honesto já existia:
+`metricas.candlesSimulados`, que é o tamanho da curva e portanto começa em
+`aPartirDe` — e de quebra desconta os candles inutilizáveis, que também não
+foram simulados.
+
+A `prop` `candlesAnalisados` saiu do painel junto: o dado já chegava dentro de
+`resultado`, e mantê-la seria oferecer duas respostas para a mesma pergunta.
 
 ### A-07 — Zero operações não é retorno zero 🟡
 
