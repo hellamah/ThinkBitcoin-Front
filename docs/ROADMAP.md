@@ -88,11 +88,11 @@ Este roadmap organiza a evolução do frontend do ThinkBitcoin em quatro fases, 
 - Executar simulação.
 
 **Resultados exibidos:**
-- Lucro.
-- Drawdown.
-- Win rate.
-- Sharpe ratio.
-- Curva de capital.
+- [x] Lucro.
+- [x] Drawdown.
+- [x] Win rate.
+- [x] Sharpe ratio.
+- [x] Curva de capital.
 
 ### Simulador de Portfólio
 - Seleção de múltiplos ativos.

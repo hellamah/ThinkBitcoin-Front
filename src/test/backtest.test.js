@@ -3,6 +3,7 @@ import {
   simular,
   dividirParaValidacao,
   compararEstrategias,
+  riscoDaCurva,
   stopPorAtr,
   CUSTO_PADRAO_PERCENTUAL,
   FRACAO_VALIDACAO_PADRAO,
@@ -666,6 +667,100 @@ describe('utils/backtest › curva e a régua do buy & hold', () => {
       r.parametros.capitalInicial) * 100
 
     expect(emPercentual).toBeCloseTo(r.metricas.buyAndHold, 8)
+  })
+})
+
+describe('utils/backtest › risco da curva', () => {
+  const HORA = 3600000
+  const curvaDe = (capitais) => capitais.map((capital) => ({ capital }))
+
+  it('deve anualizar pela cadência recebida, não por uma constante horária', () => {
+    // Mesma curva, cadências diferentes: candle diário tem menos períodos por
+    // ano que candle horário, então o mesmo padrão de retorno anualiza menos.
+    // Assumir "é sempre horário" numa constante daria o mesmo número para as
+    // duas, e a métrica passaria a mentir se a coleta mudasse de cadência.
+    const curva = curvaDe([1000, 1010, 1005, 1020, 1015, 1030])
+
+    const horaria = riscoDaCurva(curva, HORA)
+    const diaria = riscoDaCurva(curva, 24 * HORA)
+
+    expect(horaria.sharpe).toBeGreaterThan(diaria.sharpe)
+    // A razão é a dos períodos por ano sob a raiz: sqrt(24).
+    expect(horaria.sharpe / diaria.sharpe).toBeCloseTo(Math.sqrt(24), 8)
+    expect(horaria.volatilidade / diaria.volatilidade).toBeCloseTo(Math.sqrt(24), 8)
+  })
+
+  it('deve recusar curva que nunca se moveu em vez de devolver infinito', () => {
+    // Desvio zero: dividir por ele daria Infinity, que a tela leria como
+    // excelência. Mesmo tratamento do profit factor sem nenhuma perda.
+    const parada = riscoDaCurva(curvaDe([1000, 1000, 1000, 1000]), HORA)
+
+    expect(parada.sharpe).toBeNull()
+    expect(parada.volatilidade).toBe(0)
+  })
+
+  it('deve dar Sharpe negativo para curva que só perde', () => {
+    const perdendo = riscoDaCurva(curvaDe([1000, 990, 980, 970, 960]), HORA)
+    expect(perdendo.sharpe).toBeLessThan(0)
+  })
+
+  it('deve medir a curva inteira, incluindo os trechos sem posição', () => {
+    // A diferença entre "o que o meu capital fez" e "como foram as operações".
+    // Duas curvas com o MESMO desfecho e o mesmo par de saltos: uma anda o tempo
+    // todo, a outra fica parada entre eles. A parada tem desvio menor, então
+    // Sharpe maior — é a distorção que a exposição existe para acompanhar, e ela
+    // só aparece se os candles parados forem contados.
+    const semPausa = riscoDaCurva(curvaDe([1000, 1010, 1020, 1030, 1040]), HORA)
+    const comPausa = riscoDaCurva(curvaDe([1000, 1040, 1040, 1040, 1040]), HORA)
+
+    expect(comPausa.volatilidade).toBeGreaterThan(0)
+    expect(semPausa.volatilidade).toBeLessThan(comPausa.volatilidade)
+  })
+
+  it('deve recusar entrada sem o que medir', () => {
+    expect(riscoDaCurva([], HORA).sharpe).toBeNull()
+    expect(riscoDaCurva(null, HORA).sharpe).toBeNull()
+    expect(riscoDaCurva(curvaDe([1000, 1010]), HORA).sharpe).toBeNull()
+    // Sem cadência não há como anualizar, e um fator inventado seria pior.
+    expect(riscoDaCurva(curvaDe([1000, 1010, 1020]), null).sharpe).toBeNull()
+    expect(riscoDaCurva(curvaDe([1000, 1010, 1020]), 0).sharpe).toBeNull()
+  })
+
+  it('deve chegar às métricas de uma simulação de verdade', () => {
+    // A ponte: o motor precisa passar a cadência que mediu para o cálculo. Sem
+    // ela, `sharpe` sai null em toda simulação e o card nasce vazio — falha
+    // silenciosa que nenhum teste sobre a função pura pegaria.
+    //
+    // O candle SEGURADO precisa andar entre a abertura e o fechamento. Com
+    // `parado()` os dois são iguais, toda operação rende exatamente zero e a
+    // curva fica plana — foi assim que a primeira versão deste teste falhou, e
+    // a curva plana é justamente o caso em que o Sharpe é null de propósito.
+    const movimento = (abertura, fechamento) => ({
+      abertura,
+      maior: Math.max(abertura, fechamento) * 1.01,
+      menor: Math.min(abertura, fechamento) * 0.99,
+      fechamento,
+    })
+
+    const r = simular(
+      serie([
+        { ...parado(100), martelo: true },
+        movimento(100, 103),
+        { ...parado(103), martelo: true },
+        movimento(103, 100),
+        { ...parado(100), martelo: true },
+        movimento(100, 105),
+        parado(105),
+      ]),
+      { ...PADRAO, saidaPorTempo: 1 }
+    )
+
+    // Três operações com desfechos diferentes: a curva se move, então há
+    // dispersão para medir.
+    expect(r.trades.length).toBe(3)
+    expect(r.metricas.sharpe).not.toBeNull()
+    expect(Number.isFinite(r.metricas.sharpe)).toBe(true)
+    expect(r.metricas.volatilidade).toBeGreaterThan(0)
   })
 })
 

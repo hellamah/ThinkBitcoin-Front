@@ -74,6 +74,71 @@ export const MINIMO_TRADES_CONCLUSIVO = 20
 // "fora da amostra".
 export const FRACAO_VALIDACAO_PADRAO = 0.2
 
+// Milissegundos num ano. Serve para anualizar risco a partir da cadência real da
+// série, medida pelo motor, em vez de assumir "horário" numa constante. Se a
+// coleta virar diária ou de 15 minutos, a conta acompanha sozinha.
+export const MS_POR_ANO = 365.25 * 24 * 60 * 60 * 1000
+
+/**
+ * Risco da curva de capital: Sharpe anualizado e volatilidade anualizada.
+ *
+ * O painel media retorno e drawdown e mais nada sobre risco. Duas estratégias
+ * com o mesmo retorno e volatilidades muito diferentes liam idênticas, e a que
+ * balança mais parecia tão boa quanto a outra.
+ *
+ * Medido sobre os retornos da CURVA, candle a candle — não sobre os retornos por
+ * operação. É a diferença entre "o que o meu capital fez" e "como foram as
+ * operações": os trechos sem posição fazem parte do primeiro e somem do segundo.
+ *
+ * **Taxa livre de risco tratada como zero.** A plataforma não tem uma, e inventar
+ * um número seria pior que assumir o caso mais conservador para uma estratégia
+ * comprada.
+ *
+ * **A ressalva que precisa acompanhar o número:** quem fica fora do mercado a
+ * maior parte do tempo tem curva parada, e curva parada tem desvio pequeno — o
+ * Sharpe sobe sem que a estratégia tenha ficado melhor. É por isso que a
+ * exposição já é exibida no painel; os dois números se leem juntos.
+ *
+ * @param {Array<{capital: number}>} curva - Um ponto por candle.
+ * @param {number|null} cadenciaMs - Intervalo mediano entre candles.
+ * @returns {{sharpe: number|null, volatilidade: number|null}} - Volatilidade em
+ *   % anualizada. Ambos null quando não há o que medir.
+ */
+export const riscoDaCurva = (curva, cadenciaMs) => {
+  const vazio = { sharpe: null, volatilidade: null }
+  if (!Array.isArray(curva) || curva.length < 3) return vazio
+  if (!Number.isFinite(cadenciaMs) || cadenciaMs <= 0) return vazio
+
+  const retornos = []
+  for (let i = 1; i < curva.length; i++) {
+    const anterior = paraNumero(curva[i - 1]?.capital)
+    const atual = paraNumero(curva[i]?.capital)
+    if (anterior === null || atual === null || anterior <= 0) continue
+    retornos.push((atual - anterior) / anterior)
+  }
+  // Com menos de dois retornos não há dispersão para medir — um ponto sozinho
+  // tem desvio zero por definição, não por ausência de risco.
+  if (retornos.length < 2) return vazio
+
+  const media = retornos.reduce((a, b) => a + b, 0) / retornos.length
+  // Divisor n-1: estes retornos são uma amostra do que a estratégia faria, não
+  // a população inteira dos retornos possíveis.
+  const variancia =
+    retornos.reduce((a, r) => a + (r - media) ** 2, 0) / (retornos.length - 1)
+  const desvio = Math.sqrt(variancia)
+
+  const periodosPorAno = MS_POR_ANO / cadenciaMs
+  const volatilidade = desvio * Math.sqrt(periodosPorAno) * 100
+
+  return {
+    // Capital que nunca se moveu não tem risco medido. Dividir por zero daria
+    // Infinity, que a tela leria como excelência — mesmo motivo pelo qual o
+    // profit factor sai null quando não houve perda nenhuma.
+    sharpe: desvio > 0 ? (media / desvio) * Math.sqrt(periodosPorAno) : null,
+    volatilidade,
+  }
+}
+
 /**
  * Separa a janela em uma parte para ajustar e outra para validar.
  *
@@ -540,6 +605,7 @@ export const simular = (registros, opcoes = {}) => {
       capitalInicial,
       capitalFinal: capital,
       candlesEmPosicao,
+      cadenciaMs: cadencia,
     }),
   }
 }
@@ -711,6 +777,7 @@ const calcularMetricas = ({
   capitalInicial,
   capitalFinal,
   candlesEmPosicao,
+  cadenciaMs = null,
 }) => {
   const retornoTotal = ((capitalFinal - capitalInicial) / capitalInicial) * 100
 
@@ -746,9 +813,16 @@ const calcularMetricas = ({
       ? ((ultimo - primeiro) / primeiro) * 100
       : null
 
+  const { sharpe, volatilidade } = riscoDaCurva(curva, cadenciaMs)
+
   return {
     retornoTotal,
     drawdownMaximo,
+    // Retorno por unidade de risco, anualizado. Lê-se junto com `exposicao`:
+    // curva parada tem desvio pequeno, então quem opera pouco tem Sharpe alto
+    // sem que a estratégia seja melhor.
+    sharpe,
+    volatilidade,
     totalTrades: trades.length,
     tradesConcluidos: concluidos.length,
     winRate: concluidos.length > 0 ? (vitorias / concluidos.length) * 100 : null,

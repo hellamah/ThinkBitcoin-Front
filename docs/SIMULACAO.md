@@ -89,6 +89,22 @@ número não depende do Python para se sustentar.
 > mecanismo automático e não deve haver — acoplar os dois em runtime seria pior.
 > Se alguém alterar `fee_rate` lá, esta tabela precisa ser revisitada à mão.
 
+### O Sharpe é do front, e só dele
+
+Verificado em 2026-08-15, antes de implementar: **a plataforma não reporta
+Sharpe em lugar nenhum.** O `evaluation_service.evaluate()` devolve
+`agent_return`, `trades` e `actions` — nada de risco ajustado.
+
+O que existe no Python com esse nome é outra coisa: o "Sharpe adaptativo" de
+`environment.py` (`_current_trade_pnl_history`) é **termo de reward shaping do
+RL**, calculado sobre a volatilidade *interna de um trade em curso* para punir
+operações estressantes. Não é métrica de desempenho e não é comparável.
+
+Consequência: o Sharpe do painel **não tem contraparte para divergir**, então
+não entra na tabela de contrato acima. Mas se um dia o backend passar a reportar
+o seu, os dois precisam concordar — e este parágrafo existe para que a segunda
+implementação encontre a primeira, em vez de inventar a sua.
+
 ### D-01 — Buy & hold paga taxa? **Recomendação: não**
 
 O ambiente Python calcula o benchmark **sem custo nenhum**:
@@ -1016,6 +1032,55 @@ alguém querer saber quantas linhas ela tem.
 A forma "operação(ões)" acompanha o `simulationGaps`, que é o vizinho mais
 próximo em função (uma contagem com explicação). Consistência com quem está do
 lado vale mais que a redação marginalmente melhor de uma chave isolada.
+
+### A-16 — Sharpe: o painel media retorno e queda, mas não oscilação ✅ **entregue**
+
+Item da Fase 3 do [ROADMAP.md](ROADMAP.md:94) — *"Resultados exibidos: (…)
+Sharpe ratio"* — e um buraco real: duas estratégias com o mesmo retorno e
+volatilidades muito diferentes liam idênticas no painel.
+
+| Decisão | Escolha | Por quê |
+|---|---|---|
+| Base do cálculo | retornos da **curva**, candle a candle | é "o que o meu capital fez"; por operação some o que acontece entre elas |
+| Anualização | pela **cadência medida** (`MS_POR_ANO / cadenciaMs`) | o motor já mede a cadência; assumir "horário" numa constante mentiria se a coleta mudasse |
+| Taxa livre de risco | **zero** | a plataforma não tem uma, e inventar um número seria pior |
+| Divisor da variância | **n−1** | são amostra do que a estratégia faria, não a população |
+| Curva parada | **null**, não `Infinity` | mesmo tratamento do profit factor sem perdas — `∞` na tela se lê como mérito |
+
+Sai acompanhado da **volatilidade anualizada** como subvalor: a pergunta do card
+é "compensou o risco?", e o tamanho do risco é a leitura de apoio.
+
+**A ressalva que precisa acompanhar o número, e que está no tooltip:** para o
+mesmo retorno total, exposição menor produz Sharpe maior — a curva fica parada
+na maior parte do tempo, o desvio cai, e a razão sobe sem a estratégia ter
+melhorado. É por isso que a exposição já era exibida; os dois se leem juntos.
+
+**Verificado por injeção**, três defeitos e três testes distintos: o motor parar
+de passar a cadência derruba o teste-ponte; anualizar por uma constante horária
+derruba o teste de cadência; remover a guarda de desvio zero derruba o de curva
+parada.
+
+> **O primeiro teste-ponte que escrevi falhou, e estava certo em falhar.** A
+> fixture usava `parado()`, onde abertura e fechamento são iguais — toda operação
+> rendia exatamente zero, a curva ficava plana, e curva plana é justamente o caso
+> em que o Sharpe sai `null` de propósito. O candle segurado precisa andar entre
+> a abertura e o fechamento. Mesma armadilha que a fixture de
+> `serieComDoisSinais` já documentava, e que eu repeti.
+
+Leitura da primeira execução, que mostra a métrica separando o que o retorno
+sozinho não separa:
+
+| Sinal | Retorno | Volatilidade | Sharpe |
+|---|---|---|---|
+| Rompeu banda superior | +545,4% | 33,7% | **17,03** |
+| Cruzou VWAP p/ Cima | +348,1% | 31,3% | **14,75** |
+| Divergência Baixista | +131,5% | 43,0% | **6,16** |
+| Ticket Alto | +3,7% | 67,7% | **0,50** |
+
+Os números são grandes porque a leitura veio do modo mock, com dados sintéticos
+onde as estratégias acertam demais, e porque anualizar retorno horário amplifica.
+Em dado real a escala é outra; o que a tabela mostra é a **ordenação**, que é o
+que a métrica existe para dar.
 
 ### A-07 — Zero operações não é retorno zero 🟡
 

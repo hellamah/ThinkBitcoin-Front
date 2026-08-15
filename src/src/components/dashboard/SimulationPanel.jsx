@@ -490,6 +490,31 @@ export default function SimulationPanel({
                   : '—'}
               </div>
             </div>
+
+            {/* Retorno por unidade de risco. Sem ele o painel media quanto rendeu
+                e quanto caiu, mas nada sobre o quanto balançou no caminho: duas
+                estratégias com o mesmo retorno e volatilidades muito diferentes
+                liam idênticas.
+
+                A volatilidade vem como subvalor, e não o contrário, porque a
+                pergunta do card é "compensou o risco?" — o tamanho do risco é a
+                leitura de apoio. */}
+            <div className="intel-card">
+              <RotuloComAjuda
+                className="intel-label"
+                texto={t('simulationSharpe')}
+                ajuda={t('ajuda.simSharpe')}
+              />
+              <div className={`intel-value ${classeSinal(metricas.sharpe)}`}>
+                {metricas.sharpe === null ? '—' : metricas.sharpe.toFixed(2)}
+              </div>
+              <div className="intel-subvalue" style={{ opacity: 0.7 }}>
+                {t('simulationVolatility')}:{' '}
+                {metricas.volatilidade === null
+                  ? '—'
+                  : mathUtils.formatPercent(metricas.volatilidade, 1, false)}
+              </div>
+            </div>
           </div>
 
           {/* ---------- Curva de capital ---------- */}
