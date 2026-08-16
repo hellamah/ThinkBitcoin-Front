@@ -26,4 +26,15 @@ export default defineConfig([
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
     },
   },
+  {
+    // A suíte roda em Node, não no navegador: `Buffer`, `process` e `global`
+    // existem ali e não existem no bloco acima, que declara só `globals.browser`.
+    // Sem esta separação o lint acusava nove `no-undef` que eram da configuração,
+    // não do código — a config veio do template do Vite e nunca tinha sido
+    // executada contra a forma real deste repositório.
+    files: ['test/**/*.{js,jsx}'],
+    languageOptions: {
+      globals: { ...globals.node, ...globals.browser },
+    },
+  },
 ])

@@ -11,16 +11,32 @@ Este roadmap organiza a evolução do frontend do ThinkBitcoin em quatro fases, 
 - [x] Organizar estrutura do projeto.
 - [x] Criar e manter README do projeto.
 - [x] Definir padrão de versionamento.
-- [x] Configurar ESLint e Prettier.
+- [x] Configurar ESLint. *(Corrigido em 2026-08-16: o `eslint.config.js` existia
+  desde o primeiro commit, mas nenhuma das suas 5 dependências estava declarada
+  no `package.json` e não havia script — a config nunca foi executável a partir
+  de um checkout limpo. Agora `npm run lint` roda.)*
+- [ ] Configurar Prettier. *(Estava marcado como feito; não há config nem
+  dependência de Prettier no repositório.)*
 - [x] Configurar variáveis de ambiente.
 - [x] Preparar build de produção.
 
 ### Build Pipeline
 - [x] Pipeline de build automático (Vercel + Azure).
 - [x] Instalação de dependências.
-- [x] Execução de lint.
-- [x] Execução de testes.
+- [ ] Execução de lint. *(Nunca executou. O `npm run lint` já existe, mas o
+  repositório acumula 58 erros de quando a config não podia rodar — ligar o gate
+  agora quebraria todo build por dívida anterior a ele. Entra depois do passivo.)*
+- [x] Execução de testes. *(Corrigido em 2026-08-16: estava marcado como feito e
+  não acontecia. O pipeline builda a imagem, e o `Dockerfile` fazia só
+  `npm install` + `npm run build` — 507 testes que nenhuma etapa cobrava. Agora
+  `npm test` roda antes do build e aborta a imagem se falhar.)*
 - [x] Geração do build (`dist`).
+
+> **Aberto, e é decisão de release:** o `Dockerfile` usa `node:18`, e o Vite 7.0.4
+> declara `engines: ^20.19.0 || >=22.12.0`. O `npm install` só avisa em
+> incompatibilidade de engine, não falha, então isso pode estar passando
+> despercebido. Não foi alterado aqui — quem confere se a imagem builda é o
+> pipeline.
 
 ### Release Pipeline
 - [x] Integração com Vercel.

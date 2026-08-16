@@ -5,6 +5,19 @@ ENV VITE_API_URL=$VITE_API_URL
 COPY package*.json ./
 RUN npm install
 COPY . .
+
+# A suite roda ANTES do build, e falhar aqui aborta a imagem. Ate agora nada
+# executava os testes no caminho de release: o pipeline builda a imagem e a
+# imagem so fazia `npm install` + `npm run build`. Existiam centenas de testes
+# que nenhuma etapa cobrava — rede de seguranca que so protegia quem lembrasse
+# de rodar na mao.
+#
+# O lint NAO entra aqui ainda, de proposito. Ele passou a ser executavel
+# (`npm run lint`), mas o repositorio acumula 58 erros de quando a config existia
+# sem poder rodar. Ligar o gate agora quebraria todo build por divida anterior a
+# ele; entra num segundo passo, depois que o passivo for tratado.
+RUN npm test
+
 RUN npm run build
 
 FROM nginx:stable-alpine
