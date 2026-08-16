@@ -1,4 +1,7 @@
-FROM node:18 AS build
+# node:22 porque o vite 7 declara engines `^20.19.0 || >=22.12.0`. Em node:18 o
+# `npm install` so avisava (EBADENGINE) e seguia: a imagem buildava sobre um
+# runtime que a toolchain nao suporta, e o desenvolvimento local ja usa 22.
+FROM node:22 AS build
 WORKDIR /app
 ARG VITE_API_URL=https://localhost:13501
 ENV VITE_API_URL=$VITE_API_URL

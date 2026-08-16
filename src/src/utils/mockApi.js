@@ -422,7 +422,7 @@ const generateMockPatrimonio = () => {
       saldoTotalUSD += valorUSD
       
       registros.push({
-        idPatrimonioTB: crypto.randomUUID?.() || Math.random().toString(36).substring(2, 15),
+        idPatrimonioTB: globalThis.crypto?.randomUUID?.() || Math.random().toString(36).substring(2, 15),
         idUsuarioTB: "b282e124-4dd8-4ccd-a9c6-5b6b0c324a50",
         valorBRL: Number(valorBRL.toFixed(2)),
         valorUSD: Number(valorUSD.toFixed(2)),
@@ -484,7 +484,7 @@ const resolveMockCobranca = () => {
 const criarMockCobranca = (body) => {
   const criadaEmMs = Date.now()
   mockCobranca = {
-    idCobranca: crypto.randomUUID?.() || Math.random().toString(36).substring(2, 15),
+    idCobranca: globalThis.crypto?.randomUUID?.() || Math.random().toString(36).substring(2, 15),
     idUsuarioTB: body?.idUsuarioTB || 'b282e124-4dd8-4ccd-a9c6-5b6b0c324a50',
     tipoPlano: parseInt(body?.tipoPlano ?? 0),
     nomePlano: body?.nomePlano || '',
@@ -980,7 +980,7 @@ const mockHandlers = [
       const valorUSD = parseFloat((valorBRL / cotacao).toFixed(2))
 
       const novo = {
-        idPatrimonioTB: crypto.randomUUID?.() || Math.random().toString(36).substring(2, 15),
+        idPatrimonioTB: globalThis.crypto?.randomUUID?.() || Math.random().toString(36).substring(2, 15),
         idUsuarioTB: body?.idUsuarioTB || 'b282e124-4dd8-4ccd-a9c6-5b6b0c324a50',
         valorBRL,
         valorUSD,
