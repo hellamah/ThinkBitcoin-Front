@@ -74,12 +74,12 @@ export default function CoinCarousel({
   const carouselContent = (
     <div className={`crypto-carousel-wrapper ${podeRolarEsquerda ? 'can-left' : ''} ${podeRolarDireita ? 'can-right' : ''}`}>
       {podeRolarEsquerda && (
-        <button type="button" className="carousel-nav prev" onClick={() => rolar(-1)} aria-label={t('carrosselAnterior') || 'Moedas anteriores'}>
+        <button type="button" className="carousel-nav prev" onClick={() => rolar(-1)} aria-label={t('carrosselAnterior')}>
           <MdChevronLeft />
         </button>
       )}
       {podeRolarDireita && (
-        <button type="button" className="carousel-nav next" onClick={() => rolar(1)} aria-label={t('carrosselProximo') || 'Próximas moedas'}>
+        <button type="button" className="carousel-nav next" onClick={() => rolar(1)} aria-label={t('carrosselProximo')}>
           <MdChevronRight />
         </button>
       )}

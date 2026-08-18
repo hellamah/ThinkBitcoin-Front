@@ -135,7 +135,7 @@ export default function HistoryTable({
                     onClick={() => handleSort('variation')}
                     sx={sortLabelSx}
                   >
-                    {t('variation') || 'Variação'}
+                    {t('variation')}
                   </TableSortLabel>
                 </TableCell>
               </TableRow>
@@ -145,7 +145,7 @@ export default function HistoryTable({
                 <TableRow>
                   <TableCell colSpan={moedasFiltro.length > 1 ? 4 : 3} align="center" sx={{ color: 'var(--text-faint)', py: 8 }}>
                     <div style={{ opacity: 0.5, fontSize: '0.9rem' }}>
-                      {t('noRecordsFound') || 'Nenhum registro encontrado para os filtros selecionados'}
+                      {t('noRecordsFound')}
                     </div>
                   </TableCell>
                 </TableRow>
