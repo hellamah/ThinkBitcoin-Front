@@ -209,6 +209,45 @@ const extractErrorMessage = async (response) => {
   return null
 }
 
+/**
+ * Efeitos colaterais que um status de erro dispara, independentemente de a
+ * resposta ter vindo da API ou do mock.
+ *
+ * Extraído para que os dois caminhos não divirjam: enquanto isto vivia só
+ * dentro do bloco de `fetch`, o modo demo não tinha como expirar sessão nem
+ * abrir o convite de assinatura, e um 403 mockado passava batido.
+ */
+const notificarStatusDeErro = (status, endpoint, suppressAuthRedirect) => {
+  if (typeof window === 'undefined') return
+
+  if (status === 401 && !suppressAuthRedirect) {
+    window.dispatchEvent(new CustomEvent('auth-expired'))
+  }
+
+  // 403 = autenticado mas sem o cargo exigido: recurso de assinatura paga.
+  // O Layout escuta este evento e exibe o convite para migrar de plano.
+  if (status === 403) {
+    window.dispatchEvent(new CustomEvent('subscription-required', { detail: { endpoint } }))
+  }
+}
+
+/**
+ * Padroniza o erro para o formato que os consumidores esperam: `status`,
+ * `hasBackendMessage` e uma mensagem sempre preenchida.
+ *
+ * `hasBackendMessage` é o que autoriza a tela a exibir o texto como veio, em
+ * vez de trocá-lo pela frase genérica dela. Sem esta marca, uma mensagem
+ * precisa ("Você já tem um alerta ativo neste valor") chega à interface
+ * indistinguível de uma falha de rede.
+ */
+const montarErroDeApi = (mensagem, status) => {
+  const texto = typeof mensagem === 'string' ? mensagem.trim() : ''
+  const error = new Error(texto || 'Falha na requisição à API')
+  error.status = status
+  error.hasBackendMessage = Boolean(texto)
+  return error
+}
+
 export const apiRequest = async (
   endpoint,
   {
@@ -237,7 +276,21 @@ export const apiRequest = async (
     // Import dinâmico: em produção a flag é estaticamente falsa e o Rollup joga
     // o mockApi num chunk separado, que o navegador nunca chega a buscar.
     const { getMockResponse } = await import('./mockApi')
-    const mockResponse = getMockResponse({ endpoint, method, body })
+
+    let mockResponse
+    try {
+      mockResponse = getMockResponse({ endpoint, method, body })
+    } catch (mockError) {
+      // Os handlers do mock recusam entrada inválida lançando um Error com
+      // `status`, imitando o 400 da API. Sem este catch a exceção escapava crua:
+      // o erro chegava sem `hasBackendMessage`, e a tela — que só confia no
+      // texto quando essa marca existe — descartava a mensagem específica e
+      // exibia "tente novamente" no lugar dela.
+      const status = Number.isInteger(mockError?.status) ? mockError.status : 400
+      notificarStatusDeErro(status, endpoint, suppressAuthRedirect)
+      throw montarErroDeApi(mockError?.message, status)
+    }
+
     if (mockResponse) {
       const normalizedMock = normalizeApiKeys(mockResponse)
       if (useCache && isGet) {
@@ -253,19 +306,8 @@ export const apiRequest = async (
   )
 
   if (!response.ok) {
-    if (response.status === 401 && !suppressAuthRedirect && typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('auth-expired'))
-    }
-    // 403 = autenticado mas sem o cargo exigido: recurso de assinatura paga.
-    // O Layout escuta este evento e exibe o convite para migrar de plano.
-    if (response.status === 403 && typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('subscription-required', { detail: { endpoint } }))
-    }
-    const backendMessage = await extractErrorMessage(response)
-    const error = new Error(backendMessage || 'Falha na requisição à API')
-    error.status = response.status
-    error.hasBackendMessage = Boolean(backendMessage)
-    throw error
+    notificarStatusDeErro(response.status, endpoint, suppressAuthRedirect)
+    throw montarErroDeApi(await extractErrorMessage(response), response.status)
   }
 
   if (response.status === 204) return null
