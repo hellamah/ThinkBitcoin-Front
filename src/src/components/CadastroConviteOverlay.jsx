@@ -20,8 +20,6 @@ import Container from '@mui/material/Container'
 import { MdClose, MdBolt, MdAutoGraph, MdShield, MdTranslate, MdPerson, MdSettings } from 'react-icons/md'
 import ErrorMessage from './ErrorMessage'
 import { apiRequest, HttpMethod, UserEndpoint, MarketEndpoint } from '../utils/apiClient'
-import { authenticate } from '../utils/authentication'
-import { useAuth } from '../context/AuthContext'
 import useTranslation from '../hooks/useTranslation'
 import { DEFAULT_PREFERENCES } from '../utils/preferences'
 import { LANGUAGES } from '../lang'
@@ -36,7 +34,6 @@ import { LANGUAGES } from '../lang'
 const CadastroConviteOverlay = ({ onFechar }) => {
 
   const { t } = useTranslation()
-  const { token } = useAuth()
 
   const [nome, setNome] = useState('')
   const [email, setEmail] = useState('')

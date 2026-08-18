@@ -16,9 +16,12 @@ COPY . .
 # de rodar na mao.
 #
 # O lint NAO entra aqui ainda, de proposito. Ele passou a ser executavel
-# (`npm run lint`), mas o repositorio acumula 58 erros de quando a config existia
-# sem poder rodar. Ligar o gate agora quebraria todo build por divida anterior a
-# ele; entra num segundo passo, depois que o passivo for tratado.
+# (`npm run lint`), mas o repositorio ainda acumula 33 erros de quando a config
+# existia sem poder rodar. Eram 58; remover o que era lixo de verdade levou a 33,
+# e o que sobrou nao e faxina: 19 `rules-of-hooks` (mover hook para antes de
+# `return` antecipado muda render de verdade), 12 `only-export-components` (so
+# afeta o Fast Refresh em dev) e 2 features meio-ligadas, anotadas no codigo.
+# Ligar o gate agora quebraria todo build por divida anterior a ele.
 RUN npm test
 
 RUN npm run build

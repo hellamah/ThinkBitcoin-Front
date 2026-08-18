@@ -213,7 +213,6 @@ export default function GeoHeatmapView() {
 
   // ------ tour onboarding ------
   const [tourRodando, setTourRodando] = useState(false)
-  const refCarousel = useRef(null)
   const refIntervalos = useRef(null)
   const refAcoesTopo = useRef(null)
   const refZoom = useRef(null)
@@ -633,6 +632,11 @@ export default function GeoHeatmapView() {
     }
   }, [handleCountryClick])
 
+  // NAO REMOVER SEM DECIDIR: o lint acusa `chartEvents` como nao usado, e esta
+  // certo — nada o consome. Mas ele carrega o handler de `select` do Google
+  // Charts, ou seja, clicar num pais no mapa nunca foi ligado. Apagar faria o
+  // lint passar e apagaria a unica pista de que a feature ficou pela metade.
+  // Ligar ou remover de vez e decisao de produto, nao de faxina.
   const chartEvents = useMemo(() => [
     {
       eventName: 'select',

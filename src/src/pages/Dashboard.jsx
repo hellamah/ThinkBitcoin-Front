@@ -75,13 +75,13 @@ export default function Dashboard() {
   const isMobile = useMediaQuery('(max-width:600px)')
 
   const {
-    dataInicio, setDataInicio,
-    dataFim, setDataFim,
-    resultadoFiltro, setResultadoFiltro,
-    intervalo, setIntervalo,
+    dataInicio,
+    dataFim,
+    resultadoFiltro,
+    intervalo,
     pagina, setPagina,
-    quantidade, setQuantidade,
-    moedaSelecionada, setMoedaSelecionada
+    quantidade,
+    setMoedaSelecionada
   } = useDashboard()
 
   const [moedasFiltro, setMoedasFiltro] = useState([]) 

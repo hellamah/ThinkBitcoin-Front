@@ -35,7 +35,7 @@ const decodeBase64 = (valor) => {
       // Fallback para navegadores muito antigos (se existirem)
       return decodeURIComponent(escape(binStr))
     }
-  } catch (err) {
+  } catch {
     /* istanbul ignore next */
   }
 

@@ -15,7 +15,7 @@ export function hasCookieConsent() {
 function saveCookieConsent(value) {
   try {
     localStorage.setItem(STORAGE_KEY, value)
-  } catch {}
+  } catch { /* storage indisponível (modo privado): o consentimento fica só nesta sessão */ }
 }
 
 function CookieBanner() {

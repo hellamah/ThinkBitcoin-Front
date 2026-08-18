@@ -4,7 +4,7 @@
  * Este conjunto de testes valida o fluxo de segurança, login e decodificação 
  * de identidade (JWT) do ecossistema ThinkBitcoin.
  */
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { AuthenticationEndpoint, HttpMethod } from '../src/utils/apiClient'
 import {
   AuthTokenClaim,

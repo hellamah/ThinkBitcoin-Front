@@ -16,9 +16,8 @@ import { MdAdd, MdHistory, MdAttachMoney, MdOutlineCalendarToday } from 'react-i
 import Modal from '../Modal'
 import { apiRequest, PatrimonioEndpoint, HttpMethod } from '../../utils/apiClient'
 import useTranslation from '../../hooks/useTranslation'
-import * as mathUtils from '../../utils/mathUtils'
 
-export default function PatrimonioModal({ visible, onClose, token, user, patrimonio, onRefresh }) {
+export default function PatrimonioModal({ visible, onClose, user, patrimonio, onRefresh }) {
   const { t } = useTranslation()
   const [valorBRL, setValorBRL] = useState('')
   const [observacao, setObservacao] = useState('')

@@ -47,7 +47,7 @@ export const toLocalChartLabel = (utcString) => {
       day: '2-digit', 
       month: '2-digit' 
     })
-  } catch (err) {
+  } catch {
     return utcString
   }
 }
@@ -63,7 +63,7 @@ export const toUTCISO = (localInput) => {
     const d = new Date(localInput)
     if (isNaN(d.getTime())) return null
     return d.toISOString()
-  } catch (err) {
+  } catch {
     return null
   }
 }

@@ -65,6 +65,10 @@ function Settings() {
   const [modalExcluirOpen, setModalExcluirOpen] = useState(false)
   const [toast, setToast] = useState('')
   const [moedas, setMoedas] = useState([])
+  // NAO REMOVER SEM DECIDIR: `exchanges` e preenchido por `setExchanges` e nunca
+  // lido — a tela faz uma requisicao cujo resultado e descartado. O lint acusa a
+  // variavel; o problema real e a requisicao orfa. Ver comentario equivalente em
+  // GeoHeatmapView.
   const [exchanges, setExchanges] = useState([])
   const [senha, setSenha] = useState({ atual: '', nova: '', confirma: '' })
   const [loadingSenha, setLoadingSenha] = useState(false)

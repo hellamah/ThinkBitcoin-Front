@@ -43,23 +43,6 @@ const base64FromUtf8 = (str) => {
   return str
 }
 
-const buildMockToken = () => {
-  const header = { alg: 'HS256', typ: 'JWT' }
-  const payload = {
-    'idUsuarioTB': 'b282e124-4dd8-4ccd-a9c6-5b6b0c324a50',
-    'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name': 'Helama Borges',
-    'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress': 'helama@thinkbitcoin.com',
-  }
-
-  const encode = (value) =>
-    base64FromUtf8(JSON.stringify(value))
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=+$/, '')
-
-  return `${encode(header)}.${encode(payload)}.mock-signature`
-}
-
 const MOCK_COIN_BASE_VALUE = Object.freeze({
   BTC: 68000,
   ETH: 3500,
