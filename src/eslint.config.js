@@ -38,6 +38,12 @@ export default defineConfig([
     },
     rules: {
       'react/jsx-uses-vars': 'error',
+      // Aviso, e nao erro: a propria mensagem da regra e sobre Fast Refresh
+      // ("Fast refresh only works when a file only exports components"), ou seja,
+      // ergonomia de desenvolvimento. Nada do que ela aponta chega ao usuario, e
+      // como erro ela sozinha travaria o gate de lint no CI por 12 arquivos que
+      // funcionam. Continua visivel para quem quiser arrumar.
+      'react-refresh/only-export-components': 'warn',
       'no-unused-vars': [
         'error',
         // `^_` marca descarte deliberado: `({ _ms, ...rest }) => rest` é o

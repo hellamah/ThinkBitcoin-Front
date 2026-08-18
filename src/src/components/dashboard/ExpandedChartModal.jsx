@@ -33,8 +33,6 @@ const ExpandedChartModal = ({
   mostraVolume,
   t,
 }) => {
-  if (!expandedChart) return null;
-
   const isTraded = expandedChart === ChartType.TRADED_VALUE;
   // O assunto do segundo painel vem do seletor "Painel", igual à versão
   // reduzida — abrir o modal não muda o que está sendo mostrado.
@@ -141,6 +139,16 @@ const ExpandedChartModal = ({
   };
 
   const handleClose = () => setExpandedChart(null);
+
+  // A guarda fica DEPOIS dos hooks, e nao no topo. Com ela la em cima, o
+  // componente — que o DashboardCharts mantem sempre montado — renderizava com
+  // zero hooks enquanto nenhum grafico estava expandido e com quatro depois de
+  // abrir. React exige a mesma ordem em todo render, e o que segurava isso de pe
+  // era sorte, nao desenho.
+  //
+  // Nada acima depende de `expandedChart` estar preenchido: `isTraded` vira
+  // false, os dados vem das props, e os dois useMemo ja se protegem sozinhos.
+  if (!expandedChart) return null;
 
   return (
     <div className="expanded-chart-overlay" onClick={handleClose}>

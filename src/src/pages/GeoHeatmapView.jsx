@@ -637,6 +637,11 @@ export default function GeoHeatmapView() {
   // Charts, ou seja, clicar num pais no mapa nunca foi ligado. Apagar faria o
   // lint passar e apagaria a unica pista de que a feature ficou pela metade.
   // Ligar ou remover de vez e decisao de produto, nao de faxina.
+  // Excecao deliberada, e a unica do repositorio: a nota acima explica por que
+  // isto fica. Sem o disable, um achado que decidimos PRESERVAR travaria o gate
+  // de lint no CI — e a saida seria apagar a pista, que e o oposto do que a nota
+  // pede. Quando a decisao for tomada, o disable sai junto.
+  // eslint-disable-next-line no-unused-vars
   const chartEvents = useMemo(() => [
     {
       eventName: 'select',

@@ -65,11 +65,6 @@ function Settings() {
   const [modalExcluirOpen, setModalExcluirOpen] = useState(false)
   const [toast, setToast] = useState('')
   const [moedas, setMoedas] = useState([])
-  // NAO REMOVER SEM DECIDIR: `exchanges` e preenchido por `setExchanges` e nunca
-  // lido — a tela faz uma requisicao cujo resultado e descartado. O lint acusa a
-  // variavel; o problema real e a requisicao orfa. Ver comentario equivalente em
-  // GeoHeatmapView.
-  const [exchanges, setExchanges] = useState([])
   const [senha, setSenha] = useState({ atual: '', nova: '', confirma: '' })
   const [loadingSenha, setLoadingSenha] = useState(false)
   const [planoAtivo, setPlanoAtivo] = useState(null)
@@ -106,14 +101,8 @@ function Settings() {
     carregarPlanoAtivo()
     const carregarDados = async () => {
       try {
-        const [resM, resE] = await Promise.all([
-          apiRequest(MarketEndpoint.COIN_LIST),
-          apiRequest(MarketEndpoint.EXCHANGES)
-        ])
-        const listaM = resM?.resultado || resM?.Resultado || (Array.isArray(resM) ? resM : [])
-        const listaE = resE?.resultado || resE?.Resultado || (Array.isArray(resE) ? resE : [])
-        setMoedas(listaM)
-        setExchanges(listaE)
+        const resM = await apiRequest(MarketEndpoint.COIN_LIST)
+        setMoedas(resM?.resultado || resM?.Resultado || (Array.isArray(resM) ? resM : []))
       } catch (err) {
         console.error('Erro ao carregar dados:', err)
         // Fallback para manter a interface funcional

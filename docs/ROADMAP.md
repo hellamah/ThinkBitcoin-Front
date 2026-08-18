@@ -23,20 +23,19 @@ Este roadmap organiza a evolução do frontend do ThinkBitcoin em quatro fases, 
 ### Build Pipeline
 - [x] Pipeline de build automático (Vercel + Azure).
 - [x] Instalação de dependências.
-- [ ] Execução de lint. *(Nunca executou. O `npm run lint` já existe, mas o
-  repositório acumula 58 erros de quando a config não podia rodar — ligar o gate
-  agora quebraria todo build por dívida anterior a ele. Entra depois do passivo.)*
+- [x] Execução de lint. *(Aceso em 2026-08-16, depois de zerar o passivo: eram 58
+  erros de quando a config não podia rodar. `npm run lint` roda no `Dockerfile`
+  antes dos testes e aborta a imagem se falhar. Restam 30 avisos, que não travam
+  o gate de propósito — são dívidas conhecidas, não defeitos.)*
 - [x] Execução de testes. *(Corrigido em 2026-08-16: estava marcado como feito e
   não acontecia. O pipeline builda a imagem, e o `Dockerfile` fazia só
   `npm install` + `npm run build` — 507 testes que nenhuma etapa cobrava. Agora
   `npm test` roda antes do build e aborta a imagem se falhar.)*
 - [x] Geração do build (`dist`).
 
-> **Aberto, e é decisão de release:** o `Dockerfile` usa `node:18`, e o Vite 7.0.4
-> declara `engines: ^20.19.0 || >=22.12.0`. O `npm install` só avisa em
-> incompatibilidade de engine, não falha, então isso pode estar passando
-> despercebido. Não foi alterado aqui — quem confere se a imagem builda é o
-> pipeline.
+> **Resolvido:** o `Dockerfile` usava `node:18` enquanto o Vite 7.0.4 declara
+> `engines: ^20.19.0 || >=22.12.0`. Subiu para `node:22`, e um `.dockerignore`
+> entrou junto.
 
 ### Release Pipeline
 - [x] Integração com Vercel.

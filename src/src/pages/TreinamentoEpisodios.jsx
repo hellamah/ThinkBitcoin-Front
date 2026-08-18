@@ -1450,18 +1450,27 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
   )
 }
 
+// O episodio pedido pela URL nao existe na lista carregada. Vive fora do
+// DetailView de proposito: la a mensagem ficava atras de um `return` antecipado,
+// ANTES dos quinze hooks do componente, e React exige a mesma ordem de hooks em
+// todo render. Quem decide qual dos dois renderizar e quem ja tem o item em maos.
+function EpisodioNaoEncontrado({ onBack }) {
+  const { palette } = useTheme()
+  const dk = palette.mode === 'dark'
+  const { t } = useTranslation()
+  return (
+    <Box sx={{ p: 4, color: textPrimary(dk) }}>
+      <Button startIcon={<MdArrowBack />} onClick={onBack} sx={{ color: textPrimary(dk), mb: 2 }}>{t('treinamento.back')}</Button>
+      <Typography>{t('treinamento.notFound')}</Typography>
+    </Box>
+  )
+}
+
+// Recebe `item` sempre preenchido — ver EpisodioNaoEncontrado.
 function DetailView({ item, allItems, onBack, onNavigate }) {
   const { palette } = useTheme()
   const dk = palette.mode === 'dark'
   const { t } = useTranslation()
-  if (!item) {
-    return (
-      <Box sx={{ p: 4, color: textPrimary(dk) }}>
-        <Button startIcon={<MdArrowBack />} onClick={onBack} sx={{ color: textPrimary(dk), mb: 2 }}>{t('treinamento.back')}</Button>
-        <Typography>{t('treinamento.notFound')}</Typography>
-      </Box>
-    )
-  }
 
   // ── Dados da mesma moeda ──
   const sameCoinItems = useMemo(() =>
@@ -2475,11 +2484,18 @@ export default function TreinamentoEpisodios() {
         </Box>
       )
     }
+    const voltarParaLista = () => {
+      const qs = filterQuery()
+      navigate(`/treinamento-episodios${qs ? `?${qs}` : ''}`)
+    }
+    if (!item) {
+      return <EpisodioNaoEncontrado onBack={voltarParaLista} />
+    }
     return (
       <DetailView
         item={item}
         allItems={items}
-        onBack={() => { const qs = filterQuery(); navigate(`/treinamento-episodios${qs ? `?${qs}` : ''}`) }}
+        onBack={voltarParaLista}
         onNavigate={openEpisodio}
       />
     )
