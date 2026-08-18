@@ -53,6 +53,9 @@ import { LANGUAGES, IDIOMA_PADRAO } from '../lang'
 import { isNotificationSupported } from '../utils/browser'
 import { executeNotificationWorkflow } from '../utils/workflow'
 import PlanosPagamentoModal from '../components/PlanosPagamentoModal'
+import useAlertasPreco from '../hooks/useAlertasPreco'
+import { DirecaoAlerta, StatusAlerta, contarAtivos, LIMITE_ALERTAS_ATIVOS } from '../utils/alertaPreco'
+import * as mathUtils from '../utils/mathUtils'
 import ExcluirContaModal from '../components/ExcluirContaModal'
 
 function Settings() {
@@ -124,6 +127,13 @@ function Settings() {
   useEffect(() => {
     setNome(user?.nome || '')
   }, [user?.nome])
+
+  const {
+    alertas,
+    carregando: carregandoAlertas,
+    temAcesso: temAcessoAlertas,
+    excluir: excluirAlerta,
+  } = useAlertasPreco(user)
 
   const confirm = () => {
     setToast(t('settingsSaved') || 'Configurações salvas!')
@@ -415,6 +425,68 @@ function Settings() {
               />
             </Box>
           ))
+        ))}
+
+        {temAcessoAlertas && renderPanel(<MdNotifications />, t('alertas.titulo'), (
+          <>
+            <Typography variant="body2" sx={{ color: 'var(--text-secondary)' }}>
+              {t('alertas.settingsDescricao')}
+            </Typography>
+
+            {carregandoAlertas ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                <CircularProgress size={20} />
+              </Box>
+            ) : alertas.length === 0 ? (
+              <Typography variant="body2" sx={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                {t('alertas.listaVazia')}
+              </Typography>
+            ) : (
+              <>
+                <Typography variant="caption" sx={{ color: 'var(--text-muted)' }}>
+                  {t('alertas.meusAlertas', {
+                    ativos: contarAtivos(alertas),
+                    limite: LIMITE_ALERTAS_ATIVOS,
+                  })}
+                </Typography>
+                {alertas.map((a) => (
+                  <Box
+                    key={a.idAlertaPrecoTB}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1.5,
+                      py: 1.2,
+                      borderBottom: '1px solid var(--border-subtle)',
+                      opacity: a.status === StatusAlerta.DISPARADO ? 0.65 : 1,
+                    }}
+                  >
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography variant="body2" sx={{ color: 'var(--text-primary)', fontWeight: 700 }}>
+                        {a.siglaMoeda} {a.direcao === DirecaoAlerta.ACIMA ? '\u2265' : '\u2264'}{' '}
+                        {mathUtils.formatCurrency(a.valorAlvo)}
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: 'var(--text-muted)' }}>
+                        {a.status === StatusAlerta.DISPARADO
+                          ? t('alertas.disparadoEm', {
+                              valor: mathUtils.formatCurrency(a.valorDisparo ?? a.valorAlvo),
+                              data: a.dataDisparo ? new Date(a.dataDisparo).toLocaleString() : '',
+                            })
+                          : t('alertas.aguardando')}
+                      </Typography>
+                    </Box>
+                    <Button
+                      size="small"
+                      onClick={() => excluirAlerta(a.idAlertaPrecoTB).catch(() => {})}
+                      sx={{ color: 'var(--text-muted)', minWidth: 0 }}
+                    >
+                      {t('alertas.excluir')}
+                    </Button>
+                  </Box>
+                ))}
+              </>
+            )}
+          </>
         ))}
 
         {renderPanel(<MdPayment />, t('planos.title'), (

@@ -7,10 +7,12 @@
 import { describe, expect, it } from 'vitest'
 import { AuthenticationEndpoint, HttpMethod } from '../src/utils/apiClient'
 import {
+  AuthRole,
   AuthTokenClaim,
   authenticate,
   decodeAuthenticationToken,
   isAuthenticationTokenExpired,
+  temCargo,
 } from '../src/utils/authentication'
 import { API_URL } from '../src/api'
 
@@ -83,6 +85,7 @@ describe('utils/authentication › decodeAuthenticationToken (Decodificação JW
       idUsuarioTB: null,
       nome: 'Satoshi Nakamoto',
       email: 'satoshi@bitcoin.org',
+      cargos: [],
     })
   })
 
@@ -95,6 +98,7 @@ describe('utils/authentication › decodeAuthenticationToken (Decodificação JW
       idUsuarioTB: null,
       nome: 'Helamã Borges',
       email: 'helama@think.com',
+      cargos: [],
     })
   })
 
@@ -104,6 +108,7 @@ describe('utils/authentication › decodeAuthenticationToken (Decodificação JW
       idUsuarioTB: '12345',
       nome: '',
       email: '',
+      cargos: ['guest'],
     })
   })
 
@@ -122,6 +127,46 @@ describe('utils/authentication › decodeAuthenticationToken (Decodificação JW
     } else {
       expect(res).toBeNull()
     }
+  })
+})
+
+describe('utils/authentication › cargos (Claim de Role)', () => {
+  const buildToken = (payload) => {
+    const encoded = Buffer.from(JSON.stringify(payload)).toString('base64url')
+    return `header.${encoded}.signature`
+  }
+
+  // O .NET serializa o claim de role como string quando ha um cargo so e como
+  // array quando ha varios. Tratar so um dos casos deixaria o outro sem cargo
+  // nenhum, e o recurso pago apareceria bloqueado para quem paga.
+  it('deve aceitar o claim de role como string única', () => {
+    const token = buildToken({ [AuthTokenClaim.ROLE]: 'Minerador' })
+    expect(decodeAuthenticationToken(token).cargos).toEqual(['Minerador'])
+  })
+
+  it('deve aceitar o claim de role como array', () => {
+    const token = buildToken({ [AuthTokenClaim.ROLE]: ['Minerador', 'Administrador'] })
+    expect(decodeAuthenticationToken(token).cargos).toEqual(['Minerador', 'Administrador'])
+  })
+
+  it('deve cair para as chaves curtas role e roles', () => {
+    expect(decodeAuthenticationToken(buildToken({ role: 'Consultor' })).cargos).toEqual(['Consultor'])
+    expect(decodeAuthenticationToken(buildToken({ roles: ['Sistema'] })).cargos).toEqual(['Sistema'])
+  })
+
+  it('deve devolver lista vazia quando o token não traz cargo', () => {
+    expect(decodeAuthenticationToken(buildToken({ sub: '1' })).cargos).toEqual([])
+  })
+
+  it('temCargo compara sem diferenciar caixa', () => {
+    const user = { cargos: ['minerador'] }
+    expect(temCargo(user, AuthRole.MINERADOR)).toBe(true)
+    expect(temCargo(user, AuthRole.CONSULTOR)).toBe(false)
+  })
+
+  it('temCargo nega quando não há cargo algum', () => {
+    expect(temCargo(null, AuthRole.MINERADOR)).toBe(false)
+    expect(temCargo({ cargos: [] }, AuthRole.MINERADOR)).toBe(false)
   })
 })
 

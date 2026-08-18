@@ -58,6 +58,11 @@ export const ApiEndpoint = Object.freeze({
     TREND: '/ThinkBitcoin/variavel-externa/trend',
     TREND_HEATMAP: '/ThinkBitcoin/variavel-externa/trend/heatmap',
   }),
+  ALERTA_PRECO: Object.freeze({
+    LIST: '/ThinkBitcoin/alertas-preco',
+    CREATE: '/ThinkBitcoin/alertas-preco',
+    DELETE: (id) => `/ThinkBitcoin/alertas-preco/${id}`,
+  }),
   PATRIMONIO: Object.freeze({
     BY_USER: (id) => `/ThinkBitcoin/patrimonio/${id}`,
     CREATE: '/ThinkBitcoin/patrimonio',
@@ -280,5 +285,6 @@ export const PreferencesEndpoint = ApiEndpoint.PREFERENCES
 export const CargoEndpoint = ApiEndpoint.CARGO
 export const VariavelExternaEndpoint = ApiEndpoint.VARIAVEL_EXTERNA
 export const PatrimonioEndpoint = ApiEndpoint.PATRIMONIO
+export const AlertaPrecoEndpoint = ApiEndpoint.ALERTA_PRECO
 export const PlanosPagamentoEndpoint = ApiEndpoint.PLANOS_PAGAMENTO
 export const TreinamentoEpisodioEndpoint = ApiEndpoint.TREINAMENTO_EPISODIO

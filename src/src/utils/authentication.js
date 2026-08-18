@@ -4,7 +4,32 @@ export const AuthTokenClaim = Object.freeze({
   ID: 'idUsuarioTB',
   NAME: 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name',
   EMAIL: 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress',
+  ROLE: 'http://schemas.microsoft.com/ws/2008/06/identity/claims/role',
 })
+
+/**
+ * Cargos emitidos pela API no claim de role.
+ *
+ * Espelham o CargoTipoEnum do backend. Servem para a interface decidir o que
+ * oferecer ANTES de bater na API: sem isso, a única forma de descobrir que um
+ * recurso é pago seria pedir e tomar 403 — o que faz o convite de assinatura
+ * saltar na tela sem que o usuário tenha clicado em nada.
+ */
+export const AuthRole = Object.freeze({
+  ADMINISTRADOR: 'Administrador',
+  MINERADOR: 'Minerador',
+  CONSULTOR: 'Consultor',
+  SISTEMA: 'Sistema',
+})
+
+// O claim de role vem como string quando há um cargo só e como array quando há
+// vários — é assim que o .NET serializa, e tratar só um dos casos deixa o outro
+// silenciosamente sem cargo nenhum.
+const normalizarCargos = (valor) => {
+  if (Array.isArray(valor)) return valor.filter((c) => typeof c === 'string')
+  if (typeof valor === 'string') return [valor]
+  return []
+}
 
 const normalizeBase64 = (valor) => {
   if (typeof valor !== 'string') return null
@@ -79,7 +104,23 @@ export const decodeAuthenticationToken = (token) => {
     idUsuarioTB: id,
     nome: payload[AuthTokenClaim.NAME] ?? payload['unique_name'] ?? payload['name'] ?? '',
     email: payload[AuthTokenClaim.EMAIL] ?? payload['email'] ?? '',
+    cargos: normalizarCargos(payload[AuthTokenClaim.ROLE] ?? payload['role'] ?? payload['roles']),
   }
+}
+
+/**
+ * Retorna true se o usuário tiver ao menos um dos cargos informados.
+ *
+ * Usuário sem cargo nenhum (token de mock, sessão antiga) responde false: negar
+ * por omissão só esconde um botão, enquanto liberar por omissão prometeria um
+ * recurso que a API vai recusar depois.
+ */
+export const temCargo = (user, ...cargos) => {
+  const doUsuario = user?.cargos
+  if (!Array.isArray(doUsuario) || doUsuario.length === 0) return false
+  return cargos.some((cargo) =>
+    doUsuario.some((c) => c.toLowerCase() === String(cargo).toLowerCase())
+  )
 }
 
 const obterToken = (dados) => dados?.resultado?.tokenAutenticado

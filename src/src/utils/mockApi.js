@@ -617,6 +617,65 @@ const mockTreinoSerie = (endpoint) => {
   return { mensagem: 'Série de treinamento (mock)', resultado }
 }
 
+// Alertas de preço do modo demo. Em memória de propósito: o valor do exercício
+// é ver a lista mudar ao criar e excluir, não sobreviver ao reload.
+let mockAlertas = []
+
+/**
+ * Preço vigente da moeda no modo demo.
+ *
+ * Deriva da mesma série que alimenta o carrossel, e não de
+ * MOCK_COIN_BASE_VALUE. O valor-base é só o ponto de partida do passeio
+ * aleatório: para o ETH ele é 3500 enquanto a tela exibe ~4036. Comparar o
+ * alvo contra a base fazia o mock recusar um alerta perfeitamente válido
+ * dizendo que ele era "igual ao preço atual" — um preço que o usuário não vê
+ * em lugar nenhum.
+ */
+const mockPrecoAtual = (sigla) => {
+  const registros = buildCoinValueResponse(String(sigla).toUpperCase())?.resultado?.registros
+  // A série vem em ordem decrescente: o primeiro é o candle mais recente.
+  return registros?.[0]?.precoFechamento ?? MOCK_COIN_BASE_VALUE[String(sigla).toUpperCase()] ?? 100
+}
+
+const mockCriarAlerta = (body) => {
+  const sigla = String(body?.siglaMoeda || '').toUpperCase()
+  const valorAlvo = Number(body?.valorAlvo)
+  const precoAtual = mockPrecoAtual(sigla)
+
+  if (!Number.isFinite(valorAlvo) || valorAlvo <= 0) {
+    const err = new Error('Valor alvo deve ser maior que zero.')
+    err.status = 400
+    throw err
+  }
+
+  if (valorAlvo === precoAtual) {
+    const err = new Error('Valor alvo é igual ao preço atual. Escolha um valor acima ou abaixo.')
+    err.status = 400
+    throw err
+  }
+
+  mockAlertas = [
+    {
+      idAlertaPrecoTB: `mock-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+      idMoeda: `mock-moeda-${sigla}`,
+      siglaMoeda: sigla,
+      nomeMoeda: sigla,
+      valorAlvo,
+      // Inferida aqui pelo mesmo critério do servidor: alvo acima do preço
+      // vigente sobe, abaixo desce.
+      direcao: valorAlvo > precoAtual ? 'ACIMA' : 'ABAIXO',
+      status: 'ATIVO',
+      valorReferencia: precoAtual,
+      dataCriacao: new Date().toISOString(),
+      dataDisparo: null,
+      valorDisparo: null,
+    },
+    ...mockAlertas,
+  ]
+
+  return { mensagem: 'Alerta mock criado com sucesso' }
+}
+
 const mockHandlers = [
   {
     method: 'GET',
@@ -645,13 +704,44 @@ const mockHandlers = [
         // Igual à API: o nome sai do banco na reemissão, então o que o usuário
         // salvou em /settings precisa aparecer aqui depois de renovar.
         'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name': readMockPrefs()?.nome || 'Usuário Teste',
-        'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress': 'teste@thinkbitcoin.com'
+        'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress': 'teste@thinkbitcoin.com',
+        // O modo demo entra como Minerador para que os recursos de assinatura
+        // (alertas de preço) apareçam em vez de virarem cadeado.
+        'http://schemas.microsoft.com/ws/2008/06/identity/claims/role': 'Minerador'
       }
       const base64Payload = base64FromUtf8(JSON.stringify(payload))
       return {
         mensagem: 'Token mock gerado com sucesso',
         resultado: { tokenAutenticado: `header.${base64Payload}.signature` },
       }
+    },
+  },
+  {
+    method: 'GET',
+    match: (endpoint) => endpoint === '/ThinkBitcoin/alertas-preco',
+    response: () => ({
+      mensagem: 'Alertas mock retornados com sucesso',
+      resultado: mockAlertas,
+    }),
+  },
+  {
+    method: 'POST',
+    match: (endpoint) => endpoint === '/ThinkBitcoin/alertas-preco',
+    response: (endpoint, body) => mockCriarAlerta(body),
+  },
+  {
+    method: 'DELETE',
+    match: (endpoint) => endpoint.startsWith('/ThinkBitcoin/alertas-preco/'),
+    response: (endpoint) => {
+      const id = endpoint.split('/').pop()
+      const antes = mockAlertas.length
+      mockAlertas = mockAlertas.filter((a) => a.idAlertaPrecoTB !== id)
+      if (mockAlertas.length === antes) {
+        const err = new Error('Alerta não encontrado.')
+        err.status = 400
+        throw err
+      }
+      return { mensagem: 'Alerta mock excluído com sucesso' }
     },
   },
   {

@@ -30,16 +30,19 @@ import DashboardHeader from '../components/dashboard/DashboardHeader'
 import HeatmapInsights from '../components/heatmap/HeatmapInsights'
 import ErrorMessage from '../components/ErrorMessage'
 import CoinCarousel from '../components/dashboard/CoinCarousel'
+import AlertaPrecoModal from '../components/dashboard/AlertaPrecoModal'
 import { useAuth } from '../context/AuthContext'
 import { useDashboard } from '../context/DashboardContext'
 import useTranslation from '../hooks/useTranslation'
 import useCoinPrices from '../hooks/useCoinPrices'
+import useAlertasPreco from '../hooks/useAlertasPreco'
 import { apiRequest, VariavelExternaEndpoint } from '../utils/apiClient'
 import { MapRegion, ExportFormat, MapMetric } from '../utils/enums'
 import { formatTooltipData, getRegionForCountry, filterCoinsByCountry, getCountryName } from '../utils/mapUtils'
 import { hasCacheValid } from '../utils/cache'
 import { idiomaDe } from '../lang'
 import { getTourHeatmapVisto, setTourHeatmapVisto } from '../utils/preferences'
+import { contarAtivos } from '../utils/alertaPreco'
 import { exportarHeatmapDados } from '../utils/exportUtils'
 
 // Componente de Gráfico Nativo à prova de loops no React 19
@@ -155,6 +158,15 @@ export default function GeoHeatmapView() {
   const { refreshTrigger, moedaSelecionada, setMoedaSelecionada } = useDashboard()
   const { t } = useTranslation()
   const { moedas: moedasCarousel, erro: erroMoedas, setErro: setErroMoedas } = useCoinPrices()
+
+  const {
+    alertas,
+    carregando: carregandoAlertas,
+    temAcesso: temAcessoAlertas,
+    criar: criarAlerta,
+    excluir: excluirAlerta,
+  } = useAlertasPreco(usuario)
+  const [modalAlertasAberto, setModalAlertasAberto] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
   const navigationType = useNavigationType()
@@ -828,7 +840,27 @@ export default function GeoHeatmapView() {
         </Alert>
       </Snackbar>
 
-      <DashboardHeader t={t} prefs={prefs} usuario={usuario} title={t('nav.heatmap') || 'Geopolítica'} />
+      <DashboardHeader
+        t={t}
+        prefs={prefs}
+        usuario={usuario}
+        title={t('nav.heatmap') || 'Geopolítica'}
+        onAbrirAlertas={() => setModalAlertasAberto(true)}
+        alertasAtivos={contarAtivos(alertas)}
+        alertasBloqueados={!temAcessoAlertas}
+      />
+
+      <AlertaPrecoModal
+        visible={modalAlertasAberto}
+        onClose={() => setModalAlertasAberto(false)}
+        moedas={moedasCarousel}
+        moedaInicial={moedaSelecionada}
+        alertas={alertas}
+        carregando={carregandoAlertas}
+        onCriar={criarAlerta}
+        onExcluir={excluirAlerta}
+        notificacoesLigadas={!!prefs?.notificacoes}
+      />
       <ErrorMessage message={erro} onClose={() => setErro('')} />
       <ErrorMessage message={erroMoedas} onClose={() => setErroMoedas('')} />
 

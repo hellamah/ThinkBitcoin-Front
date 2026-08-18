@@ -19,6 +19,7 @@ import { useAuth } from '../context/AuthContext'
 import { useDashboard } from '../context/DashboardContext'
 import useTranslation from '../hooks/useTranslation'
 import useCoinPrices from '../hooks/useCoinPrices'
+import useAlertasPreco from '../hooks/useAlertasPreco'
 import useDashboardData from '../hooks/useDashboardData'
 import useDashboardCharts from '../hooks/useDashboardCharts'
 import useSimulationData from '../hooks/useSimulationData'
@@ -30,6 +31,7 @@ import { compararMoedas } from '../utils/marketAnalytics'
 import { analisarSinais, montarSerieDeSinais } from '../utils/signalLab'
 import { simular, dividirParaValidacao, compararEstrategias, CUSTO_PADRAO_PERCENTUAL } from '../utils/backtest'
 import { getTourVisto, setTourVisto } from '../utils/preferences'
+import { contarAtivos } from '../utils/alertaPreco'
 import { candlestickPlugin } from '../utils/candlestickChart'
 import { Normalization, PriceChartMode, SecondaryChart, StopMode, TradeDirection } from '../utils/enums'
 
@@ -37,6 +39,7 @@ import { Normalization, PriceChartMode, SecondaryChart, StopMode, TradeDirection
 import DashboardHeader from '../components/dashboard/DashboardHeader'
 import PatrimonioCard from '../components/dashboard/PatrimonioCard'
 import CoinCarousel from '../components/dashboard/CoinCarousel'
+import AlertaPrecoModal from '../components/dashboard/AlertaPrecoModal'
 import DashboardFilters from '../components/dashboard/DashboardFilters'
 import IntelligencePanel from '../components/dashboard/IntelligencePanel'
 import AnalyticsPanel from '../components/dashboard/AnalyticsPanel'
@@ -81,8 +84,18 @@ export default function Dashboard() {
     intervalo,
     pagina, setPagina,
     quantidade,
+    moedaSelecionada,
     setMoedaSelecionada
   } = useDashboard()
+
+  const {
+    alertas,
+    carregando: carregandoAlertas,
+    temAcesso: temAcessoAlertas,
+    criar: criarAlerta,
+    excluir: excluirAlerta,
+  } = useAlertasPreco(usuario)
+  const [modalAlertasAberto, setModalAlertasAberto] = useState(false)
 
   const [moedasFiltro, setMoedasFiltro] = useState([]) 
 
@@ -612,7 +625,26 @@ export default function Dashboard() {
           />
         )}
 
-        <DashboardHeader t={t} prefs={prefs} usuario={usuario} />
+        <DashboardHeader
+          t={t}
+          prefs={prefs}
+          usuario={usuario}
+          onAbrirAlertas={() => setModalAlertasAberto(true)}
+          alertasAtivos={contarAtivos(alertas)}
+          alertasBloqueados={!temAcessoAlertas}
+        />
+
+        <AlertaPrecoModal
+          visible={modalAlertasAberto}
+          onClose={() => setModalAlertasAberto(false)}
+          moedas={moedasCarousel}
+          moedaInicial={moedasFiltro[0] || moedaSelecionada}
+          alertas={alertas}
+          carregando={carregandoAlertas}
+          onCriar={criarAlerta}
+          onExcluir={excluirAlerta}
+          notificacoesLigadas={!!prefs?.notificacoes}
+        />
 
         <div data-tour="dash-patrimonio">
           <PatrimonioCard token={token} user={usuario} />
