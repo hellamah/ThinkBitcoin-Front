@@ -121,7 +121,7 @@ const ExpandedChartModal = ({
         hitRadius: 25, // Área generosa para facilitar o clique
       })),
     };
-  }, [chartData, selectedIndex]);
+  }, [chartData, isBarra, selectedIndex]);
 
   const handleChartClick = (event) => {
     if (!chartRef.current) return;

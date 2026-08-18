@@ -31,6 +31,10 @@ export default function useSimulationData({ token, sigla }) {
   // A janela é recalculada só quando a moeda muda. Sem isto, cada render
   // produziria um `agora` novo, o efeito rodaria de novo e a busca entraria em
   // laço — 180 dias de candles a cada ciclo.
+  // `sigla` e gatilho, e nao valor lido: a regra o aponta como desnecessario
+  // porque nao aparece dentro do callback. Tirar de la faria a janela ser
+  // recalculada a cada render — que e exatamente o laco descrito acima.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const janela = useMemo(() => montarJanelaSimulacao(), [sigla])
 
   useEffect(() => {

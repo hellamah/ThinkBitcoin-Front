@@ -108,6 +108,11 @@ export default function SimulationPanel({
   t,
 }) {
   const theme = useTheme()
+  // `theme.palette.mode` nao aparece dentro do callback, e por isso a regra o
+  // chama de desnecessario — mas ele e justamente o gatilho. `chartPalette()`
+  // le as CSS custom properties no momento da chamada, e o canvas nao resolve
+  // `var()`: sem recalcular na troca de tema, as cores ficam as do tema antigo.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const cores = useMemo(() => chartPalette(), [theme.palette.mode])
 
   const pontos = useMemo(

@@ -330,6 +330,9 @@ export default function useDashboardCharts({
 
   // Cores lidas dos tokens a cada troca de tema: o canvas não resolve var(),
   // então sem isto a legenda (#ccc) e o grid (branco a 3%) sumiam no claro.
+  // `palette.mode` e gatilho, nao dependencia lida: ver o comentario acima. A
+  // regra o aponta como desnecessario porque nao aparece dentro do callback.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const cores = useMemo(() => chartPalette(), [palette.mode])
 
   const modoVela =

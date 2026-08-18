@@ -884,7 +884,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
         },
       ],
     }
-  }, [visibleFiltered])
+  }, [visibleFiltered, t])
 
   // Detecta ciclos: novo ciclo quando o número do episódio CAI (reset do treino)
   // ou quando há um gap temporal grande entre episódios consecutivos.
@@ -1004,7 +1004,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
         borderWidth: 2,
       }],
     }
-  }, [visibleTimeline])
+  }, [visibleTimeline, t])
 
   // Duração por episódio
   const duracaoData = useMemo(() => ({
@@ -1020,7 +1020,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
       pointRadius: 0,
       borderWidth: 2,
     }],
-  }), [visibleTimeline])
+  }), [visibleTimeline, t])
 
   // Comparativo por moeda (barras agrupadas: reward médio escalado, win rate %, qty episódios)
   const comparativoMoedaData = useMemo(() => {
@@ -1062,7 +1062,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
         },
       ],
     }
-  }, [visibleFiltered])
+  }, [visibleFiltered, t])
 
   // Top 5 melhores e piores por reward médio (dentro da janela visível)
   const tops = useMemo(() => {
@@ -1595,7 +1595,7 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
         },
       ],
     }
-  }, [item, sameCoinItems, coinAvg])
+  }, [item, sameCoinItems, coinAvg, t])
 
   const radarOptions = {
     responsive: true,
@@ -1661,7 +1661,7 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
         fill: false,
       },
     ],
-  }), [miniTimeline, item.idTreinamentoEpisodio])
+  }), [miniTimeline, item.idTreinamentoEpisodio, t])
 
   const miniTimelineOptions = useMemo(() => ({
     responsive: true,
@@ -1805,7 +1805,11 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
         borderWidth: 2,
       }],
     }
-  }, [mercado, item.moeda])
+  // `mercadoRegistros` fica DE FORA de proposito: e `mercado?.registros ?? []`,
+  // ou seja, um array novo a cada render. Lista-lo desfaria o memo — ele
+  // recomputaria sempre. Quem de fato muda e `mercado`, que ja esta aqui.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mercado, item.moeda, t])
 
   // Faixa destacando o período em que o episódio rodou
   const episodioBandPlugin = useMemo(() => ({
@@ -2339,7 +2343,6 @@ export default function TreinamentoEpisodios() {
 
   // Carga inicial em grupos de 4h: descobre o episódio mais recente e carrega as
   // duas janelas de 4h mais recentes. Refetcha quando filtro ou refresh muda.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     let canceled = false
     genRef.current += 1
@@ -2446,7 +2449,6 @@ export default function TreinamentoEpisodios() {
   }, [moedaServerFilter, selectedVersao, refreshKey])
 
   // /serie só faz sentido com 1 moeda. Cancela quando muda.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!moedaServerFilter) {
       setSerie(null)
