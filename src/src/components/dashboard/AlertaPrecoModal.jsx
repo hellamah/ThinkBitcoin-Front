@@ -30,6 +30,11 @@ import {
   validarAlerta,
 } from '../../utils/alertaPreco'
 
+// O backdrop do nosso modal vive em z-index 9999 (App.css) e os popups do MUI
+// nascem em 1300: sem subir a camada, o menu do seletor de moeda abria atrás do
+// vidro do modal — invisível — e o clique caía no backdrop, que fechava tudo.
+const Z_ACIMA_DO_MODAL = 10000
+
 export default function AlertaPrecoModal({
   visible,
   onClose,
@@ -182,6 +187,28 @@ export default function AlertaPrecoModal({
               onChange={(e) => setSigla(e.target.value)}
               size="small"
               sx={{ ...inputSx, mt: 0.5 }}
+              MenuProps={{
+                sx: { zIndex: Z_ACIMA_DO_MODAL },
+                PaperProps: {
+                  sx: {
+                    backgroundColor: 'var(--surface-overlay)',
+                    backgroundImage: 'none',
+                    backdropFilter: 'blur(20px)',
+                    border: '1px solid var(--border-strong)',
+                    borderRadius: '10px',
+                    maxHeight: 320,
+                    '& .MuiMenuItem-root': {
+                      color: 'var(--text-primary)',
+                      fontWeight: 600,
+                      '&:hover': { backgroundColor: 'var(--accent-a10)' },
+                      '&.Mui-selected': {
+                        backgroundColor: 'var(--accent-a20)',
+                        color: 'var(--accent-ink)',
+                      },
+                    },
+                  },
+                },
+              }}
             >
               {moedas.map((m) => (
                 <MenuItem key={m.simbolo} value={m.simbolo}>
@@ -326,7 +353,10 @@ export default function AlertaPrecoModal({
                     </Typography>
                   </Box>
 
-                  <Tooltip title={t('alertas.excluir')}>
+                  <Tooltip
+                    title={t('alertas.excluir')}
+                    slotProps={{ popper: { sx: { zIndex: Z_ACIMA_DO_MODAL } } }}
+                  >
                     <span>
                       <IconButton
                         size="small"

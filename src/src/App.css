@@ -1616,6 +1616,9 @@
   display: flex;
   align-items: flex-start;
   justify-content: center;
+  /* Popups do MUI abertos de dentro de um modal (menus, tooltips) nascem em
+     1300 e precisam subir acima deste valor — ver Z_ACIMA_DO_MODAL em
+     AlertaPrecoModal.jsx. Mexer aqui pede mexer lá. */
   z-index: 9999;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
