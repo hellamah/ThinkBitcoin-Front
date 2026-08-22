@@ -15,6 +15,7 @@ import {
   MdAssessment,
   MdLock,
   MdPayment,
+  MdPrivacyTip,
 } from 'react-icons/md'
 import Button from '@mui/material/Button'
 import Switch from '@mui/material/Switch'
@@ -57,6 +58,7 @@ import useAlertasPreco from '../hooks/useAlertasPreco'
 import { DirecaoAlerta, StatusAlerta, contarAtivos, LIMITE_ALERTAS_ATIVOS } from '../utils/alertaPreco'
 import * as mathUtils from '../utils/mathUtils'
 import ExcluirContaModal from '../components/ExcluirContaModal'
+import MeusConsentimentosPanel from '../components/MeusConsentimentosPanel'
 
 function Settings() {
   const { t } = useTranslation()
@@ -752,6 +754,10 @@ function Settings() {
               </Box>
             </Box>
           ))}
+        </div>
+
+        <div style={{ gridColumn: '1 / -1' }}>
+          {renderPanel(<MdPrivacyTip />, 'Privacidade e consentimento', <MeusConsentimentosPanel />)}
         </div>
 
         <div style={{ gridColumn: '1 / -1' }}>

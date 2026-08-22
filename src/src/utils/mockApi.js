@@ -621,6 +621,90 @@ const mockTreinoSerie = (endpoint) => {
 // é ver a lista mudar ao criar e excluir, não sobreviver ao reload.
 let mockAlertas = []
 
+// Documentos legais do modo demo. O texto é o mesmo que a migração semeia no
+// banco: as páginas /termos e /privacidade passaram a ler da API, e um mock com
+// texto resumido faria a demo mostrar um documento que não existe.
+const MOCK_DOCUMENTOS = [
+  {
+    idDocumentoLegal: 'd0c1e9a0-0000-4000-8000-000000000001',
+    tipo: 'PRIVACIDADE',
+    versao: '1.0',
+    titulo: 'Política de Privacidade',
+    conteudo: '## 1. Controlador dos Dados\n\nA **ThinkBitcoin** é a controladora dos dados pessoais coletados por meio desta plataforma, nos termos da Lei nº 13.709/2018 (LGPD).\n\n## 2. Dados Coletados\n\nColetamos e tratamos as seguintes categorias de dados:\n\n- Dados de identificação (nome, e-mail)\n- Dados de acesso e autenticação (token JWT — armazenado localmente)\n- Preferências de uso (tema, idioma, perfil de risco)\n- Dados de navegação e interação com a plataforma (logs de sessão)\n- Endereços de carteiras Bitcoin informados voluntariamente\n\n## 3. Finalidade do Tratamento\n\nOs dados são tratados exclusivamente para: prestação dos serviços de análise de mercado Bitcoin, personalização da experiência, segurança da conta, cumprimento de obrigações legais e melhoria contínua da plataforma.\n\n## 4. Base Legal\n\nO tratamento é realizado com base no seu **consentimento** (art. 7º, I da LGPD), na execução do contrato de uso da plataforma (art. 7º, V) e no cumprimento de obrigações legais (art. 7º, II).\n\n## 5. Compartilhamento de Dados\n\nSeus dados **não são vendidos** a terceiros. Podemos compartilhá-los apenas com parceiros de infraestrutura (hospedagem, autenticação) vinculados por contratos de confidencialidade, ou quando exigido por lei.\n\n## 6. Retenção e Exclusão\n\nOs dados são retidos pelo período necessário à prestação do serviço ou conforme exigido pela legislação. Você pode solicitar a exclusão a qualquer momento pelo e-mail de suporte.\n\n## 7. Seus Direitos (art. 18 LGPD)\n\n- Confirmação da existência de tratamento\n- Acesso aos seus dados\n- Correção de dados incompletos ou desatualizados\n- Anonimização, bloqueio ou eliminação de dados desnecessários\n- Portabilidade dos dados\n- Revogação do consentimento a qualquer tempo\n\n## 8. Contato com o DPO\n\nPara exercer seus direitos ou esclarecer dúvidas sobre privacidade, entre em contato com nosso Encarregado (DPO) pelo e-mail: **privacidade@thinkbitcoin.com.br**',
+    resumoAlteracoes: null,
+    hashConteudo: 'mock-privacidade-v1',
+    exigeNovoAceite: false,
+    vigente: true,
+    dataPublicacao: '2026-08-22T00:00:00Z',
+    dataVigenciaInicio: '2026-08-22T00:00:00Z',
+    dataVigenciaFim: null,
+  },
+  {
+    idDocumentoLegal: 'd0c1e9a0-0000-4000-8000-000000000002',
+    tipo: 'TERMOS',
+    versao: '1.0',
+    titulo: 'Termos de Uso',
+    conteudo: '## 1. Aceitação dos Termos\n\nAo utilizar a plataforma ThinkBitcoin você concorda integralmente com estes Termos de Uso. O uso continuado após alterações implica aceitação das versões atualizadas.\n\n## 2. Descrição do Serviço\n\nA ThinkBitcoin oferece uma plataforma de análise de dados e informações sobre o mercado de Bitcoin, incluindo dashboards, heatmaps geopolíticos, análises de on-chain e ferramentas educacionais. As informações disponibilizadas têm caráter exclusivamente informativo.\n\n## 3. Não Constitui Consultoria Financeira\n\n> ⚠ **Aviso Importante**\n>\n> O conteúdo desta plataforma é meramente informativo e educacional. Nenhuma informação aqui disponibilizada constitui conselho de investimento, recomendação de compra ou venda de ativos, ou assessoria financeira de qualquer natureza. Investimentos em criptoativos envolvem riscos significativos. Consulte um profissional habilitado antes de tomar decisões financeiras.\n\n## 4. Uso Permitido\n\nVocê se compromete a utilizar a plataforma somente para fins lícitos e pessoais, respeitando a legislação brasileira vigente. É vedado: reproduzir, redistribuir ou comercializar o conteúdo sem autorização expressa; realizar engenharia reversa; utilizar bots ou automações não autorizadas; praticar qualquer ato que prejudique a integridade da plataforma ou de outros usuários.\n\n## 5. Propriedade Intelectual\n\nTodo o conteúdo, marca, código-fonte, layout e demais elementos da plataforma são de propriedade exclusiva da ThinkBitcoin e protegidos pela Lei nº 9.610/1998 (Lei de Direitos Autorais) e pela Lei nº 9.279/1996 (Propriedade Industrial).\n\n## 6. Limitação de Responsabilidade\n\nA ThinkBitcoin não se responsabiliza por perdas financeiras decorrentes do uso das informações disponibilizadas, por interrupções no serviço, por falhas de terceiros ou por eventos de força maior.\n\n## 7. Modificações\n\nReservamo-nos o direito de alterar estes Termos a qualquer momento. Mudanças relevantes serão comunicadas por e-mail ou por aviso na plataforma.\n\n## 8. Foro\n\nFica eleito o foro da comarca de São Paulo / SP para dirimir quaisquer controvérsias decorrentes destes Termos, com renúncia expressa a qualquer outro, por mais privilegiado que seja.',
+    resumoAlteracoes: null,
+    hashConteudo: 'mock-termos-v1',
+    exigeNovoAceite: false,
+    vigente: true,
+    dataPublicacao: '2026-08-22T00:00:00Z',
+    dataVigenciaInicio: '2026-08-22T00:00:00Z',
+    dataVigenciaFim: null,
+  },
+]
+
+const documentoVigentePorTipo = (tipo) =>
+  MOCK_DOCUMENTOS.find((d) => d.tipo === tipo && d.vigente) || null
+
+// A demo entra com os dois documentos já aceitos: quem abre o modo demo quer
+// ver o produto, não um modal de consentimento na primeira tela.
+let mockConsentimentos = MOCK_DOCUMENTOS.map((documento, indice) => ({
+  idConsentimentoUsuarioTB: `c0n5en70-0000-4000-8000-00000000000${indice + 1}`,
+  tipo: documento.tipo,
+  concedido: true,
+  origem: 'CADASTRO',
+  dataRegistro: '2026-08-22T12:00:00Z',
+  idDocumentoLegal: documento.idDocumentoLegal,
+  versaoDocumento: documento.versao,
+  tituloDocumento: documento.titulo,
+  enderecoIp: '203.0.113.10',
+  atual: true,
+  conteudoIntegro: true,
+}))
+
+const registrarMockConsentimento = (itens, origem) => {
+  const agora = new Date().toISOString()
+
+  for (const item of itens ?? []) {
+    const documento = MOCK_DOCUMENTOS.find((d) => d.idDocumentoLegal === item.idDocumentoLegal)
+
+    // Append-only, igual ao servidor: o registro anterior perde a marca de
+    // atual, mas continua no histórico.
+    mockConsentimentos = mockConsentimentos.map((c) =>
+      c.tipo === item.tipo ? { ...c, atual: false } : c
+    )
+
+    mockConsentimentos = [
+      {
+        idConsentimentoUsuarioTB: crypto.randomUUID(),
+        tipo: item.tipo,
+        concedido: !!item.concedido,
+        origem,
+        dataRegistro: agora,
+        idDocumentoLegal: documento?.idDocumentoLegal ?? null,
+        versaoDocumento: documento?.versao ?? null,
+        tituloDocumento: documento?.titulo ?? null,
+        enderecoIp: '203.0.113.10',
+        atual: true,
+        conteudoIntegro: true,
+      },
+      ...mockConsentimentos,
+    ]
+  }
+}
+
 /**
  * Preço vigente da moeda no modo demo.
  *
@@ -830,6 +914,19 @@ const mockHandlers = [
         err.status = 409
         throw err
       }
+
+      // Mesma recusa do servidor: sem o aceite dos dois documentos, com a
+      // versão de cada um, não há cadastro. Um mock permissivo aqui esconderia
+      // no modo demo exatamente a regra que o produto passou a ter.
+      const aceitou = (tipo) =>
+        (body?.aceites ?? []).some((a) => a?.tipo === tipo && a?.concedido && !!a?.idDocumentoLegal)
+
+      if (!aceitou('PRIVACIDADE') || !aceitou('TERMOS')) {
+        const err = new Error('É necessário aceitar a Política de Privacidade e os Termos de Uso.')
+        err.status = 400
+        throw err
+      }
+
       return { mensagem: 'Usuário mock cadastrado com sucesso' }
     },
   },
@@ -1206,7 +1303,90 @@ const mockHandlers = [
         resultado: true
       }
     }
-  }
+  },
+  {
+    method: 'GET',
+    match: (endpoint) => /^\/ThinkBitcoin\/documentos-legais\/[A-Z_]+$/.test(endpoint),
+    response: (endpoint) => {
+      const tipo = endpoint.split('/').pop()
+      const documento = documentoVigentePorTipo(tipo)
+      if (!documento) {
+        const err = new Error('Nenhuma vers\u00e3o vigente encontrada para este documento.')
+        err.status = 400
+        throw err
+      }
+      return { mensagem: 'Documento mock retornado com sucesso', resultado: documento }
+    },
+  },
+  {
+    method: 'GET',
+    match: (endpoint) => /^\/ThinkBitcoin\/documentos-legais\/[A-Z_]+\/versoes$/.test(endpoint),
+    response: (endpoint) => {
+      const tipo = endpoint.split('/')[3]
+      return {
+        mensagem: 'Vers\u00f5es mock retornadas com sucesso',
+        resultado: MOCK_DOCUMENTOS.filter((d) => d.tipo === tipo).map(({ conteudo: _conteudo, ...meta }) => meta),
+      }
+    },
+  },
+  {
+    method: 'GET',
+    match: (endpoint) => endpoint.startsWith('/ThinkBitcoin/documentos-legais/versao/'),
+    response: (endpoint) => {
+      const id = endpoint.split('/').pop()
+      const documento = MOCK_DOCUMENTOS.find((d) => d.idDocumentoLegal === id)
+      if (!documento) {
+        const err = new Error('Vers\u00e3o do documento n\u00e3o encontrada.')
+        err.status = 400
+        throw err
+      }
+      return { mensagem: 'Vers\u00e3o mock retornada com sucesso', resultado: documento }
+    },
+  },
+  {
+    method: 'GET',
+    match: (endpoint) => endpoint === '/ThinkBitcoin/consentimentos/pendentes',
+    response: () => ({
+      mensagem: 'Pend\u00eancias mock retornadas com sucesso',
+      // Espelha a regra do servidor: pendente \u00e9 documento obrigat\u00f3rio cujo
+      // \u00faltimo registro n\u00e3o \u00e9 um aceite da vers\u00e3o vigente.
+      resultado: MOCK_DOCUMENTOS.filter((documento) => {
+        const atual = mockConsentimentos.find((c) => c.tipo === documento.tipo && c.atual)
+        return !atual || !atual.concedido
+      }).map((documento) => {
+        const atual = mockConsentimentos.find((c) => c.tipo === documento.tipo && c.atual)
+        return {
+          tipo: documento.tipo,
+          motivo: atual ? 'REVOGADO' : 'NUNCA_ACEITO',
+          idDocumentoLegal: documento.idDocumentoLegal,
+          versao: documento.versao,
+          titulo: documento.titulo,
+          resumoAlteracoes: documento.resumoAlteracoes,
+          dataVigenciaInicio: documento.dataVigenciaInicio,
+          versaoAceitaAnteriormente: atual?.versaoDocumento ?? null,
+        }
+      }),
+    }),
+  },
+  {
+    method: 'GET',
+    match: (endpoint) => endpoint === '/ThinkBitcoin/consentimentos/meus',
+    response: () => ({
+      mensagem: 'Consentimentos mock retornados com sucesso',
+      resultado: mockConsentimentos,
+    }),
+  },
+  {
+    method: 'POST',
+    match: (endpoint) => endpoint === '/ThinkBitcoin/consentimentos',
+    response: (endpoint, body) => {
+      registrarMockConsentimento(body?.itens, body?.origem ?? 'CONFIGURACOES')
+      return {
+        mensagem: 'Consentimento mock registrado com sucesso',
+        resultado: (body?.itens ?? []).map((i) => i.tipo),
+      }
+    },
+  },
 ]
 
 export const getMockResponse = ({ endpoint, method, body }) => {

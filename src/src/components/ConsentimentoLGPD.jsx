@@ -1,239 +1,102 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
 import Checkbox from '@mui/material/Checkbox'
+import CircularProgress from '@mui/material/CircularProgress'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import Divider from '@mui/material/Divider'
 import Tabs from '@mui/material/Tabs'
 import Tab from '@mui/material/Tab'
 import { MdGavel, MdLock, MdVerifiedUser } from 'react-icons/md'
+import DocumentoLegalConteudo from './DocumentoLegalConteudo'
+import ErrorMessage from './ErrorMessage'
+import { apiRequest, DocumentoLegalEndpoint } from '../utils/apiClient'
+import { MotivoPendencia, OrigemConsentimento, TipoConsentimento } from '../utils/consentimento'
 
-const STORAGE_KEY = 'lgpd_consent_v1'
-
-export function hasConsented() {
-  try {
-    return localStorage.getItem(STORAGE_KEY) === 'accepted'
-  } catch {
-    return false
-  }
-}
-
-function saveConsent() {
-  try {
-    localStorage.setItem(STORAGE_KEY, 'accepted')
-  } catch {
-    // sem acesso ao localStorage — continua mesmo assim
-  }
-}
-
-// ─── Conteúdo: Política de Privacidade ────────────────────────────────────────
-// Exportado porque as rotas /privacidade e /termos renderizam este mesmo texto.
-// Duplicar a redação em duas telas é como um documento legal envelhece torto:
-// alguém atualiza uma cópia e esquece a outra.
-export function PrivacidadeContent() {
-  return (
-    <Box sx={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.75 }}>
-      <Typography variant="subtitle2" sx={{ color: 'var(--accent-ink)', mb: 1, fontWeight: 700 }}>
-        1. Controlador dos Dados
-      </Typography>
-      <Typography variant="body2" sx={{ mb: 2 }}>
-        A <strong style={{ color: 'var(--text-primary)' }}>ThinkBitcoin</strong> é a controladora dos dados pessoais coletados por
-        meio desta plataforma, nos termos da Lei nº 13.709/2018 (LGPD).
-      </Typography>
-
-      <Typography variant="subtitle2" sx={{ color: 'var(--accent-ink)', mb: 1, fontWeight: 700 }}>
-        2. Dados Coletados
-      </Typography>
-      <Typography variant="body2" sx={{ mb: 2 }}>
-        Coletamos e tratamos as seguintes categorias de dados:
-      </Typography>
-      <Box component="ul" sx={{ pl: 2, mb: 2 }}>
-        {[
-          'Dados de identificação (nome, e-mail)',
-          'Dados de acesso e autenticação (token JWT — armazenado localmente)',
-          'Preferências de uso (tema, idioma, perfil de risco)',
-          'Dados de navegação e interação com a plataforma (logs de sessão)',
-          'Endereços de carteiras Bitcoin informados voluntariamente',
-        ].map((item) => (
-          <li key={item}>
-            <Typography variant="body2">{item}</Typography>
-          </li>
-        ))}
-      </Box>
-
-      <Typography variant="subtitle2" sx={{ color: 'var(--accent-ink)', mb: 1, fontWeight: 700 }}>
-        3. Finalidade do Tratamento
-      </Typography>
-      <Typography variant="body2" sx={{ mb: 2 }}>
-        Os dados são tratados exclusivamente para: prestação dos serviços de análise de mercado
-        Bitcoin, personalização da experiência, segurança da conta, cumprimento de obrigações
-        legais e melhoria contínua da plataforma.
-      </Typography>
-
-      <Typography variant="subtitle2" sx={{ color: 'var(--accent-ink)', mb: 1, fontWeight: 700 }}>
-        4. Base Legal
-      </Typography>
-      <Typography variant="body2" sx={{ mb: 2 }}>
-        O tratamento é realizado com base no seu <strong style={{ color: 'var(--text-primary)' }}>consentimento</strong> (art. 7º, I
-        da LGPD), na execução do contrato de uso da plataforma (art. 7º, V) e no cumprimento de
-        obrigações legais (art. 7º, II).
-      </Typography>
-
-      <Typography variant="subtitle2" sx={{ color: 'var(--accent-ink)', mb: 1, fontWeight: 700 }}>
-        5. Compartilhamento de Dados
-      </Typography>
-      <Typography variant="body2" sx={{ mb: 2 }}>
-        Seus dados <strong style={{ color: 'var(--text-primary)' }}>não são vendidos</strong> a terceiros. Podemos compartilhá-los
-        apenas com parceiros de infraestrutura (hospedagem, autenticação) vinculados por contratos
-        de confidencialidade, ou quando exigido por lei.
-      </Typography>
-
-      <Typography variant="subtitle2" sx={{ color: 'var(--accent-ink)', mb: 1, fontWeight: 700 }}>
-        6. Retenção e Exclusão
-      </Typography>
-      <Typography variant="body2" sx={{ mb: 2 }}>
-        Os dados são retidos pelo período necessário à prestação do serviço ou conforme exigido
-        pela legislação. Você pode solicitar a exclusão a qualquer momento pelo e-mail de suporte.
-      </Typography>
-
-      <Typography variant="subtitle2" sx={{ color: 'var(--accent-ink)', mb: 1, fontWeight: 700 }}>
-        7. Seus Direitos (art. 18 LGPD)
-      </Typography>
-      <Box component="ul" sx={{ pl: 2, mb: 2 }}>
-        {[
-          'Confirmação da existência de tratamento',
-          'Acesso aos seus dados',
-          'Correção de dados incompletos ou desatualizados',
-          'Anonimização, bloqueio ou eliminação de dados desnecessários',
-          'Portabilidade dos dados',
-          'Revogação do consentimento a qualquer tempo',
-        ].map((item) => (
-          <li key={item}>
-            <Typography variant="body2">{item}</Typography>
-          </li>
-        ))}
-      </Box>
-
-      <Typography variant="subtitle2" sx={{ color: 'var(--accent-ink)', mb: 1, fontWeight: 700 }}>
-        8. Contato com o DPO
-      </Typography>
-      <Typography variant="body2">
-        Para exercer seus direitos ou esclarecer dúvidas sobre privacidade, entre em contato com
-        nosso Encarregado (DPO) pelo e-mail:{' '}
-        <strong style={{ color: 'var(--accent-ink)' }}>privacidade@thinkbitcoin.com.br</strong>
-      </Typography>
-    </Box>
-  )
-}
-
-// ─── Conteúdo: Termos de Uso ──────────────────────────────────────────────────
-export function TermosContent() {
-  return (
-    <Box sx={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.75 }}>
-      <Typography variant="subtitle2" sx={{ color: 'var(--accent-ink)', mb: 1, fontWeight: 700 }}>
-        1. Aceitação dos Termos
-      </Typography>
-      <Typography variant="body2" sx={{ mb: 2 }}>
-        Ao utilizar a plataforma ThinkBitcoin você concorda integralmente com estes Termos de Uso.
-        O uso continuado após alterações implica aceitação das versões atualizadas.
-      </Typography>
-
-      <Typography variant="subtitle2" sx={{ color: 'var(--accent-ink)', mb: 1, fontWeight: 700 }}>
-        2. Descrição do Serviço
-      </Typography>
-      <Typography variant="body2" sx={{ mb: 2 }}>
-        A ThinkBitcoin oferece uma plataforma de análise de dados e informações sobre o mercado de
-        Bitcoin, incluindo dashboards, heatmaps geopolíticos, análises de on-chain e ferramentas
-        educacionais. As informações disponibilizadas têm caráter exclusivamente informativo.
-      </Typography>
-
-      <Typography variant="subtitle2" sx={{ color: 'var(--accent-ink)', mb: 1, fontWeight: 700 }}>
-        3. Não Constitui Consultoria Financeira
-      </Typography>
-      <Box
-        sx={{
-          background: 'rgba(255,215,0,0.06)',
-          border: '1px solid var(--accent-a30)',
-          borderRadius: 1.5,
-          p: 1.5,
-          mb: 2,
-        }}
-      >
-        <Typography variant="body2" sx={{ color: 'var(--accent-ink)', fontWeight: 600 }}>
-          ⚠ Aviso Importante
-        </Typography>
-        <Typography variant="body2" sx={{ mt: 0.5 }}>
-          O conteúdo desta plataforma é meramente informativo e educacional. Nenhuma informação
-          aqui disponibilizada constitui conselho de investimento, recomendação de compra ou venda
-          de ativos, ou assessoria financeira de qualquer natureza. Investimentos em criptoativos
-          envolvem riscos significativos. Consulte um profissional habilitado antes de tomar
-          decisões financeiras.
-        </Typography>
-      </Box>
-
-      <Typography variant="subtitle2" sx={{ color: 'var(--accent-ink)', mb: 1, fontWeight: 700 }}>
-        4. Uso Permitido
-      </Typography>
-      <Typography variant="body2" sx={{ mb: 2 }}>
-        Você se compromete a utilizar a plataforma somente para fins lícitos e pessoais,
-        respeitando a legislação brasileira vigente. É vedado: reproduzir, redistribuir ou
-        comercializar o conteúdo sem autorização expressa; realizar engenharia reversa; utilizar
-        bots ou automações não autorizadas; praticar qualquer ato que prejudique a integridade da
-        plataforma ou de outros usuários.
-      </Typography>
-
-      <Typography variant="subtitle2" sx={{ color: 'var(--accent-ink)', mb: 1, fontWeight: 700 }}>
-        5. Propriedade Intelectual
-      </Typography>
-      <Typography variant="body2" sx={{ mb: 2 }}>
-        Todo o conteúdo, marca, código-fonte, layout e demais elementos da plataforma são de
-        propriedade exclusiva da ThinkBitcoin e protegidos pela Lei nº 9.610/1998 (Lei de Direitos
-        Autorais) e pela Lei nº 9.279/1996 (Propriedade Industrial).
-      </Typography>
-
-      <Typography variant="subtitle2" sx={{ color: 'var(--accent-ink)', mb: 1, fontWeight: 700 }}>
-        6. Limitação de Responsabilidade
-      </Typography>
-      <Typography variant="body2" sx={{ mb: 2 }}>
-        A ThinkBitcoin não se responsabiliza por perdas financeiras decorrentes do uso das
-        informações disponibilizadas, por interrupções no serviço, por falhas de terceiros ou por
-        eventos de força maior.
-      </Typography>
-
-      <Typography variant="subtitle2" sx={{ color: 'var(--accent-ink)', mb: 1, fontWeight: 700 }}>
-        7. Modificações
-      </Typography>
-      <Typography variant="body2" sx={{ mb: 2 }}>
-        Reservamo-nos o direito de alterar estes Termos a qualquer momento. Mudanças relevantes
-        serão comunicadas por e-mail ou por aviso na plataforma.
-      </Typography>
-
-      <Typography variant="subtitle2" sx={{ color: 'var(--accent-ink)', mb: 1, fontWeight: 700 }}>
-        8. Foro
-      </Typography>
-      <Typography variant="body2">
-        Fica eleito o foro da comarca de São Paulo / SP para dirimir quaisquer controvérsias
-        decorrentes destes Termos, com renúncia expressa a qualquer outro, por mais privilegiado
-        que seja.
-      </Typography>
-    </Box>
-  )
-}
-
-// ─── Modal principal ──────────────────────────────────────────────────────────
-export default function ConsentimentoLGPD({ onAccept }) {
+/**
+ * Modal de re-consentimento.
+ *
+ * Aparece quando a API informa que existe documento pendente para o usuário
+ * logado — porque a redação mudou de forma material (art. 8º, §6º da LGPD),
+ * porque o consentimento foi revogado, ou porque nunca houve aceite.
+ *
+ * O texto vem da API, não do bundle: até esta tela existir, a redação vivia em
+ * JSX duplicado entre o modal e as páginas /termos e /privacidade, e publicar
+ * uma versão nova era um deploy que não deixava rastro de qual texto a pessoa
+ * tinha lido.
+ *
+ * @param {{ pendencias: Array, onConcluir: (itens: Array) => Promise<void> }} props
+ */
+export default function ConsentimentoLGPD({ pendencias, onConcluir }) {
   const [aba, setAba] = useState(0)
-  const [aceitouPrivacidade, setAceitouPrivacidade] = useState(false)
-  const [aceitouTermos, setAceitouTermos] = useState(false)
+  const [documentos, setDocumentos] = useState({})
+  const [aceitos, setAceitos] = useState({})
+  const [carregando, setCarregando] = useState(true)
+  const [enviando, setEnviando] = useState(false)
+  const [erro, setErro] = useState('')
 
-  const podeConfirmar = aceitouPrivacidade && aceitouTermos
+  const lista = useMemo(() => pendencias ?? [], [pendencias])
 
-  function handleAceitar() {
-    saveConsent()
-    onAccept()
+  useEffect(() => {
+    let ativo = true
+
+    const carregar = async () => {
+      setCarregando(true)
+      try {
+        const respostas = await Promise.all(
+          lista.map((p) => apiRequest(DocumentoLegalEndpoint.VERSAO(p.idDocumentoLegal)))
+        )
+        if (!ativo) return
+
+        const porId = {}
+        respostas.forEach((json, indice) => {
+          const pendencia = lista[indice]
+          if (pendencia) porId[pendencia.idDocumentoLegal] = json?.resultado || null
+        })
+        setDocumentos(porId)
+      } catch (err) {
+        console.error('Erro ao carregar documentos pendentes:', err)
+        if (ativo) setErro(err?.hasBackendMessage ? err.message : 'Não foi possível carregar os documentos.')
+      } finally {
+        if (ativo) setCarregando(false)
+      }
+    }
+
+    if (lista.length > 0) carregar()
+    return () => {
+      ativo = false
+    }
+  }, [lista])
+
+  // Todos os pendentes precisam ser marcados: aceitar um e adiar o outro
+  // deixaria a conta em um estado que a API vai recusar de qualquer forma.
+  const podeConfirmar = lista.length > 0 && lista.every((p) => aceitos[p.idDocumentoLegal])
+
+  const handleAceitar = async () => {
+    setErro('')
+    setEnviando(true)
+    try {
+      await onConcluir(
+        lista.map((p) => ({
+          tipo: p.tipo,
+          idDocumentoLegal: p.idDocumentoLegal,
+          concedido: true,
+        })),
+        OrigemConsentimento.ATUALIZACAO_VERSAO
+      )
+    } catch (err) {
+      setErro(err?.hasBackendMessage ? err.message : 'Não foi possível registrar o aceite. Tente novamente.')
+    } finally {
+      setEnviando(false)
+    }
   }
+
+  if (lista.length === 0) return null
+
+  const pendenciaAtiva = lista[Math.min(aba, lista.length - 1)]
+  const documentoAtivo = documentos[pendenciaAtiva?.idDocumentoLegal]
 
   return createPortal(
     <Box
@@ -284,38 +147,47 @@ export default function ConsentimentoLGPD({ onAccept }) {
                 letterSpacing: '-0.3px',
               }}
             >
-              Privacidade & Termos de Uso
+              {lista.some((p) => p.motivo === MotivoPendencia.VERSAO_NOVA)
+                ? 'Atualizamos nossos documentos'
+                : 'Privacidade & Termos de Uso'}
             </Typography>
           </Box>
           <Typography variant="body2" sx={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-            Antes de continuar, leia e aceite nossa Política de Privacidade (LGPD) e nossos Termos
-            de Uso.
+            Para continuar usando a plataforma, leia e aceite a versão vigente dos documentos abaixo.
           </Typography>
         </Box>
 
-        {/* Tabs */}
-        <Tabs
-          value={aba}
-          onChange={(_, v) => setAba(v)}
-          sx={{
-            px: 2,
-            pt: 1,
-            minHeight: 40,
-            borderBottom: '1px solid var(--border)',
-            '& .MuiTabs-indicator': { backgroundColor: 'var(--accent)', height: 2 },
-            '& .MuiTab-root': {
-              color: 'var(--text-faint)',
-              fontSize: '0.8rem',
+        {/* Tabs — uma por documento pendente */}
+        {lista.length > 1 && (
+          <Tabs
+            value={Math.min(aba, lista.length - 1)}
+            onChange={(_, v) => setAba(v)}
+            sx={{
+              px: 2,
+              pt: 1,
               minHeight: 40,
-              textTransform: 'none',
-              fontWeight: 600,
-              '&.Mui-selected': { color: 'var(--accent-ink)' },
-            },
-          }}
-        >
-          <Tab icon={<MdLock size={14} />} iconPosition="start" label="Política de Privacidade" />
-          <Tab icon={<MdGavel size={14} />} iconPosition="start" label="Termos de Uso" />
-        </Tabs>
+              borderBottom: '1px solid var(--border)',
+              '& .MuiTabs-indicator': { backgroundColor: 'var(--accent)', height: 2 },
+              '& .MuiTab-root': {
+                color: 'var(--text-faint)',
+                fontSize: '0.8rem',
+                minHeight: 40,
+                textTransform: 'none',
+                fontWeight: 600,
+                '&.Mui-selected': { color: 'var(--accent-ink)' },
+              },
+            }}
+          >
+            {lista.map((p) => (
+              <Tab
+                key={p.idDocumentoLegal}
+                icon={p.tipo === TipoConsentimento.PRIVACIDADE ? <MdLock size={14} /> : <MdGavel size={14} />}
+                iconPosition="start"
+                label={p.titulo}
+              />
+            ))}
+          </Tabs>
+        )}
 
         {/* Conteúdo rolável */}
         <Box
@@ -332,7 +204,39 @@ export default function ConsentimentoLGPD({ onAccept }) {
             },
           }}
         >
-          {aba === 0 ? <PrivacidadeContent /> : <TermosContent />}
+          {/* "O que mudou" em destaque: pedir o aceite de novo sem dizer o que
+              mudou transforma o consentimento informado em formalidade. */}
+          {pendenciaAtiva?.motivo === MotivoPendencia.VERSAO_NOVA && pendenciaAtiva?.resumoAlteracoes && (
+            <Box
+              sx={{
+                mb: 2.5,
+                p: 1.5,
+                borderRadius: 1.5,
+                border: '1px solid var(--accent-a30)',
+                background: 'rgba(255,215,0,0.06)',
+              }}
+            >
+              <Typography variant="body2" sx={{ color: 'var(--accent-ink)', fontWeight: 600, mb: 0.5 }}>
+                O que mudou na versão {pendenciaAtiva.versao}
+              </Typography>
+              <Typography variant="body2" sx={{ color: 'var(--text-secondary)', fontSize: '0.82rem' }}>
+                {pendenciaAtiva.resumoAlteracoes}
+              </Typography>
+              {pendenciaAtiva.versaoAceitaAnteriormente && (
+                <Typography variant="caption" sx={{ color: 'var(--text-faint)', display: 'block', mt: 0.5 }}>
+                  Você havia aceitado a versão {pendenciaAtiva.versaoAceitaAnteriormente}.
+                </Typography>
+              )}
+            </Box>
+          )}
+
+          {carregando ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress size={24} sx={{ color: 'var(--accent-ink)' }} />
+            </Box>
+          ) : (
+            <DocumentoLegalConteudo conteudo={documentoAtivo?.conteudo} />
+          )}
         </Box>
 
         {/* Footer: checkboxes + botão */}
@@ -346,64 +250,47 @@ export default function ConsentimentoLGPD({ onAccept }) {
           }}
         >
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mb: 2 }}>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={aceitouPrivacidade}
-                  onChange={(e) => setAceitouPrivacidade(e.target.checked)}
-                  size="small"
-                  sx={{
-                    color: 'var(--text-faint)',
-                    '&.Mui-checked': { color: 'var(--accent-ink)' },
-                    p: 0.5,
-                  }}
-                />
-              }
-              label={
-                <Typography variant="body2" sx={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                  Li e aceito a{' '}
-                  <span
-                    style={{ color: 'var(--accent-ink)', cursor: 'pointer', textDecoration: 'underline' }}
-                    onClick={() => setAba(0)}
-                  >
-                    Política de Privacidade (LGPD)
-                  </span>
-                </Typography>
-              }
-            />
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={aceitouTermos}
-                  onChange={(e) => setAceitouTermos(e.target.checked)}
-                  size="small"
-                  sx={{
-                    color: 'var(--text-faint)',
-                    '&.Mui-checked': { color: 'var(--accent-ink)' },
-                    p: 0.5,
-                  }}
-                />
-              }
-              label={
-                <Typography variant="body2" sx={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                  Li e aceito os{' '}
-                  <span
-                    style={{ color: 'var(--accent-ink)', cursor: 'pointer', textDecoration: 'underline' }}
-                    onClick={() => setAba(1)}
-                  >
-                    Termos de Uso
-                  </span>
-                </Typography>
-              }
-            />
+            {lista.map((p, indice) => (
+              <FormControlLabel
+                key={p.idDocumentoLegal}
+                control={
+                  <Checkbox
+                    checked={!!aceitos[p.idDocumentoLegal]}
+                    onChange={(e) =>
+                      setAceitos((atual) => ({ ...atual, [p.idDocumentoLegal]: e.target.checked }))
+                    }
+                    size="small"
+                    sx={{
+                      color: 'var(--text-faint)',
+                      '&.Mui-checked': { color: 'var(--accent-ink)' },
+                      p: 0.5,
+                    }}
+                  />
+                }
+                label={
+                  <Typography variant="body2" sx={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                    Li e aceito{' '}
+                    <span
+                      style={{ color: 'var(--accent-ink)', cursor: 'pointer', textDecoration: 'underline' }}
+                      onClick={() => setAba(indice)}
+                    >
+                      {p.titulo}
+                    </span>{' '}
+                    <span style={{ color: 'var(--text-faint)' }}>(versão {p.versao})</span>
+                  </Typography>
+                }
+              />
+            ))}
           </Box>
 
-          <Divider sx={{ borderColor: 'var(--border)', mb: 2 }} />
+          <ErrorMessage message={erro} onClose={() => setErro('')} />
+
+          <Divider sx={{ borderColor: 'var(--border)', mb: 2, mt: erro ? 2 : 0 }} />
 
           <Button
             fullWidth
             variant="contained"
-            disabled={!podeConfirmar}
+            disabled={!podeConfirmar || enviando || carregando}
             onClick={handleAceitar}
             sx={{
               background: podeConfirmar
@@ -429,7 +316,11 @@ export default function ConsentimentoLGPD({ onAccept }) {
               },
             }}
           >
-            {podeConfirmar ? 'Aceitar e Continuar' : 'Leia e aceite ambos os documentos para continuar'}
+            {enviando
+              ? 'Registrando...'
+              : podeConfirmar
+                ? 'Aceitar e Continuar'
+                : 'Leia e aceite os documentos para continuar'}
           </Button>
 
           <Typography
@@ -442,7 +333,8 @@ export default function ConsentimentoLGPD({ onAccept }) {
               fontSize: '0.7rem',
             }}
           >
-            Você pode revogar seu consentimento a qualquer momento nas Configurações da conta.
+            Seu aceite fica registrado com data e versão. Você pode consultar o histórico e revogar o
+            consentimento nas Configurações da conta.
           </Typography>
         </Box>
       </Box>

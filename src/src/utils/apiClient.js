@@ -63,6 +63,21 @@ export const ApiEndpoint = Object.freeze({
     CREATE: '/ThinkBitcoin/alertas-preco',
     DELETE: (id) => `/ThinkBitcoin/alertas-preco/${id}`,
   }),
+  // Documentos legais versionados. As leituras sao publicas: o banner de
+  // cookies aparece para visitante e o cadastro pede aceite antes de existir
+  // conta, entao exigir login para ler o que se esta aceitando seria o avesso
+  // do consentimento informado.
+  DOCUMENTO_LEGAL: Object.freeze({
+    VIGENTE: (tipo) => `/ThinkBitcoin/documentos-legais/${tipo}`,
+    VERSOES: (tipo) => `/ThinkBitcoin/documentos-legais/${tipo}/versoes`,
+    VERSAO: (id) => `/ThinkBitcoin/documentos-legais/versao/${id}`,
+    PUBLICAR: '/ThinkBitcoin/documentos-legais',
+  }),
+  CONSENTIMENTO: Object.freeze({
+    MEUS: '/ThinkBitcoin/consentimentos/meus',
+    PENDENTES: '/ThinkBitcoin/consentimentos/pendentes',
+    REGISTRAR: '/ThinkBitcoin/consentimentos',
+  }),
   PATRIMONIO: Object.freeze({
     BY_USER: (id) => `/ThinkBitcoin/patrimonio/${id}`,
     CREATE: '/ThinkBitcoin/patrimonio',
@@ -330,3 +345,5 @@ export const PatrimonioEndpoint = ApiEndpoint.PATRIMONIO
 export const AlertaPrecoEndpoint = ApiEndpoint.ALERTA_PRECO
 export const PlanosPagamentoEndpoint = ApiEndpoint.PLANOS_PAGAMENTO
 export const TreinamentoEpisodioEndpoint = ApiEndpoint.TREINAMENTO_EPISODIO
+export const DocumentoLegalEndpoint = ApiEndpoint.DOCUMENTO_LEGAL
+export const ConsentimentoEndpoint = ApiEndpoint.CONSENTIMENTO

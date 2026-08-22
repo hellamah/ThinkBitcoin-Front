@@ -20,6 +20,8 @@ import Container from '@mui/material/Container'
 import { MdClose, MdBolt, MdAutoGraph, MdShield, MdTranslate, MdPerson, MdSettings } from 'react-icons/md'
 import ErrorMessage from './ErrorMessage'
 import { apiRequest, HttpMethod, UserEndpoint, MarketEndpoint } from '../utils/apiClient'
+import useDocumentoLegal from '../hooks/useDocumentoLegal'
+import { TipoConsentimento, montarAceite } from '../utils/consentimento'
 import useTranslation from '../hooks/useTranslation'
 import { DEFAULT_PREFERENCES } from '../utils/preferences'
 import { LANGUAGES } from '../lang'
@@ -54,6 +56,14 @@ const CadastroConviteOverlay = ({ onFechar }) => {
   const [visivel, setVisivel] = useState(false)
   const [aceitouPrivacidade, setAceitouPrivacidade] = useState(false)
   const [aceitouTermos, setAceitouTermos] = useState(false)
+
+  // A versão vigente de cada documento entra no cadastro junto com o aceite.
+  // Marcar o checkbox sem registrar o que foi marcado era o problema desta
+  // tela: os dois checkboxes só habilitavam o botão e não chegavam à API.
+  const { documento: docPrivacidade } = useDocumentoLegal(TipoConsentimento.PRIVACIDADE)
+  const { documento: docTermos } = useDocumentoLegal(TipoConsentimento.TERMOS)
+
+  const documentosCarregados = !!docPrivacidade && !!docTermos
 
   // Animação de entrada
   useEffect(() => {
@@ -116,6 +126,10 @@ const CadastroConviteOverlay = ({ onFechar }) => {
         ativo: true,
         cargo: Number(cargo),
         preferencias: { ...preferencias, dataUltimaInteracaoIA: new Date().toISOString() },
+        aceites: [
+          montarAceite(TipoConsentimento.PRIVACIDADE, docPrivacidade?.idDocumentoLegal),
+          montarAceite(TipoConsentimento.TERMOS, docTermos?.idDocumentoLegal),
+        ],
       }
       await apiRequest(UserEndpoint.CREATE, { method: HttpMethod.POST, body: payload })
 
@@ -502,6 +516,9 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                             Política de Privacidade
                           </Link>
                           {' '}e com o tratamento dos meus dados conforme a LGPD.
+                          {docPrivacidade?.versao && (
+                            <span style={{ color: 'var(--text-faint)' }}> (versão {docPrivacidade.versao})</span>
+                          )}
                         </Typography>
                       }
                       sx={{ alignItems: 'flex-start', mr: 0 }}
@@ -522,6 +539,9 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                             Termos de Uso
                           </Link>
                           {' '}da plataforma ThinkBitcoin.
+                          {docTermos?.versao && (
+                            <span style={{ color: 'var(--text-faint)' }}> (versão {docTermos.versao})</span>
+                          )}
                         </Typography>
                       }
                       sx={{ alignItems: 'flex-start', mr: 0 }}
@@ -532,7 +552,7 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                   <Button
                     variant="contained"
                     type="submit"
-                    disabled={carregando || !aceitouPrivacidade || !aceitouTermos}
+                    disabled={carregando || !aceitouPrivacidade || !aceitouTermos || !documentosCarregados}
                     fullWidth
                     size="large"
                     sx={{

@@ -9,6 +9,8 @@ import Container from '@mui/material/Container'
 import logoLight from '../../logo-light.svg'
 import '../App.css'
 import { useAuth } from '../context/AuthContext'
+import useConsentimento from '../hooks/useConsentimento'
+import ConsentimentoLGPD from './ConsentimentoLGPD'
 import useTranslation from '../hooks/useTranslation'
 import { useRef, useState, useEffect } from 'react'
 function Layout({ children }) {
@@ -18,6 +20,16 @@ function Layout({ children }) {
   const navigate = useNavigate()
   const containerRef = useRef(null)
   const [upsellVisivel, setUpsellVisivel] = useState(false)
+
+  // Documentos que o usuário ainda precisa aceitar. Vem da API, e não de
+  // uma marca no navegador: limpar o localStorage não pode apagar a dúvida
+  // sobre o consentimento, e trocar de dispositivo não pode recriá-la.
+  const { pendencias, registrar } = useConsentimento(token)
+
+  // O modal não cobre as próprias páginas dos documentos: cobrar o aceite
+  // por cima do texto impediria a leitura calma do que se está aceitando.
+  const rotaDeLeituraLegal = location.pathname === '/privacidade' || location.pathname === '/termos'
+  const consentimentoPendente = !!token && !rotaDeLeituraLegal && pendencias.length > 0
 
   // Um 403 da API significa "autenticado, mas sem o cargo exigido" — recurso
   // de assinatura paga. Em vez de cada página tratar o erro, o convite para
@@ -271,6 +283,12 @@ function Layout({ children }) {
         )}
         {children}
       </main>
+      {consentimentoPendente && (
+        <ConsentimentoLGPD
+          pendencias={pendencias}
+          onConcluir={(itens, origem) => registrar({ itens, origem })}
+        />
+      )}
       <nav className="bottom-nav">{links}</nav>
       <footer className="app-footer">
         <p>{t('copyRight')}</p>

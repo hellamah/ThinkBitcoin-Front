@@ -266,16 +266,51 @@ describe('utils/mockApi › getMockResponse', () => {
       expect(resp?.resultado?.listaUsuarioTB).toHaveLength(1)
     })
 
+    const aceitesValidos = [
+      { tipo: 'PRIVACIDADE', idDocumentoLegal: 'doc-privacidade', concedido: true },
+      { tipo: 'TERMOS', idDocumentoLegal: 'doc-termos', concedido: true },
+    ]
+
     it('retorna confirmação simples para POST /usuariosTB/', () => {
       const resp = getMockResponse({
         endpoint: '/ThinkBitcoin/usuariosTB/',
         method: 'POST',
-        body: { email: 'novo@usuario.com', senha: '123' },
+        body: { email: 'novo@usuario.com', senha: '123', aceites: aceitesValidos },
       })
 
       expect(resp).toMatchObject({
         mensagem: expect.any(String),
       })
+    })
+
+    // O servidor recusa cadastro sem o aceite dos dois documentos; um mock
+    // permissivo esconderia essa regra justamente no modo demo.
+    it('recusa POST /usuariosTB/ sem o aceite dos dois documentos', () => {
+      const cadastrar = (aceites) => () =>
+        getMockResponse({
+          endpoint: '/ThinkBitcoin/usuariosTB/',
+          method: 'POST',
+          body: { email: 'novo@usuario.com', senha: '123', aceites },
+        })
+
+      expect(cadastrar(undefined)).toThrow(/aceitar/i)
+      expect(cadastrar([aceitesValidos[0]])).toThrow(/aceitar/i)
+    })
+
+    // Aceite sem a versão do documento é o problema original: marca o checkbox
+    // mas não registra o que foi aceito.
+    it('recusa aceite sem a versão do documento', () => {
+      expect(() =>
+        getMockResponse({
+          endpoint: '/ThinkBitcoin/usuariosTB/',
+          method: 'POST',
+          body: {
+            email: 'novo@usuario.com',
+            senha: '123',
+            aceites: aceitesValidos.map((a) => ({ ...a, idDocumentoLegal: null })),
+          },
+        })
+      ).toThrow(/aceitar/i)
     })
   })
 

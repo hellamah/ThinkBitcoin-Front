@@ -42,7 +42,8 @@ Mesmo com backend privado, a experiência visual do produto pode ser avaliada po
 - O contrato entre o front e o backend para pagamento de planos via Pix (checkout, polling, webhook e regras de segurança) está documentado em [`PAGAMENTOS.md`](./PAGAMENTOS.md). No modo demo os endpoints são mockados e a cobrança se confirma sozinha em ~10s.
 
 ## Privacidade e Termos de Uso
-- O texto da Política de Privacidade e dos Termos de Uso vive em `src/components/ConsentimentoLGPD.jsx` e é publicado nas rotas `/privacidade` e `/termos`.
+- O texto da Política de Privacidade e dos Termos de Uso é **versionado no banco** e servido pela API; as rotas `/privacidade` e `/termos` o exibem com número de versão, vigência e histórico de alterações. Até agosto de 2026 ele vivia em JSX, sem versão e sem data.
+- O aceite de cada usuário é registrado com data, versão do documento, origem, IP e user-agent, e pode ser consultado e revogado em Configurações. O fluxo do lado do front está em [`CONSENTIMENTO.md`](./CONSENTIMENTO.md); o modelo de dados e as regras, no backend.
 - [`ThinkBitcoin-Privacidade-e-Termos-revisao-juridica.docx`](./ThinkBitcoin-Privacidade-e-Termos-revisao-juridica.docx) reúne a transcrição literal dos dois documentos, 17 notas técnicas comparando o texto com o comportamento real do sistema e dois anexos (dados tratados e terceiros envolvidos). Preparado para revisão por advogado; o levantamento cobre os três repositórios do projeto.
 
 ## Roadmap
