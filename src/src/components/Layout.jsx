@@ -11,6 +11,7 @@ import '../App.css'
 import { useAuth } from '../context/AuthContext'
 import useConsentimento from '../hooks/useConsentimento'
 import ConsentimentoLGPD from './ConsentimentoLGPD'
+import CookieBanner from './CookieBanner'
 import useTranslation from '../hooks/useTranslation'
 import { useRef, useState, useEffect } from 'react'
 function Layout({ children }) {
@@ -289,6 +290,13 @@ function Layout({ children }) {
           onConcluir={(itens, origem) => registrar({ itens, origem })}
         />
       )}
+      {/* No Layout, e não na Home: quem entra por um link direto para /login,
+          /dashboard ou /privacidade nunca passava pela Home e por isso nunca
+          via o banner — nem tinha a escolha guardada no navegador sincronizada
+          com a trilha do titular, porque o efeito que faz isso mora aqui
+          dentro. O banner é a primeira pergunta do produto; não podia depender
+          de qual porta a pessoa usou para entrar. */}
+      <CookieBanner />
       <nav className="bottom-nav">{links}</nav>
       <footer className="app-footer">
         <p>{t('copyRight')}</p>
