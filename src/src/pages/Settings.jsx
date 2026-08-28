@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   MdPerson,
@@ -69,6 +69,23 @@ function Settings() {
   const [loadingNome, setLoadingNome] = useState(false)
   const [modalExcluirOpen, setModalExcluirOpen] = useState(false)
   const [toast, setToast] = useState('')
+  const toastRef = useRef(null)
+
+  /**
+   * Exibe um toast por `ms` e cancela o anterior.
+   *
+   * Cada chamada tinha o próprio `setTimeout` solto. Dois avisos em sequência —
+   * salvar preferências e trocar o tema, por exemplo — deixavam dois timers
+   * correndo: o do primeiro disparava no meio da segunda mensagem e a apagava
+   * antes da hora. O timer também sobrevivia ao desmonte da tela.
+   */
+  const mostrarToast = useCallback((mensagem, ms = 2000) => {
+    clearTimeout(toastRef.current)
+    setToast(mensagem)
+    toastRef.current = setTimeout(() => setToast(''), ms)
+  }, [])
+
+  useEffect(() => () => clearTimeout(toastRef.current), [])
   const [moedas, setMoedas] = useState([])
   const [senha, setSenha] = useState({ atual: '', nova: '', confirma: '' })
   const [loadingSenha, setLoadingSenha] = useState(false)
@@ -138,15 +155,13 @@ function Settings() {
   } = useAlertasPreco(user)
 
   const confirm = () => {
-    setToast(t('settingsSaved') || 'Configurações salvas!')
-    setTimeout(() => setToast(''), 2000)
+    mostrarToast(t('settingsSaved') || 'Configurações salvas!', 2000)
   }
 
   const toggleTheme = () => {
     const novo = (prefs?.tema === Theme.DARK) ? Theme.LIGHT : Theme.DARK
     updatePreferences({ tema: novo })
-    setToast(novo === Theme.LIGHT ? t('lightOn') : t('darkOn'))
-    setTimeout(() => setToast(''), 2000)
+    mostrarToast(novo === Theme.LIGHT ? t('lightOn') : t('darkOn'), 2000)
   }
 
   const changeLang = (e) => {
@@ -166,16 +181,14 @@ function Settings() {
       baseUrl: API_URL,
     })
     updatePreferences({ notificacoes: result.shouldEnableNotifications })
-    setToast(t(result.messageKey))
-    setTimeout(() => setToast(''), 2000)
+    mostrarToast(t(result.messageKey), 2000)
   }
 
   const handleSalvarNome = async (e) => {
     e.preventDefault()
     const valor = nome.trim()
     if (!valor) {
-      setToast(t('account.nameRequired'))
-      setTimeout(() => setToast(''), 3000)
+      mostrarToast(t('account.nameRequired'), 3000)
       return
     }
     if (valor === user?.nome) return
@@ -195,13 +208,12 @@ function Settings() {
       })
       const novoToken = res?.resultado?.tokenAutenticado
       if (novoToken) await login(novoToken)
-      setToast(t('account.nameUpdated'))
+      mostrarToast(t('account.nameUpdated'), 3000)
     } catch (err) {
       console.error('Erro ao atualizar o nome:', err)
-      setToast(t('account.errorUpdatingName'))
+      mostrarToast(t('account.errorUpdatingName'), 3000)
     } finally {
       setLoadingNome(false)
-      setTimeout(() => setToast(''), 3000)
     }
   }
 
@@ -214,18 +226,15 @@ function Settings() {
   const handleTrocarSenha = async (e) => {
     e.preventDefault()
     if (!senha.atual || !senha.nova || !senha.confirma) {
-      setToast(t('fillAllFields') || 'Preencha todos os campos')
-      setTimeout(() => setToast(''), 3000)
+      mostrarToast(t('fillAllFields') || 'Preencha todos os campos', 3000)
       return
     }
     if (senha.nova !== senha.confirma) {
-      setToast(t('passwordsDontMatch') || 'As senhas não coincidem')
-      setTimeout(() => setToast(''), 3000)
+      mostrarToast(t('passwordsDontMatch') || 'As senhas não coincidem', 3000)
       return
     }
     if (senha.nova.length < 6) {
-      setToast(t('passwordTooShort') || 'A senha deve ter no mínimo 6 caracteres')
-      setTimeout(() => setToast(''), 3000)
+      mostrarToast(t('passwordTooShort') || 'A senha deve ter no mínimo 6 caracteres', 3000)
       return
     }
 
@@ -240,14 +249,13 @@ function Settings() {
         },
         suppressAuthRedirect: true,
       })
-      setToast(t('passwordChangedSuccess') || 'Senha alterada com sucesso!')
+      mostrarToast(t('passwordChangedSuccess') || 'Senha alterada com sucesso!', 3000)
       setSenha({ atual: '', nova: '', confirma: '' })
     } catch (err) {
       const msg = err.status === 400 ? (t('invalidCurrentPassword') || 'Senha atual incorreta') : (t('errorChangingPassword') || 'Erro ao alterar senha')
-      setToast(msg)
+      mostrarToast(msg, 3000)
     } finally {
       setLoadingSenha(false)
-      setTimeout(() => setToast(''), 3000)
     }
   }
 

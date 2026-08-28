@@ -68,9 +68,19 @@ export default function AlertaPrecoModal({
     }
   }, [visible])
 
+  // A lista de moedas chega da API depois do primeiro render, e nada garante
+  // que ela traga BTC. Enquanto `sigla` apontar para uma opção que não está no
+  // menu, o Select do MUI acusa valor fora de faixa e renderiza o campo vazio —
+  // com o formulário submetendo uma sigla que o usuário nunca viu selecionada.
+  // Cair na primeira moeda disponível mantém campo e valor sempre coerentes.
+  const siglaSelecionada = useMemo(() => {
+    if (moedas.some((m) => m.simbolo === sigla)) return sigla
+    return moedas[0]?.simbolo ?? ''
+  }, [moedas, sigla])
+
   const precoAtual = useMemo(
-    () => moedas.find((m) => m.simbolo === sigla)?.valor ?? 0,
-    [moedas, sigla]
+    () => moedas.find((m) => m.simbolo === siglaSelecionada)?.valor ?? 0,
+    [moedas, siglaSelecionada]
   )
 
   const direcaoPrevista = inferirDirecao(valorAlvo, precoAtual)
@@ -85,7 +95,7 @@ export default function AlertaPrecoModal({
       valorAlvo,
       precoAtual,
       alertas,
-      siglaMoeda: sigla,
+      siglaMoeda: siglaSelecionada,
     })
 
     if (!valido) {
@@ -95,7 +105,7 @@ export default function AlertaPrecoModal({
 
     setSalvando(true)
     try {
-      await onCriar({ siglaMoeda: sigla, valorAlvo })
+      await onCriar({ siglaMoeda: siglaSelecionada, valorAlvo })
       setValorAlvo('')
       setSucessoMsg(t('alertas.criadoComSucesso'))
     } catch (err) {
@@ -183,7 +193,7 @@ export default function AlertaPrecoModal({
               {t('alertas.moeda')}
             </Typography>
             <Select
-              value={sigla}
+              value={siglaSelecionada}
               onChange={(e) => setSigla(e.target.value)}
               size="small"
               sx={{ ...inputSx, mt: 0.5 }}
@@ -239,8 +249,8 @@ export default function AlertaPrecoModal({
 
         <Typography variant="caption" sx={{ display: 'block', mt: 1.5, color: 'var(--text-secondary)' }}>
           {precoAtual > 0
-            ? t('alertas.precoAtual', { moeda: sigla, valor: mathUtils.formatCurrency(precoAtual) })
-            : t('alertas.semPrecoAtual', { moeda: sigla })}
+            ? t('alertas.precoAtual', { moeda: siglaSelecionada, valor: mathUtils.formatCurrency(precoAtual) })
+            : t('alertas.semPrecoAtual', { moeda: siglaSelecionada })}
         </Typography>
 
         {direcaoPrevista && (
@@ -260,7 +270,7 @@ export default function AlertaPrecoModal({
               direcaoPrevista === DirecaoAlerta.ACIMA
                 ? 'alertas.previsaoAcima'
                 : 'alertas.previsaoAbaixo',
-              { moeda: sigla, valor: mathUtils.formatCurrency(Number(valorAlvo)) }
+              { moeda: siglaSelecionada, valor: mathUtils.formatCurrency(Number(valorAlvo)) }
             )}
           </Typography>
         )}
