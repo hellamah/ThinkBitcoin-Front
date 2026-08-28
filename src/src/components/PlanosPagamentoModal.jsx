@@ -73,6 +73,9 @@ export default function PlanosPagamentoModal({ visible, onClose, token, user, on
   const [copiado, setCopiado] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
   const pollRef = useRef(null)
+  const copiadoRef = useRef(null)
+
+  useEffect(() => () => clearTimeout(copiadoRef.current), [])
 
   const carregarPlanos = useCallback(async () => {
     if (!token) return []
@@ -150,8 +153,16 @@ export default function PlanosPagamentoModal({ visible, onClose, token, user, on
 
   // Polling do status da cobrança enquanto o QR code está na tela. Quem
   // ativa o plano é o backend (webhook do gateway); aqui só refletimos.
+  //
+  // `visible` entra na condição E nas dependências. O componente fica montado o
+  // tempo todo — Settings o renderiza sempre, e é o `Modal` que devolve null —,
+  // então sem esta guarda fechar a tela no meio de um pagamento deixava uma
+  // consulta a cada 4 segundos rodando indefinidamente, invisível, até sair de
+  // Configurações. Pior: se o Pix caísse nesse intervalo, `concluirPagamento`
+  // trocava o token do usuário com a tela fechada e nada na interface dizia
+  // que a assinatura tinha mudado.
   useEffect(() => {
-    if (step !== Step.PAGAMENTO || !cobranca?.idCobranca) return undefined
+    if (!visible || step !== Step.PAGAMENTO || !cobranca?.idCobranca) return undefined
     const consultar = async () => {
       try {
         const res = await apiRequest(
@@ -177,7 +188,7 @@ export default function PlanosPagamentoModal({ visible, onClose, token, user, on
     }
     pollRef.current = setInterval(consultar, POLL_INTERVAL_MS)
     return () => clearInterval(pollRef.current)
-  }, [step, cobranca?.idCobranca, concluirPagamento, t])
+  }, [visible, step, cobranca?.idCobranca, concluirPagamento, t])
 
   const selecionarPlano = (plano) => {
     setErrorMsg('')
@@ -227,7 +238,11 @@ export default function PlanosPagamentoModal({ visible, onClose, token, user, on
     try {
       await navigator.clipboard.writeText(cobranca.pixCopiaECola)
       setCopiado(true)
-      setTimeout(() => setCopiado(false), 2500)
+      // Guardado em ref e cancelado no desmonte: solto, o timer de 2,5s
+      // continuava vivo depois de fechar a tela e apagava o "copiado" de uma
+      // reabertura seguinte.
+      clearTimeout(copiadoRef.current)
+      copiadoRef.current = setTimeout(() => setCopiado(false), 2500)
     } catch (err) {
       console.error('Erro ao copiar código Pix:', err)
     }
