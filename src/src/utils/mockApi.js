@@ -43,18 +43,35 @@ const base64FromUtf8 = (str) => {
   return str
 }
 
-const MOCK_COIN_BASE_VALUE = Object.freeze({
-  BTC: 68000,
-  ETH: 3500,
-  ADA: 0.73,
-  XRP: 0.61,
-  SOL: 148,
-  LINK: 18,
-  BNB: 585,
-  LTC: 88,
-  DOGE: 0.16,
-  PAXG: 2330,
-})
+/**
+ * Catálogo de moedas do modo demo — a mesma lista que `GET /moedas` devolve.
+ *
+ * É a fonte única: o mapa de valores-base abaixo é DERIVADO daqui. Enquanto as
+ * duas coisas fossem listas separadas, acrescentar uma moeda ao catálogo sem
+ * lembrar do valor-base a faria cair no fallback de 100 — um DOGE cotado a cem
+ * dólares no meio do carrossel.
+ *
+ * O `id` é Guid, como a API real emite. Não é detalhe cosmético: o handler do
+ * heatmap tenta `parseInt(idMoeda)` e só cai no hash de caracteres quando o
+ * valor não é numérico. Com ids '1', '2', '3' o modo demo exercitaria um ramo
+ * que produção nunca usa, e o ramo que produção usa ficaria sem cobertura.
+ */
+const MOCK_MOEDAS = Object.freeze([
+  { id: '6f1c0b7e-2d3a-4c58-9e10-7a5b3c8d1e01', sigla: 'BTC', nome: 'Bitcoin', valorBase: 68000 },
+  { id: '6f1c0b7e-2d3a-4c58-9e10-7a5b3c8d1e02', sigla: 'ETH', nome: 'Ethereum', valorBase: 3500 },
+  { id: '6f1c0b7e-2d3a-4c58-9e10-7a5b3c8d1e03', sigla: 'ADA', nome: 'Cardano', valorBase: 0.73 },
+  { id: '6f1c0b7e-2d3a-4c58-9e10-7a5b3c8d1e04', sigla: 'XRP', nome: 'XRP', valorBase: 0.61 },
+  { id: '6f1c0b7e-2d3a-4c58-9e10-7a5b3c8d1e05', sigla: 'SOL', nome: 'Solana', valorBase: 148 },
+  { id: '6f1c0b7e-2d3a-4c58-9e10-7a5b3c8d1e06', sigla: 'LINK', nome: 'Chainlink', valorBase: 18 },
+  { id: '6f1c0b7e-2d3a-4c58-9e10-7a5b3c8d1e07', sigla: 'BNB', nome: 'BNB', valorBase: 585 },
+  { id: '6f1c0b7e-2d3a-4c58-9e10-7a5b3c8d1e08', sigla: 'LTC', nome: 'Litecoin', valorBase: 88 },
+  { id: '6f1c0b7e-2d3a-4c58-9e10-7a5b3c8d1e09', sigla: 'DOGE', nome: 'Dogecoin', valorBase: 0.16 },
+  { id: '6f1c0b7e-2d3a-4c58-9e10-7a5b3c8d1e0a', sigla: 'PAXG', nome: 'PAX Gold', valorBase: 2330 },
+])
+
+const MOCK_COIN_BASE_VALUE = Object.freeze(
+  Object.fromEntries(MOCK_MOEDAS.map((m) => [m.sigla, m.valorBase]))
+)
 
 const hashSymbol = (symbol) =>
   symbol
@@ -945,6 +962,22 @@ const mockHandlers = [
       acao: 1,
     }),
   },
+  // Catálogo de moedas. Faltava um handler para esta rota, e a falta não dava
+  // erro visível: `apiRequest` só usa o mock quando algum handler casa, e sem
+  // casar a chamada seguia para a rede de verdade. No modo demo — que existe
+  // justamente para rodar sem backend — isso significava carrossel vazio,
+  // "Carregando moedas..." eterno e, por tabela, dashboard e heatmap sem série
+  // nenhuma, já que ambos partem desta lista para descobrir sigla e idMoeda.
+  {
+    method: 'GET',
+    match: (endpoint) => endpoint.split('?')[0] === '/ThinkBitcoin/moedas',
+    response: () => ({
+      mensagem: 'Moedas mock retornadas com sucesso',
+      // `valorBase` fica de fora: é combustível do gerador de séries, não
+      // contrato da API. Quem quer preço chama /moeda/{sigla}/valor.
+      resultado: MOCK_MOEDAS.map(({ id, sigla, nome }) => ({ id, sigla, nome })),
+    }),
+  },
   {
     method: 'GET',
     match: (endpoint) => !!endpoint.match(/^\/ThinkBitcoin\/moeda\/[^/]+\/valor(\?.*)?$/i),
@@ -1025,11 +1058,17 @@ const mockHandlers = [
       const urlQuery = endpoint.includes('?') ? new URLSearchParams(endpoint.split('?')[1]) : null
       const idMoedaStr = urlQuery?.get('idMoeda') || '1'
       const intervalo = urlQuery?.get('intervalo') || '24h'
-      let idNum = parseInt(idMoedaStr)
-      if (isNaN(idNum)) {
-        idNum = idMoedaStr.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
-      }
-      
+
+      // Hash da string INTEIRA, sempre. Antes tentava `parseInt` primeiro e só
+      // caía no hash quando o resultado era NaN — e `parseInt` para no primeiro
+      // caractere não numérico: todo Guid que começa com dígito virava aquele
+      // dígito. Como Guid é hexadecimal, dez moedas quaisquer têm boa chance de
+      // colidir no mesmo número e receber o MESMO mapa, sem nada acusar. O
+      // ramo do parseInt não servia para nada que o hash não sirva.
+      const idNum = idMoedaStr
+        .split('')
+        .reduce((acc, char) => acc + char.charCodeAt(0), 0)
+
       const factor = (idNum * 17) % 30
       
       let registros = []

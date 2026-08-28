@@ -44,6 +44,94 @@ describe('utils/mockApi › getMockResponse', () => {
     })
   })
 
+  describe('Catálogo de Moedas', () => {
+    const listar = () =>
+      getMockResponse({ endpoint: '/ThinkBitcoin/moedas', method: 'GET' })?.resultado
+
+    it('retorna a lista de moedas para GET /moedas', () => {
+      const moedas = listar()
+
+      expect(Array.isArray(moedas)).toBe(true)
+      expect(moedas.length).toBeGreaterThan(0)
+      moedas.forEach((m) => {
+        expect(m).toMatchObject({
+          id: expect.any(String),
+          sigla: expect.any(String),
+          nome: expect.any(String),
+        })
+      })
+    })
+
+    // O carrossel resolve idMoeda por esta lista e o painel de sentimento pede
+    // fear-greed/trend por ele. Ids repetidos fariam duas moedas compartilharem
+    // a mesma leitura sem nada acusar.
+    it('não repete id entre moedas', () => {
+      const ids = listar().map((m) => m.id)
+
+      expect(new Set(ids).size).toBe(ids.length)
+    })
+
+    it('usa id no formato Guid, como a API real emite', () => {
+      const guid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+      listar().forEach((m) => {
+        expect(m.id).toMatch(guid)
+      })
+    })
+
+    // O que importa não é o formato do id, é o mapa sair diferente por moeda.
+    // Já saiu igual: o handler derivava o fator com `parseInt(idMoeda)`, que
+    // para no primeiro caractere não numérico — todo Guid começado por dígito
+    // colapsava naquele dígito e as moedas dividiam o mesmo mapa.
+    it('gera heatmap distinto para cada moeda do catálogo', () => {
+      const mapas = listar().map((m) => {
+        const resp = getMockResponse({
+          endpoint: `/ThinkBitcoin/variavel-externa/trend/heatmap?idMoeda=${m.id}&intervalo=24h`,
+          method: 'GET',
+        })
+        return JSON.stringify(resp.resultado)
+      })
+
+      expect(new Set(mapas).size).toBe(mapas.length)
+    })
+
+    // useCoinPrices descarta USDT e qualquer moeda cujo nome contenha "dolar".
+    // Uma entrada assim sumiria do carrossel sem erro nenhum.
+    it('não traz moeda que o carrossel descartaria em silêncio', () => {
+      listar().forEach((m) => {
+        expect(m.sigla.toUpperCase()).not.toBe('USDT')
+        expect(m.nome.toLowerCase()).not.toContain('dolar')
+      })
+    })
+
+    // Trava a lista ao endpoint de valor: os dois já foram listas separadas, e
+    // acrescentar moeda só numa delas a deixava sem série própria.
+    it('entrega série de valor para toda moeda listada', () => {
+      listar().forEach((m) => {
+        const resp = getMockResponse({
+          endpoint: `/ThinkBitcoin/moeda/${m.sigla}/valor?quantidade=5`,
+          method: 'GET',
+        })
+
+        expect(resp?.resultado?.registros?.length).toBeGreaterThan(0)
+      })
+    })
+
+    // O fallback de 100 do gerador é o sintoma de uma moeda sem valor-base.
+    // Com dez moedas caindo nele, todas abririam no mesmo preço.
+    it('não deixa moeda cair no valor-base genérico', () => {
+      const aberturas = listar().map((m) => {
+        const resp = getMockResponse({
+          endpoint: `/ThinkBitcoin/moeda/${m.sigla}/valor?quantidade=1`,
+          method: 'GET',
+        })
+        return resp.resultado.registros[0].precoFechamento
+      })
+
+      expect(new Set(aberturas).size).toBe(aberturas.length)
+    })
+  })
+
   describe('Valor de Moeda', () => {
     it('retorna dados de valor para endpoint de BTC', () => {
       const resp = getMockResponse({
