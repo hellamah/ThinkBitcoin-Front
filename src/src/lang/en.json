@@ -645,5 +645,96 @@
     "velas": "Each candle shows the open, high, low and close. Green closed above the open; red, below.",
     "volatilidade": "How much the price swung inside the current candle, as a percentage. The comparison with the median tells you whether this moment is busier than the period normal.",
     "vwap": "The period average price weighted by the volume traded at each moment. It is the benchmark professional desks use to judge whether a purchase was expensive or cheap."
+  },
+  "loginSubtitle": "Set up your professional investment profile",
+  "cookies": {
+    "texto": "We use essential cookies to run the platform and preference cookies to improve your experience. See our",
+    "politica": "Privacy Policy",
+    "apenasEssenciais": "Essential only",
+    "aceitarTodos": "Accept all"
+  },
+  "documentos": {
+    "erroCarregar": "We could not load this document right now. Please try again shortly.",
+    "privacidadeSubtitulo": "Processing of personal data under Brazilian Law No. 13,709/2018 (LGPD).",
+    "termosSubtitulo": "Conditions for using the ThinkBitcoin platform.",
+    "versaoChip": "Version {{versao}}",
+    "emVigorDesde": "In force since {{data}}",
+    "vigenteDeAte": "In force from {{inicio}} to {{fim}}",
+    "verHistorico": "Change history",
+    "ocultarHistorico": "Hide history",
+    "emVigor": "In force",
+    "versaoEncerrada": "You are reading a superseded version, kept for reference.",
+    "verVersaoVigente": "View the version in force",
+    "carregandoVersoes": "Loading versions...",
+    "primeiraVersao": "First published version."
+  },
+  "consentimento": {
+    "erroCarregar": "We could not load your consents right now.",
+    "tituloAtualizado": "We have updated our documents",
+    "tituloPadrao": "Privacy and Terms of Use",
+    "subtitulo": "To keep using the platform, please read and accept the current version of the documents below.",
+    "oQueMudou": "What changed in version {{versao}}",
+    "versaoAnterior": "You had accepted version {{versao}}.",
+    "liEAceito": "I have read and accept",
+    "versaoCurta": "(version {{versao}})",
+    "registrando": "Recording...",
+    "aceitarEContinuar": "Accept and continue",
+    "leiaParaContinuar": "Read and accept the documents to continue",
+    "rodape": "Your acceptance is recorded with date and version. You can review the history and withdraw consent in your account Settings.",
+    "erroDocumentos": "We could not load the documents.",
+    "erroAceite": "We could not record your acceptance. Please try again.",
+    "tipos": {
+      "privacidade": "Privacy Policy",
+      "termos": "Terms of Use",
+      "cookies": "Preference cookies"
+    },
+    "origens": {
+      "cadastro": "at sign-up",
+      "atualizacaoVersao": "when the document was updated",
+      "configuracoes": "in settings",
+      "bannerCookies": "in the cookie banner"
+    },
+    "painel": {
+      "intro": "Every acceptance is recorded with date, document version and origin. Withdrawing does not erase the previous record — it adds the withdrawal to the history.",
+      "integridade": "One of the recorded documents was changed after you accepted it. Please contact {{email}}.",
+      "verTextoAceito": "View the accepted text",
+      "revogar": "Withdraw",
+      "pendente": "Pending",
+      "semRegistro": "No record",
+      "aceitoEm": "Accepted on {{data}}",
+      "revogadoEm": "Withdrawn on {{data}}",
+      "sufixoVersao": " — version {{versao}}",
+      "ultimaAlteracao": "Last changed on {{data}}",
+      "semRegistroCookies": "No record — essential cookies only",
+      "avisoRevogacao": "Withdrawing the Privacy Policy or the Terms of Use suspends your use of the platform until you accept the current version again.",
+      "historico": "History",
+      "aceite": "Acceptance",
+      "revogacao": "Withdrawal",
+      "erroAlteracao": "We could not record the change.",
+      "erroRevogacao": "We could not record the withdrawal."
+    }
+  },
+  "senha": {
+    "esqueci": "I forgot my password",
+    "recuperarTitulo": "Recover password",
+    "recuperarDescricao": "Enter your email and we will send you a link to reset your password.",
+    "recuperarEnviar": "Send",
+    "recuperarCancelar": "Cancel",
+    "recuperarEnviado": "If this email is registered, you will receive a reset link shortly.",
+    "recuperarErro": "We could not process the request. Please try again.",
+    "redefinirTitulo": "Reset password",
+    "redefinirNova": "New password",
+    "redefinirConfirmar": "Confirm new password",
+    "redefinirBotao": "Reset password",
+    "redefinirVoltar": "Back to login",
+    "redefinirSucesso": "Password reset successfully!",
+    "redefinirRedirecionando": "Redirecting to login...",
+    "erroLinkInvalido": "Invalid link. Please request a new password reset.",
+    "erroTokenInvalido": "Token invalid, already used or expired. Please request a new reset.",
+    "erroRedefinir": "We could not reset the password. Please try again."
+  },
+  "erroGlobal": {
+    "titulo": "Something went wrong while loading this page.",
+    "recarregar": "Reload page"
   }
 }

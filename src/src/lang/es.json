@@ -645,5 +645,96 @@
     "velas": "Cada vela muestra apertura, máximo, mínimo y cierre. Verde cerró por encima de la apertura; roja, por debajo.",
     "volatilidade": "Cuánto osciló el precio dentro de la vela actual, en porcentaje. La comparación con la mediana dice si este momento está más agitado que lo normal del período.",
     "vwap": "Precio medio del período ponderado por el volumen de cada momento. Es la referencia que usa la mesa profesional para juzgar si una compra salió cara o barata."
+  },
+  "loginSubtitle": "Configura tu perfil de inversión profesional",
+  "cookies": {
+    "texto": "Utilizamos cookies esenciales para el funcionamiento de la plataforma y cookies de preferencias para mejorar tu experiencia. Consulta nuestra",
+    "politica": "Política de Privacidad",
+    "apenasEssenciais": "Solo esenciales",
+    "aceitarTodos": "Aceptar todas"
+  },
+  "documentos": {
+    "erroCarregar": "No fue posible cargar este documento ahora. Inténtalo de nuevo en instantes.",
+    "privacidadeSubtitulo": "Tratamiento de datos personales conforme a la Ley n.º 13.709/2018 de Brasil (LGPD).",
+    "termosSubtitulo": "Condiciones de uso de la plataforma ThinkBitcoin.",
+    "versaoChip": "Versión {{versao}}",
+    "emVigorDesde": "En vigor desde {{data}}",
+    "vigenteDeAte": "Vigente del {{inicio}} al {{fim}}",
+    "verHistorico": "Historial de cambios",
+    "ocultarHistorico": "Ocultar historial",
+    "emVigor": "En vigor",
+    "versaoEncerrada": "Estás leyendo una versión finalizada, conservada para consulta.",
+    "verVersaoVigente": "Ver la versión en vigor",
+    "carregandoVersoes": "Cargando versiones...",
+    "primeiraVersao": "Primera versión publicada."
+  },
+  "consentimento": {
+    "erroCarregar": "No fue posible cargar tus consentimientos ahora.",
+    "tituloAtualizado": "Actualizamos nuestros documentos",
+    "tituloPadrao": "Privacidad y Términos de Uso",
+    "subtitulo": "Para seguir usando la plataforma, lee y acepta la versión vigente de los documentos siguientes.",
+    "oQueMudou": "Qué cambió en la versión {{versao}}",
+    "versaoAnterior": "Habías aceptado la versión {{versao}}.",
+    "liEAceito": "He leído y acepto",
+    "versaoCurta": "(versión {{versao}})",
+    "registrando": "Registrando...",
+    "aceitarEContinuar": "Aceptar y continuar",
+    "leiaParaContinuar": "Lee y acepta los documentos para continuar",
+    "rodape": "Tu aceptación queda registrada con fecha y versión. Puedes consultar el historial y revocar el consentimiento en la Configuración de la cuenta.",
+    "erroDocumentos": "No fue posible cargar los documentos.",
+    "erroAceite": "No fue posible registrar la aceptación. Inténtalo de nuevo.",
+    "tipos": {
+      "privacidade": "Política de Privacidad",
+      "termos": "Términos de Uso",
+      "cookies": "Cookies de preferencias"
+    },
+    "origens": {
+      "cadastro": "en el registro",
+      "atualizacaoVersao": "en la actualización del documento",
+      "configuracoes": "en la configuración",
+      "bannerCookies": "en el banner de cookies"
+    },
+    "painel": {
+      "intro": "Cada aceptación queda registrada con fecha, versión del documento y origen. Revocar no borra el registro anterior: añade la revocación al historial.",
+      "integridade": "Uno de los documentos registrados fue modificado después de tu aceptación. Contacta con {{email}}.",
+      "verTextoAceito": "Ver el texto aceptado",
+      "revogar": "Revocar",
+      "pendente": "Pendiente",
+      "semRegistro": "Sin registro",
+      "aceitoEm": "Aceptado el {{data}}",
+      "revogadoEm": "Revocado el {{data}}",
+      "sufixoVersao": " — versión {{versao}}",
+      "ultimaAlteracao": "Última modificación el {{data}}",
+      "semRegistroCookies": "Sin registro — solo cookies esenciales",
+      "avisoRevogacao": "Revocar la Política de Privacidad o los Términos de Uso interrumpe el uso de la plataforma hasta que aceptes de nuevo la versión vigente.",
+      "historico": "Historial",
+      "aceite": "Aceptación",
+      "revogacao": "Revocación",
+      "erroAlteracao": "No fue posible registrar el cambio.",
+      "erroRevogacao": "No fue posible registrar la revocación."
+    }
+  },
+  "senha": {
+    "esqueci": "Olvidé mi contraseña",
+    "recuperarTitulo": "Recuperar contraseña",
+    "recuperarDescricao": "Indica tu email y te enviaremos un enlace para restablecer tu contraseña.",
+    "recuperarEnviar": "Enviar",
+    "recuperarCancelar": "Cancelar",
+    "recuperarEnviado": "Si este email está registrado, recibirás un enlace de restablecimiento en breve.",
+    "recuperarErro": "No fue posible procesar la solicitud. Inténtalo de nuevo.",
+    "redefinirTitulo": "Restablecer contraseña",
+    "redefinirNova": "Nueva contraseña",
+    "redefinirConfirmar": "Confirmar nueva contraseña",
+    "redefinirBotao": "Restablecer contraseña",
+    "redefinirVoltar": "Volver al inicio de sesión",
+    "redefinirSucesso": "¡Contraseña restablecida con éxito!",
+    "redefinirRedirecionando": "Redirigiendo al inicio de sesión...",
+    "erroLinkInvalido": "Enlace inválido. Solicita un nuevo restablecimiento de contraseña.",
+    "erroTokenInvalido": "Token inválido, ya utilizado o caducado. Solicita un nuevo restablecimiento.",
+    "erroRedefinir": "No fue posible restablecer la contraseña. Inténtalo de nuevo."
+  },
+  "erroGlobal": {
+    "titulo": "Se produjo un error al cargar la página.",
+    "recarregar": "Recargar página"
   }
 }

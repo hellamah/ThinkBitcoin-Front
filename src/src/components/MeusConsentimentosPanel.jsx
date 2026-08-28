@@ -10,6 +10,7 @@ import Typography from '@mui/material/Typography'
 import { MdOpenInNew, MdWarningAmber } from 'react-icons/md'
 import { useAuth } from '../context/AuthContext'
 import useConsentimento from '../hooks/useConsentimento'
+import useTranslation from '../hooks/useTranslation'
 import {
   DocumentoSlug,
   OrigemConsentimento,
@@ -29,27 +30,44 @@ import { toLocal } from '../utils/dateUtils'
  * histórico.
  */
 
-const ROTULO_TIPO = Object.freeze({
-  [TipoConsentimento.PRIVACIDADE]: 'Política de Privacidade',
-  [TipoConsentimento.TERMOS]: 'Termos de Uso',
-  [TipoConsentimento.COOKIES]: 'Cookies de preferências',
+// Chaves de tradução, não frases: o histórico de consentimento é justamente o
+// que o titular consulta para entender o que autorizou, e em português para
+// quem escolheu outro idioma isso não se lê.
+const CHAVE_TIPO = Object.freeze({
+  [TipoConsentimento.PRIVACIDADE]: 'consentimento.tipos.privacidade',
+  [TipoConsentimento.TERMOS]: 'consentimento.tipos.termos',
+  [TipoConsentimento.COOKIES]: 'consentimento.tipos.cookies',
 })
 
-const ROTULO_ORIGEM = Object.freeze({
-  CADASTRO: 'no cadastro',
-  ATUALIZACAO_VERSAO: 'na atualização do documento',
-  CONFIGURACOES: 'nas configurações',
-  BANNER_COOKIES: 'no banner de cookies',
+const CHAVE_ORIGEM = Object.freeze({
+  CADASTRO: 'consentimento.origens.cadastro',
+  ATUALIZACAO_VERSAO: 'consentimento.origens.atualizacaoVersao',
+  CONFIGURACOES: 'consentimento.origens.configuracoes',
+  BANNER_COOKIES: 'consentimento.origens.bannerCookies',
 })
+
+// Endereço do encarregado (DPO). Fica numa constante e fora do dicionário: é o
+// mesmo em qualquer idioma, e repetido nas cinco traduções seria cinco lugares
+// para esquecer de atualizar quando ele mudar.
+const EMAIL_ENCARREGADO = 'privacidade@thinkbitcoin.com.br'
 
 const SLUG_POR_TIPO = Object.freeze({
   [TipoConsentimento.PRIVACIDADE]: DocumentoSlug.PRIVACIDADE,
   [TipoConsentimento.TERMOS]: DocumentoSlug.TERMOS,
 })
 
-function LinhaDocumento({ tipo, registro, onRevogar, ocupado }) {
+function LinhaDocumento({ tipo, registro, onRevogar, ocupado, t }) {
   const concedido = registro?.concedido === true
   const slug = SLUG_POR_TIPO[tipo]
+
+  const descricao = registro
+    ? t(concedido ? 'consentimento.painel.aceitoEm' : 'consentimento.painel.revogadoEm', {
+        data: toLocal(registro.dataRegistro),
+      }) +
+      (registro.versaoDocumento
+        ? t('consentimento.painel.sufixoVersao', { versao: registro.versaoDocumento })
+        : '')
+    : t('consentimento.painel.semRegistro')
 
   return (
     <Box
@@ -64,14 +82,10 @@ function LinhaDocumento({ tipo, registro, onRevogar, ocupado }) {
     >
       <Box sx={{ flex: 1, minWidth: 220 }}>
         <Typography sx={{ color: 'var(--text-primary)', fontSize: '0.88rem', fontWeight: 700 }}>
-          {ROTULO_TIPO[tipo]}
+          {t(CHAVE_TIPO[tipo])}
         </Typography>
         <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.76rem' }}>
-          {registro
-            ? `${concedido ? 'Aceito' : 'Revogado'} em ${toLocal(registro.dataRegistro)}${
-                registro.versaoDocumento ? ` — versão ${registro.versaoDocumento}` : ''
-              }`
-            : 'Sem registro'}
+          {descricao}
         </Typography>
       </Box>
 
@@ -85,7 +99,7 @@ function LinhaDocumento({ tipo, registro, onRevogar, ocupado }) {
           endIcon={<MdOpenInNew size={14} />}
           sx={{ color: 'var(--text-muted)', textTransform: 'none', fontSize: '0.76rem' }}
         >
-          Ver o texto aceito
+          {t('consentimento.painel.verTextoAceito')}
         </Button>
       )}
 
@@ -104,12 +118,12 @@ function LinhaDocumento({ tipo, registro, onRevogar, ocupado }) {
             '&:hover': { borderColor: 'var(--danger)', backgroundColor: 'var(--danger-a10)' },
           }}
         >
-          Revogar
+          {t('consentimento.painel.revogar')}
         </Button>
       ) : (
         <Chip
           size="small"
-          label="Pendente"
+          label={t('consentimento.painel.pendente')}
           sx={{ backgroundColor: 'var(--surface-fill)', color: 'var(--text-muted)', fontSize: '0.7rem' }}
         />
       )}
@@ -119,6 +133,7 @@ function LinhaDocumento({ tipo, registro, onRevogar, ocupado }) {
 
 function MeusConsentimentosPanel() {
   const { token } = useAuth()
+  const { t } = useTranslation()
   const { historico, carregando, erro, carregarHistorico, registrar } = useConsentimento(token)
   const [ocupado, setOcupado] = useState(false)
   const [aviso, setAviso] = useState('')
@@ -140,7 +155,7 @@ function MeusConsentimentosPanel() {
         itens: [{ tipo: TipoConsentimento.COOKIES, idDocumentoLegal: null, concedido: aceitar }],
       })
     } catch (err) {
-      setAviso(err?.hasBackendMessage ? err.message : 'Não foi possível registrar a alteração.')
+      setAviso(err?.hasBackendMessage ? err.message : t('consentimento.painel.erroAlteracao'))
     } finally {
       setOcupado(false)
     }
@@ -155,7 +170,7 @@ function MeusConsentimentosPanel() {
         itens: [{ tipo, idDocumentoLegal: null, concedido: false }],
       })
     } catch (err) {
-      setAviso(err?.hasBackendMessage ? err.message : 'Não foi possível registrar a revogação.')
+      setAviso(err?.hasBackendMessage ? err.message : t('consentimento.painel.erroRevogacao'))
     } finally {
       setOcupado(false)
     }
@@ -172,8 +187,7 @@ function MeusConsentimentosPanel() {
   return (
     <Box>
       <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.82rem', mb: 2 }}>
-        Cada aceite fica registrado com data, versão do documento e origem. Revogar não apaga o
-        registro anterior — acrescenta a revogação ao histórico.
+        {t('consentimento.painel.intro')}
       </Typography>
 
       {temIntegridadeComprometida(historico) && (
@@ -191,8 +205,7 @@ function MeusConsentimentosPanel() {
         >
           <MdWarningAmber style={{ color: 'var(--danger-ink)', flexShrink: 0, marginTop: 2 }} />
           <Typography sx={{ color: 'var(--danger-ink)', fontSize: '0.8rem' }}>
-            Um dos documentos registrados foi alterado após o seu aceite. Entre em contato com
-            privacidade@thinkbitcoin.com.br.
+            {t('consentimento.painel.integridade', { email: EMAIL_ENCARREGADO })}
           </Typography>
         </Box>
       )}
@@ -202,7 +215,9 @@ function MeusConsentimentosPanel() {
       )}
       {erro && historico.length === 0 && (
         <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.8rem', mb: 2 }}>
-          Não foi possível carregar seus consentimentos agora.
+          {/* Chave de tradução quando a falha não trouxe mensagem do backend;
+              texto do servidor passa direto. */}
+          {t(erro)}
         </Typography>
       )}
 
@@ -211,23 +226,27 @@ function MeusConsentimentosPanel() {
         registro={atuais[TipoConsentimento.PRIVACIDADE]}
         onRevogar={revogar}
         ocupado={ocupado}
+        t={t}
       />
       <LinhaDocumento
         tipo={TipoConsentimento.TERMOS}
         registro={atuais[TipoConsentimento.TERMOS]}
         onRevogar={revogar}
         ocupado={ocupado}
+        t={t}
       />
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1.5, flexWrap: 'wrap' }}>
         <Box sx={{ flex: 1, minWidth: 220 }}>
           <Typography sx={{ color: 'var(--text-primary)', fontSize: '0.88rem', fontWeight: 700 }}>
-            {ROTULO_TIPO[TipoConsentimento.COOKIES]}
+            {t(CHAVE_TIPO[TipoConsentimento.COOKIES])}
           </Typography>
           <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.76rem' }}>
             {atuais[TipoConsentimento.COOKIES]
-              ? `Última alteração em ${toLocal(atuais[TipoConsentimento.COOKIES].dataRegistro)}`
-              : 'Sem registro — apenas cookies essenciais'}
+              ? t('consentimento.painel.ultimaAlteracao', {
+                  data: toLocal(atuais[TipoConsentimento.COOKIES].dataRegistro),
+                })
+              : t('consentimento.painel.semRegistroCookies')}
           </Typography>
         </Box>
         <Switch
@@ -238,15 +257,14 @@ function MeusConsentimentosPanel() {
       </Box>
 
       <Typography sx={{ color: 'var(--text-faint)', fontSize: '0.75rem', mb: 2 }}>
-        Revogar a Política de Privacidade ou os Termos de Uso interrompe o uso da plataforma até que
-        você aceite a versão vigente novamente.
+        {t('consentimento.painel.avisoRevogacao')}
       </Typography>
 
       {historico.length > 0 && (
         <>
           <Divider sx={{ borderColor: 'var(--border)', my: 2 }} />
           <Typography sx={{ color: 'var(--text-primary)', fontSize: '0.85rem', fontWeight: 700, mb: 1 }}>
-            Histórico
+            {t('consentimento.painel.historico')}
           </Typography>
           {historico.map((registro) => (
             <Box
@@ -255,7 +273,11 @@ function MeusConsentimentosPanel() {
             >
               <Chip
                 size="small"
-                label={registro.concedido ? 'Aceite' : 'Revogação'}
+                label={t(
+                  registro.concedido
+                    ? 'consentimento.painel.aceite'
+                    : 'consentimento.painel.revogacao'
+                )}
                 sx={{
                   height: 18,
                   fontSize: '0.65rem',
@@ -264,12 +286,12 @@ function MeusConsentimentosPanel() {
                 }}
               />
               <Typography sx={{ color: 'var(--text-secondary)', fontSize: '0.78rem' }}>
-                {ROTULO_TIPO[registro.tipo] || registro.tipo}
+                {CHAVE_TIPO[registro.tipo] ? t(CHAVE_TIPO[registro.tipo]) : registro.tipo}
                 {registro.versaoDocumento ? ` v${registro.versaoDocumento}` : ''}
               </Typography>
               <Typography sx={{ color: 'var(--text-faint)', fontSize: '0.74rem' }}>
                 {toLocal(registro.dataRegistro)}
-                {ROTULO_ORIGEM[registro.origem] ? ` · ${ROTULO_ORIGEM[registro.origem]}` : ''}
+                {CHAVE_ORIGEM[registro.origem] ? ` · ${t(CHAVE_ORIGEM[registro.origem])}` : ''}
                 {registro.enderecoIp ? ` · IP ${registro.enderecoIp}` : ''}
               </Typography>
             </Box>

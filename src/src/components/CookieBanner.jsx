@@ -4,6 +4,7 @@ import { MdCookie } from 'react-icons/md'
 import { apiRequest, ConsentimentoEndpoint, HttpMethod } from '../utils/apiClient'
 import { OrigemConsentimento, TipoConsentimento } from '../utils/consentimento'
 import { useAuth } from '../context/AuthContext'
+import useTranslation from '../hooks/useTranslation'
 
 const STORAGE_KEY = 'cookie_consent_v1'
 // Marca de que a escolha guardada localmente já foi registrada na trilha do
@@ -49,6 +50,7 @@ function jaSincronizado() {
 
 function CookieBanner() {
   const { token } = useAuth()
+  const { t } = useTranslation()
   const [visivel, setVisivel] = useState(!hasCookieConsent())
 
   /**
@@ -119,14 +121,13 @@ function CookieBanner() {
       <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, flex: 1 }}>
         <MdCookie style={{ color: 'var(--accent-ink)', fontSize: '1.3rem', flexShrink: 0, marginTop: 2 }} />
         <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.82rem', lineHeight: 1.6 }}>
-          Utilizamos cookies essenciais para o funcionamento da plataforma e cookies de preferências para melhorar sua experiência.
-          Consulte nossa{' '}
+          {t('cookies.texto')}{' '}
           {/* Caminho relativo, não a URL absoluta de produção: assim o link
               funciona no preview e no localhost em vez de pular para o site
               publicado. Abre em outra aba para não derrubar este banner. */}
           <Box component="a" href="/privacidade" target="_blank" rel="noopener"
             sx={{ color: 'var(--accent-ink)', textDecoration: 'none', fontWeight: 600, '&:hover': { opacity: 0.8 } }}>
-            Política de Privacidade
+            {t('cookies.politica')}
           </Box>.
         </Typography>
       </Box>
@@ -145,7 +146,7 @@ function CookieBanner() {
             '&:hover': { borderColor: 'var(--border-interactive)', color: 'var(--text-primary)' },
           }}
         >
-          Apenas essenciais
+          {t('cookies.apenasEssenciais')}
         </Button>
         <Button
           variant="contained"
@@ -161,7 +162,7 @@ function CookieBanner() {
             '&:hover': { bgcolor: '#e0c200' },
           }}
         >
-          Aceitar todos
+          {t('cookies.aceitarTodos')}
         </Button>
       </Box>
     </Box>

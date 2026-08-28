@@ -4,8 +4,10 @@ import { TextField, Button, Box, Paper, Typography, CircularProgress } from '@mu
 import { MdLock } from 'react-icons/md'
 import logo from '../../logo-light.svg'
 import { apiRequest, HttpMethod, UserEndpoint } from '../utils/apiClient'
+import useTranslation from '../hooks/useTranslation'
 
 function RedefinirSenha() {
+  const { t } = useTranslation()
   const [searchParams] = useSearchParams()
   const navegar = useNavigate()
   const token = searchParams.get('token')
@@ -17,14 +19,14 @@ function RedefinirSenha() {
   const [carregando, setCarregando] = useState(false)
 
   useEffect(() => {
-    if (!token) setErro('Link inválido. Solicite uma nova redefinição de senha.')
-  }, [token])
+    if (!token) setErro(t('senha.erroLinkInvalido'))
+  }, [token, t])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setErro('')
     if (novaSenha !== confirmarSenha) {
-      setErro('As senhas não coincidem.')
+      setErro(t('passwordsDontMatch'))
       return
     }
     try {
@@ -38,9 +40,9 @@ function RedefinirSenha() {
       setTimeout(() => navegar('/login'), 3000)
     } catch (err) {
       if (err.status === 400) {
-        setErro('Token inválido, já utilizado ou expirado. Solicite uma nova redefinição.')
+        setErro(t('senha.erroTokenInvalido'))
       } else {
-        setErro('Não foi possível redefinir a senha. Tente novamente.')
+        setErro(t('senha.erroRedefinir'))
       }
     } finally {
       setCarregando(false)
@@ -78,24 +80,24 @@ function RedefinirSenha() {
         <Box sx={{ textAlign: 'center', mb: 4 }}>
           <img src={logo} alt="ThinkBitcoin Logo" style={{ height: '70px', marginBottom: '16px' }} />
           <Typography variant="h5" sx={{ fontWeight: 800, color: 'var(--accent-ink)' }}>
-            Redefinir senha
+            {t('senha.redefinirTitulo')}
           </Typography>
         </Box>
 
         {sucesso ? (
           <Box sx={{ textAlign: 'center', py: 2 }}>
             <Typography sx={{ color: 'var(--success)', fontSize: '1rem', mb: 2 }}>
-              Senha redefinida com sucesso!
+              {t('senha.redefinirSucesso')}
             </Typography>
             <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-              Redirecionando para o login...
+              {t('senha.redefinirRedirecionando')}
             </Typography>
           </Box>
         ) : (
           <form onSubmit={handleSubmit}>
             <Box sx={{ display: 'flex', flexDirection: 'column' }}>
               <TextField
-                fullWidth label="Nova senha" type="password"
+                fullWidth label={t('senha.redefinirNova')} type="password"
                 value={novaSenha} onChange={(e) => setNovaSenha(e.target.value)}
                 required variant="filled" sx={inputSx}
                 InputProps={{
@@ -104,7 +106,7 @@ function RedefinirSenha() {
                 }}
               />
               <TextField
-                fullWidth label="Confirmar nova senha" type="password"
+                fullWidth label={t('senha.redefinirConfirmar')} type="password"
                 value={confirmarSenha} onChange={(e) => setConfirmarSenha(e.target.value)}
                 required variant="filled" sx={inputSx}
                 InputProps={{
@@ -126,14 +128,14 @@ function RedefinirSenha() {
                   '&:hover': { bgcolor: '#e0c200' },
                 }}
               >
-                {carregando ? <CircularProgress size={24} sx={{ color: 'var(--text-on-accent)' }} /> : 'Redefinir senha'}
+                {carregando ? <CircularProgress size={24} sx={{ color: 'var(--text-on-accent)' }} /> : t('senha.redefinirBotao')}
               </Button>
 
               <Button
                 variant="text" fullWidth onClick={() => navegar('/login')}
                 sx={{ mt: 2, color: 'var(--text-faint)', '&:hover': { color: 'var(--accent-ink)' } }}
               >
-                Voltar ao login
+                {t('senha.redefinirVoltar')}
               </Button>
             </Box>
           </form>

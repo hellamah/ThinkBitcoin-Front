@@ -68,9 +68,9 @@ function Login() {
         },
         suppressAuthRedirect: true,
       })
-      setMensagemRecuperacao('Se este email estiver cadastrado, você receberá um link de redefinição em breve.')
+      setMensagemRecuperacao(t('senha.recuperarEnviado'))
     } catch {
-      setErroRecuperacao('Não foi possível processar a solicitação. Tente novamente.')
+      setErroRecuperacao(t('senha.recuperarErro'))
     } finally {
       setEnviandoRecuperacao(false)
     }
@@ -118,7 +118,7 @@ function Login() {
             {t('login')}
           </Typography>
           <Typography sx={{ color: 'var(--text-muted)', mt: 1 }}>
-            Configure seu perfil de investimento profissional
+            {t('loginSubtitle')}
           </Typography>
         </Box>
 
@@ -169,7 +169,7 @@ function Login() {
                   transition: 'color 0.2s',
                 }}
               >
-                Esqueci minha senha
+                {t('senha.esqueci')}
               </Typography>
             </Box>
 
@@ -217,10 +217,10 @@ function Login() {
           p: 4,
         }}>
           <Typography variant="h6" sx={{ fontWeight: 700, color: 'var(--accent-ink)', mb: 1 }}>
-            Recuperar senha
+            {t('senha.recuperarTitulo')}
           </Typography>
           <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.875rem', mb: 3 }}>
-            Informe seu email e enviaremos um link para redefinir sua senha.
+            {t('senha.recuperarDescricao')}
           </Typography>
 
           {mensagemRecuperacao ? (
@@ -231,7 +231,7 @@ function Login() {
             <form onSubmit={enviarRecuperacao}>
               <TextField
                 fullWidth
-                label="Email"
+                label={t('email')}
                 type="email"
                 value={emailRecuperacao}
                 onChange={(e) => setEmailRecuperacao(e.target.value)}
@@ -254,7 +254,7 @@ function Login() {
                   onClick={() => setModalAberto(false)}
                   sx={{ borderColor: 'var(--border-strong)', color: 'var(--text-muted)', borderRadius: '10px' }}
                 >
-                  Cancelar
+                  {t('senha.recuperarCancelar')}
                 </Button>
                 <Button
                   fullWidth variant="contained" type="submit" disabled={enviandoRecuperacao}
@@ -263,7 +263,7 @@ function Login() {
                     '&:hover': { bgcolor: '#e0c200' }
                   }}
                 >
-                  {enviandoRecuperacao ? <CircularProgress size={20} sx={{ color: 'var(--text-on-accent)' }} /> : 'Enviar'}
+                  {enviandoRecuperacao ? <CircularProgress size={20} sx={{ color: 'var(--text-on-accent)' }} /> : t('senha.recuperarEnviar')}
                 </Button>
               </Box>
             </form>

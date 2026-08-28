@@ -645,5 +645,96 @@
     "velas": "Chaque bougie montre l'ouverture, le plus haut, le plus bas et la clôture. Verte, elle a clôturé au-dessus de l'ouverture ; rouge, en dessous.",
     "volatilidade": "De combien le prix a oscillé à l'intérieur de la bougie actuelle, en pourcentage. La comparaison avec la médiane dit si ce moment est plus agité que la normale de la période.",
     "vwap": "Prix moyen de la période pondéré par le volume de chaque instant. C'est la référence qu'utilise une table professionnelle pour juger si un achat s'est fait cher ou bon marché."
+  },
+  "loginSubtitle": "Configurez votre profil d’investissement professionnel",
+  "cookies": {
+    "texto": "Nous utilisons des cookies essentiels au fonctionnement de la plateforme et des cookies de préférences pour améliorer votre expérience. Consultez notre",
+    "politica": "Politique de confidentialité",
+    "apenasEssenciais": "Essentiels uniquement",
+    "aceitarTodos": "Tout accepter"
+  },
+  "documentos": {
+    "erroCarregar": "Impossible de charger ce document pour le moment. Réessayez dans un instant.",
+    "privacidadeSubtitulo": "Traitement des données personnelles au titre de la loi brésilienne n° 13.709/2018 (LGPD).",
+    "termosSubtitulo": "Conditions d’utilisation de la plateforme ThinkBitcoin.",
+    "versaoChip": "Version {{versao}}",
+    "emVigorDesde": "En vigueur depuis le {{data}}",
+    "vigenteDeAte": "En vigueur du {{inicio}} au {{fim}}",
+    "verHistorico": "Historique des modifications",
+    "ocultarHistorico": "Masquer l’historique",
+    "emVigor": "En vigueur",
+    "versaoEncerrada": "Vous lisez une version close, conservée pour consultation.",
+    "verVersaoVigente": "Voir la version en vigueur",
+    "carregandoVersoes": "Chargement des versions...",
+    "primeiraVersao": "Première version publiée."
+  },
+  "consentimento": {
+    "erroCarregar": "Impossible de charger vos consentements pour le moment.",
+    "tituloAtualizado": "Nous avons mis à jour nos documents",
+    "tituloPadrao": "Confidentialité et conditions d’utilisation",
+    "subtitulo": "Pour continuer à utiliser la plateforme, lisez et acceptez la version en vigueur des documents ci-dessous.",
+    "oQueMudou": "Ce qui a changé dans la version {{versao}}",
+    "versaoAnterior": "Vous aviez accepté la version {{versao}}.",
+    "liEAceito": "J’ai lu et j’accepte",
+    "versaoCurta": "(version {{versao}})",
+    "registrando": "Enregistrement...",
+    "aceitarEContinuar": "Accepter et continuer",
+    "leiaParaContinuar": "Lisez et acceptez les documents pour continuer",
+    "rodape": "Votre acceptation est enregistrée avec la date et la version. Vous pouvez consulter l’historique et retirer votre consentement dans les Paramètres du compte.",
+    "erroDocumentos": "Impossible de charger les documents.",
+    "erroAceite": "Impossible d’enregistrer votre acceptation. Réessayez.",
+    "tipos": {
+      "privacidade": "Politique de confidentialité",
+      "termos": "Conditions d’utilisation",
+      "cookies": "Cookies de préférences"
+    },
+    "origens": {
+      "cadastro": "à l’inscription",
+      "atualizacaoVersao": "lors de la mise à jour du document",
+      "configuracoes": "dans les paramètres",
+      "bannerCookies": "dans le bandeau cookies"
+    },
+    "painel": {
+      "intro": "Chaque acceptation est enregistrée avec la date, la version du document et l’origine. Le retrait n’efface pas l’enregistrement précédent : il ajoute le retrait à l’historique.",
+      "integridade": "L’un des documents enregistrés a été modifié après votre acceptation. Contactez {{email}}.",
+      "verTextoAceito": "Voir le texte accepté",
+      "revogar": "Retirer",
+      "pendente": "En attente",
+      "semRegistro": "Aucun enregistrement",
+      "aceitoEm": "Accepté le {{data}}",
+      "revogadoEm": "Retiré le {{data}}",
+      "sufixoVersao": " — version {{versao}}",
+      "ultimaAlteracao": "Dernière modification le {{data}}",
+      "semRegistroCookies": "Aucun enregistrement — cookies essentiels uniquement",
+      "avisoRevogacao": "Retirer la politique de confidentialité ou les conditions d’utilisation suspend l’usage de la plateforme jusqu’à ce que vous acceptiez de nouveau la version en vigueur.",
+      "historico": "Historique",
+      "aceite": "Acceptation",
+      "revogacao": "Retrait",
+      "erroAlteracao": "Impossible d’enregistrer la modification.",
+      "erroRevogacao": "Impossible d’enregistrer le retrait."
+    }
+  },
+  "senha": {
+    "esqueci": "J’ai oublié mon mot de passe",
+    "recuperarTitulo": "Récupérer le mot de passe",
+    "recuperarDescricao": "Indiquez votre e-mail et nous vous enverrons un lien pour réinitialiser votre mot de passe.",
+    "recuperarEnviar": "Envoyer",
+    "recuperarCancelar": "Annuler",
+    "recuperarEnviado": "Si cet e-mail est enregistré, vous recevrez bientôt un lien de réinitialisation.",
+    "recuperarErro": "Impossible de traiter la demande. Réessayez.",
+    "redefinirTitulo": "Réinitialiser le mot de passe",
+    "redefinirNova": "Nouveau mot de passe",
+    "redefinirConfirmar": "Confirmer le nouveau mot de passe",
+    "redefinirBotao": "Réinitialiser le mot de passe",
+    "redefinirVoltar": "Retour à la connexion",
+    "redefinirSucesso": "Mot de passe réinitialisé avec succès !",
+    "redefinirRedirecionando": "Redirection vers la connexion...",
+    "erroLinkInvalido": "Lien invalide. Demandez une nouvelle réinitialisation de mot de passe.",
+    "erroTokenInvalido": "Jeton invalide, déjà utilisé ou expiré. Demandez une nouvelle réinitialisation.",
+    "erroRedefinir": "Impossible de réinitialiser le mot de passe. Réessayez."
+  },
+  "erroGlobal": {
+    "titulo": "Une erreur est survenue lors du chargement de la page.",
+    "recarregar": "Recharger la page"
   }
 }

@@ -4,6 +4,7 @@ import { Box, Button, Chip, CircularProgress, Divider, Paper, Typography } from 
 import { MdGavel, MdHistory, MdLock } from 'react-icons/md'
 import DocumentoLegalConteudo from '../components/DocumentoLegalConteudo'
 import useDocumentoLegal from '../hooks/useDocumentoLegal'
+import useTranslation from '../hooks/useTranslation'
 import { toLocal } from '../utils/dateUtils'
 import { tipoDoSlug } from '../utils/consentimento'
 
@@ -18,18 +19,22 @@ import { tipoDoSlug } from '../utils/consentimento'
 // que o histórico de consentimento em Configurações leve o usuário ao texto que
 // ele assinou, e não ao que está no ar hoje.
 
+// O subtítulo vai como CHAVE, não como frase: a página é pública e é a primeira
+// coisa que alguém lê antes de aceitar, então precisa sair no idioma da pessoa
+// como o resto do produto.
 const CABECALHOS = Object.freeze({
   privacidade: {
-    subtitulo: 'Tratamento de dados pessoais nos termos da Lei nº 13.709/2018 (LGPD).',
+    chaveSubtitulo: 'documentos.privacidadeSubtitulo',
     Icone: MdLock,
   },
   termos: {
-    subtitulo: 'Condições de uso da plataforma ThinkBitcoin.',
+    chaveSubtitulo: 'documentos.termosSubtitulo',
     Icone: MdGavel,
   },
 })
 
 function DocumentoLegal({ documento }) {
+  const { t } = useTranslation()
   const cabecalho = CABECALHOS[documento]
   const tipo = tipoDoSlug(documento)
 
@@ -84,7 +89,7 @@ function DocumentoLegal({ documento }) {
 
   if (!cabecalho || !tipo) return null
 
-  const { subtitulo, Icone } = cabecalho
+  const { chaveSubtitulo, Icone } = cabecalho
   const lendoVersaoAntiga = exibido && exibido.vigente === false
 
   return (
@@ -106,7 +111,7 @@ function DocumentoLegal({ documento }) {
         </Box>
 
         <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.85rem', mb: 2 }}>
-          {subtitulo}
+          {t(chaveSubtitulo)}
         </Typography>
 
         {/* Versão e vigência ficam visíveis: um documento legal sem data é um
@@ -115,7 +120,7 @@ function DocumentoLegal({ documento }) {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mb: 3 }}>
             <Chip
               size="small"
-              label={`Versão ${exibido.versao}`}
+              label={t('documentos.versaoChip', { versao: exibido.versao })}
               sx={{
                 backgroundColor: 'var(--accent-a15)',
                 color: 'var(--accent-ink)',
@@ -125,8 +130,11 @@ function DocumentoLegal({ documento }) {
             />
             <Typography sx={{ color: 'var(--text-faint)', fontSize: '0.76rem' }}>
               {lendoVersaoAntiga
-                ? `Vigente de ${toLocal(exibido.dataVigenciaInicio)} a ${toLocal(exibido.dataVigenciaFim)}`
-                : `Em vigor desde ${toLocal(exibido.dataVigenciaInicio)}`}
+                ? t('documentos.vigenteDeAte', {
+                    inicio: toLocal(exibido.dataVigenciaInicio),
+                    fim: toLocal(exibido.dataVigenciaFim),
+                  })
+                : t('documentos.emVigorDesde', { data: toLocal(exibido.dataVigenciaInicio) })}
             </Typography>
             <Button
               size="small"
@@ -140,7 +148,7 @@ function DocumentoLegal({ documento }) {
                 '&:hover': { color: 'var(--accent-ink)' },
               }}
             >
-              {historicoAberto ? 'Ocultar histórico' : 'Histórico de alterações'}
+              {historicoAberto ? t('documentos.ocultarHistorico') : t('documentos.verHistorico')}
             </Button>
           </Box>
         )}
@@ -156,13 +164,13 @@ function DocumentoLegal({ documento }) {
             }}
           >
             <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-              Você está lendo uma versão encerrada, mantida para consulta.{' '}
+              {t('documentos.versaoEncerrada')}{' '}
               <Box
                 component="span"
                 onClick={() => setSearchParams({})}
                 sx={{ color: 'var(--accent-ink)', cursor: 'pointer', textDecoration: 'underline' }}
               >
-                Ver a versão em vigor
+                {t('documentos.verVersaoVigente')}
               </Box>
               .
             </Typography>
@@ -174,7 +182,7 @@ function DocumentoLegal({ documento }) {
             <Divider sx={{ borderColor: 'var(--border)', mb: 2 }} />
             {versoes.length === 0 ? (
               <Typography sx={{ color: 'var(--text-faint)', fontSize: '0.8rem' }}>
-                Carregando versões...
+                {t('documentos.carregandoVersoes')}
               </Typography>
             ) : (
               versoes.map((v) => (
@@ -197,12 +205,12 @@ function DocumentoLegal({ documento }) {
                 >
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Typography sx={{ color: 'var(--text-primary)', fontSize: '0.82rem', fontWeight: 700 }}>
-                      Versão {v.versao}
+                      {t('documentos.versaoChip', { versao: v.versao })}
                     </Typography>
                     {v.vigente && (
                       <Chip
                         size="small"
-                        label="Em vigor"
+                        label={t('documentos.emVigor')}
                         sx={{
                           height: 18,
                           fontSize: '0.65rem',
@@ -216,7 +224,7 @@ function DocumentoLegal({ documento }) {
                     </Typography>
                   </Box>
                   <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.76rem' }}>
-                    {v.resumoAlteracoes || 'Primeira versão publicada.'}
+                    {v.resumoAlteracoes || t('documentos.primeiraVersao')}
                   </Typography>
                 </Box>
               ))
@@ -233,7 +241,11 @@ function DocumentoLegal({ documento }) {
 
         {erro && !exibido && (
           <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-            Não foi possível carregar este documento agora. Tente novamente em instantes.
+            {/* `erro` do hook vem como CHAVE de tradução quando a falha não
+                trouxe mensagem do backend — traduzir aqui é o que fecha esse
+                contrato; renderizá-lo cru poria "documentos.erroCarregar" na
+                tela. Mensagem vinda do servidor passa direto. */}
+            {t(erro)}
           </Typography>
         )}
 

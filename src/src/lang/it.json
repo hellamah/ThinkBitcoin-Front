@@ -645,5 +645,96 @@
     "velas": "Ogni candela mostra apertura, massimo, minimo e chiusura. Verde ha chiuso sopra l'apertura; rossa, sotto.",
     "volatilidade": "Quanto il prezzo ha oscillato all'interno della candela attuale, in percentuale. Il confronto con la mediana dice se questo momento è più agitato del normale del periodo.",
     "vwap": "Prezzo medio del periodo ponderato per il volume di ogni momento. È il riferimento che il desk professionale usa per giudicare se un acquisto è stato caro o conveniente."
+  },
+  "loginSubtitle": "Configura il tuo profilo di investimento professionale",
+  "cookies": {
+    "texto": "Utilizziamo cookie essenziali per il funzionamento della piattaforma e cookie di preferenza per migliorare la tua esperienza. Consulta la nostra",
+    "politica": "Informativa sulla privacy",
+    "apenasEssenciais": "Solo essenziali",
+    "aceitarTodos": "Accetta tutti"
+  },
+  "documentos": {
+    "erroCarregar": "Non è stato possibile caricare questo documento adesso. Riprova tra poco.",
+    "privacidadeSubtitulo": "Trattamento dei dati personali ai sensi della legge brasiliana n. 13.709/2018 (LGPD).",
+    "termosSubtitulo": "Condizioni d’uso della piattaforma ThinkBitcoin.",
+    "versaoChip": "Versione {{versao}}",
+    "emVigorDesde": "In vigore dal {{data}}",
+    "vigenteDeAte": "In vigore dal {{inicio}} al {{fim}}",
+    "verHistorico": "Cronologia delle modifiche",
+    "ocultarHistorico": "Nascondi cronologia",
+    "emVigor": "In vigore",
+    "versaoEncerrada": "Stai leggendo una versione conclusa, conservata per consultazione.",
+    "verVersaoVigente": "Vedi la versione in vigore",
+    "carregandoVersoes": "Caricamento versioni...",
+    "primeiraVersao": "Prima versione pubblicata."
+  },
+  "consentimento": {
+    "erroCarregar": "Non è stato possibile caricare i tuoi consensi adesso.",
+    "tituloAtualizado": "Abbiamo aggiornato i nostri documenti",
+    "tituloPadrao": "Privacy e Condizioni d’uso",
+    "subtitulo": "Per continuare a usare la piattaforma, leggi e accetta la versione in vigore dei documenti qui sotto.",
+    "oQueMudou": "Cosa è cambiato nella versione {{versao}}",
+    "versaoAnterior": "Avevi accettato la versione {{versao}}.",
+    "liEAceito": "Ho letto e accetto",
+    "versaoCurta": "(versione {{versao}})",
+    "registrando": "Registrazione...",
+    "aceitarEContinuar": "Accetta e continua",
+    "leiaParaContinuar": "Leggi e accetta i documenti per continuare",
+    "rodape": "La tua accettazione viene registrata con data e versione. Puoi consultare la cronologia e revocare il consenso nelle Impostazioni dell’account.",
+    "erroDocumentos": "Non è stato possibile caricare i documenti.",
+    "erroAceite": "Non è stato possibile registrare l’accettazione. Riprova.",
+    "tipos": {
+      "privacidade": "Informativa sulla privacy",
+      "termos": "Condizioni d’uso",
+      "cookies": "Cookie di preferenza"
+    },
+    "origens": {
+      "cadastro": "in fase di registrazione",
+      "atualizacaoVersao": "all’aggiornamento del documento",
+      "configuracoes": "nelle impostazioni",
+      "bannerCookies": "nel banner dei cookie"
+    },
+    "painel": {
+      "intro": "Ogni accettazione viene registrata con data, versione del documento e origine. La revoca non cancella la registrazione precedente: aggiunge la revoca alla cronologia.",
+      "integridade": "Uno dei documenti registrati è stato modificato dopo la tua accettazione. Contatta {{email}}.",
+      "verTextoAceito": "Vedi il testo accettato",
+      "revogar": "Revoca",
+      "pendente": "In sospeso",
+      "semRegistro": "Nessuna registrazione",
+      "aceitoEm": "Accettato il {{data}}",
+      "revogadoEm": "Revocato il {{data}}",
+      "sufixoVersao": " — versione {{versao}}",
+      "ultimaAlteracao": "Ultima modifica il {{data}}",
+      "semRegistroCookies": "Nessuna registrazione — solo cookie essenziali",
+      "avisoRevogacao": "Revocare l’informativa sulla privacy o le condizioni d’uso sospende l’uso della piattaforma finché non accetti di nuovo la versione in vigore.",
+      "historico": "Cronologia",
+      "aceite": "Accettazione",
+      "revogacao": "Revoca",
+      "erroAlteracao": "Non è stato possibile registrare la modifica.",
+      "erroRevogacao": "Non è stato possibile registrare la revoca."
+    }
+  },
+  "senha": {
+    "esqueci": "Ho dimenticato la password",
+    "recuperarTitulo": "Recupera password",
+    "recuperarDescricao": "Inserisci la tua email e ti invieremo un link per reimpostare la password.",
+    "recuperarEnviar": "Invia",
+    "recuperarCancelar": "Annulla",
+    "recuperarEnviado": "Se questa email è registrata, riceverai a breve un link per la reimpostazione.",
+    "recuperarErro": "Non è stato possibile elaborare la richiesta. Riprova.",
+    "redefinirTitulo": "Reimposta password",
+    "redefinirNova": "Nuova password",
+    "redefinirConfirmar": "Conferma nuova password",
+    "redefinirBotao": "Reimposta password",
+    "redefinirVoltar": "Torna al login",
+    "redefinirSucesso": "Password reimpostata con successo!",
+    "redefinirRedirecionando": "Reindirizzamento al login...",
+    "erroLinkInvalido": "Link non valido. Richiedi una nuova reimpostazione della password.",
+    "erroTokenInvalido": "Token non valido, già usato o scaduto. Richiedi una nuova reimpostazione.",
+    "erroRedefinir": "Non è stato possibile reimpostare la password. Riprova."
+  },
+  "erroGlobal": {
+    "titulo": "Si è verificato un errore durante il caricamento della pagina.",
+    "recarregar": "Ricarica pagina"
   }
 }
