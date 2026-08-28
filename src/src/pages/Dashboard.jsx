@@ -33,6 +33,7 @@ import { simular, dividirParaValidacao, compararEstrategias, CUSTO_PADRAO_PERCEN
 import { getTourVisto, setTourVisto } from '../utils/preferences'
 import { contarAtivos } from '../utils/alertaPreco'
 import { candlestickPlugin } from '../utils/candlestickChart'
+import { readToken } from '../utils/themeTokens'
 import { Normalization, PriceChartMode, SecondaryChart, StopMode, TradeDirection } from '../utils/enums'
 
 // Sub-componentes Refatorados
@@ -604,10 +605,20 @@ export default function Dashboard() {
               // Clique no overlay e tecla ESC não avançam por acidente.
               overlayClickAction: false,
               dismissKeyAction: false,
-              primaryColor: '#ffd700',
-              textColor: '#fff',
+              // `primaryColor` sai de readToken, e não como `var(--accent)`: a
+              // react-joyride passa este valor por hexToRGB para montar o fundo do
+              // beacon, e hex é o único formato que aquele parser entende — com
+              // `var()` ele devolve lista vazia e produz um `rgba(, 0.2)` que o
+              // navegador descarta. Os demais viram estilo inline direto, onde
+              // `var()` resolve sozinho e ainda acompanha a troca de tema sem
+              // depender de re-render.
+              primaryColor: readToken('--accent'),
+              // Também por token: o fundo já vinha de --surface-overlay, mas texto
+              // e seta estavam cravados no escuro. No tema claro davam branco sobre
+              // branco e uma seta preta apontando para um balão branco.
+              textColor: 'var(--text-secondary)',
               backgroundColor: 'var(--surface-overlay)',
-              arrowColor: 'rgba(15,15,15,0.97)',
+              arrowColor: 'var(--surface-overlay)',
               zIndex: 9999,
             }}
             styles={{

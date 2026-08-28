@@ -764,13 +764,17 @@ export default function GeoHeatmapView() {
           pointer-events: none !important;
         }
         .__floater__open { z-index: 9999 !important; }
+        /* Superfície e texto por token. Cravados em rgba(15,15,15,0.97) e #fff
+           o balão do tour ficava escuro nos dois temas, enquanto title/content
+           abaixo vêm de --accent-ink e --text-secondary: no modo claro isso era
+           texto quase preto sobre fundo quase preto, e o tour inteiro sumia. */
         .react-joyride__tooltip {
-          background: rgba(15,15,15,0.97) !important;
+          background: var(--surface-overlay) !important;
           border: 1px solid var(--accent-a30) !important;
           border-radius: 16px !important;
-          color: #fff !important;
+          color: var(--text-secondary) !important;
           font-family: 'Outfit', sans-serif !important;
-          box-shadow: 0 20px 60px rgba(0,0,0,0.8) !important;
+          box-shadow: 0 20px 60px var(--scrim-strong) !important;
         }
         .react-joyride__tooltip button { font-family: 'Outfit', sans-serif !important; }
       `}} />
@@ -802,10 +806,20 @@ export default function GeoHeatmapView() {
           // Clique no overlay e tecla ESC não avançam por acidente.
           overlayClickAction: false,
           dismissKeyAction: false,
-          primaryColor: '#ffd700',
-          textColor: '#fff',
+          // `primaryColor` sai de readToken, e não como `var(--accent)`: a
+          // react-joyride passa este valor por hexToRGB para montar o fundo do
+          // beacon, e hex é o único formato que aquele parser entende — com
+          // `var()` ele devolve lista vazia e produz um `rgba(, 0.2)` que o
+          // navegador descarta. Os demais viram estilo inline direto, onde
+          // `var()` resolve sozinho e ainda acompanha a troca de tema sem
+          // depender de re-render.
+          primaryColor: readToken('--accent'),
+          // Também por token: o fundo já vinha de --surface-overlay, mas texto
+          // e seta estavam cravados no escuro. No tema claro davam branco sobre
+          // branco e uma seta preta apontando para um balão branco.
+          textColor: 'var(--text-secondary)',
           backgroundColor: 'var(--surface-overlay)',
-          arrowColor: 'rgba(15,15,15,0.97)',
+          arrowColor: 'var(--surface-overlay)',
           zIndex: 9999,
         }}
         styles={{
