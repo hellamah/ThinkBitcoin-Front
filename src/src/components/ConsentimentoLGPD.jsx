@@ -14,6 +14,7 @@ import DocumentoLegalConteudo from './DocumentoLegalConteudo'
 import ErrorMessage from './ErrorMessage'
 import { apiRequest, DocumentoLegalEndpoint } from '../utils/apiClient'
 import { MotivoPendencia, OrigemConsentimento, TipoConsentimento } from '../utils/consentimento'
+import useTranslation from '../hooks/useTranslation'
 
 /**
  * Modal de re-consentimento.
@@ -30,6 +31,7 @@ import { MotivoPendencia, OrigemConsentimento, TipoConsentimento } from '../util
  * @param {{ pendencias: Array, onConcluir: (itens: Array) => Promise<void> }} props
  */
 export default function ConsentimentoLGPD({ pendencias, onConcluir }) {
+  const { t } = useTranslation()
   const [aba, setAba] = useState(0)
   const [documentos, setDocumentos] = useState({})
   const [aceitos, setAceitos] = useState({})
@@ -58,7 +60,7 @@ export default function ConsentimentoLGPD({ pendencias, onConcluir }) {
         setDocumentos(porId)
       } catch (err) {
         console.error('Erro ao carregar documentos pendentes:', err)
-        if (ativo) setErro(err?.hasBackendMessage ? err.message : 'Não foi possível carregar os documentos.')
+        if (ativo) setErro(err?.hasBackendMessage ? err.message : t('consentimento.erroDocumentos'))
       } finally {
         if (ativo) setCarregando(false)
       }
@@ -68,7 +70,7 @@ export default function ConsentimentoLGPD({ pendencias, onConcluir }) {
     return () => {
       ativo = false
     }
-  }, [lista])
+  }, [lista, t])
 
   // Todos os pendentes precisam ser marcados: aceitar um e adiar o outro
   // deixaria a conta em um estado que a API vai recusar de qualquer forma.
@@ -87,7 +89,7 @@ export default function ConsentimentoLGPD({ pendencias, onConcluir }) {
         OrigemConsentimento.ATUALIZACAO_VERSAO
       )
     } catch (err) {
-      setErro(err?.hasBackendMessage ? err.message : 'Não foi possível registrar o aceite. Tente novamente.')
+      setErro(err?.hasBackendMessage ? err.message : t('consentimento.erroAceite'))
     } finally {
       setEnviando(false)
     }
@@ -107,7 +109,11 @@ export default function ConsentimentoLGPD({ pendencias, onConcluir }) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'var(--surface-overlay)',
+        // O véu é `--scrim`, não `--surface-overlay`: overlay é a cor da
+        // SUPERFÍCIE do modal, e no tema claro vale branco a 94%. Usá-lo aqui
+        // pintava a tela inteira de branco quase opaco em vez de escurecer o
+        // que está atrás.
+        backgroundColor: 'var(--scrim-strong)',
         backdropFilter: 'blur(6px)',
         p: { xs: 1, sm: 2 },
       }}
@@ -119,10 +125,16 @@ export default function ConsentimentoLGPD({ pendencias, onConcluir }) {
           maxHeight: '92vh',
           display: 'flex',
           flexDirection: 'column',
-          background: 'linear-gradient(145deg, #0e0e0e 0%, #141414 100%)',
-          border: '1px solid rgba(255,215,0,0.18)',
+          // Era um gradiente cravado em #0e0e0e/#141414 enquanto todo o texto
+          // aqui dentro usa token de tema. No modo claro `--text-primary` é
+          // #16181d: título, corpo do documento e rótulos dos checkboxes
+          // ficavam preto sobre preto, num modal que bloqueia a navegação e
+          // cujo texto a pessoa é obrigada a ler antes de aceitar.
+          background: 'var(--surface-overlay)',
+          backdropFilter: 'blur(30px)',
+          border: '1px solid var(--accent-a20)',
           borderRadius: 3,
-          boxShadow: '0 24px 64px var(--scrim-strong), 0 0 40px rgba(255,215,0,0.06)',
+          boxShadow: '0 24px 64px var(--scrim-strong), 0 0 40px var(--accent-a08)',
           overflow: 'hidden',
         }}
       >
@@ -133,11 +145,11 @@ export default function ConsentimentoLGPD({ pendencias, onConcluir }) {
             pt: 3,
             pb: 2,
             borderBottom: '1px solid var(--surface-fill-strong)',
-            background: 'linear-gradient(90deg, rgba(255,215,0,0.04) 0%, transparent 100%)',
+            background: 'linear-gradient(90deg, var(--accent-a05) 0%, transparent 100%)',
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
-            <MdVerifiedUser size={22} color="#FFD700" />
+            <MdVerifiedUser size={22} color="var(--accent-ink)" />
             <Typography
               variant="h6"
               sx={{
@@ -148,12 +160,12 @@ export default function ConsentimentoLGPD({ pendencias, onConcluir }) {
               }}
             >
               {lista.some((p) => p.motivo === MotivoPendencia.VERSAO_NOVA)
-                ? 'Atualizamos nossos documentos'
-                : 'Privacidade & Termos de Uso'}
+                ? t('consentimento.tituloAtualizado')
+                : t('consentimento.tituloPadrao')}
             </Typography>
           </Box>
           <Typography variant="body2" sx={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-            Para continuar usando a plataforma, leia e aceite a versão vigente dos documentos abaixo.
+            {t('consentimento.subtitulo')}
           </Typography>
         </Box>
 
@@ -213,18 +225,18 @@ export default function ConsentimentoLGPD({ pendencias, onConcluir }) {
                 p: 1.5,
                 borderRadius: 1.5,
                 border: '1px solid var(--accent-a30)',
-                background: 'rgba(255,215,0,0.06)',
+                background: 'var(--accent-a08)',
               }}
             >
               <Typography variant="body2" sx={{ color: 'var(--accent-ink)', fontWeight: 600, mb: 0.5 }}>
-                O que mudou na versão {pendenciaAtiva.versao}
+                {t('consentimento.oQueMudou', { versao: pendenciaAtiva.versao })}
               </Typography>
               <Typography variant="body2" sx={{ color: 'var(--text-secondary)', fontSize: '0.82rem' }}>
                 {pendenciaAtiva.resumoAlteracoes}
               </Typography>
               {pendenciaAtiva.versaoAceitaAnteriormente && (
                 <Typography variant="caption" sx={{ color: 'var(--text-faint)', display: 'block', mt: 0.5 }}>
-                  Você havia aceitado a versão {pendenciaAtiva.versaoAceitaAnteriormente}.
+                  {t('consentimento.versaoAnterior', { versao: pendenciaAtiva.versaoAceitaAnteriormente })}
                 </Typography>
               )}
             </Box>
@@ -269,14 +281,16 @@ export default function ConsentimentoLGPD({ pendencias, onConcluir }) {
                 }
                 label={
                   <Typography variant="body2" sx={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                    Li e aceito{' '}
+                    {t('consentimento.liEAceito')}{' '}
                     <span
                       style={{ color: 'var(--accent-ink)', cursor: 'pointer', textDecoration: 'underline' }}
                       onClick={() => setAba(indice)}
                     >
                       {p.titulo}
                     </span>{' '}
-                    <span style={{ color: 'var(--text-faint)' }}>(versão {p.versao})</span>
+                    <span style={{ color: 'var(--text-faint)' }}>
+                      {t('consentimento.versaoCurta', { versao: p.versao })}
+                    </span>
                   </Typography>
                 }
               />
@@ -294,10 +308,10 @@ export default function ConsentimentoLGPD({ pendencias, onConcluir }) {
             onClick={handleAceitar}
             sx={{
               background: podeConfirmar
-                ? 'linear-gradient(90deg, #B8860B 0%, #FFD700 50%, #B8860B 100%)'
-                : 'rgba(255,255,255,0.07)',
+                ? 'linear-gradient(90deg, var(--accent-deep) 0%, var(--accent) 50%, var(--accent-deep) 100%)'
+                : 'var(--surface-fill-strong)',
               backgroundSize: '200% auto',
-              color: podeConfirmar ? '#000' : 'var(--border-interactive)',
+              color: podeConfirmar ? 'var(--text-on-accent)' : 'var(--text-faint)',
               fontWeight: 700,
               fontSize: '0.9rem',
               py: 1.4,
@@ -317,10 +331,10 @@ export default function ConsentimentoLGPD({ pendencias, onConcluir }) {
             }}
           >
             {enviando
-              ? 'Registrando...'
+              ? t('consentimento.registrando')
               : podeConfirmar
-                ? 'Aceitar e Continuar'
-                : 'Leia e aceite os documentos para continuar'}
+                ? t('consentimento.aceitarEContinuar')
+                : t('consentimento.leiaParaContinuar')}
           </Button>
 
           <Typography
@@ -333,8 +347,7 @@ export default function ConsentimentoLGPD({ pendencias, onConcluir }) {
               fontSize: '0.7rem',
             }}
           >
-            Seu aceite fica registrado com data e versão. Você pode consultar o histórico e revogar o
-            consentimento nas Configurações da conta.
+            {t('consentimento.rodape')}
           </Typography>
         </Box>
       </Box>

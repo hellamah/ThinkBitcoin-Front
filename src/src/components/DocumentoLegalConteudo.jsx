@@ -65,7 +65,7 @@ function DocumentoLegalConteudo({ conteudo }) {
             <Box
               key={indice}
               sx={{
-                background: 'rgba(255,215,0,0.06)',
+                background: 'var(--accent-a08)',
                 border: '1px solid var(--accent-a30)',
                 borderRadius: 1.5,
                 p: 1.5,
