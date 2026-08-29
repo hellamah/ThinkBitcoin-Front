@@ -57,8 +57,27 @@ export default function useCoinPrices() {
             // Usa o símbolo (sigla) para buscar o valor.
             // Fear/trend são complementares: em caso de falha ficam nulos e a UI
             // simplesmente não exibe sentimento, em vez de mostrar dados fictícios.
+            //
+            // Os três parâmetros vão EXPLÍCITOS, como já iam nas duas consultas
+            // de sentimento logo abaixo. A de preço era a única que não mandava
+            // nada e ficava no default do servidor, e o carrossel só consome
+            // `registros[0]`: recebia uma página inteira de candles por moeda, a
+            // cada minuto, para ler um.
+            //
+            // `ordemAsc` é o que mais importa — não é economia, é correção. Ler
+            // o índice 0 como "preço agora" só vale se a série vier decrescente,
+            // e essa era a única chamada do projeto que confiava no default para
+            // isso. Se o default fosse ascendente, o carrossel exibiria o candle
+            // mais ANTIGO da página como cotação atual: erro plausível, que não
+            // quebra nada e ninguém percebe.
             const [resPreco, resFear, resTrend] = await Promise.all([
-              apiRequest(MarketEndpoint.COIN_VALUE(m.simbolo.toLowerCase())),
+              apiRequest(
+                MarketEndpoint.COIN_VALUE(m.simbolo.toLowerCase(), {
+                  pagina: 1,
+                  quantidade: 1,
+                  ordemAsc: false,
+                })
+              ),
               apiRequest(`/ThinkBitcoin/variavel-externa/fear-greed?idMoeda=${m.id}&quantidade=1&ordemAsc=false`).catch(() => null),
               apiRequest(`/ThinkBitcoin/variavel-externa/trend?idMoeda=${m.id}&quantidade=1&ordemAsc=false`).catch(() => null)
             ])

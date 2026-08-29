@@ -29,6 +29,24 @@ describe('utils/apiClient › Enums & Endpoints', () => {
     expect(ApiEndpoint.USER.ME('U001')).toBe('/ThinkBitcoin/usuariosTB/U001')
     expect(ApiEndpoint.MARKET.COIN_VALUE('BTC')).toBe('/ThinkBitcoin/moeda/BTC/valor')
   })
+
+  // O carrossel lê `registros[0]` como cotação atual, o que só é verdade com
+  // ordemAsc=false. Enquanto ele omitia os parâmetros e ficava no default do
+  // servidor, uma mudança de default do lado da API teria virado preço antigo
+  // exibido como atual — sem erro, sem log, sem ninguém perceber.
+  it('deve serializar os parâmetros de COIN_VALUE na query', () => {
+    expect(
+      ApiEndpoint.MARKET.COIN_VALUE('btc', { pagina: 1, quantidade: 1, ordemAsc: false })
+    ).toBe('/ThinkBitcoin/moeda/btc/valor?pagina=1&quantidade=1&ordemAsc=false')
+  })
+
+  // `ordemAsc: false` e `quantidade: 0` são falsy, e um `if (valor)` os
+  // descartaria em silêncio — justamente os dois que precisam chegar.
+  it('não descarta parâmetro de COIN_VALUE por ser falsy', () => {
+    const url = ApiEndpoint.MARKET.COIN_VALUE('btc', { ordemAsc: false })
+
+    expect(url).toContain('ordemAsc=false')
+  })
 })
 
 describe('utils/apiClient › normalizeApiKeys (Normalização PascalCase → camelCase)', () => {
