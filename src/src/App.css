@@ -2877,7 +2877,15 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  /* Só o que o hover realmente move. Com `all`, a troca de tema entrava na
+     transição: `background-color` e `color` saíam dos tokens antigos e
+     levavam 0.4s para chegar nos novos — e num tab sem composição (timeline
+     parada) ficavam presos no primeiro frame, ou seja, na cor do tema
+     anterior. Superfície e texto agora acompanham o token na hora. */
+  transition:
+    transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+    box-shadow 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+    border-color 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   position: relative;
   overflow: hidden;
 }
@@ -2898,10 +2906,9 @@
 }
 
 .intel-card:hover {
-  background: var(--surface-panel);
   border-color: var(--accent-a30);
   transform: translateY(-8px);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-md);
 }
 
 .intel-card:hover::after {
