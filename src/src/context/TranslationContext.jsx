@@ -46,11 +46,20 @@ export function TranslationProvider({ children }) {
   useEffect(() => {
     if (dicionarios[lang]) return undefined
     let vivo = true
-    carregarDicionario(lang).then((dicionario) => {
-      if (vivo && dicionario) {
-        setDicionarios((atual) => ({ ...atual, [lang]: dicionario }))
-      }
-    })
+    carregarDicionario(lang)
+      .then((dicionario) => {
+        if (vivo && dicionario) {
+          setDicionarios((atual) => ({ ...atual, [lang]: dicionario }))
+        }
+      })
+      // O dicionário vem por import dinâmico, então é um chunk que pode não
+      // chegar: rede oscilando, ou um deploy que trocou os hashes com a aba
+      // aberta. A tela sobrevive — `t` cai no dicionário padrão —, mas sem
+      // este catch a rejeição sobe crua no console como unhandled, sem dizer
+      // que o assunto era idioma.
+      .catch((err) => {
+        console.error(`Erro ao carregar o dicionário de "${lang}":`, err)
+      })
     return () => {
       vivo = false
     }
