@@ -58,14 +58,21 @@ function Layout({ children }) {
   }
   const semNav = false /* Padronizado para manter Header/Footer em todas as telas */
 
-  const linkClass = ({ isActive }) => `nav-item${isActive ? ' active' : ''}`
+  // `nav-item` vai como string literal, e não pela forma de função que o
+  // NavLink aceita: o IconButton do MUI funde a className com a dele via clsx
+  // antes de repassá-la, e clsx descarta funções. A classe se perdia no
+  // caminho — a regra `.nav-item` existia na folha de estilo e não chegava a
+  // elemento nenhum, deixando a navegação inteira sem o estilo dela.
+  //
+  // Com string, o NavLink acrescenta o `active` por conta própria, que era a
+  // única coisa que a versão em função ainda conseguia entregar ao DOM.
 
   const comum = (
     <>
       <IconButton
         component={NavLink}
         to="/"
-        className={linkClass}
+        className="nav-item"
         title={t('nav.home')}
         aria-label={t('nav.home')}
       >
@@ -75,7 +82,7 @@ function Layout({ children }) {
       <IconButton
         component={NavLink}
         to="/dashboard"
-        className={linkClass}
+        className="nav-item"
         title={t('nav.dashboard')}
         aria-label={t('nav.dashboard')}
       >
@@ -85,7 +92,7 @@ function Layout({ children }) {
       <IconButton
         component={NavLink}
         to="/settings"
-        className={linkClass}
+        className="nav-item"
         title={t('nav.settings')}
         aria-label={t('nav.settings')}
       >
@@ -95,7 +102,7 @@ function Layout({ children }) {
       <IconButton
         component={NavLink}
         to="/heatmap"
-        className={linkClass}
+        className="nav-item"
         title={t('nav.heatmap') || 'Geopolítica'}
         aria-label={t('nav.heatmap') || 'Geopolítica'}
       >
@@ -105,7 +112,7 @@ function Layout({ children }) {
       <IconButton
         component={NavLink}
         to="/treinamento-episodios"
-        className={linkClass}
+        className="nav-item"
         title={t('nav.training') || 'Treinamento IA'}
         aria-label={t('nav.training') || 'Treinamento IA'}
       >
@@ -120,7 +127,7 @@ function Layout({ children }) {
       <IconButton
         component={NavLink}
         to="/login"
-        className={linkClass}
+        className="nav-item"
         title={t('nav.login')}
         aria-label={t('nav.login')}
       >
@@ -181,7 +188,7 @@ function Layout({ children }) {
                   <IconButton
                     component={NavLink}
                     to="/dashboard"
-                    className={linkClass}
+                    className="nav-item"
                     title={t('nav.dashboard')}
                   >
                     <MdDashboard />
@@ -190,7 +197,7 @@ function Layout({ children }) {
                   <IconButton
                     component={NavLink}
                     to="/heatmap"
-                    className={linkClass}
+                    className="nav-item"
                     title={t('nav.heatmap') || 'Geopolítica'}
                   >
                     <MdPublic />
@@ -199,7 +206,7 @@ function Layout({ children }) {
                   <IconButton
                     component={NavLink}
                     to="/treinamento-episodios"
-                    className={linkClass}
+                    className="nav-item"
                     title={t('nav.training') || 'Treinamento IA'}
                   >
                     <MdPsychology />
@@ -214,7 +221,7 @@ function Layout({ children }) {
                 <IconButton
                   component={NavLink}
                   to="/settings"
-                  className={linkClass}
+                  className="nav-item"
                   title={t('nav.settings')}
                 >
                   <MdSettings />
