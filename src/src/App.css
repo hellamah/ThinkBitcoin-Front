@@ -1373,7 +1373,13 @@
   display: none;
 }
 
-.form-card button {
+/* O :not() existe por causa do "x" do ErrorMessage. Esta regra é mais
+   específica que .btn-close-premium (0,1,1 contra 0,1,0) e ainda vem depois no
+   arquivo, então o botão de fechar herdava o gradiente dourado, o padding e o
+   raio do CTA de submit — um botão de ação primária em cima de um alerta de
+   erro. O seletor passa a dizer o que sempre quis dizer: o botão principal do
+   formulário, não todo botão que caia dentro do card. */
+.form-card button:not(.btn-close-premium) {
   background: linear-gradient(135deg, var(--color-primary) 0%, #e0b800 100%);
   color: var(--text-on-accent);
   border: none;
@@ -1387,17 +1393,17 @@
   cursor: pointer;
 }
 
-.form-card button:hover {
+.form-card button:not(.btn-close-premium):hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
   filter: brightness(1.1);
 }
 
-.form-card button:active {
+.form-card button:not(.btn-close-premium):active {
   transform: translateY(0);
 }
 
-.form-card button:disabled {
+.form-card button:not(.btn-close-premium):disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }

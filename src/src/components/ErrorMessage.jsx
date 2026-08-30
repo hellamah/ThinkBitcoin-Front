@@ -25,7 +25,9 @@ function ErrorMessage({ message, onClose }) {
       }}
     >
       {message}
-      <button className="btn-close-premium small" onClick={onClose}>
+      {/* type="button": o alerta é renderizado dentro do <form> do login, e o
+          default do HTML é submit — fechar o erro reenviaria o formulário. */}
+      <button type="button" className="btn-close-premium small" onClick={onClose} aria-label="close">
         <MdClose />
       </button>
     </Alert>
