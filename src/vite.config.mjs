@@ -37,10 +37,17 @@ export default defineConfig(({ command, mode }) => {
     // ATENÇÃO: são três cópias da mesma política (aqui, vercel.json e
     // default.conf). Mudou uma, mude as três — arquivo estático não importa
     // constante de JS.
+    //
+    // A única divergência proposital está no connect-src: as duas cópias que
+    // servem localmente (esta e a default.conf, que vai na imagem publicada em
+    // localhost:3000 pelo Helm) liberam as origens locais da API, porque o
+    // api.js ignora VITE_API_URL quando o hostname é localhost e monta
+    // http://localhost:13501 pelas portas do minikube. O vercel.json, que é
+    // produção, continua sem elas — lá não existe API em localhost.
     preview: {
       headers: {
         'Content-Security-Policy':
-          "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://www.gstatic.com; font-src 'self' data:; img-src 'self' data: blob: https://www.gstatic.com; connect-src 'self' https://api.minerthinkbitcoin.com https://thinkbitcoin-api.ddns.net https://www.gstatic.com; frame-src 'none'; upgrade-insecure-requests",
+          "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://www.gstatic.com; font-src 'self' data:; img-src 'self' data: blob: https://www.gstatic.com; connect-src 'self' https://api.minerthinkbitcoin.com https://thinkbitcoin-api.ddns.net https://www.gstatic.com http://localhost:* http://127.0.0.1:* https://thinkbitcoin.local:*; frame-src 'none'; upgrade-insecure-requests",
       },
     },
     server: {

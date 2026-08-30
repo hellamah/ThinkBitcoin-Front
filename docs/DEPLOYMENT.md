@@ -113,6 +113,14 @@ Pix, que chega como base64.
 > entrar nessa lista — senão o navegador bloqueia toda chamada à API assim que a
 > CSP sair do modo report-only.
 
+> **Divergência proposital:** o `connect-src` do `src/default.conf` (imagem
+> nginx, publicada em `localhost:3000` pelo Helm) e o do `preview` em
+> `src/vite.config.mjs` também liberam `http://localhost:*`,
+> `http://127.0.0.1:*` e `https://thinkbitcoin.local:*`. Rodando local,
+> `src/api.js` ignora a `VITE_API_URL` e monta a URL da API pelas portas do
+> Minikube; sem essas origens a CSP bloqueia toda chamada, a começar pelo login.
+> O `vercel.json` (produção) não as inclui.
+
 ## 6. SSL e HTTPS
 A Vercel fornece HTTPS automático para o Frontend. Para o Backend local:
 - Recomenda-se o uso de **Cloudflare Tunnel** ou **Let's Encrypt** (via cert-manager) para garantir que o navegador não bloqueie chamadas de "conteúdo misto" (Site HTTPS chamando API HTTP).
