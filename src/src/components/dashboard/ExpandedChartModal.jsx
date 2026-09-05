@@ -229,7 +229,11 @@ const ExpandedChartModal = ({
                   <div className="chart-intel-tooltip-item">
                     <MdSpeed className="chart-intel-tip-icon" />
                     <div>
-                      <div className="chart-intel-tip-label">{t('percentChange')}</div>
+                      {/* `percentChange` não existia em dicionário nenhum: a
+                          tooltip do gráfico expandido exibia o nome da chave.
+                          `percentVariation` é a mesma leitura, já traduzida
+                          nos cinco idiomas e usada no título do painel. */}
+                      <div className="chart-intel-tip-label">{t('percentVariation')}</div>
                       <div className="chart-intel-tip-value" style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px', fontSize: '0.9em' }}>
                         {intelFromChart.datasets.map((ds, i) => (
                           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

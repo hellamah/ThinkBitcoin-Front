@@ -38,7 +38,8 @@ export function TranslationProvider({ children }) {
   const { prefs } = useAuth()
   const lang = idiomaDe(prefs?.idioma).codigo
 
-  // O português já entra carregado: é o fallback enquanto o escolhido não chega.
+  // O idioma padrão (inglês, o único com import estático em lang/index.js) já
+  // entra carregado: é o fallback enquanto o escolhido não chega.
   const [dicionarios, setDicionarios] = useState(() => ({
     [IDIOMA_PADRAO]: dicionarioPadrao,
   }))

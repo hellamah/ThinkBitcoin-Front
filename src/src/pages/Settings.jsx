@@ -423,7 +423,12 @@ function Settings() {
         {renderPanel(<MdNotifications />, t('notifications'), (
           renderField(t('emailNotifications'), (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>{localPrefs?.notificacoes ? t('enabled') : t('disabled')}</span>
+              {/* Eram `enabled`/`disabled`, que não existiam em dicionário
+                  nenhum — a tela mostrava a chave crua ao lado do interruptor.
+                  As chaves novas dizem o que rotulam: assim cada idioma pode
+                  concordar com "notificações" em vez de carregar um adjetivo
+                  genérico que não combina com nada. */}
+              <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>{localPrefs?.notificacoes ? t('notificationsEnabled') : t('notificationsDisabled')}</span>
               <Switch
                 checked={!!localPrefs?.notificacoes}
                 onChange={(e) => {

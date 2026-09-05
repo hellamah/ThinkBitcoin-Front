@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import pt from '../src/lang/pt.json'
@@ -127,5 +127,46 @@ describe.each(Object.entries(IDIOMAS))('lang › %s.json', (nome, dicionario) =>
     const repetidos = caminhos.filter((c, i) => caminhos.indexOf(c) !== i)
 
     expect([...new Set(repetidos)]).toEqual([])
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Cobertura no sentido inverso: do código para o dicionário.
+//
+// Os testes acima garantem que os cinco arquivos combinam entre si. Não diziam
+// nada sobre uma chave que o código pede e que não existe em arquivo nenhum —
+// e `t` devolve a própria chave quando não acha tradução, então a tela exibe
+// "enabled" ou "percentChange" em letra crua, nos cinco idiomas, sem erro no
+// console e sem build vermelho. Foi assim que cinco delas chegaram à produção.
+// ---------------------------------------------------------------------------
+
+const DIRETORIO_FONTE = fileURLToPath(new URL('../src', import.meta.url))
+
+const arquivosDeCodigo = (diretorio) =>
+  readdirSync(diretorio, { withFileTypes: true }).flatMap((entrada) => {
+    const caminho = `${diretorio}/${entrada.name}`
+    if (entrada.isDirectory()) return arquivosDeCodigo(caminho)
+    return /\.(js|jsx)$/.test(entrada.name) ? [caminho] : []
+  })
+
+// Só chamadas com chave literal. `t(`alertas.erro.${erro}`)` e
+// `t(result.messageKey)` montam o nome em tempo de execução e ficam de fora —
+// não há como conferi-los sem executar a tela.
+const CHAMADA_LITERAL = /\bt\(\s*(['"])([^'"]+)\1/g
+
+describe('lang › chaves pedidas pelo código', () => {
+  it('deve existir no dicionário de referência todas as chaves literais usadas em t()', () => {
+    const ausentes = []
+
+    for (const arquivo of arquivosDeCodigo(DIRETORIO_FONTE)) {
+      const codigo = readFileSync(arquivo, 'utf-8')
+      for (const [, , chave] of codigo.matchAll(CHAMADA_LITERAL)) {
+        if (!(chave in planoReferencia)) {
+          ausentes.push({ chave, arquivo: arquivo.slice(DIRETORIO_FONTE.length + 1) })
+        }
+      }
+    }
+
+    expect(ausentes).toEqual([])
   })
 })
