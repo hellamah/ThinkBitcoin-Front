@@ -381,3 +381,136 @@ describe('utils/signalLab › famílias de alinhamento posicional', () => {
     })
   })
 })
+
+describe('utils/signalLab › validação fora da amostra', () => {
+  // A tabela mede quinze sinais na mesma janela e ordena pelo maior
+  // deslocamento. O intervalo de confiança responde por uma linha de cada vez e
+  // não enxerga esse procedimento: com quinze linhas a 95%, a chance de ao menos
+  // uma se destacar por acaso é de ~54%, e ordenar pelo extremo é exatamente o
+  // que traz essa linha para o topo. A validação é o trecho que não participou
+  // da ordenação — a única coluna capaz de desmentir a tabela.
+
+  const MARTELOS_AJUSTE = [5, 9, 13, 17]
+  const MARTELOS_VALIDACAO = [24, 26]
+
+  /**
+   * Trinta candles horários. O corte reserva os 20% mais recentes — seis —, e o
+   * martelo foi plantado para contar histórias OPOSTAS nos dois trechos: no
+   * ajuste ele sempre precede alta, na validação sempre precede queda. Os
+   * demais candles alternam, para a taxa base não ser 0% nem 100% em lado
+   * nenhum: sem base intermediária o delta não teria o que medir.
+   */
+  const serieDe = ({
+    marteloNoAjuste = true,
+    marteloNaValidacao = true,
+    fatorPrecoValidacao = 1,
+    fatorVolumeValidacao = 1,
+  } = {}) => {
+    const candles = []
+    let preco = 100
+
+    for (let i = 0; i < 30; i++) {
+      const naValidacao = i >= 24
+      const ehMartelo =
+        (marteloNoAjuste && MARTELOS_AJUSTE.includes(i)) ||
+        (marteloNaValidacao && MARTELOS_VALIDACAO.includes(i))
+      const forma = ehMartelo ? MARTELO : NEUTRO
+
+      candles.push({
+        precoFechamento: preco * (naValidacao ? fatorPrecoValidacao : 1),
+        precoCorpoCandle: forma.corpo,
+        precoSombraSuperior: forma.sup,
+        precoSombraInferior: forma.inf,
+        precoAmplitude: forma.corpo + forma.sup + forma.inf,
+        precoVolume: 100 * (naValidacao ? fatorVolumeValidacao : 1),
+        precoPercentualVariacao: 0,
+        horaReferencia: `2026-03-0${1 + Math.floor(i / 24)}T${String(i % 24).padStart(2, '0')}:00:00Z`,
+      })
+
+      const sobe = ehMartelo ? !naValidacao : i % 2 === 0
+      preco = sobe ? preco * 1.02 : preco * 0.98
+    }
+
+    return comoDaApi(candles)
+  }
+
+  const marteloDe = (r) => r.sinais.find((s) => s.chave === CandlePattern.MARTELO)
+
+  it('deve reservar a fração mais recente da janela', () => {
+    const r = analisarSinais(serieDe())
+    // 20% de 30 candles: seis reservados, vinte e quatro para o ajuste.
+    expect(r.corte.candlesValidacao).toBe(6)
+    expect(r.corte.candlesAjuste).toBe(24)
+  })
+
+  it('não deve cortar quando a janela é curta demais para dividir', () => {
+    // Seis candles: 20% arredondam para um, e um lado com um candle só não
+    // produz duas medições — produz uma medição e um número sem sentido.
+    const curta = comoDaApi([
+      reg(100), reg(110), reg(105), reg(112), reg(108), reg(115),
+    ])
+    const r = analisarSinais(curta)
+    expect(r.corte).toBeNull()
+    expect(r.sinais.every((s) => s.ajuste === null && s.validacao === null)).toBe(true)
+  })
+
+  it('deve permitir desligar o corte', () => {
+    expect(analisarSinais(serieDe(), { fracaoValidacao: null }).corte).toBeNull()
+  })
+
+  it('deve revelar o sinal que inverte fora do trecho em que foi escolhido', () => {
+    const martelo = marteloDe(analisarSinais(serieDe()))
+
+    // No ajuste o martelo precedeu alta todas as vezes; na validação, queda
+    // todas as vezes. É a linha que a janela cheia — que contém as duas — leria
+    // como um deslocamento positivo modesto, escondendo a inversão.
+    expect(martelo.deltaTaxa).toBeGreaterThan(0)
+    expect(martelo.ajuste.deltaTaxa).toBeGreaterThan(0)
+    expect(martelo.validacao.deltaTaxa).toBeLessThan(0)
+    expect(martelo.ajuste.taxaAlta).toBeCloseTo(100, 6)
+    expect(martelo.validacao.taxaAlta).toBeCloseTo(0, 6)
+  })
+
+  it('deve medir o delta de cada trecho contra a base DAQUELE trecho', () => {
+    const r = analisarSinais(serieDe())
+    const martelo = marteloDe(r)
+
+    // A taxa base se move entre os trechos, então comparar taxas brutas de um
+    // lado com o outro leria errado: o que atravessa o corte é o deslocamento.
+    expect(martelo.ajuste.deltaTaxa).toBeCloseTo(
+      martelo.ajuste.taxaAlta - r.corte.baseAjuste.taxaAlta,
+      6
+    )
+    expect(martelo.validacao.deltaTaxa).toBeCloseTo(
+      martelo.validacao.taxaAlta - r.corte.baseValidacao.taxaAlta,
+      6
+    )
+    expect(r.corte.baseAjuste.taxaAlta).not.toBeCloseTo(r.corte.baseValidacao.taxaAlta, 3)
+  })
+
+  it('deve deixar em branco o trecho em que o sinal não ocorreu', () => {
+    // "Não ocorreu" não é "não funcionou": um número ali seria invenção.
+    const soNoAjuste = marteloDe(analisarSinais(serieDe({ marteloNaValidacao: false })))
+    expect(soNoAjuste.ajuste.ocorrencias).toBe(MARTELOS_AJUSTE.length)
+    expect(soNoAjuste.validacao).toBeNull()
+
+    const soNaValidacao = marteloDe(analisarSinais(serieDe({ marteloNoAjuste: false })))
+    expect(soNaValidacao.ajuste).toBeNull()
+    expect(soNaValidacao.validacao.ocorrencias).toBe(MARTELOS_VALIDACAO.length)
+  })
+
+  it('não deve deixar o trecho reservado influenciar o ajuste', () => {
+    // O ajuste é medido sobre a série CORTADA, com os indicadores remontados
+    // sobre ela. Reaproveitar a série da janela cheia e só filtrar por data
+    // pareceria equivalente e não é: limiares de anomalia, Bollinger, RSI e VWAP
+    // teriam sido calculados com os candles reservados dentro, e o ajuste saberia
+    // da validação por vias tortas.
+    const normal = analisarSinais(serieDe())
+    const validacaoDistorcida = analisarSinais(
+      serieDe({ fatorPrecoValidacao: 5, fatorVolumeValidacao: 50 })
+    )
+
+    expect(validacaoDistorcida.corte.baseAjuste).toEqual(normal.corte.baseAjuste)
+    expect(marteloDe(validacaoDistorcida).ajuste).toEqual(marteloDe(normal).ajuste)
+  })
+})

@@ -7,6 +7,7 @@ import { SignalKey } from '../../utils/signalLab'
 import { DivergenceKind } from '../../utils/flowDivergence'
 import { VwapSignal } from '../../utils/vwap'
 import { OscillatorSignal } from '../../utils/oscillators'
+import { FRACAO_VALIDACAO_PADRAO } from '../../utils/validacaoJanela'
 
 // Cada sinal da tabela aponta para a frase que explica o que ele é. Os nomes
 // — martelo, marubozu, divergência — são justamente os termos mais opacos da
@@ -42,6 +43,20 @@ const classeDelta = (v) => (v > 0 ? 'up' : v < 0 ? 'down' : undefined)
 
 const sinal = (v) => (v > 0 ? '+' : '')
 
+// Deslocamento de um trecho, com o número de ocorrências entre parênteses —
+// mesma forma das colunas de ajuste e validação do ranking da simulação, porque
+// respondem à mesma pergunta. Traço quando o sinal não ocorreu ali: "não
+// ocorreu" não é "ficou em zero".
+const pontos = (trecho) =>
+  trecho ? `${sinal(trecho.deltaTaxa)}${trecho.deltaTaxa.toFixed(1)} p.p. (${trecho.ocorrencias})` : '—'
+
+// A base de cada trecho vai com o tamanho junto, no mesmo formato das linhas.
+// É o número que dimensiona a coluna inteira: uma validação de 33 candles
+// sustenta menos que um ajuste de 134, e sem isso à vista um "+62,5 p.p. (1)"
+// se lê com a mesma força de um "+6,1 p.p. (22)".
+const taxaDaBase = (trecho) =>
+  trecho ? `${trecho.taxaAlta.toFixed(1)}% (${trecho.ocorrencias})` : '—'
+
 /**
  * Desfecho medido de cada sinal, sempre contra a taxa base do período.
  *
@@ -54,7 +69,11 @@ const sinal = (v) => (v > 0 ? '+' : '')
 export default function SignalLabPanel({ analise, horizonte, setHorizonte, t }) {
   if (!analise) return null
 
-  const { base, sinais } = analise
+  const { base, sinais, corte } = analise
+  // As duas colunas só existem quando a janela deu para dividir. Numa janela
+  // curta elas seriam uma parede de traços sugerindo dado faltando, quando o
+  // que falta é período.
+  const temCorte = corte !== null
 
   return (
     <section className="panel signal-lab-panel">
@@ -99,6 +118,25 @@ export default function SignalLabPanel({ analise, horizonte, setHorizonte, t }) 
               <th scope="col">
                 <RotuloComAjuda texto={t('signalAvgReturn')} ajuda={t('ajuda.colRetornoMedio')} />
               </th>
+              {/* Ajuste e validação lado a lado. As duas não se sobrepõem,
+                  enquanto a coluna "vs base" — medida na janela cheia, que
+                  CONTÉM a validação — compara um número com um pedaço dele
+                  mesmo. Os rótulos vêm das mesmas chaves da simulação de
+                  propósito: é o mesmo corte, na mesma fração, e as duas telas
+                  não podem chamá-lo de nomes diferentes. */}
+              {temCorte && (
+                <>
+                  <th scope="col">
+                    <RotuloComAjuda texto={t('simulationTuning')} ajuda={t('ajuda.colAjusteSinal')} />
+                  </th>
+                  <th scope="col">
+                    <RotuloComAjuda
+                      texto={t('simulationValidation')}
+                      ajuda={t('ajuda.colValidacaoSinal')}
+                    />
+                  </th>
+                </>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -111,6 +149,18 @@ export default function SignalLabPanel({ analise, horizonte, setHorizonte, t }) 
               <td>—</td>
               <td>—</td>
               <td>{mathUtils.formatPercent(base.retornoMedio)}</td>
+              {/* Na linha da base o que interessa é a TAXA de cada trecho, não
+                  um deslocamento: é contra estes dois números que os deltas das
+                  linhas abaixo se leem, e eles costumam ser bem diferentes
+                  entre si. Sem exibi-los, um martelo com +30 p.p. no ajuste e
+                  −20 p.p. na validação pareceria contradição em vez do que é:
+                  duas réguas distintas. */}
+              {temCorte && (
+                <>
+                  <td>{taxaDaBase(corte.baseAjuste)}</td>
+                  <td>{taxaDaBase(corte.baseValidacao)}</td>
+                </>
+              )}
             </tr>
 
             {sinais.map((s) => (
@@ -142,11 +192,40 @@ export default function SignalLabPanel({ analise, horizonte, setHorizonte, t }) 
                 <td className={s.significante ? classeDelta(s.retornoMedio) : undefined}>
                   {mathUtils.formatPercent(s.retornoMedio)}
                 </td>
+                {/* Estas duas são coloridas sempre, e não só quando a linha é
+                    significante: a significância foi apurada na janela cheia,
+                    que é justamente a medida que estas colunas existem para
+                    conferir. Condicioná-las a ela esconderia a inversão nos
+                    casos em que ela mais importa. */}
+                {temCorte && (
+                  <>
+                    <td className={s.ajuste ? classeDelta(s.ajuste.deltaTaxa) : undefined}>
+                      {pontos(s.ajuste)}
+                    </td>
+                    <td className={s.validacao ? classeDelta(s.validacao.deltaTaxa) : undefined}>
+                      {pontos(s.validacao)}
+                    </td>
+                  </>
+                )}
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {/* Mesma classe do aviso de sobreajuste da simulação: é o mesmo aviso, e
+          o painel de lá já empresta a `signal-lab-table` daqui. */}
+      {temCorte && (
+        <p className="simulation-alerta-sobreajuste">
+          <MdWarningAmber />
+          <span>
+            {t('signalLabHoldoutWarning', {
+              total: sinais.length,
+              fracao: Math.round(FRACAO_VALIDACAO_PADRAO * 100),
+            })}
+          </span>
+        </p>
+      )}
     </section>
   )
 }
