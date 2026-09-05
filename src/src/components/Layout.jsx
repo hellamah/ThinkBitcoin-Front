@@ -237,7 +237,12 @@ function Layout({ children }) {
                     </IconButton>
                   ) : (
                     <div className="guest-actions">
-                      <Button component={NavLink} to="/login" variant="text" size="small" sx={{ color: 'white' }}>
+                      {/* O branco estava literal aqui. A pílula que envolve o
+                          botão é `--surface-fill`, que no claro é quase branca:
+                          o único jeito de sair do produto sem conta — "Entrar" —
+                          ficava invisível para quem tinha o tema claro guardado
+                          no navegador. */}
+                      <Button component={NavLink} to="/login" variant="text" size="small" sx={{ color: 'var(--text-primary)' }}>
                         {t('nav.login')}
                       </Button>
                     </div>
