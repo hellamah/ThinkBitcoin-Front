@@ -271,7 +271,12 @@ export default function PlanosPagamentoModal({ visible, onClose, token, user, on
         const isAtivo = plano.ativo
         return (
           <div key={plano.idPlanoPagamento} className={`pricing-plan-card${isAtivo ? ' active-plan' : ''}`}>
-            <Typography variant="h6" sx={{ fontWeight: 800, color: isAtivo ? 'var(--color-primary)' : '#fff', mb: 1, textTransform: 'uppercase', fontFamily: "'Share Tech Mono', monospace" }}>
+            {/* O nome do plano vinha em `#fff` literal sobre `--surface-panel`,
+                que no tema claro é branco a 75%: os cards que NÃO são o plano
+                ativo perdiam o título por completo — a tela de assinatura
+                mostrava três cartões sem nome, e só o ativo (que usa o ouro)
+                continuava legível. */}
+            <Typography variant="h6" sx={{ fontWeight: 800, color: isAtivo ? 'var(--color-primary)' : 'var(--text-primary)', mb: 1, textTransform: 'uppercase', fontFamily: "'Share Tech Mono', monospace" }}>
               {plano.nome}
             </Typography>
             <Typography variant="body2" sx={{ color: 'var(--text-muted)', minHeight: '60px', mb: 2, fontSize: '0.85rem' }}>
@@ -306,7 +311,11 @@ export default function PlanosPagamentoModal({ visible, onClose, token, user, on
               </div>
               <div className="pricing-feature-item">
                 <span className="pricing-feature-icon"><MdCheck /></span>
-                <span>{t('planos.limiteDiario')}: R$ {plano.limiteDiarioResgate.toLocaleString()}</span>
+                {/* `.toLocaleString()` direto no campo da API derrubava a tela
+                    inteira — o modal fica sob o ErrorBoundary da raiz — se o
+                    plano viesse sem limite diário. Os outros números do cartão
+                    já são interpolados crus e sobrevivem a um null. */}
+                <span>{t('planos.limiteDiario')}: R$ {Number(plano.limiteDiarioResgate ?? 0).toLocaleString()}</span>
               </div>
             </div>
 
@@ -435,7 +444,9 @@ export default function PlanosPagamentoModal({ visible, onClose, token, user, on
 
         <Box
           sx={{
-            border: '1px dashed rgba(255,255,255,0.25)',
+            // Tracejado literal em branco: no claro a moldura do Pix
+            // copia-e-cola sumia, e o código ficava solto no meio do modal.
+            border: '1px dashed var(--border-strong)',
             borderRadius: '10px',
             p: 1.5,
             mb: 2,
