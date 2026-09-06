@@ -421,8 +421,8 @@ export default function GeoHeatmapView() {
       [
         'Country',
         metricaMapa === MapMetric.INTENSIDADE
-          ? (t('heatmap.metricaIntensidade') || 'Intensidade média')
-          : (t('heatmap.metricaLideranca') || 'Liderança de buscas'),
+          ? (t('heatmap.metricaIntensidade'))
+          : (t('heatmap.metricaLideranca')),
         { role: 'tooltip', type: 'string', p: { html: true } }
       ]
     ]
@@ -551,7 +551,7 @@ export default function GeoHeatmapView() {
       setHeatmapRaw(rawData?.length > 0 ? rawData : null)
     } catch (err) {
       console.error('Erro ao carregar Heatmap', err)
-      setErro(t('heatmap.erroCarregar') || 'Não foi possível carregar os dados geográficos no momento.')
+      setErro(t('heatmap.erroCarregar'))
     } finally {
       setLoading(false)
     }
@@ -601,8 +601,8 @@ export default function GeoHeatmapView() {
   const handleCompartilhar = () => {
     const url = window.location.href
     navigator.clipboard.writeText(url)
-      .then(() => mostrarSnackbar(t('heatmap.linkCopiado') || 'Link copiado!'))
-      .catch(() => mostrarSnackbar(t('heatmap.erroCopiarLink') || 'Não foi possível copiar o link', 'error'))
+      .then(() => mostrarSnackbar(t('heatmap.linkCopiado')))
+      .catch(() => mostrarSnackbar(t('heatmap.erroCopiarLink'), 'error'))
   }
 
   const handleAbrirExportar = (event) => setAnchorExportar(event.currentTarget)
@@ -615,21 +615,21 @@ export default function GeoHeatmapView() {
     if (formato === ExportFormat.PNG) {
       const uri = chartInstanceRef.current?.getImageURI?.()
       if (!uri) {
-        mostrarSnackbar(t('heatmap.exportarPNGErro') || 'Não foi possível gerar a imagem do mapa.', 'error')
+        mostrarSnackbar(t('heatmap.exportarPNGErro'), 'error')
         return
       }
       const link = document.createElement('a')
       link.href = uri
       link.download = `heatmap_${moedaSelecionada}_${intervaloMapa}.png`
       link.click()
-      mostrarSnackbar(`PNG — ${t('heatmap.exportacaoConcluida') || 'exportação concluída!'}`)
+      mostrarSnackbar(`PNG — ${t('heatmap.exportacaoConcluida')}`)
       return
     }
 
     // `nomePais` vai junto para o arquivo sair com o nome do país no idioma da
     // tela; sem ele a coluna "País" carregava o código ISO cru.
     exportarHeatmapDados(heatmapData, moedaSelecionada, intervaloMapa, formato, nomePais)
-    mostrarSnackbar(`${formato.toUpperCase()} — ${t('heatmap.exportacaoConcluida') || 'exportação concluída!'}`)
+    mostrarSnackbar(`${formato.toUpperCase()} — ${t('heatmap.exportacaoConcluida')}`)
   }
 
   // ---------------------------------------------------------------------------
@@ -706,28 +706,28 @@ export default function GeoHeatmapView() {
   const passosTour = useMemo(() => [
     {
       target: '[data-tour="carrossel"]',
-      title: t('heatmap.tourPasso1Titulo') || 'Carrossel de Ativos',
-      content: t('heatmap.tourPasso1Descricao') || 'Selecione o ativo que deseja visualizar.',
+      title: t('heatmap.tourPasso1Titulo'),
+      content: t('heatmap.tourPasso1Descricao'),
     },
     {
       target: '[data-tour="intervalos"]',
-      title: t('heatmap.tourPasso2Titulo') || 'Filtro de Intervalo',
-      content: t('heatmap.tourPasso2Descricao') || 'Alterne entre 1H, 1D e 1M.',
+      title: t('heatmap.tourPasso2Titulo'),
+      content: t('heatmap.tourPasso2Descricao'),
     },
     {
       target: '[data-tour="acoes-topo"]',
-      title: t('heatmap.tourPasso3Titulo') || 'Exportar e Compartilhar',
-      content: t('heatmap.tourPasso3Descricao') || 'Baixe os dados ou compartilhe o link.',
+      title: t('heatmap.tourPasso3Titulo'),
+      content: t('heatmap.tourPasso3Descricao'),
     },
     {
       target: '[data-tour="zoom"]',
-      title: t('heatmap.tourPasso4Titulo') || 'Zoom Geográfico',
-      content: t('heatmap.tourPasso4Descricao') || 'Clique em uma região para dar zoom.',
+      title: t('heatmap.tourPasso4Titulo'),
+      content: t('heatmap.tourPasso4Descricao'),
     },
     {
       target: '[data-tour="inteligencia"]',
-      title: t('heatmap.tourPasso5Titulo') || 'Central de Inteligência',
-      content: t('heatmap.tourPasso5Descricao') || 'Top 5 países. Clique para filtrar o carrossel.',
+      title: t('heatmap.tourPasso5Titulo'),
+      content: t('heatmap.tourPasso5Descricao'),
     },
   ], [t])
 
@@ -789,8 +789,8 @@ export default function GeoHeatmapView() {
         onEvent={handleTourCallback}
         locale={{
           back: 'Voltar',
-          close: t('heatmap.tourFechar') || 'Entendi!',
-          last: t('heatmap.tourFechar') || 'Entendi!',
+          close: t('heatmap.tourFechar'),
+          last: t('heatmap.tourFechar'),
           next: 'Próximo',
           nextWithProgress: 'Próximo ({current} de {total})',
           skip: 'Pular',
@@ -858,7 +858,7 @@ export default function GeoHeatmapView() {
         t={t}
         prefs={prefs}
         usuario={usuario}
-        title={t('nav.heatmap') || 'Geopolítica'}
+        title={t('nav.heatmap')}
         onAbrirAlertas={() => setModalAlertasAberto(true)}
         alertasAtivos={contarAtivos(alertas)}
         alertasBloqueados={!temAcessoAlertas}
@@ -896,10 +896,10 @@ export default function GeoHeatmapView() {
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 4 }}>
           <Box>
             <Typography variant="h4" sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1.5, fontFamily: 'Outfit, sans-serif', fontWeight: 800, color: 'var(--accent-ink)' }}>
-              <MdPublic /> {t('globalHotspot') || 'Geopolítica de Mercado'}
+              <MdPublic /> {t('globalHotspot')}
             </Typography>
             <Typography variant="body1" sx={{ opacity: 0.7, fontSize: '0.95rem' }}>
-              {t('heatmap.descricao') || 'Mapeamento global do interesse de busca pelo ativo, destacando as regiões que atualmente lideram a narrativa de mercado.'}
+              {t('heatmap.descricao')}
             </Typography>
           </Box>
 
@@ -930,8 +930,8 @@ export default function GeoHeatmapView() {
             {/* Seletor de métrica do mapa: liderança × intensidade (sem refetch) */}
             <div className="interval-selector-mini" data-tour="metrica">
               {[
-                { label: t('heatmap.metricaLiderancaCurta') || 'Liderança', value: MapMetric.LIDERANCA, hint: t('heatmap.metricaLideranca') || 'Nº de vezes que o país liderou as buscas' },
-                { label: t('heatmap.metricaIntensidadeCurta') || 'Intensidade', value: MapMetric.INTENSIDADE, hint: t('heatmap.metricaIntensidade') || 'Intensidade média de busca (0-100)' },
+                { label: t('heatmap.metricaLiderancaCurta'), value: MapMetric.LIDERANCA, hint: t('heatmap.metricaLideranca') },
+                { label: t('heatmap.metricaIntensidadeCurta'), value: MapMetric.INTENSIDADE, hint: t('heatmap.metricaIntensidade') },
               ].map((opt) => (
                 <Tooltip key={opt.value} title={opt.hint} arrow>
                   <button
@@ -947,7 +947,7 @@ export default function GeoHeatmapView() {
             {/* Botões de ação */}
             <Box sx={{ display: 'flex', gap: 1 }} data-tour="acoes-topo" ref={refAcoesTopo}>
               {/* Compartilhar */}
-              <Tooltip title={t('heatmap.compartilhar') || 'Compartilhar'} arrow>
+              <Tooltip title={t('heatmap.compartilhar')} arrow>
                 <Button
                   id="btn-compartilhar"
                   variant="outlined"
@@ -967,12 +967,12 @@ export default function GeoHeatmapView() {
                     }
                   }}
                 >
-                  {t('heatmap.compartilhar') || 'Compartilhar'}
+                  {t('heatmap.compartilhar')}
                 </Button>
               </Tooltip>
 
               {/* Exportar */}
-              <Tooltip title={t('heatmap.exportar') || 'Exportar Dados'} arrow>
+              <Tooltip title={t('heatmap.exportar')} arrow>
                 <Button
                   id="btn-exportar"
                   variant="outlined"
@@ -997,7 +997,7 @@ export default function GeoHeatmapView() {
                     }
                   }}
                 >
-                  {t('heatmap.exportar') || 'Exportar'}
+                  {t('heatmap.exportar')}
                 </Button>
               </Tooltip>
               <Menu
@@ -1019,24 +1019,24 @@ export default function GeoHeatmapView() {
                   onClick={() => handleExportar(ExportFormat.CSV)}
                   sx={{ color: 'var(--text-primary)', fontFamily: 'Outfit, sans-serif', fontSize: '0.88rem', '&:hover': { backgroundColor: 'var(--accent-a08)' } }}
                 >
-                  📄 {t('heatmap.exportarCSV') || 'Exportar CSV'}
+                  📄 {t('heatmap.exportarCSV')}
                 </MenuItem>
                 <MenuItem
                   onClick={() => handleExportar(ExportFormat.JSON)}
                   sx={{ color: 'var(--text-primary)', fontFamily: 'Outfit, sans-serif', fontSize: '0.88rem', '&:hover': { backgroundColor: 'var(--accent-a08)' } }}
                 >
-                  🗂 {t('heatmap.exportarJSON') || 'Exportar JSON'}
+                  🗂 {t('heatmap.exportarJSON')}
                 </MenuItem>
                 <MenuItem
                   onClick={() => handleExportar(ExportFormat.PNG)}
                   sx={{ color: 'var(--text-primary)', fontFamily: 'Outfit, sans-serif', fontSize: '0.88rem', '&:hover': { backgroundColor: 'var(--accent-a08)' } }}
                 >
-                  🖼 {t('heatmap.exportarPNG') || 'Exportar PNG'}
+                  🖼 {t('heatmap.exportarPNG')}
                 </MenuItem>
               </Menu>
 
               {/* Tour */}
-              <Tooltip title={t('heatmap.tourIniciar') || 'Ver tour'} arrow>
+              <Tooltip title={t('heatmap.tourIniciar')} arrow>
                 <Button
                   id="btn-tour"
                   variant="text"
@@ -1069,7 +1069,7 @@ export default function GeoHeatmapView() {
               color: 'var(--text-muted)',
               fontFamily: 'Outfit, sans-serif',
             }}>
-              ⚡ {t('heatmap.cacheAtivo') || 'Dados em cache (< 5 min)'}
+              ⚡ {t('heatmap.cacheAtivo')}
               {/* O onClick estava no <svg> do ícone: o único jeito de forçar
                   a releitura era clicar num desenho, que nem o teclado alcança
                   nem o leitor de tela anuncia. */}
@@ -1100,7 +1100,7 @@ export default function GeoHeatmapView() {
             animation: 'fadeIn 0.4s ease'
           }}>
             <Typography variant="body2" sx={{ color: 'var(--text-primary)', fontSize: '0.88rem', fontFamily: 'Outfit, sans-serif' }}>
-              🔍 {t('heatmap.filtrandoPor') || 'Exibindo ativos cuja busca é liderada por:'} <strong>{nomePais(paisSelecionado)}</strong>
+              🔍 {t('heatmap.filtrandoPor')} <strong>{nomePais(paisSelecionado)}</strong>
             </Typography>
             <Button
               size="small"
@@ -1111,7 +1111,7 @@ export default function GeoHeatmapView() {
                 '&:hover': { background: 'rgba(255, 215, 0, 0.12)' }
               }}
             >
-              {t('heatmap.limparFiltro') || 'Limpar Filtro'}
+              {t('heatmap.limparFiltro')}
             </Button>
           </Box>
         )}
@@ -1119,18 +1119,18 @@ export default function GeoHeatmapView() {
         {/* Barra de Zoom Regional */}
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 3, alignItems: 'center' }} data-tour="zoom" ref={refZoom}>
           <Typography variant="caption" sx={{ color: 'var(--text-muted)', mr: 1, textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>
-            {t('heatmap.zoomGeografico') || 'Zoom Geográfico:'}
+            {t('heatmap.zoomGeografico')}
           </Typography>
           {Object.entries(MapRegion).map(([key, value]) => {
             const isSelected = regionSelecionada === value
             const isActive = activeRegions.has(value)
             const label = {
-              WORLD: t('heatmap.regiaoMundo') || 'Mundo',
-              AMERICAS: t('heatmap.regiaoAmericas') || 'Américas',
-              EUROPE: t('heatmap.regiaoEuropa') || 'Europa',
-              ASIA: t('heatmap.regiaoAsia') || 'Ásia',
-              AFRICA: t('heatmap.regiaoAfrica') || 'África',
-              OCEANIA: t('heatmap.regiaoOceania') || 'Oceania',
+              WORLD: t('heatmap.regiaoMundo'),
+              AMERICAS: t('heatmap.regiaoAmericas'),
+              EUROPE: t('heatmap.regiaoEuropa'),
+              ASIA: t('heatmap.regiaoAsia'),
+              AFRICA: t('heatmap.regiaoAfrica'),
+              OCEANIA: t('heatmap.regiaoOceania'),
             }[key]
             return (
               // Filtro de região do mapa: um dos controles principais da tela, e
@@ -1237,10 +1237,10 @@ export default function GeoHeatmapView() {
                   }}
                 >
                   <Typography variant="h6" sx={{ color: 'var(--accent-ink)', fontWeight: 800, fontFamily: 'Outfit, sans-serif', fontSize: '1.05rem', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
-                    {t('heatmap.centralInteligencia') || 'Central de Inteligência'}
+                    {t('heatmap.centralInteligencia')}
                   </Typography>
                   <Typography variant="body2" sx={{ opacity: 0.6, fontSize: '0.85rem', lineHeight: 1.4 }}>
-                    {t('heatmap.centralDescricao') || 'Nível de aceleração e dominância de busca de narrativas por região geográfica para a moeda selecionada'} ({moedaSelecionada}).
+                    {t('heatmap.centralDescricao')} ({moedaSelecionada}).
                   </Typography>
 
                   {/* Pulso da narrativa + concentração geográfica + Fear & Greed
@@ -1307,7 +1307,7 @@ export default function GeoHeatmapView() {
                       ))
                     ) : (
                       <Box sx={{ p: 4, textAlign: 'center', opacity: 0.4 }}>
-                        <Typography variant="body2" sx={{ fontStyle: 'italic' }}>{t('heatmap.aguardandoDados') || 'Aguardando dados geográficos...'}</Typography>
+                        <Typography variant="body2" sx={{ fontStyle: 'italic' }}>{t('heatmap.aguardandoDados')}</Typography>
                       </Box>
                     )}
                   </Box>
@@ -1318,7 +1318,7 @@ export default function GeoHeatmapView() {
         ) : (
           <Box sx={{ p: 6, textAlign: 'center', opacity: 0.5, backgroundColor: 'var(--surface-panel)', borderRadius: '16px', border: '1px solid var(--border)' }}>
             <MdAnalytics size={48} style={{ color: 'var(--accent-ink)', marginBottom: '12px' }} />
-            <Typography sx={{ fontFamily: 'Outfit, sans-serif' }}>{t('heatmap.semDados') || 'Dados de mapa não disponíveis para o ativo selecionado no período.'}</Typography>
+            <Typography sx={{ fontFamily: 'Outfit, sans-serif' }}>{t('heatmap.semDados')}</Typography>
           </Box>
         )}
       </section>

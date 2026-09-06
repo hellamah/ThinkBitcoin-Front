@@ -180,7 +180,7 @@ export default function CoinCarousel({
       <Box className="panel top-coins" sx={{ mb: '20px' }}>
         <h2>
           <MdTrendingUp style={{ verticalAlign: 'middle', marginRight: '10px' }} /> 
-          {t('selectAssetHeatmap') || 'Selecione o Ativo para Análise Geopolítica'}
+          {t('selectAssetHeatmap')}
         </h2>
         {carouselContent}
       </Box>

@@ -150,11 +150,11 @@ export default function HeatmapInsights({ trend, fear, t }) {
           {horaRef && (
             <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, fontSize: '0.72rem', color: 'var(--text-faint)', fontFamily: 'Outfit, sans-serif' }}>
               <MdAccessTime size={13} />
-              {t('heatmap.atualizadoAs') || 'Atualizado às'} {horaRef}
+              {t('heatmap.atualizadoAs')} {horaRef}
             </Box>
           )}
           {dadosImputados && (
-            <Tooltip title={t('heatmap.dadosImputados') || 'Parte dos dados foi estimada (coleta incompleta)'} arrow>
+            <Tooltip title={t('heatmap.dadosImputados')} arrow>
               <Box sx={{
                 display: 'inline-flex', alignItems: 'center', gap: 0.5,
                 px: 1, py: 0.2, borderRadius: '10px',
@@ -162,7 +162,7 @@ export default function HeatmapInsights({ trend, fear, t }) {
                 fontSize: '0.7rem', color: 'var(--scale-fear-mid)', fontFamily: 'Outfit, sans-serif',
               }}>
                 <MdWarningAmber size={13} />
-                {t('heatmap.dadosImputados') || 'Dados parcialmente estimados'}
+                {t('heatmap.dadosImputados')}
               </Box>
             </Tooltip>
           )}
@@ -174,25 +174,25 @@ export default function HeatmapInsights({ trend, fear, t }) {
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
           {valorAtual !== null && (
             <StatChip
-              label={t('heatmap.interesseAtual') || 'Interesse atual'}
+              label={t('heatmap.interesseAtual')}
               value={`${valorAtual}/100`}
-              hint={mediaPeriodo !== null ? `${t('heatmap.mediaPeriodo') || 'média'}: ${mediaPeriodo.toFixed(1)}` : undefined}
+              hint={mediaPeriodo !== null ? `${t('heatmap.mediaPeriodo')}: ${mediaPeriodo.toFixed(1)}` : undefined}
             />
           )}
           {delta5 !== null && (
-            <StatChip label={t('heatmap.momentum5') || 'Momentum 5min'} value="" delta={delta5} />
+            <StatChip label={t('heatmap.momentum5')} value="" delta={delta5} />
           )}
           {delta15 !== null && (
-            <StatChip label={t('heatmap.momentum15') || 'Momentum 15min'} value="" delta={delta15} />
+            <StatChip label={t('heatmap.momentum15')} value="" delta={delta15} />
           )}
           {volatilidade !== null && (
-            <StatChip label={t('heatmap.volatilidade') || 'Volatilidade 15min'} value={volatilidade.toFixed(1)} />
+            <StatChip label={t('heatmap.volatilidade')} value={volatilidade.toFixed(1)} />
           )}
           {pico !== null && (
-            <StatChip label={t('heatmap.picoHa') || 'Pico de buscas há'} value={pico} />
+            <StatChip label={t('heatmap.picoHa')} value={pico} />
           )}
           {rank !== null && (
-            <StatChip label={t('heatmap.rankBuscas') || 'Rank de buscas'} value={`#${rank}`} />
+            <StatChip label={t('heatmap.rankBuscas')} value={`#${rank}`} />
           )}
         </Box>
       )}
@@ -200,10 +200,10 @@ export default function HeatmapInsights({ trend, fear, t }) {
       {/* Concentração geográfica (índice HHI) */}
       {hhi !== null && (
         <BarraMedida
-          label={t('heatmap.concentracaoGeo') || 'Concentração geográfica'}
+          label={t('heatmap.concentracaoGeo')}
           valorLabel={hhi >= 0.25
-            ? `🎯 ${t('heatmap.concentrada') || 'Narrativa concentrada'}`
-            : `🌍 ${t('heatmap.distribuida') || 'Narrativa globalizada'}`}
+            ? `🎯 ${t('heatmap.concentrada')}`
+            : `🌍 ${t('heatmap.distribuida')}`}
           percent={hhi * 100}
           cor="var(--accent-ink)"
         />
@@ -213,14 +213,14 @@ export default function HeatmapInsights({ trend, fear, t }) {
       {fearValor !== null && (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.4 }}>
           <BarraMedida
-            label={t('heatmap.fearGreed') || 'Fear & Greed'}
+            label={t('heatmap.fearGreed')}
             valorLabel={`${fearValor} · ${fear?.classificacao || ''}`}
             percent={fearValor}
             cor={corFearGreed(fearValor)}
           />
           {formatarContagem(segundosRestantes) && (
             <Typography sx={{ fontSize: '0.68rem', color: 'var(--text-faint)', fontFamily: 'Share Tech Mono, monospace', alignSelf: 'flex-end' }}>
-              ⏳ {t('heatmap.proximaAtualizacao') || 'Próxima atualização em'} {formatarContagem(segundosRestantes)}
+              ⏳ {t('heatmap.proximaAtualizacao')} {formatarContagem(segundosRestantes)}
             </Typography>
           )}
         </Box>

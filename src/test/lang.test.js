@@ -170,3 +170,38 @@ describe('lang › chaves pedidas pelo código', () => {
     expect(ausentes).toEqual([])
   })
 })
+
+// ---------------------------------------------------------------------------
+// Reservas mortas depois de t()
+// ---------------------------------------------------------------------------
+// `t('chave') || 'texto de reserva'` apareceu 110 vezes no projeto, e o `||`
+// nunca disparou uma única: `t` devolve a PRÓPRIA CHAVE quando não acha
+// tradução, e chave é string não vazia — verdadeira. A única forma de o ramo
+// direito executar seria uma tradução vazia, que o teste acima proíbe.
+//
+// O problema nunca foram os bytes. Era a leitura: quem passa por
+// `t('enabled') || 'Ativado'` conclui que o pior caso está coberto e para de
+// olhar. Foi assim que cinco chaves inexistentes atravessaram revisão e
+// chegaram à produção mostrando o próprio nome na tela.
+//
+// Quem garante a existência da chave é o teste de cobertura acima; a reserva
+// só imitava essa garantia.
+// ---------------------------------------------------------------------------
+
+const RESERVA_MORTA = /(^|[^A-Za-z0-9_$])t\((['"])[^'"]+\2\)\s*\|\|/g
+
+describe('lang › reservas depois de t()', () => {
+  it('não deve haver fallback literal encadeado em t(), que nunca executa', () => {
+    const ocorrencias = []
+
+    for (const arquivo of arquivosDeCodigo(DIRETORIO_FONTE)) {
+      const codigo = readFileSync(arquivo, 'utf-8')
+      for (const achado of codigo.matchAll(RESERVA_MORTA)) {
+        const linha = codigo.slice(0, achado.index).split('\n').length
+        ocorrencias.push(`${arquivo.slice(DIRETORIO_FONTE.length + 1)}:${linha}`)
+      }
+    }
+
+    expect(ocorrencias).toEqual([])
+  })
+})

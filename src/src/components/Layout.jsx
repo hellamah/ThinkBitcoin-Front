@@ -103,21 +103,21 @@ function Layout({ children }) {
         component={NavLink}
         to="/heatmap"
         className="nav-item"
-        title={t('nav.heatmap') || 'Geopolítica'}
-        aria-label={t('nav.heatmap') || 'Geopolítica'}
+        title={t('nav.heatmap')}
+        aria-label={t('nav.heatmap')}
       >
         <MdPublic />
-        <span className="nav-label">{t('nav.heatmap') || 'Geopolítica'}</span>
+        <span className="nav-label">{t('nav.heatmap')}</span>
       </IconButton>
       <IconButton
         component={NavLink}
         to="/treinamento-episodios"
         className="nav-item"
-        title={t('nav.training') || 'Treinamento IA'}
-        aria-label={t('nav.training') || 'Treinamento IA'}
+        title={t('nav.training')}
+        aria-label={t('nav.training')}
       >
         <MdPsychology />
-        <span className="nav-label">{t('nav.training') || 'Treinamento IA'}</span>
+        <span className="nav-label">{t('nav.training')}</span>
       </IconButton>
     </>
   )
@@ -198,19 +198,19 @@ function Layout({ children }) {
                     component={NavLink}
                     to="/heatmap"
                     className="nav-item"
-                    title={t('nav.heatmap') || 'Geopolítica'}
+                    title={t('nav.heatmap')}
                   >
                     <MdPublic />
-                    <span className="nav-label">{t('nav.heatmap') || 'Geopolítica'}</span>
+                    <span className="nav-label">{t('nav.heatmap')}</span>
                   </IconButton>
                   <IconButton
                     component={NavLink}
                     to="/treinamento-episodios"
                     className="nav-item"
-                    title={t('nav.training') || 'Treinamento IA'}
+                    title={t('nav.training')}
                   >
                     <MdPsychology />
-                    <span className="nav-label">{t('nav.training') || 'Treinamento IA'}</span>
+                    <span className="nav-label">{t('nav.training')}</span>
                   </IconButton>
                 </Box>
               )}

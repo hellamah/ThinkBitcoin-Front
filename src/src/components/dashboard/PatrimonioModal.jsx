@@ -33,7 +33,7 @@ export default function PatrimonioModal({ visible, onClose, user, patrimonio, on
 
     const valor = parseFloat(valorBRL)
     if (isNaN(valor) || valor <= 0) {
-      setErrorMsg(t('patrimonio.amountRequired') || 'Informe um valor maior que zero.')
+      setErrorMsg(t('patrimonio.amountRequired'))
       return
     }
 
@@ -48,13 +48,13 @@ export default function PatrimonioModal({ visible, onClose, user, patrimonio, on
         }
       })
 
-      setSuccessMsg(t('patrimonio.saveSuccess') || 'Patrimônio registrado com sucesso!')
+      setSuccessMsg(t('patrimonio.saveSuccess'))
       setValorBRL('')
       setObservacao('')
       if (onRefresh) await onRefresh()
     } catch (err) {
       console.error(err)
-      setErrorMsg(t('patrimonio.saveError') || 'Erro ao registrar patrimônio. Tente novamente.')
+      setErrorMsg(t('patrimonio.saveError'))
     } finally {
       setLoading(false)
     }

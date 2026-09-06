@@ -137,23 +137,23 @@ export default function Dashboard() {
   const passosTour = useMemo(() => [
     {
       target: '[data-tour="dash-patrimonio"]',
-      title: t('dashboardTour.passo1Titulo') || 'Patrimônio Total',
-      content: t('dashboardTour.passo1Descricao') || 'Acompanhe e gerencie seu saldo consolidado.',
+      title: t('dashboardTour.passo1Titulo'),
+      content: t('dashboardTour.passo1Descricao'),
     },
     {
       target: '[data-tour="dash-carrossel"]',
-      title: t('dashboardTour.passo2Titulo') || 'Carrossel de Ativos',
-      content: t('dashboardTour.passo2Descricao') || 'Selecione uma ou mais moedas para analisar.',
+      title: t('dashboardTour.passo2Titulo'),
+      content: t('dashboardTour.passo2Descricao'),
     },
     {
       target: '[data-tour="dash-filtros"]',
-      title: t('dashboardTour.passo3Titulo') || 'Filtros',
-      content: t('dashboardTour.passo3Descricao') || 'Refine por período, intervalo e resultado.',
+      title: t('dashboardTour.passo3Titulo'),
+      content: t('dashboardTour.passo3Descricao'),
     },
     {
       target: '[data-tour="dash-graficos"]',
-      title: t('dashboardTour.passo4Titulo') || 'Gráficos',
-      content: t('dashboardTour.passo4Descricao') || 'Compare preço e variação e expanda para ver em detalhe.',
+      title: t('dashboardTour.passo4Titulo'),
+      content: t('dashboardTour.passo4Descricao'),
     },
     // A simulação vem antes do histórico porque é essa a ordem na tela — o
     // Joyride rola até cada alvo, e um passo fora de ordem faria a página
@@ -165,14 +165,14 @@ export default function Dashboard() {
     ...(moedasFiltro.length === 1
       ? [{
           target: '[data-tour="dash-simulacao"]',
-          title: t('dashboardTour.passo5Titulo') || 'Simulação de Estratégia',
-          content: t('dashboardTour.passo5Descricao') || 'Teste uma regra de entrada e veja o que ela teria rendido.',
+          title: t('dashboardTour.passo5Titulo'),
+          content: t('dashboardTour.passo5Descricao'),
         }]
       : []),
     {
       target: '[data-tour="dash-historico"]',
-      title: t('dashboardTour.passo6Titulo') || 'Histórico',
-      content: t('dashboardTour.passo6Descricao') || 'Veja o histórico de operações filtrado.',
+      title: t('dashboardTour.passo6Titulo'),
+      content: t('dashboardTour.passo6Descricao'),
     },
   ], [t, moedasFiltro.length])
 
@@ -590,8 +590,8 @@ export default function Dashboard() {
             onEvent={handleTourCallback}
             locale={{
               back: 'Voltar',
-              close: t('dashboardTour.fechar') || 'Entendi!',
-              last: t('dashboardTour.fechar') || 'Entendi!',
+              close: t('dashboardTour.fechar'),
+              last: t('dashboardTour.fechar'),
               next: 'Próximo',
               nextWithProgress: 'Próximo ({current} de {total})',
               skip: 'Pular',

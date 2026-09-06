@@ -156,7 +156,7 @@ function Settings() {
   } = useAlertasPreco(user)
 
   const confirm = () => {
-    mostrarToast(t('settingsSaved') || 'Configurações salvas!', 2000)
+    mostrarToast(t('settingsSaved'), 2000)
   }
 
   const toggleTheme = () => {
@@ -227,15 +227,15 @@ function Settings() {
   const handleTrocarSenha = async (e) => {
     e.preventDefault()
     if (!senha.atual || !senha.nova || !senha.confirma) {
-      mostrarToast(t('fillAllFields') || 'Preencha todos os campos', 3000)
+      mostrarToast(t('fillAllFields'), 3000)
       return
     }
     if (senha.nova !== senha.confirma) {
-      mostrarToast(t('passwordsDontMatch') || 'As senhas não coincidem', 3000)
+      mostrarToast(t('passwordsDontMatch'), 3000)
       return
     }
     if (senha.nova.length < 6) {
-      mostrarToast(t('passwordTooShort') || 'A senha deve ter no mínimo 6 caracteres', 3000)
+      mostrarToast(t('passwordTooShort'), 3000)
       return
     }
 
@@ -250,10 +250,10 @@ function Settings() {
         },
         suppressAuthRedirect: true,
       })
-      mostrarToast(t('passwordChangedSuccess') || 'Senha alterada com sucesso!', 3000)
+      mostrarToast(t('passwordChangedSuccess'), 3000)
       setSenha({ atual: '', nova: '', confirma: '' })
     } catch (err) {
-      const msg = err.status === 400 ? (t('invalidCurrentPassword') || 'Senha atual incorreta') : (t('errorChangingPassword') || 'Erro ao alterar senha')
+      const msg = err.status === 400 ? (t('invalidCurrentPassword')) : (t('errorChangingPassword'))
       mostrarToast(msg, 3000)
     } finally {
       setLoadingSenha(false)
@@ -370,7 +370,7 @@ function Settings() {
           boxShadow: '0 0 20px var(--color-primary)'
         }} />
         <Typography sx={{ color: 'var(--text-faint)', fontSize: '1rem', fontWeight: 500, letterSpacing: '0.5px' }}>
-          {t('settingsSubtitle') || 'CONTROL_CENTER // CONFIGURAÇÃO_SISTEMA'}
+          {t('settingsSubtitle')}
         </Typography>
       </header>
 
@@ -570,7 +570,7 @@ function Settings() {
                 size="small"
                 sx={selectSx}
               >
-                <MenuItem value=""><em>{t('none') || 'Padrão'}</em></MenuItem>
+                <MenuItem value=""><em>{t('none')}</em></MenuItem>
                 {moedas.map(m => (
                   <MenuItem key={m.sigla} value={m.sigla}>{m.sigla}</MenuItem>
                 ))}
@@ -614,7 +614,7 @@ function Settings() {
                 }
               }}
             >
-              {loadingNome ? (t('saving') || 'SALVANDO...') : t('account.saveName').toUpperCase()}
+              {loadingNome ? (t('saving')) : t('account.saveName').toUpperCase()}
             </Button>
           </Box>
         ))}
@@ -702,16 +702,16 @@ function Settings() {
         </div>
 
         <div style={{ gridColumn: '1 / -1' }}>
-          {renderPanel(<MdLock />, t('security') || 'SEGURANÇA', (
+          {renderPanel(<MdLock />, t('security'), (
             <Box component="form" onSubmit={handleTrocarSenha} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
               <Typography variant="body2" sx={{ color: 'var(--text-muted)', mb: 1 }}>
-                {t('changePasswordDescription') || 'Mantenha sua conta segura alterando sua senha periodicamente.'}
+                {t('changePasswordDescription')}
               </Typography>
               <Grid container spacing={3}>
                 <Grid item xs={12} md={4}>
                   <TextField
                     fullWidth
-                    label={t('currentPassword') || 'Senha Atual'}
+                    label={t('currentPassword')}
                     type="password"
                     value={senha.atual}
                     onChange={(e) => setSenha(p => ({ ...p, atual: e.target.value }))}
@@ -722,7 +722,7 @@ function Settings() {
                 <Grid item xs={12} md={4}>
                   <TextField
                     fullWidth
-                    label={t('newPassword') || 'Nova Senha'}
+                    label={t('newPassword')}
                     type="password"
                     value={senha.nova}
                     onChange={(e) => setSenha(p => ({ ...p, nova: e.target.value }))}
@@ -733,7 +733,7 @@ function Settings() {
                 <Grid item xs={12} md={4}>
                   <TextField
                     fullWidth
-                    label={t('confirmNewPassword') || 'Confirmar Nova Senha'}
+                    label={t('confirmNewPassword')}
                     type="password"
                     value={senha.confirma}
                     onChange={(e) => setSenha(p => ({ ...p, confirma: e.target.value }))}
@@ -763,7 +763,7 @@ function Settings() {
                     }
                   }}
                 >
-                  {loadingSenha ? (t('saving') || 'SALVANDO...') : (t('updatePassword') || 'ATUALIZAR SENHA')}
+                  {loadingSenha ? (t('saving')) : (t('updatePassword'))}
                 </Button>
               </Box>
             </Box>

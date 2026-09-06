@@ -115,7 +115,7 @@ export default function HistoryTable({
                       onClick={() => handleSort('coin')}
                       sx={sortLabelSx}
                     >
-                      {t('coin') || 'Moeda'}
+                      {t('coin')}
                     </TableSortLabel>
                   </TableCell>
                 )}
