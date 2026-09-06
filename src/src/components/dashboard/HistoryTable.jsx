@@ -21,7 +21,8 @@ export default function HistoryTable({
   totalPaginas,
   pagina,
   setPagina,
-  t
+  t,
+  locale
 }) {
   // `pagina` e `setPagina` chegam por prop. Antes vinham do contexto global E
   // como prop — as props eram passadas e ignoradas, então quem lesse a chamada
@@ -167,7 +168,7 @@ export default function HistoryTable({
                       }}
                     >
                       <TableCell sx={{ color: 'var(--text-muted)', fontFamily: "'Share Tech Mono', monospace" }}>
-                        {toLocal(r.horaReferencia ?? r.HoraReferencia ?? r.dataHora ?? r.DataHora)}
+                        {toLocal(r.horaReferencia ?? r.HoraReferencia ?? r.dataHora ?? r.DataHora, locale)}
                       </TableCell>
                       {moedasFiltro.length > 1 && (
                         <TableCell sx={{ color: 'var(--accent-ink)', fontWeight: 'bold' }}>

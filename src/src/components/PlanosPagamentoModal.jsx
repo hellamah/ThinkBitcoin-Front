@@ -18,6 +18,7 @@ import Modal from './Modal'
 import { apiRequest, PlanosPagamentoEndpoint, AuthenticationEndpoint, HttpMethod } from '../utils/apiClient'
 import { useAuth } from '../context/AuthContext'
 import useTranslation from '../hooks/useTranslation'
+import { toLocalTime } from '../utils/dateUtils'
 
 const POLL_INTERVAL_MS = 4000
 
@@ -62,7 +63,7 @@ const buildMigrarBody = (plano, user) => ({
 })
 
 export default function PlanosPagamentoModal({ visible, onClose, token, user, onRefresh }) {
-  const { t } = useTranslation()
+  const { t, idioma } = useTranslation()
   const { login } = useAuth()
   const [planos, setPlanos] = useState([])
   const [loading, setLoading] = useState(true)
@@ -416,7 +417,7 @@ export default function PlanosPagamentoModal({ visible, onClose, token, user, on
   const renderPagamento = () => {
     if (!cobranca) return null
     const expiraEm = cobranca.expiraEm
-      ? new Date(cobranca.expiraEm).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      ? toLocalTime(cobranca.expiraEm, idioma.intl)
       : null
     return (
       <Box sx={{ maxWidth: 440, mx: 'auto', textAlign: 'center' }}>

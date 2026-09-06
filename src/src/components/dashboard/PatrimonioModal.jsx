@@ -16,9 +16,10 @@ import { MdAdd, MdHistory, MdAttachMoney, MdOutlineCalendarToday } from 'react-i
 import Modal from '../Modal'
 import { apiRequest, PatrimonioEndpoint, HttpMethod } from '../../utils/apiClient'
 import useTranslation from '../../hooks/useTranslation'
+import { toLocal } from '../../utils/dateUtils'
 
 export default function PatrimonioModal({ visible, onClose, user, patrimonio, onRefresh }) {
-  const { t } = useTranslation()
+  const { t, idioma } = useTranslation()
   const [valorBRL, setValorBRL] = useState('')
   const [observacao, setObservacao] = useState('')
   const [loading, setLoading] = useState(false)
@@ -181,7 +182,7 @@ export default function PatrimonioModal({ visible, onClose, user, patrimonio, on
                       <TableCell sx={tableCellSx}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'var(--text-muted)' }}>
                           <MdOutlineCalendarToday />
-                          {new Date(reg.dataHora).toLocaleString()}
+                          {toLocal(reg.dataHora, idioma.intl)}
                         </Box>
                       </TableCell>
                       <TableCell sx={{ ...tableCellSx, fontWeight: 700 }} align="right">

@@ -34,7 +34,7 @@ const CABECALHOS = Object.freeze({
 })
 
 function DocumentoLegal({ documento }) {
-  const { t } = useTranslation()
+  const { t, idioma } = useTranslation()
   const cabecalho = CABECALHOS[documento]
   const tipo = tipoDoSlug(documento)
 
@@ -131,10 +131,10 @@ function DocumentoLegal({ documento }) {
             <Typography sx={{ color: 'var(--text-faint)', fontSize: '0.76rem' }}>
               {lendoVersaoAntiga
                 ? t('documentos.vigenteDeAte', {
-                    inicio: toLocal(exibido.dataVigenciaInicio),
-                    fim: toLocal(exibido.dataVigenciaFim),
+                    inicio: toLocal(exibido.dataVigenciaInicio, idioma.intl),
+                    fim: toLocal(exibido.dataVigenciaFim, idioma.intl),
                   })
-                : t('documentos.emVigorDesde', { data: toLocal(exibido.dataVigenciaInicio) })}
+                : t('documentos.emVigorDesde', { data: toLocal(exibido.dataVigenciaInicio, idioma.intl) })}
             </Typography>
             <Button
               size="small"
@@ -220,7 +220,7 @@ function DocumentoLegal({ documento }) {
                       />
                     )}
                     <Typography sx={{ color: 'var(--text-faint)', fontSize: '0.72rem', ml: 'auto' }}>
-                      {toLocal(v.dataVigenciaInicio)}
+                      {toLocal(v.dataVigenciaInicio, idioma.intl)}
                     </Typography>
                   </Box>
                   <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.76rem' }}>

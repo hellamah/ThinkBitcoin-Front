@@ -29,6 +29,7 @@ const classeAlternador = (ativo) => `pill-toggle ${ativo ? 'ativo' : ''}`
  * @param {string} props.ultimaVariacao - Última variação formatada.
  * @param {object} props.trendAtual - Dados de tendência atual.
  * @param {Function} props.t - Função de tradução.
+ * @param {string} props.locale - Etiqueta BCP 47 do idioma escolhido, para as datas.
  */
 export default function DashboardCharts({
   multiMoeda,
@@ -53,7 +54,8 @@ export default function DashboardCharts({
   volumeAtual,
   trendAtual,
   cobertura,
-  t
+  t,
+  locale
 }) {
   // Volume existe só com moeda única; em modo comparativo o seletor nem
   // aparece, mas a guarda evita render vazio se o filtro mudar por baixo.
@@ -78,7 +80,7 @@ export default function DashboardCharts({
             <MdWarningAmber />
             {t('truncatedRange', {
               recebidos: cobertura.recebidos,
-              desde: toLocal(cobertura.desde),
+              desde: toLocal(cobertura.desde, locale),
             })}
           </span>
         )}

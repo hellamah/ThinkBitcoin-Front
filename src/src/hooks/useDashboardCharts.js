@@ -30,7 +30,12 @@ export default function useDashboardCharts({
   fearGreedPorMoeda,
   trendPorMoeda,
   modoPreco = PriceChartMode.LINE,
-  t = (chave) => chave
+  t = (chave) => chave,
+  // Etiqueta BCP 47 do idioma escolhido (`idioma.intl`). Entra como argumento e
+  // como dependência do memo: os rótulos do eixo são calculados aqui dentro, e
+  // sem ele na lista trocar de idioma deixaria o gráfico com as datas do idioma
+  // anterior até a próxima mudança de filtro.
+  locale = undefined
 }) {
   const { palette } = useTheme()
 
@@ -67,7 +72,7 @@ export default function useDashboardCharts({
       console.error('Erro ao processar timestamps:', err)
     }
     const timestampsUnicos = Array.from(allTimestampsSet).sort()
-    const labels = timestampsUnicos.map(t => toLocalChartLabel(t))
+    const labels = timestampsUnicos.map((ts) => toLocalChartLabel(ts, locale))
 
     const moedasOrdenadas = Object.keys(historicosPorMoeda).filter(sig => historicosPorMoeda[sig]?.length > 0)
     const multi = moedasOrdenadas.length > 1
@@ -172,7 +177,7 @@ export default function useDashboardCharts({
     // sem dado simplesmente não exibe a linha no tooltip — antes daqui saía um
     // valor aleatório, indistinguível de sentimento medido de verdade.
     timestampsUnicos.forEach(ts => {
-      const label = toLocalChartLabel(ts)
+      const label = toLocalChartLabel(ts, locale)
 
       moedasOrdenadas.forEach(sigla => {
         const fg = realFGMap.get(sigla)?.get(ts)
@@ -305,7 +310,7 @@ export default function useDashboardCharts({
       correlacao,
       sentimentMap
     }
-  }, [historicosPorMoeda, dataInicio, dataFim, resultadoFiltro, normalizacao, fearGreedPorMoeda, trendPorMoeda, t])
+  }, [historicosPorMoeda, dataInicio, dataFim, resultadoFiltro, normalizacao, fearGreedPorMoeda, trendPorMoeda, t, locale])
 
   const sentimentFooter = (context) => {
     const label = context[0].label;

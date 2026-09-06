@@ -20,6 +20,7 @@ import {
 import Modal from '../Modal'
 import CryptoIcon from '../CryptoIcon'
 import useTranslation from '../../hooks/useTranslation'
+import { toLocal } from '../../utils/dateUtils'
 import * as mathUtils from '../../utils/mathUtils'
 import {
   DirecaoAlerta,
@@ -46,7 +47,7 @@ export default function AlertaPrecoModal({
   onExcluir,
   notificacoesLigadas,
 }) {
-  const { t } = useTranslation()
+  const { t, idioma } = useTranslation()
   const [sigla, setSigla] = useState(moedaInicial || 'BTC')
   const [valorAlvo, setValorAlvo] = useState('')
   const [salvando, setSalvando] = useState(false)
@@ -357,7 +358,7 @@ export default function AlertaPrecoModal({
                       {disparado
                         ? t('alertas.disparadoEm', {
                             valor: mathUtils.formatCurrency(a.valorDisparo ?? a.valorAlvo),
-                            data: a.dataDisparo ? new Date(a.dataDisparo).toLocaleString() : '',
+                            data: toLocal(a.dataDisparo, idioma.intl),
                           })
                         : t('alertas.aguardando')}
                     </Typography>

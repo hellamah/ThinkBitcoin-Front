@@ -106,6 +106,7 @@ export default function SimulationPanel({
   carregando,
   erro,
   t,
+  locale,
 }) {
   const theme = useTheme()
   // `theme.palette.mode` nao aparece dentro do callback, e por isso a regra o
@@ -123,7 +124,7 @@ export default function SimulationPanel({
   const dadosCurva = useMemo(() => {
     if (!pontos) return null
     return {
-      labels: pontos.rotulos.map((r) => (r ? toLocalChartLabel(r) : '')),
+      labels: pontos.rotulos.map((r) => (r ? toLocalChartLabel(r, locale) : '')),
       datasets: [
         {
           label: t('simulationEquity'),
@@ -165,7 +166,9 @@ export default function SimulationPanel({
         },
       ],
     }
-  }, [pontos, cores, t])
+    // `locale` entra na lista porque os rótulos do eixo são montados aqui
+    // dentro: sem ele, trocar de idioma deixaria o gráfico no formato anterior.
+  }, [pontos, cores, t, locale])
 
   const opcoesCurva = useMemo(() => {
     if (!pontos) return null
@@ -732,13 +735,13 @@ export default function SimulationPanel({
                     <td>
                       {mathUtils.formatCurrency(op.precoEntrada)}
                       <span className="simulation-instante">
-                        {toLocalChartLabel(op.instanteEntrada)}
+                        {toLocalChartLabel(op.instanteEntrada, locale)}
                       </span>
                     </td>
                     <td>
                       {mathUtils.formatCurrency(op.precoSaida)}
                       <span className="simulation-instante">
-                        {toLocalChartLabel(op.instanteSaida)}
+                        {toLocalChartLabel(op.instanteSaida, locale)}
                       </span>
                     </td>
                     <td>{op.barrasSeguradas}</td>

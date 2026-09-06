@@ -32,13 +32,17 @@ import {
   Filler,
 } from 'chart.js'
 import 'chartjs-adapter-date-fns'
-import { ptBR } from 'date-fns/locale'
+// O eixo de tempo do scatter estava cravado em pt-BR: o mês vinha em português
+// e a data em ordem brasileira, independentemente do idioma escolhido na tela.
+// Os cinco entram estaticamente porque são ~2 KB cada e o gráfico não pode
+// esperar um import dinâmico para desenhar o primeiro quadro.
+import { ptBR, enUS, es, fr, it } from 'date-fns/locale'
 import zoomPlugin from 'chartjs-plugin-zoom'
 import { Line, Bar, Scatter, Doughnut, Radar } from 'react-chartjs-2'
 import { useTheme } from '@mui/material/styles'
 import ErrorMessage from '../components/ErrorMessage'
 import { apiRequest, TreinamentoEpisodioEndpoint, MarketEndpoint, VariavelExternaEndpoint } from '../utils/apiClient'
-import { toUTCISO } from '../utils/dateUtils'
+import { toUTCISO, padraoDeDataCurta } from '../utils/dateUtils'
 import { readToken } from '../utils/themeTokens'
 import useTranslation from '../hooks/useTranslation'
 
@@ -137,11 +141,17 @@ const formatPercent = (value) => {
   if (value === null || value === undefined || Number.isNaN(value)) return '-'
   return `${(Number(value) * 100).toFixed(2)}%`
 }
-const formatDate = (value) => {
+const formatDate = (value, locale) => {
   if (!value) return '-'
   const d = new Date(value)
-  return Number.isNaN(d.getTime()) ? value : d.toLocaleString()
+  return Number.isNaN(d.getTime()) ? value : d.toLocaleString(locale)
 }
+
+// Locale do date-fns por código de idioma, para o adaptador de tempo do
+// Chart.js. Fica aqui, e não no registro de idiomas, porque é dependência de
+// biblioteca de gráfico: o lang/index.js não deve passar a importar date-fns
+// só porque uma tela desenha um eixo temporal.
+const LOCALE_DATE_FNS = Object.freeze({ pt: ptBR, en: enUS, es, fr, it })
 
 // Backend aceita ISO 8601 sem timezone (ex.: 2026-07-01T16:00:00), casando com o
 // formato de dataHora retornado. Componentes LOCAIS para bater com o eixo do gráfico.
@@ -223,17 +233,20 @@ const getColumns = (t) => [
 
 const xTicks = (dk) => ({ color: tickColor(dk), maxRotation: 0, autoSkip: true, maxTicksLimit: 10 })
 
-// Mostra "#ep · data/hora" no título do tooltip quando o dataset expõe `metaDates`
-const tooltipTitleWithDate = (its) => {
+// Mostra "#ep · data/hora" no título do tooltip quando o dataset expõe `metaDates`.
+// É fábrica, e não o callback direto: o Chart.js chama o callback com o contexto
+// dele, não com o nosso, então o locale só chega aqui por fechamento — montado
+// junto das opções, onde ele existe.
+const tooltipTitleWithDate = (locale) => (its) => {
   if (!its || its.length === 0) return ''
   const first = its[0]
   const d = first.chart?.data?.metaDates?.[first.dataIndex]
   if (!d) return first.label ?? ''
   const dt = new Date(d)
-  return Number.isNaN(dt.getTime()) ? first.label : `${first.label} · ${dt.toLocaleString()}`
+  return Number.isNaN(dt.getTime()) ? first.label : `${first.label} · ${dt.toLocaleString(locale)}`
 }
 
-const baseChartOptions = (dk, extra = {}) => {
+const baseChartOptions = (dk, extra = {}, locale = undefined) => {
   const { plugins: extraPlugins, scales: extraScales, ...rest } = extra
   return {
     responsive: true,
@@ -248,7 +261,7 @@ const baseChartOptions = (dk, extra = {}) => {
         titleColor: ACCENT,
         bodyColor: tooltipBody(dk),
         padding: 10,
-        callbacks: { title: tooltipTitleWithDate },
+        callbacks: { title: tooltipTitleWithDate(locale) },
       },
       zoom: ZOOM_CONFIG,
       ...(extraPlugins || {}),
@@ -332,7 +345,7 @@ function ZoomableChartCard({ title, subtitle, height, ChartComp, data, options, 
 function EvolucaoCard({ items, onSelectCoin }) {
   const { palette } = useTheme()
   const dk = palette.mode === 'dark'
-  const { t } = useTranslation()
+  const { t, idioma } = useTranslation()
   if (!items || items.length === 0) return null
   const sorted = [...items].sort((a, b) => (b.episodios ?? 0) - (a.episodios ?? 0))
   return (
@@ -409,7 +422,7 @@ function EvolucaoCard({ items, onSelectCoin }) {
                   </TableCell>
                   <TableCell align="right">{formatNumber(r.lossMedio, 2)}</TableCell>
                   <TableCell align="right">
-                    <Typography variant="caption" sx={{ opacity: 0.7 }}>{formatDate(r.dataHoraAtual)}</Typography>
+                    <Typography variant="caption" sx={{ opacity: 0.7 }}>{formatDate(r.dataHoraAtual, idioma.intl)}</Typography>
                   </TableCell>
                 </TableRow>
               )
@@ -513,7 +526,7 @@ function ChartCard({ title, subtitle, children, height = { xs: 280, md: 320 }, a
 function ListView({ items, resumo, serie, loading, loadingRange, error, onRefresh, onOpen, selectedCoins, setSelectedCoins, selectedVersao, setSelectedVersao, visibleRange, setVisibleRange }) {
   const { palette } = useTheme()
   const dk = palette.mode === 'dark'
-  const { t } = useTranslation()
+  const { t, idioma } = useTranslation()
   const columns = useMemo(() => getColumns(t), [t])
   const [orderBy, setOrderBy] = useState('episodio')
   const [order, setOrder] = useState('desc')
@@ -567,12 +580,21 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
   // Fixar min/max aqui fazia cada chart.update() re-aplicar a janela e sobrescrever
   // o zoom; e, quando esse min/max era o [agora-1h, agora] do mount, o scatter abria
   // numa janela vazia sempre que o último episódio era mais antigo que 1h.
+  // Ordem de dia e mes no eixo, derivada do idioma uma vez so.
+  const dataCurta = useMemo(() => padraoDeDataCurta(idioma.intl), [idioma.intl])
+
   const scatterOptions = useMemo(() => baseChartOptions(dk, {
     scales: {
       x: {
         type: 'time',
-        adapters: { date: { locale: ptBR } },
-        time: { tooltipFormat: 'dd/MM HH:mm:ss', displayFormats: { minute: 'HH:mm', hour: 'HH:mm', day: 'dd/MM' } },
+        // Locale e ordem dos campos vêm do idioma escolhido. Cravados em pt-BR
+        // e em `dd/MM`, o eixo dizia `04/01` para todo mundo — 1º de abril para
+        // uns, 4 de janeiro para outros, sem nada na tela desempatando.
+        adapters: { date: { locale: LOCALE_DATE_FNS[idioma.codigo] ?? ptBR } },
+        time: {
+          tooltipFormat: `${dataCurta} HH:mm:ss`,
+          displayFormats: { minute: 'HH:mm', hour: 'HH:mm', day: dataCurta },
+        },
         ticks: { color: tickColor(dk), maxRotation: 0, autoSkip: true, maxTicksLimit: 8 },
         grid: { color: gridColor(dk) },
       },
@@ -600,7 +622,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
           label: (ctx) => {
             const p = ctx.raw
             return [
-              `${t('treinamento.scatterDate')}: ${new Date(p.x).toLocaleString()}`,
+              `${t('treinamento.scatterDate')}: ${new Date(p.x).toLocaleString(idioma.intl)}`,
               ...(p.versaoModelo ? [`${t('treinamento.scatterVersion')}: ${p.versaoModelo}`] : []),
               `${t('treinamento.scatterDuration')}: ${p.duracao.toFixed(1)}s`,
               `${t('treinamento.scatterReward')}: ${p.rewardMedio.toFixed(4)}`,
@@ -617,40 +639,40 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
         pan: { ...ZOOM_CONFIG.pan, onPan: ({ chart }) => handleRangeChange(chart) },
       },
     },
-  }), [handleRangeChange, dk, t])
+  }, idioma.intl), [handleRangeChange, dk, t, idioma.codigo, idioma.intl, dataCurta])
 
-  const defaultChartOptions = useMemo(() => baseChartOptions(dk), [dk])
+  const defaultChartOptions = useMemo(() => baseChartOptions(dk, {}, idioma.intl), [dk, idioma.intl])
   const lossEpsilonOptions = useMemo(() => baseChartOptions(dk, {
     scales: {
       x: { ticks: xTicks(dk), grid: { color: gridColor(dk) } },
       y: { type: 'linear', position: 'left', beginAtZero: true, ticks: { color: '#FF5C7C' }, grid: { color: gridColor(dk) }, title: { display: true, text: 'Loss', color: '#FF5C7C' } },
       y1: { type: 'linear', position: 'right', min: 0, max: 1, ticks: { color: '#5CB8FF' }, grid: { drawOnChartArea: false }, title: { display: true, text: 'Epsilon', color: '#5CB8FF' } },
     },
-  }), [dk])
+  }, idioma.intl), [dk, idioma.intl])
   const winRateOptions = useMemo(() => baseChartOptions(dk, {
     scales: {
       x: { ticks: xTicks(dk), grid: { color: gridColor(dk) } },
       y: { ticks: { color: tickColor(dk), callback: (v) => `${v}%` }, grid: { color: gridColor(dk) }, min: 0, suggestedMax: 60 },
     },
-  }), [dk])
+  }, idioma.intl), [dk, idioma.intl])
   const duracaoOptions = useMemo(() => baseChartOptions(dk, {
     scales: {
       x: { ticks: { color: tickColor(dk), maxRotation: 0, autoSkip: true }, grid: { color: gridColor(dk) } },
       y: { ticks: { color: tickColor(dk), callback: (v) => `${v}s` }, grid: { color: gridColor(dk) } },
     },
-  }), [dk])
+  }, idioma.intl), [dk, idioma.intl])
   const comparativoOptions = useMemo(() => baseChartOptions(dk, {
     scales: {
       x: { ticks: { color: tickColor(dk) }, grid: { color: gridColor(dk) } },
       y: { ticks: { color: tickColor(dk) }, grid: { color: gridColor(dk) } },
     },
-  }), [dk])
+  }, idioma.intl), [dk, idioma.intl])
   const acoesOptions = useMemo(() => baseChartOptions(dk, {
     scales: {
       x: { stacked: true, ticks: { color: tickColor(dk) }, grid: { color: gridColor(dk) } },
       y: { stacked: true, ticks: { color: tickColor(dk) }, grid: { color: gridColor(dk) } },
     },
-  }), [dk])
+  }, idioma.intl), [dk, idioma.intl])
 
   // Lista de moedas para o filtro vem do RESUMO (fonte de verdade global,
   // independente do filtro server-side atual). Cai pra items se resumo vazio.
@@ -1398,7 +1420,7 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
                       sx={{ cursor: 'pointer', '&:hover': { background: hoverBg(dk) } }}
                     >
                       <TableCell align="right">{row.episodio}</TableCell>
-                      <TableCell>{formatDate(row.dataHora)}</TableCell>
+                      <TableCell>{formatDate(row.dataHora, idioma.intl)}</TableCell>
                       <TableCell>
                         <Chip
                           label={row.moeda}
@@ -1470,7 +1492,7 @@ function EpisodioNaoEncontrado({ onBack }) {
 function DetailView({ item, allItems, onBack, onNavigate }) {
   const { palette } = useTheme()
   const dk = palette.mode === 'dark'
-  const { t } = useTranslation()
+  const { t, idioma } = useTranslation()
 
   // ── Dados da mesma moeda ──
   const sameCoinItems = useMemo(() =>
@@ -1829,6 +1851,8 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
     },
   }), [epInicioMs, epFimMs])
 
+  const dataCurtaDetalhe = useMemo(() => padraoDeDataCurta(idioma.intl), [idioma.intl])
+
   const mercadoChartOptions = useMemo(() => ({
     responsive: true,
     maintainAspectRatio: false,
@@ -1847,14 +1871,21 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
     scales: {
       x: {
         type: 'time',
-        adapters: { date: { locale: ptBR } },
-        time: { tooltipFormat: 'dd/MM HH:mm:ss', displayFormats: { minute: 'HH:mm', hour: 'HH:mm' } },
+        // Segundo eixo de tempo da tela, com a mesma correção do scatter.
+        adapters: { date: { locale: LOCALE_DATE_FNS[idioma.codigo] ?? ptBR } },
+        time: {
+          tooltipFormat: `${dataCurtaDetalhe} HH:mm:ss`,
+          displayFormats: { minute: 'HH:mm', hour: 'HH:mm' },
+        },
         ticks: xTicks(dk),
         grid: { color: gridColor(dk) },
       },
       y: { ticks: { color: tickColor(dk) }, grid: { color: gridColor(dk) } },
     },
-  }), [dk])
+    // Este `useMemo` devolve um objeto literal, não uma chamada de
+    // `baseChartOptions`: o locale entra pelas referências acima, não por
+    // argumento.
+  }), [dk, idioma.codigo, dataCurtaDetalhe])
 
   // ── Delta helpers ──
   const delta = (val, avg) => {
@@ -1942,7 +1973,7 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
                 }}
               />
             )}
-            <Typography variant="body2" sx={{ opacity: 0.7 }}>{formatDate(item.dataHora)}</Typography>
+            <Typography variant="body2" sx={{ opacity: 0.7 }}>{formatDate(item.dataHora, idioma.intl)}</Typography>
             {ranking.position && (
               <Chip
                 icon={<MdLeaderboard size={14} />}
@@ -2146,7 +2177,7 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
                 {[
                   [t('treinamento.episode'), `#${item.episodio}`, null, null],
                   [t('treinamento.modelVersionLabel'), item.versaoModelo ?? '-', { color: '#A78BFA' }, null],
-                  [t('treinamento.dateTime'), formatDate(item.dataHora), null, null],
+                  [t('treinamento.dateTime'), formatDate(item.dataHora, idioma.intl), null, null],
                   [t('treinamento.rewardTotal'), formatNumber(item.rewardTotal, 2), { color: (item.rewardTotal ?? 0) >= 0 ? '#14F195' : '#FF5C7C' }, null],
                   [t('treinamento.actionsHold'), item.acoesHold ?? 0, { color: 'rgba(160,160,160,0.9)' }, totalAcoes > 0 ? `${(((item.acoesHold ?? 0) / totalAcoes) * 100).toFixed(1)}%` : null],
                   [t('treinamento.actionsBuy'), item.acoesCompra ?? 0, { color: '#14F195' }, totalAcoes > 0 ? `${(((item.acoesCompra ?? 0) / totalAcoes) * 100).toFixed(1)}%` : null],
@@ -2262,7 +2293,7 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
               <Box sx={{ mb: 2 }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{t('treinamento.prevComparison')}</Typography>
                 <Typography variant="caption" sx={{ opacity: 0.6 }}>
-                  #{prevItem.episodio} ({formatDate(prevItem.dataHora)}) → #{item.episodio} ({formatDate(item.dataHora)})
+                  #{prevItem.episodio} ({formatDate(prevItem.dataHora, idioma.intl)}) → #{item.episodio} ({formatDate(item.dataHora, idioma.intl)})
                 </Typography>
               </Box>
               <Grid container spacing={2}>

@@ -541,7 +541,9 @@ export default function Dashboard() {
     fearGreedPorMoeda,
     trendPorMoeda,
     modoPreco,
-    t
+    t,
+    // As datas do eixo seguem o idioma escolhido, como o texto ao lado delas.
+    locale: idioma.intl
   })
 
   const comparativo = useMemo(
@@ -680,6 +682,7 @@ export default function Dashboard() {
 
         <div data-tour="dash-graficos">
         <DashboardCharts
+          locale={idioma.intl}
           multiMoeda={chartConfig.multiMoeda}
           normalizacao={normalizacao}
           setNormalizacao={setNormalizacao}
@@ -734,6 +737,7 @@ export default function Dashboard() {
             carregando={carregandoSimulacao}
             erro={erroSimulacao}
             t={t}
+            locale={idioma.intl}
           />
           </div>
         )}
@@ -751,6 +755,7 @@ export default function Dashboard() {
             pagina={pagina}
             setPagina={setPagina}
             t={t}
+            locale={idioma.intl}
           />
         </div>
       </div>

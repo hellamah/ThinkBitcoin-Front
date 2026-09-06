@@ -56,13 +56,13 @@ const SLUG_POR_TIPO = Object.freeze({
   [TipoConsentimento.TERMOS]: DocumentoSlug.TERMOS,
 })
 
-function LinhaDocumento({ tipo, registro, onRevogar, ocupado, t }) {
+function LinhaDocumento({ tipo, registro, onRevogar, ocupado, t, locale }) {
   const concedido = registro?.concedido === true
   const slug = SLUG_POR_TIPO[tipo]
 
   const descricao = registro
     ? t(concedido ? 'consentimento.painel.aceitoEm' : 'consentimento.painel.revogadoEm', {
-        data: toLocal(registro.dataRegistro),
+        data: toLocal(registro.dataRegistro, locale),
       }) +
       (registro.versaoDocumento
         ? t('consentimento.painel.sufixoVersao', { versao: registro.versaoDocumento })
@@ -133,7 +133,7 @@ function LinhaDocumento({ tipo, registro, onRevogar, ocupado, t }) {
 
 function MeusConsentimentosPanel() {
   const { token } = useAuth()
-  const { t } = useTranslation()
+  const { t, idioma } = useTranslation()
   const { historico, carregando, erro, carregarHistorico, registrar } = useConsentimento(token)
   const [ocupado, setOcupado] = useState(false)
   const [aviso, setAviso] = useState('')
@@ -227,6 +227,7 @@ function MeusConsentimentosPanel() {
         onRevogar={revogar}
         ocupado={ocupado}
         t={t}
+        locale={idioma.intl}
       />
       <LinhaDocumento
         tipo={TipoConsentimento.TERMOS}
@@ -234,6 +235,7 @@ function MeusConsentimentosPanel() {
         onRevogar={revogar}
         ocupado={ocupado}
         t={t}
+        locale={idioma.intl}
       />
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1.5, flexWrap: 'wrap' }}>
@@ -244,7 +246,7 @@ function MeusConsentimentosPanel() {
           <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.76rem' }}>
             {atuais[TipoConsentimento.COOKIES]
               ? t('consentimento.painel.ultimaAlteracao', {
-                  data: toLocal(atuais[TipoConsentimento.COOKIES].dataRegistro),
+                  data: toLocal(atuais[TipoConsentimento.COOKIES].dataRegistro, idioma.intl),
                 })
               : t('consentimento.painel.semRegistroCookies')}
           </Typography>
@@ -290,7 +292,7 @@ function MeusConsentimentosPanel() {
                 {registro.versaoDocumento ? ` v${registro.versaoDocumento}` : ''}
               </Typography>
               <Typography sx={{ color: 'var(--text-faint)', fontSize: '0.74rem' }}>
-                {toLocal(registro.dataRegistro)}
+                {toLocal(registro.dataRegistro, idioma.intl)}
                 {CHAVE_ORIGEM[registro.origem] ? ` · ${t(CHAVE_ORIGEM[registro.origem])}` : ''}
                 {registro.enderecoIp ? ` · IP ${registro.enderecoIp}` : ''}
               </Typography>

@@ -36,6 +36,7 @@ import CircularProgress from '@mui/material/CircularProgress'
 import '../App.css'
 import { useAuth } from '../context/AuthContext'
 import useTranslation from '../hooks/useTranslation'
+import { toLocal } from '../utils/dateUtils'
 import {
   apiRequest,
   AuthenticationEndpoint,
@@ -61,7 +62,7 @@ import ExcluirContaModal from '../components/ExcluirContaModal'
 import MeusConsentimentosPanel from '../components/MeusConsentimentosPanel'
 
 function Settings() {
-  const { t } = useTranslation()
+  const { t, idioma } = useTranslation()
   const navigate = useNavigate()
   const { token, user, prefs, login, logout, updatePreferences } = useAuth()
   const [localPrefs, setLocalPrefs] = useState(prefs)
@@ -485,7 +486,7 @@ function Settings() {
                         {a.status === StatusAlerta.DISPARADO
                           ? t('alertas.disparadoEm', {
                               valor: mathUtils.formatCurrency(a.valorDisparo ?? a.valorAlvo),
-                              data: a.dataDisparo ? new Date(a.dataDisparo).toLocaleString() : '',
+                              data: toLocal(a.dataDisparo, idioma.intl),
                             })
                           : t('alertas.aguardando')}
                       </Typography>
