@@ -649,7 +649,7 @@ export default function SimulationPanel({
                               seletor lá em cima é trabalho manual à toa. */}
                           <button
                             type="button"
-                            className="simulation-link-sinal"
+                            className="botao-nu simulation-link-sinal"
                             onClick={() => onParametro('sinalEntrada', linha.sinal)}
                           >
                             {t(`signal_${linha.sinal}`)}

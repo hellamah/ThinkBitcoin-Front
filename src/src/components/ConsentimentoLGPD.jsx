@@ -282,12 +282,31 @@ export default function ConsentimentoLGPD({ pendencias, onConcluir }) {
                 label={
                   <Typography variant="body2" sx={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
                     {t('consentimento.liEAceito')}{' '}
-                    <span
-                      style={{ color: 'var(--accent-ink)', cursor: 'pointer', textDecoration: 'underline' }}
-                      onClick={() => setAba(indice)}
+                    {/* Era um <span> com onClick — e o título do documento é o
+                        caminho para LER o que se está aceitando. Num aceite de
+                        LGPD, deixá-lo fora do alcance do teclado é o avesso do
+                        consentimento informado.
+
+                        A guarda existe porque isto vive dentro do <label> da
+                        caixa de seleção, e ir ler o documento não pode marcar o
+                        aceite no caminho. O HTML sozinho já evitaria: o label
+                        não repassa o clique quando o alvo é conteúdo
+                        interativo, e um <button> é. Ela fica como cinto de
+                        segurança contra o FormControlLabel do MUI, que instala
+                        o próprio tratamento de clique — não queremos que o
+                        consentimento dependa desse detalhe de biblioteca. */}
+                    <button
+                      type="button"
+                      className="botao-nu"
+                      style={{ color: 'var(--accent-ink)', textDecoration: 'underline' }}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        setAba(indice)
+                      }}
                     >
                       {p.titulo}
-                    </span>{' '}
+                    </button>{' '}
                     <span style={{ color: 'var(--text-faint)' }}>
                       {t('consentimento.versaoCurta', { versao: p.versao })}
                     </span>

@@ -158,13 +158,21 @@ function Login() {
              />
 
             <Box sx={{ textAlign: 'right', mt: -1, mb: 1 }}>
+              {/* Era um <span> com onClick: o único caminho para recuperar a
+                  senha não existia para quem navega por teclado, e o leitor de
+                  tela anunciava a frase como texto comum.
+
+                  `type="button"` não é detalhe: isto vive dentro do <form> de
+                  login, e o padrão do HTML para botão sem type é submit —
+                  abrir o modal passaria a tentar autenticar junto. */}
               <Typography
-                component="span"
+                component="button"
+                type="button"
+                className="botao-nu"
                 onClick={abrirModalRecuperacao}
                 sx={{
                   color: 'var(--text-muted)',
                   fontSize: '0.8rem',
-                  cursor: 'pointer',
                   '&:hover': { color: 'var(--accent-ink)' },
                   transition: 'color 0.2s',
                 }}

@@ -166,9 +166,11 @@ function DocumentoLegal({ documento }) {
             <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
               {t('documentos.versaoEncerrada')}{' '}
               <Box
-                component="span"
+                component="button"
+                type="button"
+                className="botao-nu"
                 onClick={() => setSearchParams({})}
-                sx={{ color: 'var(--accent-ink)', cursor: 'pointer', textDecoration: 'underline' }}
+                sx={{ color: 'var(--accent-ink)', textDecoration: 'underline' }}
               >
                 {t('documentos.verVersaoVigente')}
               </Box>
@@ -188,15 +190,21 @@ function DocumentoLegal({ documento }) {
               versoes.map((v) => (
                 <Box
                   key={v.idDocumentoLegal}
+                  component="button"
+                  type="button"
+                  className="botao-nu"
+                  aria-current={exibido?.idDocumentoLegal === v.idDocumentoLegal ? 'true' : undefined}
                   onClick={() => selecionarVersao(v)}
                   sx={{
                     display: 'flex',
                     flexDirection: 'column',
+                    alignItems: 'stretch',
+                    width: '100%',
+                    textAlign: 'left',
                     gap: 0.25,
                     p: 1.25,
                     mb: 1,
                     borderRadius: 1.5,
-                    cursor: 'pointer',
                     border: '1px solid var(--border)',
                     backgroundColor:
                       exibido?.idDocumentoLegal === v.idDocumentoLegal ? 'var(--accent-a08)' : 'transparent',

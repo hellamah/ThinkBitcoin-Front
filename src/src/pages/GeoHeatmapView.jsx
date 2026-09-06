@@ -1070,15 +1070,23 @@ export default function GeoHeatmapView() {
               fontFamily: 'Outfit, sans-serif',
             }}>
               ⚡ {t('heatmap.cacheAtivo') || 'Dados em cache (< 5 min)'}
-              <MdRefresh
-                size={13}
-                style={{ cursor: 'pointer', opacity: 0.6 }}
+              {/* O onClick estava no <svg> do ícone: o único jeito de forçar
+                  a releitura era clicar num desenho, que nem o teclado alcança
+                  nem o leitor de tela anuncia. */}
+              <button
+                type="button"
+                className="botao-nu"
+                aria-label={t('heatmap.forcarAtualizacao')}
+                title={t('heatmap.forcarAtualizacao')}
+                style={{ display: 'inline-flex', opacity: 0.6 }}
                 onClick={() => {
                   setDadosDoCacheAtivo(false)
                   setHeatmapRaw(null)
                   carregarHeatmap(true)
                 }}
-              />
+              >
+                <MdRefresh size={13} />
+              </button>
             </Box>
           </Fade>
         )}
@@ -1125,10 +1133,18 @@ export default function GeoHeatmapView() {
               OCEANIA: t('heatmap.regiaoOceania') || 'Oceania',
             }[key]
             return (
+              // Filtro de região do mapa: um dos controles principais da tela, e
+              // era um <Box> com onClick. `disabled` substitui a guarda de
+              // `if (!isActive) return`, que deixava a pílula clicável e inerte
+              // — o navegador agora avisa antes do clique, em vez de engolir.
               <Box
                 key={key}
+                component="button"
+                type="button"
+                className="botao-nu"
+                disabled={!isActive}
+                aria-pressed={isSelected}
                 onClick={() => {
-                  if (!isActive) return
                   setRegionSelecionada(value)
                   if (paisSelecionado) {
                     const countryRegion = getRegionForCountry(paisSelecionado)
@@ -1236,9 +1252,14 @@ export default function GeoHeatmapView() {
                       topRegioes.map((reg, idx) => (
                         <Box
                           key={reg.country}
+                          component="button"
+                          type="button"
+                          className="botao-nu"
+                          aria-pressed={paisSelecionado === reg.country}
                           onClick={() => handleCountryClick(reg.country)}
                           sx={{
-                            display: 'flex', flexDirection: 'column', gap: 0.8, cursor: 'pointer',
+                            display: 'flex', flexDirection: 'column', alignItems: 'stretch',
+                            width: '100%', textAlign: 'left', gap: 0.8, cursor: 'pointer',
                             p: 1.2, borderRadius: '8px',
                             transition: 'all 0.2s cubic-bezier(0.165, 0.84, 0.44, 1)',
                             background: paisSelecionado === reg.country ? 'rgba(255, 215, 0, 0.04)' : 'transparent',

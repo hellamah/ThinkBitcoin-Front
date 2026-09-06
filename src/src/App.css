@@ -937,7 +937,16 @@
   justify-content: center;
 }
 
-.chart-panel-clickable:hover .chart-expand-icon {
+/* O foco revela o ícone junto com o hover. Ele é um botão de verdade, e um
+   botão focado invisível é pior que nenhum: o teclado para num lugar que a tela
+   não mostra.
+
+   `:focus`, e não `:focus-visible`: aqui o elemento é invisível por padrão, e
+   `:focus-visible` depende de como o foco chegou — o navegador não o aplica a
+   um `.focus()` programático, por exemplo. Para revelar algo que some, a
+   pergunta certa é "está focado?", não "merece anel de foco?". */
+.chart-panel-clickable:hover .chart-expand-icon,
+.chart-expand-icon:focus {
   opacity: 1;
 }
 
@@ -1378,8 +1387,15 @@
    arquivo, então o botão de fechar herdava o gradiente dourado, o padding e o
    raio do CTA de submit — um botão de ação primária em cima de um alerta de
    erro. O seletor passa a dizer o que sempre quis dizer: o botão principal do
-   formulário, não todo botão que caia dentro do card. */
-.form-card button:not(.btn-close-premium) {
+   formulário, não todo botão que caia dentro do card.
+
+   `.botao-nu` entrou na lista pelo mesmo motivo, e o caso mostra que a armadilha
+   não era pontual: ao transformar o "Esqueci minha senha" de <span> em <button>,
+   o link discreto saiu vestido de CTA dourado. Todo controle que passar a ser
+   botão de verdade aqui dentro cai nesta regra — por isso a exclusão é pela
+   classe que declara "isto não se parece com um botão", e não por mais um nome
+   específico. */
+.form-card button:not(.btn-close-premium):not(.botao-nu) {
   background: linear-gradient(135deg, var(--color-primary) 0%, #e0b800 100%);
   color: var(--text-on-accent);
   border: none;
@@ -1393,17 +1409,17 @@
   cursor: pointer;
 }
 
-.form-card button:not(.btn-close-premium):hover {
+.form-card button:not(.btn-close-premium):not(.botao-nu):hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
   filter: brightness(1.1);
 }
 
-.form-card button:not(.btn-close-premium):active {
+.form-card button:not(.btn-close-premium):not(.botao-nu):active {
   transform: translateY(0);
 }
 
-.form-card button:not(.btn-close-premium):disabled {
+.form-card button:not(.btn-close-premium):not(.botao-nu):disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
@@ -3413,14 +3429,48 @@
 
 /* Nome do sinal na tabela de ranking: é um botão que troca a simulação em
    detalhe, mas visualmente precisa continuar sendo o rótulo da linha. */
-.simulation-link-sinal {
+/* ==========================================================================
+   Botão sem aparência de botão
+   --------------------------------------------------------------------------
+   Para todo controle que é AÇÃO mas não se parece com um botão: um link no meio
+   de uma frase, a linha de uma lista que abre um detalhe, o ícone que expande
+   um gráfico, a pílula que troca de região no mapa.
+
+   Existe porque a alternativa espalhada pela interface era `onClick` num
+   `<div>`, num `<span>` ou num `<Box>` — que o mouse alcança e o teclado não.
+   Quem navega por Tab nunca parava ali, e o leitor de tela lia aquilo como
+   texto comum, sem dizer que havia o que fazer. Em "Esqueci minha senha", na
+   tela de login, isso queria dizer não existir caminho para recuperar a senha
+   sem mouse.
+
+   A classe começa desfazendo o `button` do index.css, que veste todo botão com
+   borda, fundo e padding: aqui a aparência continua vindo do contexto e só a
+   semântica muda de lugar.
+   ========================================================================== */
+.botao-nu {
+  appearance: none;
+  -webkit-appearance: none;
   background: none;
-  border: none;
+  border: 0;
   padding: 0;
+  margin: 0;
   font: inherit;
-  color: var(--accent-ink);
+  color: inherit;
+  text-align: inherit;
   cursor: pointer;
-  text-align: left;
+}
+
+/* O anel de foco é a única pista de onde o teclado está — e o `button:focus` do
+   index.css usa a cor do sistema, que some sobre o fundo escuro do produto. */
+.botao-nu:focus-visible {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* Herda o desmonte de `.botao-nu` e só acrescenta a cor de link. */
+.simulation-link-sinal {
+  color: var(--accent-ink);
 }
 
 .simulation-link-sinal:hover,

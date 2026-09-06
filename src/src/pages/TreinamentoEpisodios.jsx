@@ -387,10 +387,18 @@ function EvolucaoCard({ items, onSelectCoin }) {
                   onClick={() => onSelectCoin?.(r.moeda)}
                   sx={{ cursor: 'pointer', '&:hover': { background: hoverBg(dk) } }}
                 >
+                  {/* A linha inteira continua clicável para o mouse, mas <tr>
+                      não pode virar botão sem quebrar a semântica da tabela: o
+                      alvo do teclado passa a ser o chip da moeda, que já é o
+                      nome natural da ação ("filtrar por ADA"). Com `onClick` o
+                      Chip do MUI vira um botão de verdade, focável e ativável
+                      por Enter e espaço. */}
                   <TableCell>
                     <Chip
                       label={r.moeda}
                       size="small"
+                      clickable
+                      onClick={() => onSelectCoin?.(r.moeda)}
                       sx={{
                         background: coinColor(r.moeda) + '33',
                         color: coinInk(r.moeda, dk),
@@ -455,10 +463,15 @@ function TopEpisodiosCard({ title, subtitle, items, accent, onOpen }) {
         {items.map((r, idx) => (
           <Box
             key={r.idTreinamentoEpisodio}
+            component="button"
+            type="button"
+            className="botao-nu"
             onClick={() => onOpen(r.idTreinamentoEpisodio)}
             sx={{
               display: 'flex',
               alignItems: 'center',
+              width: '100%',
+              textAlign: 'left',
               gap: 1.5,
               p: 1,
               borderRadius: 1,
@@ -1419,7 +1432,21 @@ function ListView({ items, resumo, serie, loading, loadingRange, error, onRefres
                       onClick={() => onOpen(row.idTreinamentoEpisodio)}
                       sx={{ cursor: 'pointer', '&:hover': { background: hoverBg(dk) } }}
                     >
-                      <TableCell align="right">{row.episodio}</TableCell>
+                      {/* Mesmo caso da tabela de evolução: a linha segue
+                          clicável para o mouse, e o número do episódio vira o
+                          botão que o teclado alcança. */}
+                      <TableCell align="right">
+                        <Box
+                          component="button"
+                          type="button"
+                          className="botao-nu"
+                          aria-label={t('treinamento.abrirEpisodio', { episodio: row.episodio })}
+                          onClick={() => onOpen(row.idTreinamentoEpisodio)}
+                          sx={{ color: 'var(--accent-ink)', fontWeight: 600 }}
+                        >
+                          {row.episodio}
+                        </Box>
+                      </TableCell>
                       <TableCell>{formatDate(row.dataHora, idioma.intl)}</TableCell>
                       <TableCell>
                         <Chip

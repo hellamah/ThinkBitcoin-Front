@@ -155,7 +155,17 @@ export default function DashboardCharts({
           className="panel chart-panel chart-panel-clickable"
           onClick={() => setExpandedChart(ChartType.TRADED_VALUE)}
         >
-          <div className="chart-expand-icon"><MdFullscreen /></div>
+          {/* O painel inteiro segue clicavel para o mouse, mas o alvo do
+              teclado e este botao: sem ele, expandir um grafico era acao so
+              de quem usa ponteiro. O icone era decorativo. */}
+          <button
+            type="button"
+            className="botao-nu chart-expand-icon"
+            aria-label={t('expandChart')}
+            onClick={(e) => { e.stopPropagation(); setExpandedChart(ChartType.TRADED_VALUE) }}
+          >
+            <MdFullscreen />
+          </button>
           <h2>{t('tradedValue')}</h2>
           {/* Em modo comparativo a série está normalizada, então um valor em
               dólar de uma única moeda não descreve o que está desenhado. */}
@@ -195,7 +205,17 @@ export default function DashboardCharts({
           className="panel chart-panel chart-panel-clickable"
           onClick={() => setExpandedChart(ChartType.PERCENT_VARIATION)}
         >
-          <div className="chart-expand-icon"><MdFullscreen /></div>
+          {/* O painel inteiro segue clicavel para o mouse, mas o alvo do
+              teclado e este botao: sem ele, expandir um grafico era acao so
+              de quem usa ponteiro. O icone era decorativo. */}
+          <button
+            type="button"
+            className="botao-nu chart-expand-icon"
+            aria-label={t('expandChart')}
+            onClick={(e) => { e.stopPropagation(); setExpandedChart(ChartType.PERCENT_VARIATION) }}
+          >
+            <MdFullscreen />
+          </button>
           <h2>{mostraVolume ? t('volume') : t('percentVariation')}</h2>
           <div className="chart-note">
             {multiMoeda
