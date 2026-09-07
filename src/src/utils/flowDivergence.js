@@ -13,6 +13,7 @@
 // mensurável no laboratório de sinais.
 
 import { paraNumero } from './mathUtils'
+import { instanteDe } from './validacaoJanela'
 
 export const DivergenceKind = Object.freeze({
   // Preço subiu, fluxo não acompanhou: alta sem lastro de compra.
@@ -88,25 +89,67 @@ export const detectarDivergencias = (registros, medianaVolume) => {
 }
 
 /**
- * Estado do fluxo para exibição: acumulado do período e divergência corrente.
+ * Primeiro índice da série cronológica que cai dentro da janela escolhida.
+ *
+ * Zero quando não há recorte utilizável — ou quando o recorte não deixaria
+ * candle nenhum, caso em que degradar para a série inteira é melhor do que
+ * apagar o painel. Mesma escolha do `recortarJanela` do marketAnalytics.
+ */
+const primeiroNaJanela = (cronologico, aPartirDe) => {
+  if (aPartirDe === null || aPartirDe === undefined) return 0
+  const limite = new Date(aPartirDe).getTime()
+  if (!Number.isFinite(limite)) return 0
+  const i = cronologico.findIndex((r) => {
+    const t = instanteDe(r)
+    return t !== null && t >= limite
+  })
+  return i > 0 ? i : 0
+}
+
+/**
+ * Fluxo para exibição: acumulado DO PERÍODO e divergência corrente.
+ *
+ * As duas leituras querem trechos diferentes da série, e é isso que o
+ * `aPartirDe` separa:
+ *
+ * - A divergência é estado. Ela compara janelas de cinco candles, então precisa
+ *   dos candles anteriores ao período — sem eles, os primeiros cinco candles
+ *   exibidos nunca seriam avaliados.
+ * - O acumulado é período. Ele responde "quanta compra líquida entrou na
+ *   janela que eu escolhi", e a resposta não pode incluir dias que o usuário
+ *   não pediu.
+ *
+ * Daí o CVD ser calculado sobre a série inteira e depois REBASEADO para zero no
+ * primeiro candle da janela: o indicador chega aquecido e o número que sai é o
+ * do período. Sem o rebase, o card somava também a margem de aquecimento — três
+ * dias que, num preset de 24 horas, são o triplo do que foi pedido.
  *
  * @param {Array<object>} registros - Série na ordem da API.
  * @param {number|null} medianaVolume
+ * @param {{aPartirDe?: string|number|null}} [opcoes] - Início da janela. Sem
+ *   ele, a série inteira conta como período (comportamento anterior).
  * @returns {{cvd: number, serie: number[], divergenciaAtual: string|null,
  *   ocorrencias: number}|null}
  */
-export const resumirFluxo = (registros, medianaVolume) => {
+export const resumirFluxo = (registros, medianaVolume, { aPartirDe = null } = {}) => {
   if (!Array.isArray(registros) || registros.length === 0) return null
 
   const cronologico = [...registros].reverse()
-  const serie = calcularCvd(cronologico)
+  const acumulado = calcularCvd(cronologico)
   const marcas = detectarDivergencias(registros, medianaVolume)
+
+  const inicio = primeiroNaJanela(cronologico, aPartirDe)
+  // O que veio antes da janela é ponto de partida, não conteúdo dela.
+  const base = inicio > 0 ? acumulado[inicio - 1] : 0
+  const serie = acumulado.slice(inicio).map((v) => v - base)
 
   return {
     cvd: serie[serie.length - 1] ?? 0,
+    // Rebaseada junto: a forma do sparkline é a do acumulado DENTRO da janela,
+    // e não a de uma curva que já começa deslocada pelo aquecimento.
     serie,
     // O candle mais recente é o último da série cronológica.
     divergenciaAtual: marcas[marcas.length - 1] ?? null,
-    ocorrencias: marcas.filter(Boolean).length,
+    ocorrencias: marcas.slice(inicio).filter(Boolean).length,
   }
 }

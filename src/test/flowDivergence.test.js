@@ -129,3 +129,76 @@ describe('utils/flowDivergence › resumirFluxo', () => {
     expect(resumirFluxo(null, 100)).toBeNull()
   })
 })
+
+describe('utils/flowDivergence › resumirFluxo dentro da janela', () => {
+  // O acumulado responde "quanta compra líquida entrou na janela que eu
+  // escolhi". A série carregada, porém, traz dias a mais só para aquecer os
+  // indicadores — e somá-los faz o card responder por um período que ninguém
+  // pediu. Num preset de 24 horas, os três dias de aquecimento são o triplo da
+  // janela.
+
+  const HORA = 3600e3
+  const INICIO = Date.UTC(2026, 2, 1)
+  const horaDe = (i) => new Date(INICIO + i * HORA).toISOString()
+
+  /** Dez candles horários; os seis primeiros são aquecimento. */
+  const dezCandles = (precos, deltas) =>
+    comoDaApi(
+      precos.map((p, i) => ({
+        precoFechamento: p,
+        volumeDelta: deltas[i],
+        horaReferencia: horaDe(i),
+      }))
+    )
+
+  const PRIMEIRO_DA_JANELA = horaDe(6)
+
+  // Aquecimento vendendo forte, janela comprando: o sinal do acumulado depende
+  // inteiramente de onde a conta começa.
+  const PLANO = [100, 100, 100, 100, 100, 100, 100, 100, 100, 100]
+  const DELTAS = [-50, -50, -50, -50, -50, -50, 10, 10, 10, 10]
+
+  it('deve somar a série inteira quando não há janela', () => {
+    // Comportamento anterior, preservado: sem `aPartirDe`, o período é tudo.
+    expect(resumirFluxo(dezCandles(PLANO, DELTAS), 100).cvd).toBe(-260)
+  })
+
+  it('deve somar apenas a janela escolhida, invertendo o sinal do card', () => {
+    const r = resumirFluxo(dezCandles(PLANO, DELTAS), 100, { aPartirDe: PRIMEIRO_DA_JANELA })
+    // -260 contra +40: o card dizia "venda líquida" num período que só comprou.
+    expect(r.cvd).toBe(40)
+  })
+
+  it('deve rebasear o sparkline para zero no início da janela', () => {
+    const r = resumirFluxo(dezCandles(PLANO, DELTAS), 100, { aPartirDe: PRIMEIRO_DA_JANELA })
+    // Sem o rebase a curva começaria em -290 e a forma dela descreveria o
+    // aquecimento, não o período.
+    expect(r.serie).toEqual([10, 20, 30, 40])
+  })
+
+  it('deve continuar detectando divergência no primeiro candle da janela', () => {
+    // O detector compara janelas de cinco candles. O primeiro candle exibido só
+    // pode ser avaliado porque os anteriores continuam na série — é a diferença
+    // entre recortar ANTES de calcular e recortar depois.
+    const precos = [100, 100, 101, 102, 103, 104, 105, 105, 105, 105]
+    const deltas = new Array(10).fill(-50)
+
+    const comAquecimento = resumirFluxo(dezCandles(precos, deltas), 100, {
+      aPartirDe: PRIMEIRO_DA_JANELA,
+    })
+    expect(comAquecimento.ocorrencias).toBeGreaterThan(0)
+
+    // Prova por contraste: recortada antes, a mesma janela não vê divergência
+    // nenhuma — os candles que davam a referência deixaram de existir.
+    const jaCortada = dezCandles(precos, deltas).slice(0, 4)
+    expect(resumirFluxo(jaCortada, 100).ocorrencias).toBe(0)
+  })
+
+  it('deve degradar para a série inteira com recorte inutilizável', () => {
+    // Mesma escolha do recortarJanela: carimbo em formato inesperado ou janela
+    // vazia não pode apagar o painel.
+    const serieToda = dezCandles(PLANO, DELTAS)
+    expect(resumirFluxo(serieToda, 100, { aPartirDe: 'nao e data' }).cvd).toBe(-260)
+    expect(resumirFluxo(serieToda, 100, { aPartirDe: horaDe(99) }).cvd).toBe(-260)
+  })
+})

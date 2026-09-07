@@ -125,13 +125,27 @@ export const derivarAnalytics = ({
   // As consultas usam ordemAsc=false: o índice 0 é a leitura mais recente.
   const atual = historico[0]
 
-  const compradoTotal = somar(historico, 'volumeComprado')
-  const vendidoTotal = somar(historico, 'volumeVendido')
+  // O bloco de fluxo não é de um tipo só, e esse era o engano: dominância
+  // atual, ratio e delta do candle corrente são ESTADO, mas o acumulado e a
+  // dominância do período são PERÍODO — os dois últimos somam candle a candle,
+  // e somar sobre a série inteira punha a margem de aquecimento dentro de um
+  // número que a tela chama de "no período".
+  const naJanela = recortarJanela(historico, aPartirDe)
+
+  const compradoTotal = somar(naJanela, 'volumeComprado')
+  const vendidoTotal = somar(naJanela, 'volumeVendido')
   const volumeTotal = compradoTotal + vendidoTotal
 
   // Delta acumulado e divergência contra o preço. A mediana de volume é a
-  // régua que torna o movimento de fluxo comparável com o de preço.
-  const divergencia = resumirFluxo(historico, median(historico.map((r) => r?.precoVolume)))
+  // régua que torna o movimento de fluxo comparável com o de preço, e sai da
+  // série inteira de propósito: régua de normalidade é leitura de estado, como
+  // as medianas de volatilidade e de ticket logo abaixo. Recortá-la moveria o
+  // limiar da divergência junto com o filtro da tela.
+  const divergencia = resumirFluxo(
+    historico,
+    median(historico.map((r) => r?.precoVolume)),
+    { aPartirDe }
+  )
 
   const fluxo = {
     divergencia,
@@ -139,8 +153,11 @@ export const derivarAnalytics = ({
     dominanciaVendedora: valorOuZero(atual?.dominanciaVendedoraPercentual),
     ratioCompraVenda: valorOuZero(atual?.precoRatioCompraVenda),
     deltaAtual: valorOuZero(atual?.volumeDelta),
-    deltaAcumulado: somar(historico, 'volumeDelta'),
-    // Dominância do período inteiro: é o contexto que diz se a leitura atual
+    // Sai do CVD em vez de uma soma própria: eram duas contas para o mesmo
+    // número, exibidas em dois cards vizinhos. Duplicadas, nada impedia que uma
+    // fosse corrigida e a outra não — que é exatamente o que aconteceria aqui.
+    deltaAcumulado: divergencia?.cvd ?? 0,
+    // Dominância do período escolhido: é o contexto que diz se a leitura atual
     // é rotina ou desvio.
     dominanciaCompradoraPeriodo:
       volumeTotal > 0 ? (compradoTotal / volumeTotal) * 100 : null,
@@ -204,11 +221,11 @@ export const derivarAnalytics = ({
     vwap: resumirVwap(historico),
     osciladores: resumirOsciladores(historico),
     atr: calcularAtr(historico),
-    // A ÚNICA leitura de período deste bloco. Todas as acima descrevem o estado
-    // atual e precisam da margem de aquecimento; esta descreve a janela, e
-    // incluir o aquecimento nela faria o painel anunciar mais candles do que o
-    // filtro da tela pediu.
-    desempenho: calcularDesempenho(recortarJanela(historico, aPartirDe)),
+    // Leitura de período, como o acumulado e a dominância do fluxo lá em cima.
+    // As demais descrevem o estado atual e precisam da margem de aquecimento;
+    // estas descrevem a janela, e incluir o aquecimento nelas faz o painel
+    // responder por dias que o filtro da tela não pediu.
+    desempenho: calcularDesempenho(naJanela),
     amostras: historico.length,
   }
 }
