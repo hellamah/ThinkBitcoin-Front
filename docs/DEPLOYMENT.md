@@ -109,9 +109,13 @@ Pix, que chega como base64.
    Se não, ajuste a diretiva reclamada antes de promover.
 
 > **Manutenção:** `connect-src` lista os hosts de API explicitamente. Ao trocar
-> `VITE_API_URL` ou `VITE_PYTHON_API_URL` para um domínio novo, o host precisa
-> entrar nessa lista — senão o navegador bloqueia toda chamada à API assim que a
-> CSP sair do modo report-only.
+> `VITE_API_URL` para um domínio novo, o host precisa entrar nessa lista — senão
+> o navegador bloqueia toda chamada à API assim que a CSP sair do modo
+> report-only.
+>
+> Só existe essa variável. A `VITE_PYTHON_API_URL` era citada aqui e lida pelo
+> `src/api.js`, mas o valor não chegava a nenhuma requisição: o front fala com
+> uma API só. Configurá-la não tinha efeito, e as duas pontas foram removidas.
 
 > **Divergência proposital:** o `connect-src` do `src/default.conf` (imagem
 > nginx, publicada em `localhost:3000` pelo Helm) e o do `preview` em
