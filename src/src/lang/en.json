@@ -301,6 +301,7 @@
   "simulationLoading": "Loading the analysis series…",
   "simulationLoadError": "Could not load the simulation series. The rest of the dashboard is unaffected.",
   "simulationWindow": "Analysing {{dias}} days — {{candles}} candles. Its own window, independent of the filters above.",
+  "simulationWindowShort": "{{pedidos}} days were requested, but the collection covers {{dias}}. Everything below — trade count, alpha and the size of the validation stretch — refers to the period that exists, not the one that was asked for.",
   "exit_stop": "Stop",
   "exit_alvo": "Target",
   "exit_tempo": "Time",

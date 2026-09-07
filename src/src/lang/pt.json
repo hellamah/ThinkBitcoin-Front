@@ -301,6 +301,7 @@
   "simulationLoading": "Carregando a série de análise…",
   "simulationLoadError": "Não foi possível carregar a série da simulação. O restante do dashboard não é afetado.",
   "simulationWindow": "Analisando {{dias}} dias — {{candles}} candles. Janela própria, independente dos filtros acima.",
+  "simulationWindowShort": "Foram pedidos {{pedidos}} dias, mas a coleta cobre {{dias}}. Tudo abaixo — número de operações, alfa e o tamanho do trecho de validação — vale para o período que existe, não para o que foi pedido.",
   "exit_stop": "Stop",
   "exit_alvo": "Alvo",
   "exit_tempo": "Tempo",

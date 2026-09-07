@@ -301,6 +301,7 @@
   "simulationLoading": "Chargement de la série d'analyse…",
   "simulationLoadError": "Impossible de charger la série de la simulation. Le reste du tableau de bord n'est pas affecté.",
   "simulationWindow": "Analyse de {{dias}} jours — {{candles}} bougies. Fenêtre propre, indépendante des filtres ci-dessus.",
+  "simulationWindowShort": "{{pedidos}} jours ont été demandés, mais la collecte en couvre {{dias}}. Tout ce qui suit — nombre d'opérations, alpha et taille de la portion de validation — porte sur la période qui existe, pas sur celle qui a été demandée.",
   "exit_stop": "Stop",
   "exit_alvo": "Objectif",
   "exit_tempo": "Temps",

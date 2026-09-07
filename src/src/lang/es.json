@@ -301,6 +301,7 @@
   "simulationLoading": "Cargando la serie de análisis…",
   "simulationLoadError": "No se pudo cargar la serie de la simulación. El resto del panel no se ve afectado.",
   "simulationWindow": "Analizando {{dias}} días — {{candles}} velas. Ventana propia, independiente de los filtros de arriba.",
+  "simulationWindowShort": "Se pidieron {{pedidos}} días, pero la recolección cubre {{dias}}. Todo lo de abajo — número de operaciones, alfa y el tamaño del tramo de validación — vale para el período que existe, no para el que se pidió.",
   "exit_stop": "Stop",
   "exit_alvo": "Objetivo",
   "exit_tempo": "Tiempo",

@@ -301,6 +301,7 @@
   "simulationLoading": "Caricamento della serie di analisi…",
   "simulationLoadError": "Impossibile caricare la serie della simulazione. Il resto della dashboard non è interessato.",
   "simulationWindow": "Analisi di {{dias}} giorni — {{candles}} candele. Finestra propria, indipendente dai filtri sopra.",
+  "simulationWindowShort": "Sono stati richiesti {{pedidos}} giorni, ma la raccolta ne copre {{dias}}. Tutto quello sotto — numero di operazioni, alfa e dimensione del tratto di validazione — vale per il periodo che esiste, non per quello richiesto.",
   "exit_stop": "Stop",
   "exit_alvo": "Obiettivo",
   "exit_tempo": "Tempo",

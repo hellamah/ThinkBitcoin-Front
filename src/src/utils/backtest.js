@@ -729,6 +729,24 @@ export const compararEstrategias = (registros, opcoes = {}) => {
 }
 
 /**
+ * Extensão real da curva, em dias, do primeiro ao último ponto.
+ *
+ * Serve para a tela poder dizer o período que ANALISOU em vez do que pediu. São
+ * números diferentes sempre que a coleta não cobre a janela inteira, e a
+ * diferença não é cosmética: o corte de validação é uma fração do que chegou.
+ *
+ * @param {Array<{instante: string|null}>} curva
+ * @returns {number|null} - null quando os pontos não trazem carimbo utilizável.
+ */
+const diasDaCurva = (curva) => {
+  if (!Array.isArray(curva) || curva.length < 2) return null
+  const instantes = curva.map((p) => instanteDe({ horaReferencia: p?.instante }))
+  const validos = instantes.filter((t) => t !== null)
+  if (validos.length < 2) return null
+  return (Math.max(...validos) - Math.min(...validos)) / (24 * 3600000)
+}
+
+/**
  * Métricas da simulação.
  *
  * `calcularDesempenho` de marketStats não serve aqui: ela mede drawdown DO
@@ -801,6 +819,12 @@ const calcularMetricas = ({
     piorTrade: retornos.length > 0 ? Math.min(...retornos) : null,
     exposicao: curva.length > 0 ? (candlesEmPosicao / curva.length) * 100 : 0,
     custoTotal: trades.reduce((a, t) => a + t.custoPago, 0),
+    // Quantos dias a curva de fato cobre, do primeiro ao último ponto
+    // analisado. É MEDIDO, e não o tamanho da janela pedida: quando a coleta
+    // não tem todo o período — moeda listada há pouco, buraco na série, teto da
+    // API —, o que foi pedido e o que existe são coisas diferentes, e é sobre o
+    // que existe que as operações, o alfa e o corte de validação se apoiam.
+    diasAnalisados: diasDaCurva(curva),
     buyAndHold,
     alfa: buyAndHold !== null ? retornoTotal - buyAndHold : null,
     candlesSimulados: curva.length,

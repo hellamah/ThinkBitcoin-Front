@@ -1134,3 +1134,55 @@ describe('utils/backtest › causalidade do stop por volatilidade', () => {
     expect(trade.stopPercentualAplicado).toBeLessThan(ATR_STOP_MAXIMO_PERCENTUAL)
   })
 })
+
+
+describe('utils/backtest › extensão real da janela analisada', () => {
+  // O painel anunciava a janela PEDIDA — 180 dias, constante — ao lado da
+  // contagem de candles que de fato chegou. Nos dados de demonstração a coleta
+  // cobre 120 dias, então a linha dizia "180 dias" sobre uma série que não os
+  // tinha. É o mesmo defeito que o aviso de corte do dashboard denuncia, e que
+  // o comentário do simulationWindow.js já apontava como faltando aqui.
+
+  const cemHoras = (n) =>
+    serie(Array.from({ length: n }, (_, i) => (i === 2 ? { ...parado(100), martelo: true } : parado(100))))
+
+  it('deve medir os dias que a curva de fato cobre', () => {
+    // 49 candles horários = 48 horas de ponta a ponta = 2 dias.
+    const r = simular(cemHoras(49), { ...PADRAO, saidaPorTempo: 1 })
+    expect(r.metricas.diasAnalisados).toBeCloseTo(2, 6)
+  })
+
+  it('deve medir a JANELA ANALISADA, sem o aquecimento', () => {
+    // A curva começa em `aPartirDe`, não no primeiro candle recebido: os
+    // candles de aquecimento alimentam indicador e não são período analisado.
+    const registros = cemHoras(73) // 3 dias de ponta a ponta
+    const cronologico = [...registros].reverse()
+    const meio = cronologico[36].horaReferencia
+
+    const r = simular(registros, { ...PADRAO, saidaPorTempo: 1, aPartirDe: meio })
+
+    expect(r.metricas.diasAnalisados).toBeCloseTo(1.5, 6)
+  })
+
+  it('deve medir a extensão mesmo quando ela é de poucas horas', () => {
+    // Dois candles horários são uma hora de ponta a ponta. Arredondar isso para
+    // zero, ou devolver null, esconderia que a janela é curta demais para
+    // qualquer conclusão — que é justamente o que a tela precisa dizer.
+    const r = simular(serie([{ ...parado(100), martelo: true }, parado(100)]), {
+      ...PADRAO,
+      saidaPorTempo: 1,
+    })
+    expect(r.metricas.diasAnalisados).toBeCloseTo(1 / 24, 6)
+  })
+
+  it('deve acompanhar a série recebida, e não a pedida', () => {
+    // É o ponto todo: a mesma requisição de 180 dias devolve o que a coleta
+    // tem. Duas séries de tamanhos diferentes têm de produzir dois números
+    // diferentes aqui — senão a tela volta a anunciar uma constante.
+    const curta = simular(cemHoras(49), { ...PADRAO, saidaPorTempo: 1 })
+    const longa = simular(cemHoras(145), { ...PADRAO, saidaPorTempo: 1 })
+
+    expect(curta.metricas.diasAnalisados).toBeLessThan(longa.metricas.diasAnalisados)
+    expect(longa.metricas.diasAnalisados).toBeCloseTo(6, 6)
+  })
+})

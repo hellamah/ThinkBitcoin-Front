@@ -286,6 +286,13 @@ export default function SimulationPanel({
   const { metricas, trades, descontinuidades } = resultado
   const fraco = metricas.amostraInsuficiente
 
+  // Dias inteiros, para a linha não anunciar "119,96 dias". A comparação com a
+  // janela pedida usa o mesmo arredondamento: 179,9 dias é a janela cheia com
+  // um candle a menos no fim, não uma coleta curta.
+  const diasAnalisados =
+    metricas.diasAnalisados !== null ? Math.round(metricas.diasAnalisados) : null
+  const janelaCurta = diasAnalisados !== null && diasAnalisados < DIAS_JANELA_SIMULACAO
+
   // Operações que a janela não viu terminar. Elas movem a curva de capital —
   // o dinheiro foi comprometido — mas não são acerto nem erro, então ficam fora
   // do win rate e do profit factor. É a diferença entre o total da tabela e a
@@ -307,12 +314,31 @@ export default function SimulationPanel({
           são período de análise. Contá-los fazia a linha anunciar 4.392 candles
           ao lado de "180 dias", que são 4.320 — o mesmo desencontro que os
           painéis vizinhos já corrigiram. */}
+      {/* `dias` é MEDIDO na curva, não a constante da janela pedida. Eram a
+          mesma coisa só enquanto a coleta cobrisse os 180 dias inteiros — nos
+          dados de demonstração ela cobre 120, e a linha anunciava "180 dias"
+          sobre eles. Pedir e receber são coisas diferentes, e é sobre o que
+          chegou que as operações, o alfa e o tamanho da validação se apoiam. */}
       <p className="simulation-janela">
         {t('simulationWindow', {
-          dias: DIAS_JANELA_SIMULACAO,
+          dias: diasAnalisados ?? DIAS_JANELA_SIMULACAO,
           candles: metricas.candlesSimulados,
         })}
       </p>
+      {/* Mesma denúncia que o `cobertura.truncado` faz no dashboard, e que o
+          comentário do simulationWindow.js já apontava como necessária aqui:
+          janela cortada em silêncio é o defeito, não o corte. */}
+      {janelaCurta && (
+        <p className="simulation-alerta-sobreajuste">
+          <MdWarningAmber />
+          <span>
+            {t('simulationWindowShort', {
+              pedidos: DIAS_JANELA_SIMULACAO,
+              dias: diasAnalisados,
+            })}
+          </span>
+        </p>
+      )}
 
       {/* ---------- Controles ---------- */}
       <div className="simulation-controls">
