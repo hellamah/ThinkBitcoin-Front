@@ -1,5 +1,5 @@
 import React from 'react'
-import { MdCompareArrows, MdBarChart, MdCallSplit, MdHeight, MdShowChart, MdPsychology, MdReceiptLong, MdSpeed, MdStraighten, MdWaterfallChart } from 'react-icons/md'
+import { MdCompareArrows, MdCallSplit, MdHeight, MdShowChart, MdPsychology, MdReceiptLong, MdSpeed, MdStraighten, MdWaterfallChart } from 'react-icons/md'
 import { ATR_PERIOD } from '../../utils/marketStats'
 import * as mathUtils from '../../utils/mathUtils'
 import RotuloComAjuda from './RotuloComAjuda'
@@ -116,18 +116,6 @@ export default function AnalyticsPanel({ analytics, t }) {
           </div>
         </div>
 
-        {/* Delta de volume acumulado */}
-        <div className="intel-card">
-          <div className="intel-icon"><MdBarChart /></div>
-          <RotuloComAjuda className="intel-label" texto={t('volumeDelta')} ajuda={t('ajuda.deltaVolume')} />
-          <div className="intel-value">
-            {deltaPositivo ? '+' : ''}{mathUtils.formatCompact(fluxo.deltaAcumulado)}
-          </div>
-          <div className={`intel-subvalue ${deltaPositivo ? 'up' : 'down'}`}>
-            {deltaPositivo ? t('netBuying') : t('netSelling')}
-          </div>
-        </div>
-
         {/* Volatilidade atual contra a mediana do período */}
         <div className="intel-card">
           <div className="intel-icon"><MdShowChart /></div>
@@ -207,16 +195,28 @@ export default function AnalyticsPanel({ analytics, t }) {
           )}
         </div>
 
-        {/* Delta acumulado e divergência contra o preço */}
+        {/* Delta acumulado do período e divergência contra o preço.
+            Absorveu o antigo card "Delta de Volume", que exibia ESTA MESMA
+            soma — dois cards vizinhos com o mesmo número e nada na tela
+            dizendo que eram a mesma leitura. Quem via os dois procurava a
+            diferença entre eles, e não havia nenhuma.
+            Ficou este, e não o outro, porque só ele tinha o sparkline e a
+            divergência; a fusão custou uma linha e o outro não somava nada. */}
         <div className="intel-card">
           <div className="intel-icon"><MdCallSplit /></div>
           <RotuloComAjuda className="intel-label" texto={t('cumulativeDelta')} ajuda={t('ajuda.deltaAcumulado')} />
           {divergencia ? (
             <>
-              <div className={`intel-value ${divergencia.cvd >= 0 ? 'up' : 'down'}`}>
-                {divergencia.cvd >= 0 ? '+' : ''}{mathUtils.formatCompact(divergencia.cvd)}
+              <div className={`intel-value ${deltaPositivo ? 'up' : 'down'}`}>
+                {deltaPositivo ? '+' : ''}{mathUtils.formatCompact(fluxo.deltaAcumulado)}
               </div>
               <Sparkline valores={divergencia.serie} />
+              {/* O que o número é, em palavras. Sem esta linha — que veio do
+                  card absorvido — "+100,45" fica sem unidade e sem sentido. */}
+              <div className={`intel-subvalue ${deltaPositivo ? 'up' : 'down'}`}>
+                {deltaPositivo ? t('netBuying') : t('netSelling')}
+              </div>
+              {/* A relação com o preço, que é a leitura que só este card dá. */}
               <div className={`intel-subvalue ${DIVERGENCIA_CLASSE[divergencia.divergenciaAtual] || ''}`}>
                 {divergencia.divergenciaAtual
                   ? t(divergencia.divergenciaAtual)
