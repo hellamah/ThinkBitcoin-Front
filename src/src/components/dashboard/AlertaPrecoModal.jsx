@@ -43,6 +43,10 @@ export default function AlertaPrecoModal({
   moedaInicial,
   alertas = [],
   carregando,
+  // Falha ao CARREGAR a lista. Distinta do `erroMsg` interno, que é falha ao
+  // criar ou excluir: aquela nasce de uma ação da pessoa, esta chega junto com
+  // a tela aberta.
+  erro = '',
   onCriar,
   onExcluir,
   notificacoesLigadas,
@@ -324,6 +328,20 @@ export default function AlertaPrecoModal({
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
             <CircularProgress size={22} />
           </Box>
+        ) : erro ? (
+          /* Falhar ao carregar e não ter alerta nenhum são coisas diferentes, e
+             a lista vazia dizia a segunda nos dois casos — "Você ainda não tem
+             alertas" é uma afirmação sobre a CONTA da pessoa, e a verdade ali
+             era "não conseguimos verificar". O `erro` já vinha calculado pelo
+             hook e ninguém o lia.
+
+             Passa pelo `t` porque o hook devolve a mensagem do backend quando
+             existe uma, e a chave de tradução quando não — e `t` devolve o
+             próprio argumento quando ele não é chave, então os dois casos saem
+             certos sem a tela precisar distinguir. */
+          <Typography variant="body2" sx={{ color: 'var(--danger-ink)', py: 2 }}>
+            {t(erro)}
+          </Typography>
         ) : alertas.length === 0 ? (
           <Typography variant="body2" sx={{ color: 'var(--text-muted)', fontStyle: 'italic', py: 2 }}>
             {t('alertas.listaVazia')}

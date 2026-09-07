@@ -162,6 +162,7 @@ export default function GeoHeatmapView() {
   const {
     alertas,
     carregando: carregandoAlertas,
+    erro: erroAlertas,
     temAcesso: temAcessoAlertas,
     criar: criarAlerta,
     excluir: excluirAlerta,
@@ -871,6 +872,7 @@ export default function GeoHeatmapView() {
         moedaInicial={moedaSelecionada}
         alertas={alertas}
         carregando={carregandoAlertas}
+        erro={erroAlertas}
         onCriar={criarAlerta}
         onExcluir={excluirAlerta}
         notificacoesLigadas={!!prefs?.notificacoes}

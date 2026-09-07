@@ -105,6 +105,7 @@ export default function Dashboard() {
   const {
     alertas,
     carregando: carregandoAlertas,
+    erro: erroAlertas,
     temAcesso: temAcessoAlertas,
     criar: criarAlerta,
     excluir: excluirAlerta,
@@ -667,6 +668,7 @@ export default function Dashboard() {
           moedaInicial={moedasFiltro[0] || moedaSelecionada}
           alertas={alertas}
           carregando={carregandoAlertas}
+          erro={erroAlertas}
           onCriar={criarAlerta}
           onExcluir={excluirAlerta}
           notificacoesLigadas={!!prefs?.notificacoes}

@@ -151,6 +151,7 @@ function Settings() {
   const {
     alertas,
     carregando: carregandoAlertas,
+    erro: erroAlertas,
     temAcesso: temAcessoAlertas,
     excluir: excluirAlerta,
   } = useAlertasPreco(user)
@@ -453,6 +454,13 @@ function Settings() {
               <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
                 <CircularProgress size={20} />
               </Box>
+            ) : erroAlertas ? (
+              /* Mesma distinção do modal do painel: falhar ao carregar não é
+                 "você não tem alertas". O `t` cobre os dois formatos que o hook
+                 devolve — mensagem do backend, ou chave de tradução. */
+              <Typography variant="body2" sx={{ color: 'var(--danger-ink)' }}>
+                {t(erroAlertas)}
+              </Typography>
             ) : alertas.length === 0 ? (
               <Typography variant="body2" sx={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
                 {t('alertas.listaVazia')}
