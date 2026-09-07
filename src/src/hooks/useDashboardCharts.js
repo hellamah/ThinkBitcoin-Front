@@ -416,10 +416,15 @@ export default function useDashboardCharts({
       x: {
         display: true,
         grid: { display: false },
+        // A linha do eixo é desenhada à parte do grid, e sem cor explícita o
+        // Chart.js cai no `defaults.borderColor` global — que vinha cravado em
+        // '#333' no Dashboard e não acompanhava o tema.
+        border: { color: cores.borda },
         ticks: { color: cores.tickSubtle, font: { size: 10 } }
       },
       y: {
         grid: { color: cores.grid, borderDash: [5, 5] },
+        border: { color: cores.borda },
         ticks: { color: cores.tick, font: { family: "'Share Tech Mono', monospace" } }
       }
     }

@@ -212,12 +212,19 @@ export default function SimulationPanel({
         },
       },
       scales: {
-        x: { ticks: { color: cores.tickSubtle, maxTicksLimit: 8 }, grid: { display: false } },
+        // `border` explícito pelo mesmo motivo do gráfico de preço: sem ele a
+        // linha do eixo vem do `defaults.borderColor` global e ignora o tema.
+        x: {
+          ticks: { color: cores.tickSubtle, maxTicksLimit: 8 },
+          grid: { display: false },
+          border: { color: cores.borda },
+        },
         y: {
           min: pontos.minimo - folga,
           max: pontos.maximo + folga,
           ticks: { color: cores.tick, maxTicksLimit: 6 },
           grid: { color: cores.grid },
+          border: { color: cores.borda },
         },
       },
     }

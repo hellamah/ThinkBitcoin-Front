@@ -246,6 +246,20 @@ const tooltipTitleWithDate = (locale) => (its) => {
   return Number.isNaN(dt.getTime()) ? first.label : `${first.label} · ${dt.toLocaleString(locale)}`
 }
 
+// Linha do próprio eixo. O Chart.js a desenha separada do grid e, sem cor
+// explícita, cai no `defaults.borderColor` global — que era cravado no import
+// do Dashboard e vazava para cá conforme a ordem de navegação: esta tela
+// desenhava os eixos de uma cor quando aberta direto e de outra depois de
+// alguém passar pelo painel.
+const bordaDoEixo = (dk) => ({ color: subtleBorder(dk) })
+
+// Aplica a borda a cada escala sem obrigar as sete montagens de opções a
+// repeti-la. Uma escala que traga a própria `border` continua mandando.
+const comBordaDeEixo = (scales, dk) =>
+  Object.fromEntries(
+    Object.entries(scales).map(([nome, cfg]) => [nome, { border: bordaDoEixo(dk), ...cfg }])
+  )
+
 const baseChartOptions = (dk, extra = {}, locale = undefined) => {
   const { plugins: extraPlugins, scales: extraScales, ...rest } = extra
   return {
@@ -266,10 +280,13 @@ const baseChartOptions = (dk, extra = {}, locale = undefined) => {
       zoom: ZOOM_CONFIG,
       ...(extraPlugins || {}),
     },
-    scales: extraScales || {
-      x: { ticks: xTicks(dk), grid: { color: gridColor(dk) } },
-      y: { ticks: { color: tickColor(dk) }, grid: { color: gridColor(dk) } },
-    },
+    scales: comBordaDeEixo(
+      extraScales || {
+        x: { ticks: xTicks(dk), grid: { color: gridColor(dk) } },
+        y: { ticks: { color: tickColor(dk) }, grid: { color: gridColor(dk) } },
+      },
+      dk
+    ),
     ...rest,
   }
 }
@@ -1738,10 +1755,10 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
         },
       },
     },
-    scales: {
+    scales: comBordaDeEixo({
       x: { ticks: { color: tickColor(dk), maxRotation: 0, autoSkip: true }, grid: { color: gridColor(dk) } },
       y: { ticks: { color: tickColor(dk) }, grid: { color: gridColor(dk) } },
-    },
+    }, dk),
   }), [miniTimeline, dk, t])
 
   // ── Contexto de mercado: candles da moeda em torno do episódio ──
@@ -1895,7 +1912,7 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
         padding: 10,
       },
     },
-    scales: {
+    scales: comBordaDeEixo({
       x: {
         type: 'time',
         // Segundo eixo de tempo da tela, com a mesma correção do scatter.
@@ -1908,10 +1925,10 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
         grid: { color: gridColor(dk) },
       },
       y: { ticks: { color: tickColor(dk) }, grid: { color: gridColor(dk) } },
-    },
+    }, dk),
     // Este `useMemo` devolve um objeto literal, não uma chamada de
-    // `baseChartOptions`: o locale entra pelas referências acima, não por
-    // argumento.
+    // `baseChartOptions`: o locale e a borda do eixo entram pelas referências
+    // acima, não por argumento.
   }), [dk, idioma.codigo, dataCurtaDetalhe])
 
   // ── Delta helpers ──

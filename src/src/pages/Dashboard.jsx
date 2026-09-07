@@ -69,8 +69,21 @@ ChartJS.register(
   candlestickPlugin,
 )
 
-ChartJS.defaults.color = '#e0e0e0'
-ChartJS.defaults.borderColor = '#333'
+// Aqui havia duas linhas mexendo no `ChartJS.defaults` global, no import.
+//
+// `defaults.color` era morto: todo gráfico do produto já define a cor dos
+// ticks e da legenda a partir do `chartPalette()`. Verificado trocando o valor
+// por magenta e contando os pixels — nenhum.
+//
+// `defaults.borderColor` NÃO era: ele desenhava a linha dos eixos de todos os
+// gráficos, em '#333' cravado, enquanto o resto do desenho seguia o tema. E o
+// alcance dependia da navegação, porque este módulo é carregado sob demanda:
+// a tela de treinamento desenhava os eixos de uma cor quando aberta direto e
+// de outra depois de alguém passar por aqui. Estado global mutado no import de
+// uma rota preguiçosa não fica na rota.
+//
+// A cor do eixo agora sai do `chartPalette().borda` junto das demais, no
+// `scales.*.border` de cada gráfico.
 
 export default function Dashboard() {
   const { token, user: usuario, prefs } = useAuth()
