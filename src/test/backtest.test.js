@@ -13,7 +13,7 @@ import {
 import { montarSerieDeSinais } from '../src/utils/signalLab'
 import { montarPontosDaCurva } from '../src/utils/equityChart'
 import { ExitReason, StopMode, TradeDirection } from '../src/utils/enums'
-import { ATR_PERIOD } from '../src/utils/marketStats'
+import { ATR_PERIOD, calcularAtrSerie } from '../src/utils/marketStats'
 import { CandlePattern } from '../src/utils/candlePatterns'
 
 // O martelo é o sinal de entrada de toda a suíte: é puramente geométrico e
@@ -475,7 +475,11 @@ describe('utils/backtest › stop por ATR', () => {
     expect(stopPorAtr(20, 0)).toBeNull()
   })
 
-  it('deve dimensionar cada entrada pela volatilidade daquele candle', () => {
+  // O título dizia "daquele candle", e o candle da entrada é justamente o que o
+  // motor não pode consultar — ver o bloco de causalidade no fim do arquivo. O
+  // que este caso mede é outra coisa, e continua valendo: a distância acompanha
+  // o REGIME de volatilidade em que a entrada acontece.
+  it('deve dimensionar cada entrada pela volatilidade do regime em que ocorre', () => {
     // Série calma que fica violenta na segunda metade. Dois martelos, um em
     // cada regime: se o motor usasse um ATR único, os dois trades sairiam com
     // a mesma distância de stop.
@@ -1052,5 +1056,81 @@ describe('utils/backtest › o que ordena o ranking', () => {
 
     expect(r.linhas[0].sinal).toBe(CandlePattern.ESTRELA)
     expect(r.linhas.every((l) => l.alfaAjuste === null)).toBe(true)
+  })
+})
+
+describe('utils/backtest › causalidade do stop por volatilidade', () => {
+  // O `calcularAtrSerie` devolve, em cada posição, o ATR JÁ INCLUINDO a
+  // amplitude daquele candle. A entrada acontece na abertura do candle — a essa
+  // altura ninguém sabe qual vai ser a máxima nem a mínima dele. O stop tem de
+  // sair do último candle FECHADO.
+  //
+  // O erro ia sempre para o mesmo lado: candle largo produzia stop largo
+  // justamente quando o stop largo salvava a operação.
+
+  const PRECO = 10000
+
+  // Amplitude 100 sobre preço 10000 é 1%, que dobrado dá stop de 2% — dentro da
+  // faixa de 1% a 10%, longe dos dois limites. Preso num deles, o teste passaria
+  // com qualquer índice, porque o clamp apagaria a diferença.
+  const neutro = (amplitude = 100) => ({
+    abertura: PRECO,
+    maior: PRECO * 1.02,
+    menor: PRECO * 0.98,
+    fechamento: PRECO,
+    amplitude,
+  })
+
+  const K = ATR_PERIOD + 2
+
+  const serieComEntradaLarga = () => {
+    const defs = Array.from({ length: ATR_PERIOD + 10 }, () => neutro())
+    // Sinal em K: a entrada será na abertura de K + 1.
+    defs[K] = { ...neutro(42), martelo: true }
+    // O candle DA ENTRADA é muito mais largo que os demais. É o dado que o
+    // motor não pode usar — e é grande o bastante para a diferença aparecer.
+    defs[K + 1] = neutro(350)
+    return serie(defs)
+  }
+
+  const simulacao = () =>
+    simular(serieComEntradaLarga(), {
+      sinalEntrada: CandlePattern.MARTELO,
+      modoStop: StopMode.ATR,
+      saidaPorTempo: 3,
+      custoPercentual: 0,
+    })
+
+  it('deve dimensionar o stop pelo ATR do último candle fechado', () => {
+    const registros = serieComEntradaLarga()
+    const atrPorPosicao = calcularAtrSerie(registros)
+    const trade = simulacao().trades[0]
+
+    const ultimoFechado = trade.indiceEntrada - 1
+    expect(trade.stopPercentualAplicado).toBeCloseTo(
+      stopPorAtr(atrPorPosicao[ultimoFechado], trade.precoEntrada),
+      10
+    )
+  })
+
+  it('não deve usar o ATR do candle em que entra', () => {
+    // A rede de segurança do teste acima: sem ela, uma série em que os dois
+    // ATRs coincidem faria a asserção passar com qualquer um dos índices.
+    const registros = serieComEntradaLarga()
+    const atrPorPosicao = calcularAtrSerie(registros)
+    const trade = simulacao().trades[0]
+
+    const doCandleDaEntrada = stopPorAtr(atrPorPosicao[trade.indiceEntrada], trade.precoEntrada)
+
+    expect(trade.stopPercentualAplicado).not.toBeCloseTo(doCandleDaEntrada, 4)
+    // E o stop errado seria MAIOR — o candle largo afrouxaria a proteção
+    // exatamente na hora em que ela seria testada.
+    expect(doCandleDaEntrada).toBeGreaterThan(trade.stopPercentualAplicado)
+  })
+
+  it('deve manter o stop dentro da faixa, para o teste medir o que pretende', () => {
+    const trade = simulacao().trades[0]
+    expect(trade.stopPercentualAplicado).toBeGreaterThan(ATR_STOP_MINIMO_PERCENTUAL)
+    expect(trade.stopPercentualAplicado).toBeLessThan(ATR_STOP_MAXIMO_PERCENTUAL)
   })
 })

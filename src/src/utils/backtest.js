@@ -5,7 +5,9 @@
 // pergunta é outra: "e se eu tivesse operado isso?" — o que exige estado
 // sequencial, uma posição por vez, capital e custo.
 //
-// Três decisões definem se o número que sai daqui é honesto:
+// Quatro decisões definem se o número que sai daqui é honesto. Todas são a
+// mesma pergunta feita em lugares diferentes: o motor está usando algum dado
+// que o operador não teria no instante em que agiu?
 //
 // 1. A entrada acontece na ABERTURA do candle seguinte ao do sinal. Entrar no
 //    fechamento do próprio candle que gerou o sinal é comprar a um preço que só
@@ -16,6 +18,29 @@
 //    otimista de um dado que não existe.
 // 3. Custo nas duas pernas, sempre contra o operador. Sem isso, estratégia de
 //    horizonte curto em candle horário parece lucrativa por construção.
+// 4. O stop por volatilidade sai do ATR do último candle FECHADO. Ele saía do
+//    ATR do candle da entrada, que inclui a amplitude desse candle — e a
+//    entrada é na abertura dele, quando a amplitude ainda não existe. O erro
+//    ia sempre para o mesmo lado: candle largo dava stop largo justamente
+//    quando o stop largo salvava a operação.
+//
+// ---------------------------------------------------------------------------
+// O que AINDA usa informação do período inteiro, e por quê
+// ---------------------------------------------------------------------------
+// Três sinais do vocabulário — volume atípico, variação atípica e ticket alto —
+// e a normalização da divergência de fluxo saem do `calcularLimites`, que mede
+// a régua de normalidade sobre a série INTEIRA. Um candle no começo da janela é
+// classificado contra a mediana de candles que ainda não aconteceram.
+//
+// Para a EXIBIÇÃO isso é defensável, e é a escolha declarada lá: "atípico para
+// este período" é uma afirmação descritiva legítima. Para a SIMULAÇÃO não é —
+// no instante do trade, aquela mediana não existia.
+//
+// Fica registrado em vez de corrigido porque o tamanho foi medido e é pequeno:
+// recalculando os sinais sem o futuro, 5 candles em 1440 mudam de classificação
+// nos dados de demonstração (0,3%). Corrigir de verdade significa separar a
+// régua de exibição da régua causal, e isso muda o laboratório de sinais junto.
+// Quem for mexer nisso: o custo não é o cálculo, é a distinção.
 //
 // Não há requisição aqui: é aritmética sobre o array que o dashboard já tem.
 
@@ -391,12 +416,22 @@ export const simular = (registros, opcoes = {}) => {
       // Buraco entre o sinal e a execução invalida a entrada: o preço de
       // abertura já não é a continuação do candle que gerou o sinal.
       if (abertura !== null && !quebraEm[i]) {
-        // No modo ATR a distância sai da volatilidade DESTE candle; no modo
-        // percentual, do número que o usuário digitou. Sem ATR ainda — começo
-        // da série, antes de a média fechar — a posição abre sem stop, e sai
-        // pelo tempo ou pelo alvo. Inventar uma distância ali seria pior.
+        // No modo ATR a distância sai da volatilidade medida até o ÚLTIMO
+        // CANDLE FECHADO — `i - 1`, e não `i`. O `calcularAtrSerie` devolve em
+        // cada posição o ATR já incluindo a amplitude daquele candle, e a
+        // entrada acontece na ABERTURA de `i`: a essa altura ninguém sabe qual
+        // vai ser a máxima nem a mínima dele.
+        //
+        // Usar `i` dava ao stop exatamente o dado que ele não podia ter, e
+        // sempre do jeito conveniente: candle largo produzia stop largo
+        // justamente quando o stop largo era necessário para sobreviver. É a
+        // mesma família dos três erros que o cabeçalho deste arquivo enumera.
+        //
+        // Sem ATR ainda — começo da série, antes de a média fechar — a posição
+        // abre sem stop, e sai pelo tempo ou pelo alvo. Inventar uma distância
+        // ali seria pior.
         const distanciaStop = stopPorVolatilidade
-          ? stopPorAtr(atrPorPosicao?.[i] ?? null, abertura)
+          ? stopPorAtr(atrPorPosicao?.[i - 1] ?? null, abertura)
           : stopPercentual
 
         posicao = {
