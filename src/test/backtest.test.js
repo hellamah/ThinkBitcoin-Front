@@ -962,3 +962,95 @@ describe('utils/backtest › entrada inutilizável', () => {
     ).toBeNull()
   })
 })
+
+describe('utils/backtest › o que ordena o ranking', () => {
+  // A ordenação era pelo alfa da JANELA CHEIA, e a janela cheia contém o trecho
+  // de validação. Ou seja: a melhor era escolhida usando também os candles
+  // reservados para julgar a escolha, e a coluna de validação então
+  // "confirmava" a subida que ela mesma havia causado.
+  //
+  // Esta série é o caso que separa os dois protocolos. Cem candles: os oitenta
+  // mais antigos são ajuste, os vinte mais novos, validação.
+  //
+  //   martelo  dez entradas, todas no AJUSTE, cada uma rendendo +2%
+  //   estrela  dez entradas perdendo 1% no ajuste, e DUAS de +40% na validação
+  //
+  // Pelo ajuste o martelo ganha; pela janela cheia a estrela ganha, porque as
+  // duas operações do trecho reservado dominam a conta.
+  const TOTAL = 100
+  const MARTELO_EM = new Set([0, 8, 16, 24, 32, 40, 48, 56, 64, 72])
+  const ESTRELA_EM = new Set([4, 12, 20, 28, 36, 44, 52, 60, 68, 76, 84, 92])
+
+  const serieComReversao = () => {
+    const defs = []
+    let preco = 100
+
+    for (let i = 0; i < TOTAL; i++) {
+      // `saidaPorTempo: 1` entra na abertura do candle seguinte ao sinal e sai
+      // no fechamento DELE, então o retorno da operação é o movimento dentro
+      // deste candle — decidido pelo sinal do candle anterior.
+      const anterior = defs[i - 1]
+      let ganho = 0
+      if (anterior?.martelo) ganho = 0.02
+      else if (anterior?.estrela) ganho = i >= 80 ? 0.4 : -0.01
+
+      const fechamento = preco * (1 + ganho)
+
+      defs.push({
+        abertura: preco,
+        maior: Math.max(preco, fechamento) * 1.001,
+        menor: Math.min(preco, fechamento) * 0.999,
+        fechamento,
+        martelo: MARTELO_EM.has(i),
+        estrela: ESTRELA_EM.has(i),
+      })
+      preco = fechamento
+    }
+
+    return serie(defs)
+  }
+
+  const PARAMS_REVERSAO = { saidaPorTempo: 1, custoPercentual: 0 }
+
+  const posicaoDe = (r, sinal) => r.linhas.findIndex((l) => l.sinal === sinal)
+
+  it('deve ordenar pelo alfa do ajuste, não pelo da janela cheia', () => {
+    const r = compararEstrategias(serieComReversao(), PARAMS_REVERSAO)
+    const alfas = r.linhas.map((l) => l.alfaAjuste ?? -Infinity)
+
+    expect(alfas).toEqual([...alfas].sort((a, b) => b - a))
+  })
+
+  it('deve pôr em cima a regra que venceu no trecho em que foi escolhida', () => {
+    const r = compararEstrategias(serieComReversao(), PARAMS_REVERSAO)
+    expect(posicaoDe(r, CandlePattern.MARTELO)).toBeLessThan(
+      posicaoDe(r, CandlePattern.ESTRELA)
+    )
+  })
+
+  it('deve contrariar o critério antigo neste caso, e não por acaso', () => {
+    // A rede de segurança do teste acima: sem esta verificação, uma fixture em
+    // que os dois critérios concordam faria a ordenação passar com qualquer um
+    // deles. Aqui a estrela TEM o maior alfa na janela cheia — era ela que
+    // subia ao topo antes — e ainda assim fica abaixo.
+    const r = compararEstrategias(serieComReversao(), PARAMS_REVERSAO)
+    const martelo = r.linhas.find((l) => l.sinal === CandlePattern.MARTELO)
+    const estrela = r.linhas.find((l) => l.sinal === CandlePattern.ESTRELA)
+
+    expect(estrela.metricas.alfa).toBeGreaterThan(martelo.metricas.alfa)
+    expect(estrela.alfaAjuste).toBeLessThan(martelo.alfaAjuste)
+  })
+
+  it('deve cair para a janela cheia quando não há corte', () => {
+    // Sem trecho de ajuste não existe critério limpo, e a janela cheia é tudo
+    // o que há. Aí a estrela volta ao topo — e está certo, porque ali não se
+    // prometeu nenhuma separação.
+    const r = compararEstrategias(serieComReversao(), {
+      ...PARAMS_REVERSAO,
+      fracaoValidacao: null,
+    })
+
+    expect(r.linhas[0].sinal).toBe(CandlePattern.ESTRELA)
+    expect(r.linhas.every((l) => l.alfaAjuste === null)).toBe(true)
+  })
+})

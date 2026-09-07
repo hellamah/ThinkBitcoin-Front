@@ -530,14 +530,30 @@ export const simular = (registros, opcoes = {}) => {
  * Sem isso, comparar catorze sinais recalcularia RSI, Bollinger, VWAP e
  * divergências catorze vezes sobre os mesmos candles.
  *
- * Cada linha traz o resultado na janela cheia e no trecho de validação. A
- * ordenação é pelo alfa da janela cheia — é o que tem mais operações e menos
- * ruído —, mas quem decide se a linha significa algo é a coluna de validação.
+ * Cada linha traz o resultado na janela cheia, no trecho de ajuste e no de
+ * validação.
+ *
+ * **A ordenação é pelo alfa do AJUSTE.** Era pelo da janela cheia, com a
+ * justificativa de que ali há mais operações e menos ruído — e com a afirmação,
+ * escrita aqui, de que a validação era "a única coluna que não foi usada para
+ * ordenar". A afirmação era falsa: a janela cheia CONTÉM o trecho de validação,
+ * então ordenar por ela é escolher a melhor usando também os candles que foram
+ * reservados justamente para julgar a escolha. Uma regra que se saísse bem só
+ * no trecho reservado subia na tabela POR CAUSA dele, e a coluna de validação
+ * então "confirmava" a subida que ela mesma tinha causado.
+ *
+ * Selecionar no ajuste e julgar na validação é o que "fora da amostra"
+ * significa. O custo é pequeno — o ajuste tem 80% da janela, não é um resto —
+ * e o ganho é que a coluna da direita volta a ser o que a tela promete.
+ *
+ * A ordenação cai para o alfa da janela cheia quando não há corte: janela curta
+ * demais para dividir não tem trecho de ajuste, e aí a janela cheia é tudo o
+ * que existe.
  *
  * **Sobre escolher a melhor:** testar N estratégias e ficar com a de cima é
  * sobreajuste por construção. Com catorze sinais a 95% de confiança, espera-se
  * que **menos de uma** pareça boa por puro acaso. Por isso a validação não é
- * enfeite da tela: é a única coluna que não foi usada para ordenar.
+ * enfeite da tela.
  *
  * @param {Array<object>} registros - Série na ordem da API.
  * @param {object} opcoes - As mesmas de `simular`, mais:
@@ -658,7 +674,15 @@ export const compararEstrategias = (registros, opcoes = {}) => {
 
   // Maior alfa primeiro: a pergunta desta tabela é "qual sobrou melhor que não
   // fazer nada", e a resposta tem de estar na primeira linha.
-  linhas.sort((a, b) => (b.metricas.alfa ?? -Infinity) - (a.metricas.alfa ?? -Infinity))
+  //
+  // Pelo alfa do AJUSTE, e não pelo da janela cheia: a cheia contém o trecho de
+  // validação, e ordenar por ela contamina a coluna que existe para julgar a
+  // ordenação. Ver o cabeçalho desta função. Sem corte não há ajuste, e aí a
+  // janela cheia é tudo o que existe para ordenar.
+  const criterio = corte
+    ? (l) => l.alfaAjuste ?? -Infinity
+    : (l) => l.metricas.alfa ?? -Infinity
+  linhas.sort((a, b) => criterio(b) - criterio(a))
 
   return {
     linhas,

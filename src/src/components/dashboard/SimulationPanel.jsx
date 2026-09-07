@@ -28,6 +28,20 @@ const rotuloHorizonte = (n, t) =>
 const classeSinal = (v) => (v > 0 ? 'up' : v < 0 ? 'down' : undefined)
 
 /**
+ * A validação desta linha repousa sobre menos operações do que o projeto
+ * considera conclusivo.
+ *
+ * Vale a mesma régua que esmaece a linha inteira (`amostraInsuficiente`), só
+ * que aplicada ao número que de fato decide a leitura. A linha usa a contagem
+ * da janela CHEIA, que é a maior das três e portanto a que menos precisa do
+ * aviso.
+ */
+const validacaoCurta = (linha) =>
+  linha.alfaValidacao !== null &&
+  linha.tradesValidacao !== null &&
+  linha.tradesValidacao < MINIMO_TRADES_CONCLUSIVO
+
+/**
  * A regra de saída em vigor, em uma linha.
  *
  * O ranking compara catorze entradas sob a MESMA saída, e sem declarar qual ele
@@ -676,7 +690,24 @@ export default function SimulationPanel({
                             ? '—'
                             : `${pct(linha.alfaAjuste)} (${linha.tradesAjuste})`}
                         </td>
-                        <td className={classeSinal(linha.alfaValidacao)}>
+                        {/* A validação é 20% da janela, então ela SEMPRE tem
+                            cerca de um quinto das operações — e cai abaixo do
+                            mínimo conclusivo com frequência mesmo quando a
+                            janela cheia passa longe dele. Marcar a célula é o
+                            que impede a coluna mais importante da tabela de ser
+                            também a única cujo tamanho de amostra ninguém
+                            confere. */}
+                        <td
+                          className={[
+                            classeSinal(linha.alfaValidacao) || '',
+                            validacaoCurta(linha) ? 'simulation-amostra-curta' : '',
+                          ].filter(Boolean).join(' ') || undefined}
+                          title={
+                            validacaoCurta(linha)
+                              ? t('simulationHoldoutSmall', { minimo: MINIMO_TRADES_CONCLUSIVO })
+                              : undefined
+                          }
+                        >
                           {linha.alfaValidacao === null
                             ? '—'
                             : `${pct(linha.alfaValidacao)} (${linha.tradesValidacao})`}

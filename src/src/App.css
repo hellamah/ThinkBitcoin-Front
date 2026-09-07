@@ -3486,6 +3486,13 @@
   text-decoration: underline;
 }
 
+/* Célula cuja amostra não sustenta conclusão. Esmaece sem esconder — o número
+   continua legível, e o title diz por quê. Mesmo peso do `.signal-lab-fraco`
+   e do `.correlation-fraca`. */
+.simulation-amostra-curta {
+  opacity: 0.5;
+}
+
 /* Linha da estratégia que está sendo simulada em detalhe acima. */
 .simulation-linha-ativa th[scope="row"],
 .simulation-linha-ativa td {
