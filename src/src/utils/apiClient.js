@@ -50,9 +50,6 @@ export const ApiEndpoint = Object.freeze({
     RETURN_SEQUENCE: (id = '') => `/ThinkBitcoin/sequenciasRetorno/${id}`,
     EXCHANGES: '/ThinkBitcoin/exchanges',
   }),
-  CARGO: Object.freeze({
-    UPDATE: '/ThinkBitcoin/CargoUsuarioTB/AlterarCargoUsuarioTB/',
-  }),
   VARIAVEL_EXTERNA: Object.freeze({
     FEAR_GREED: '/ThinkBitcoin/variavel-externa/fear-greed',
     TREND: '/ThinkBitcoin/variavel-externa/trend',
@@ -339,7 +336,6 @@ export const AuthenticationEndpoint = ApiEndpoint.AUTHENTICATION
 export const UserEndpoint = ApiEndpoint.USER
 export const MarketEndpoint = ApiEndpoint.MARKET
 export const PreferencesEndpoint = ApiEndpoint.PREFERENCES
-export const CargoEndpoint = ApiEndpoint.CARGO
 export const VariavelExternaEndpoint = ApiEndpoint.VARIAVEL_EXTERNA
 export const PatrimonioEndpoint = ApiEndpoint.PATRIMONIO
 export const AlertaPrecoEndpoint = ApiEndpoint.ALERTA_PRECO

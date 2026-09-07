@@ -76,5 +76,5 @@ export default function useAlertasPreco(user) {
     [carregar]
   )
 
-  return { alertas, carregando, erro, setErro, temAcesso, carregar, criar, excluir }
+  return { alertas, carregando, erro, temAcesso, criar, excluir }
 }

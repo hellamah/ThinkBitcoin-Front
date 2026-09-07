@@ -77,7 +77,7 @@ const ExpandedChartModal = ({
 
       return {
         label: dataset.label || 'Moeda',
-        color: dataset.borderColor || dataset.backgroundColor || '#fff',
+        color: dataset.borderColor,
         lastValue: last !== undefined ? last : null,
         changePercent: Number.isFinite(changePercent) ? changePercent : null,
       };

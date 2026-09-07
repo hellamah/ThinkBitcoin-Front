@@ -226,6 +226,5 @@ export const derivarAnalytics = ({
     // estas descrevem a janela, e incluir o aquecimento nelas faz o painel
     // responder por dias que o filtro da tela não pediu.
     desempenho: calcularDesempenho(naJanela),
-    amostras: historico.length,
   }
 }

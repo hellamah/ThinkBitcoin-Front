@@ -68,7 +68,7 @@ export { FRACAO_VALIDACAO_PADRAO, dividirParaValidacao }
 // Os limites não são detalhe: sem o piso, um período de calmaria produziria um
 // stop de 0,1% que qualquer oscilação normal derruba; sem o teto, um candle de
 // pânico produziria um stop de 40% que não protege de nada.
-export const ATR_MULTIPLICADOR_STOP = 2
+const ATR_MULTIPLICADOR_STOP = 2
 export const ATR_STOP_MINIMO_PERCENTUAL = 1
 export const ATR_STOP_MAXIMO_PERCENTUAL = 10
 
@@ -95,12 +95,12 @@ export const CUSTO_PADRAO_PERCENTUAL = 0.1
 
 // Capital inicial. Mesmo valor do `initial_cash` da avaliação out-of-sample do
 // backend, para que as duas leituras sejam comparáveis.
-export const CAPITAL_PADRAO = 1000
+const CAPITAL_PADRAO = 1000
 
 // Quantos múltiplos da cadência mediana ainda contam como série contínua. 1,5
 // absorve o desencontro normal entre candles sem deixar passar uma hora
 // inteira ausente.
-export const FATOR_TOLERANCIA_BURACO = 1.5
+const FATOR_TOLERANCIA_BURACO = 1.5
 
 // Abaixo disto as métricas existem mas não sustentam conclusão. Mesmo espírito
 // do laboratório de sinais, que esmaece a linha sem intervalo conclusivo.
@@ -109,7 +109,7 @@ export const MINIMO_TRADES_CONCLUSIVO = 20
 // Milissegundos num ano. Serve para anualizar risco a partir da cadência real da
 // série, medida pelo motor, em vez de assumir "horário" numa constante. Se a
 // coleta virar diária ou de 15 minutos, a conta acompanha sozinha.
-export const MS_POR_ANO = 365.25 * 24 * 60 * 60 * 1000
+const MS_POR_ANO = 365.25 * 24 * 60 * 60 * 1000
 
 /**
  * Risco da curva de capital: Sharpe anualizado e volatilidade anualizada.

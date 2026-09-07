@@ -24,7 +24,7 @@ export const RSI_OVERBOUGHT = 70
 export const RSI_OVERSOLD = 30
 
 export const BAND_PERIOD = 20
-export const BAND_DEVIATIONS = 2
+const BAND_DEVIATIONS = 2
 
 const fechamentos = (cronologico) =>
   (cronologico || []).map((r) => paraNumero(r?.precoFechamento))

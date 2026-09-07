@@ -11,7 +11,7 @@ const STORAGE_KEY = 'cookie_consent_v1'
 // usuário. Sem ela, todo carregamento da Home tentaria reenviar o mesmo aceite.
 const SYNC_KEY = 'cookie_consent_sincronizado_v1'
 
-export function hasCookieConsent() {
+function hasCookieConsent() {
   try {
     return !!localStorage.getItem(STORAGE_KEY)
   } catch {

@@ -95,14 +95,16 @@ describe('utils/marketAnalytics › janela do desempenho', () => {
 
   it('deve manter as leituras de estado sobre a série inteira', () => {
     // ATR, VWAP e osciladores precisam do aquecimento; só o desempenho é
-    // recortado. `amostras` continua descrevendo a série carregada.
+    // recortado.
     const r = derivarAnalytics({
       historicosPorMoeda: { BTC: SERIE },
       fearGreedPorMoeda: { BTC: [] },
       moedasFiltro: ['BTC'],
       aPartirDe: '2026-01-01T03:00:00Z',
     })
-    expect(r.amostras).toBe(3)
+    // O VWAP percorre os três candles mesmo com a janela pedindo dois.
+    expect(r.desempenho.amostras).toBe(2)
+    expect(r.vwap.serie).toHaveLength(3)
   })
 
   it('deve recortar também o comparativo entre moedas', () => {
