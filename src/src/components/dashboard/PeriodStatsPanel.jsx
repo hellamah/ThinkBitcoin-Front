@@ -44,8 +44,13 @@ export default function PeriodStatsPanel({ desempenho, t }) {
         <div className="intel-card">
           <div className="intel-icon"><MdPercent /></div>
           <RotuloComAjuda className="intel-label" texto={t('winRate')} ajuda={t('ajuda.taxaAlta')} />
-          <div className="intel-value">{winRate.toFixed(1)}%</div>
-          <div className="intel-subvalue" style={{ opacity: 0.7 }}>{t('winRateHint')}</div>
+          {/* Traço, e não "0,0%": sem variação medida a taxa não existe, e um
+              zero seria indistinguível de um período em que nenhum candle
+              subiu de verdade. */}
+          <div className="intel-value">{winRate !== null ? `${winRate.toFixed(1)}%` : '-'}</div>
+          <div className="intel-subvalue" style={{ opacity: 0.7 }}>
+            {winRate !== null ? t('winRateHint') : t('noReading')}
+          </div>
         </div>
 
         <div className="intel-card">

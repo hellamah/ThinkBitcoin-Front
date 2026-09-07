@@ -45,7 +45,7 @@ export default function CoinComparisonPanel({ comparativo, t }) {
                 <td className={classe(m.retorno)}>{mathUtils.formatPercent(m.retorno)}</td>
                 {/* Drawdown é sempre ≤ 0; o sinal já vem no número. */}
                 <td className="down">{mathUtils.formatPercent(m.drawdown, 2, false)}</td>
-                <td>{m.winRate.toFixed(1)}%</td>
+                <td>{m.winRate !== null ? `${m.winRate.toFixed(1)}%` : '—'}</td>
                 <td>
                   {m.volatilidade !== null ? `${m.volatilidade.toFixed(2)}%` : '—'}
                 </td>

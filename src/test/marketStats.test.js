@@ -261,3 +261,55 @@ describe('utils/marketStats › calcularAtrSerie', () => {
     expect(calcularAtrSerie(null)).toEqual([])
   })
 })
+
+describe('utils/marketStats › desempenho sem variação medida', () => {
+  // Zero é uma afirmação, não uma ausência. Enquanto a falta de variação virava
+  // zero, o painel anunciava "0,0% dos candles fecharam em alta" e "o melhor
+  // candle do período fez 0%" — leituras que existem de verdade, e que a tela
+  // não tinha como separar de "não há o que medir".
+
+  const soFechamentos = (precos) => precos.map((precoFechamento) => ({ precoFechamento }))
+
+  it('deve devolver null onde não há variação para medir', () => {
+    const r = calcularDesempenho(soFechamentos([110, 105, 100]))
+
+    expect(r.winRate).toBeNull()
+    expect(r.melhor).toBeNull()
+    expect(r.pior).toBeNull()
+  })
+
+  it('deve seguir medindo o que os fechamentos sustentam', () => {
+    // Retorno e drawdown saem dos fechamentos, não das variações: a ausência de
+    // uma leitura não pode apagar a outra.
+    const r = calcularDesempenho(soFechamentos([110, 120, 100]))
+
+    expect(r.retorno).toBeCloseTo(10, 5)
+    expect(r.drawdown).toBeCloseTo(-8.3333, 3)
+    expect(r.amostras).toBe(3)
+  })
+
+  it('deve distinguir ausência de um período realmente parado', () => {
+    // É esta a leitura que o null protege: variação medida e igual a zero
+    // continua sendo zero, e agora não se confunde mais com a falta dela.
+    const parado = calcularDesempenho(serieDecrescente([100, 100, 100], [0, 0, 0]))
+
+    expect(parado.winRate).toBe(0)
+    expect(parado.melhor).toBe(0)
+    expect(parado.pior).toBe(0)
+  })
+
+  it('deve contar apenas as variações medidas quando faltam algumas', () => {
+    const r = calcularDesempenho([
+      { precoFechamento: 103, precoPercentualVariacao: 2 },
+      { precoFechamento: 102 },
+      { precoFechamento: 101, precoPercentualVariacao: -1 },
+      { precoFechamento: 100 },
+    ])
+
+    // Duas variações medidas, uma positiva.
+    expect(r.winRate).toBeCloseTo(50, 5)
+    // `amostras` conta FECHAMENTOS, que é o que sustenta retorno e drawdown —
+    // e pode divergir do número de variações, como aqui.
+    expect(r.amostras).toBe(4)
+  })
+})

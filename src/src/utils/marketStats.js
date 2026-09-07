@@ -28,9 +28,14 @@ export const ATR_PERIOD = 14
  * @param {Array<object>} registros - Registros de /moeda/{sigla}/valor, na
  *   ordem em que a API entrega (ordemAsc=false: do mais recente ao mais antigo).
  * @returns {{
- *   retorno: number, drawdown: number, winRate: number,
- *   melhor: number, pior: number, amostras: number
+ *   retorno: number, drawdown: number, winRate: number|null,
+ *   melhor: number|null, pior: number|null, amostras: number
  * }|null} Percentuais; null se não houver fechamento válido.
+ *
+ *   As três leituras de variação saem null quando a série não traz variação
+ *   medida — não zero. `amostras` conta os FECHAMENTOS, que é o que sustenta
+ *   retorno e drawdown; as variações são outro campo e podem faltar sem que os
+ *   fechamentos faltem.
  */
 export const calcularDesempenho = (registros) => {
   if (!Array.isArray(registros) || registros.length === 0) return null
@@ -64,12 +69,23 @@ export const calcularDesempenho = (registros) => {
 
   const positivas = variacoes.filter((v) => v > 0).length
 
+  // Sem variação medida não existe taxa, nem melhor, nem pior — e zero seria
+  // uma AFIRMAÇÃO no lugar da ausência: "0,0% dos candles fecharam em alta",
+  // "o melhor candle do período fez 0%". A tela não teria como distinguir isso
+  // de um período que de fato ficou parado, que é uma leitura legítima e
+  // completamente diferente.
+  //
+  // É a mesma régua que o resto do projeto já segue: o laboratório deixa em
+  // branco o trecho em que o sinal não ocorreu, a simulação distingue "não
+  // operou" de "rendeu zero". Faltava aqui, no painel que abre o dashboard.
+  const temVariacoes = variacoes.length > 0
+
   return {
     retorno,
     drawdown,
-    winRate: variacoes.length > 0 ? (positivas / variacoes.length) * 100 : 0,
-    melhor: variacoes.length > 0 ? Math.max(...variacoes) : 0,
-    pior: variacoes.length > 0 ? Math.min(...variacoes) : 0,
+    winRate: temVariacoes ? (positivas / variacoes.length) * 100 : null,
+    melhor: temVariacoes ? Math.max(...variacoes) : null,
+    pior: temVariacoes ? Math.min(...variacoes) : null,
     amostras: fechamentos.length,
   }
 }
