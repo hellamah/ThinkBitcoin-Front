@@ -3056,6 +3056,14 @@
   opacity: 0.35;
 }
 
+/* Coeficiente que a amostra não distingue de zero. O número continua na tela —
+   ele existe e alguém pode querer vê-lo —, mas sem cor de fundo e esmaecido,
+   para não competir com as células que dizem alguma coisa. Mesmo peso visual
+   que o `.signal-lab-fraco` usa nas linhas inconclusivas do laboratório. */
+.correlation-fraca {
+  opacity: 0.45;
+}
+
 .correlation-legend {
   display: flex;
   flex-wrap: wrap;
