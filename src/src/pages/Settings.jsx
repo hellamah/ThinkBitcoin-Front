@@ -60,6 +60,7 @@ import { DirecaoAlerta, StatusAlerta, contarAtivos, LIMITE_ALERTAS_ATIVOS } from
 import * as mathUtils from '../utils/mathUtils'
 import ExcluirContaModal from '../components/ExcluirContaModal'
 import MeusConsentimentosPanel from '../components/MeusConsentimentosPanel'
+import ErrorMessage from '../components/ErrorMessage'
 
 function Settings() {
   const { t, idioma } = useTranslation()
@@ -88,6 +89,7 @@ function Settings() {
 
   useEffect(() => () => clearTimeout(toastRef.current), [])
   const [moedas, setMoedas] = useState([])
+  const [erroMoedas, setErroMoedas] = useState('')
   const [senha, setSenha] = useState({ atual: '', nova: '', confirma: '' })
   const [loadingSenha, setLoadingSenha] = useState(false)
   const [planoAtivo, setPlanoAtivo] = useState(null)
@@ -128,12 +130,16 @@ function Settings() {
         setMoedas(resM?.resultado || resM?.Resultado || (Array.isArray(resM) ? resM : []))
       } catch (err) {
         console.error('Erro ao carregar dados:', err)
-        // Fallback para manter a interface funcional
-        setMoedas([
-          { id: 'btc-id', sigla: 'BTC', nome: 'Bitcoin' },
-          { id: 'eth-id', sigla: 'ETH', nome: 'Ethereum' },
-          { id: 'sol-id', sigla: 'SOL', nome: 'Solana' },
-        ])
+        // Aqui havia uma lista inventada — BTC, ETH e SOL, com ids falsos —
+        // "para manter a interface funcional". Ela não mantinha: das dez moedas
+        // do catálogo, o seletor passava a oferecer três, sem nada dizendo que
+        // algo tinha falhado. E se a preferência salva não fosse uma das três,
+        // o Select renderizava VAZIO — a tela dizia que não havia preferência
+        // onde havia, e o próximo clique gravava por cima da escolha do usuário.
+        //
+        // Medido com a rota falhando: preferência salva em ADA, seletor em
+        // branco. Sem lista, o honesto é dizer que não deu para carregar.
+        setErroMoedas('coinListError')
       }
     }
     carregarDados()
@@ -289,6 +295,16 @@ function Settings() {
   )
 
 
+  // O valor salvo nem sempre está na lista carregada: ela pode ter falhado, e o
+  // catálogo pode simplesmente não trazer mais aquela moeda — é o caso do USDT
+  // hoje, que sai da lista e deixa o seletor de saldo de segurança em branco
+  // para quem o tinha escolhido. Sem uma opção correspondente, o MUI renderiza
+  // vazio, e vazio aqui quer dizer "não escolhi nenhuma", que é outra coisa.
+  const opcoesDeMoeda = (salvo) =>
+    salvo && !moedas.some((m) => m.sigla === salvo)
+      ? [{ sigla: salvo }, ...moedas]
+      : moedas
+
   const renderField = (label, component) => (
     <Box sx={{
       display: 'grid',
@@ -374,6 +390,11 @@ function Settings() {
           {t('settingsSubtitle')}
         </Typography>
       </header>
+
+      {/* Sem o catálogo, os dois seletores de moeda ficam só com o que já estava
+          salvo. Dizer isso uma vez é melhor que deixar a tela parecer vazia por
+          escolha do usuário. */}
+      <ErrorMessage message={t(erroMoedas)} onClose={() => setErroMoedas('')} />
 
       <div className="settings-grid">
         {renderPanel(<MdBrightness4 />, t('themeTitle'), (
@@ -586,7 +607,7 @@ function Settings() {
                 sx={selectSx}
               >
                 <MenuItem value=""><em>{t('none')}</em></MenuItem>
-                {moedas.map(m => (
+                {opcoesDeMoeda(localPrefs?.siglaMoedaPreferida).map(m => (
                   <MenuItem key={m.sigla} value={m.sigla}>{m.sigla}</MenuItem>
                 ))}
               </Select>
@@ -704,7 +725,7 @@ function Settings() {
                         sx={{ ...selectSx, minWidth: 90 }}
                       >
                         <MenuItem value=""><em>--</em></MenuItem>
-                        {moedas.map(m => (
+                        {opcoesDeMoeda(localPrefs?.siglaMoedaSaldoSeguranca).map(m => (
                           <MenuItem key={m.sigla} value={m.sigla}>{m.sigla}</MenuItem>
                         ))}
                       </Select>
