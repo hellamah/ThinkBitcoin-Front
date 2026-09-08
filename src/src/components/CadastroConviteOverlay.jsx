@@ -255,7 +255,7 @@ const CadastroConviteOverlay = ({ onFechar }) => {
           <IconButton
             onClick={fecharComAnimacao}
             className="convite-overlay-close"
-            aria-label="Fechar overlay"
+            aria-label={t('close')}
             size="small"
           >
             <MdClose />
