@@ -105,6 +105,8 @@
   "notificationsError": "Não foi possível ativar as notificações",
   "close": "Fechar",
   "fetchError": "Falha ao obter dados, exibindo dados simulados",
+  "coinListError": "Não foi possível carregar a lista de moedas. Tente novamente mais tarde.",
+  "coinDataError": "Não foi possível carregar os dados de: {{moedas}}",
   "traderLabTitle": "Laboratório de Trader",
   "riskManagementTitle": "Gerenciamento de Risco",
   "initialInvestment": "Investimento Inicial (USD)",
@@ -364,7 +366,6 @@
     "tourPasso4Descricao": "Clique em uma região para dar zoom no continente desejado.",
     "tourPasso5Titulo": "Central de Inteligência",
     "tourPasso5Descricao": "Ranking dos top 5 países por dominância do ativo. Clique para filtrar o carrossel.",
-    "tourFechar": "Entendi!",
     "atualizadoAs": "Atualizado às",
     "dadosImputados": "Parte dos dados foi estimada (coleta incompleta)",
     "pulsoNarrativa": "Pulso da Narrativa",
@@ -421,8 +422,14 @@
     "passo5Titulo": "Simulação de Estratégia",
     "passo5Descricao": "Teste uma regra de entrada sobre 180 dias e veja o que ela teria rendido, com custo e comparada a simplesmente segurar o ativo.",
     "passo6Titulo": "Histórico",
-    "passo6Descricao": "Veja o histórico de operações filtrado e navegue pelas páginas.",
-    "fechar": "Entendi!"
+    "passo6Descricao": "Veja o histórico de operações filtrado e navegue pelas páginas."
+  },
+  "tour": {
+    "fechar": "Entendi!",
+    "voltar": "Voltar",
+    "proximo": "Próximo",
+    "proximoComProgresso": "Próximo ({current} de {total})",
+    "pular": "Pular"
   },
   "patrimonio": {
     "title": "Patrimônio Total",
@@ -552,6 +559,7 @@
     "episodeProfile": "Perfil do episódio",
     "profileSubtitle": "Comparação normalizada vs média de {{coin}} (episódios carregados)",
     "actionDistDetail": "Distribuição de ações",
+    "actionDistTotal": "Total: {{acoes}} ações em {{steps}} steps",
     "fullDetails": "Detalhes completos",
     "allFields": "Todos os campos do episódio",
     "episode": "Episódio",

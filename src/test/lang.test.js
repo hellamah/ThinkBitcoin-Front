@@ -205,3 +205,20 @@ describe('lang › reservas depois de t()', () => {
     expect(ocorrencias).toEqual([])
   })
 })
+
+// ---------------------------------------------------------------------------
+// Marcadores do Joyride
+// ---------------------------------------------------------------------------
+// O rótulo de progresso do tour traz {current} e {total}, de chave simples:
+// quem substitui é o próprio Joyride, não o `t`. O teste de marcadores lá em
+// cima só compara {{nome}}, então uma tradução que perdesse esses dois passaria
+// por ele — e o botão diria "Suivant ()" sem erro nenhum, nem no console.
+
+describe('lang › marcadores do tour', () => {
+  it.each(Object.entries(IDIOMAS))('%s deve manter {current} e {total}', (nome, dicionario) => {
+    const rotulo = dicionario.tour.proximoComProgresso
+
+    expect(rotulo).toContain('{current}')
+    expect(rotulo).toContain('{total}')
+  })
+})

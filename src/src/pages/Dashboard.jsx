@@ -602,13 +602,18 @@ export default function Dashboard() {
             run={tourRodando}
             continuous
             onEvent={handleTourCallback}
+            // Os seis rótulos saem do dicionário. Três deles ficavam cravados
+            // em português, então o balão aparecia traduzido com os botões em
+            // português — e o tour é a primeira tela que um usuário novo vê.
+            // `{current}` e `{total}` são marcadores do próprio Joyride, de
+            // chave simples: o `t` só substitui `{{nome}}` e passa por eles.
             locale={{
-              back: 'Voltar',
-              close: t('dashboardTour.fechar'),
-              last: t('dashboardTour.fechar'),
-              next: 'Próximo',
-              nextWithProgress: 'Próximo ({current} de {total})',
-              skip: 'Pular',
+              back: t('tour.voltar'),
+              close: t('tour.fechar'),
+              last: t('tour.fechar'),
+              next: t('tour.proximo'),
+              nextWithProgress: t('tour.proximoComProgresso'),
+              skip: t('tour.pular'),
             }}
             options={{
               // Sem beacon: o tooltip abre direto em cada passo.
@@ -678,8 +683,13 @@ export default function Dashboard() {
           <PatrimonioCard token={token} user={usuario} />
         </div>
 
-        <ErrorMessage message={erro} onClose={() => setErro('')} />
-        <ErrorMessage message={erroMoedas} onClose={() => setErroMoedas('')} />
+        {/* Os hooks guardam a chave; a tradução acontece aqui, que é onde o `t`
+            existe. O de dados vem com valores para interpolar. */}
+        <ErrorMessage
+          message={erro ? t(erro.chave, erro.valores) : ''}
+          onClose={() => setErro('')}
+        />
+        <ErrorMessage message={t(erroMoedas)} onClose={() => setErroMoedas('')} />
 
         <div data-tour="dash-carrossel">
           <CoinCarousel

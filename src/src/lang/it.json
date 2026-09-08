@@ -105,6 +105,8 @@
   "notificationsError": "Impossibile attivare le notifiche",
   "close": "Chiudi",
   "fetchError": "Recupero dati non riuscito, vengono mostrati dati simulati",
+  "coinListError": "Impossibile caricare l'elenco delle criptovalute. Riprova più tardi.",
+  "coinDataError": "Impossibile caricare i dati di: {{moedas}}",
   "traderLabTitle": "Laboratorio del trader",
   "riskManagementTitle": "Gestione del rischio",
   "initialInvestment": "Investimento iniziale (USD)",
@@ -364,7 +366,6 @@
     "tourPasso4Descricao": "Clicca su una regione per ingrandire il continente desiderato.",
     "tourPasso5Titulo": "Centrale di intelligence",
     "tourPasso5Descricao": "Classifica dei primi 5 paesi per dominanza dell'asset. Clicca per filtrare il carosello.",
-    "tourFechar": "Ho capito!",
     "atualizadoAs": "Aggiornato alle",
     "dadosImputados": "Parte dei dati è stata stimata (raccolta incompleta)",
     "pulsoNarrativa": "Polso della narrativa",
@@ -421,8 +422,14 @@
     "passo5Titulo": "Simulazione di Strategia",
     "passo5Descricao": "Prova una regola di ingresso su 180 giorni e vedi quanto avrebbe reso, con i costi e confrontata al semplice mantenere l'asset.",
     "passo6Titulo": "Storico",
-    "passo6Descricao": "Consulta lo storico delle operazioni filtrato e naviga tra le pagine.",
-    "fechar": "Ho capito!"
+    "passo6Descricao": "Consulta lo storico delle operazioni filtrato e naviga tra le pagine."
+  },
+  "tour": {
+    "fechar": "Ho capito!",
+    "voltar": "Indietro",
+    "proximo": "Avanti",
+    "proximoComProgresso": "Avanti ({current} di {total})",
+    "pular": "Salta"
   },
   "patrimonio": {
     "title": "Patrimonio totale",
@@ -552,6 +559,7 @@
     "episodeProfile": "Profilo dell'episodio",
     "profileSubtitle": "Confronto normalizzato vs media di {{coin}} (episodi caricati)",
     "actionDistDetail": "Distribuzione delle azioni",
+    "actionDistTotal": "Totale: {{acoes}} azioni in {{steps}} step",
     "fullDetails": "Dettagli completi",
     "allFields": "Tutti i campi dell'episodio",
     "episode": "Episodio",

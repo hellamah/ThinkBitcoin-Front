@@ -41,8 +41,12 @@ export default function useCoinPrices() {
       } catch (err) {
         console.error('Erro ao listar moedas:', err)
         // Sem lista não há o que exibir: sinaliza o erro em vez de inventar moedas.
+        //
+        // Guarda a CHAVE, não a frase: este hook não tem `t` — é chamado fora
+        // de qualquer componente de tela —, e montar o texto aqui deixava o
+        // banner em português para os outros quatro idiomas. Quem exibe traduz.
         if (ativo) {
-          setErro('Não foi possível carregar a lista de moedas. Tente novamente mais tarde.')
+          setErro('coinListError')
         }
       }
     }

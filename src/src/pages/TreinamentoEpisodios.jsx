@@ -2199,7 +2199,9 @@ function DetailView({ item, allItems, onBack, onNavigate }) {
             }}>
               <Box sx={{ mb: 1 }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{t('treinamento.actionDistDetail')}</Typography>
-                <Typography variant="caption" sx={{ opacity: 0.6 }}>Total: {totalAcoes} ações em {item.totalSteps ?? '-'} steps</Typography>
+                <Typography variant="caption" sx={{ opacity: 0.6 }}>
+                  {t('treinamento.actionDistTotal', { acoes: totalAcoes, steps: item.totalSteps ?? '-' })}
+                </Typography>
               </Box>
               <Box sx={{ flex: 1, position: 'relative', minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Doughnut data={doughnutData} options={doughnutOptions} />

@@ -214,7 +214,11 @@ export default function useDashboardData({
       })
 
       if (moedasComErro.length > 0) {
-        setErro(`Não foi possível carregar os dados de: ${moedasComErro.join(', ')}`)
+        // Chave e valores em vez de frase pronta, pelo mesmo motivo do
+        // useCoinPrices: sem `t` aqui, o texto montado ficava em português nos
+        // outros quatro idiomas. Vai como objeto porque esta mensagem tem
+        // interpolação — a lista de moedas que falharam.
+        setErro({ chave: 'coinDataError', valores: { moedas: moedasComErro.join(', ') } })
       }
 
       // Uma hora de tolerância: o candle mais antigo raramente cai exatamente

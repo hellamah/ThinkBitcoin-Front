@@ -105,6 +105,8 @@
   "notificationsError": "No se pudieron activar las notificaciones",
   "close": "Cerrar",
   "fetchError": "Error al obtener datos, mostrando datos simulados",
+  "coinListError": "No se pudo cargar la lista de monedas. Inténtalo de nuevo más tarde.",
+  "coinDataError": "No se pudieron cargar los datos de: {{moedas}}",
   "traderLabTitle": "Laboratorio del trader",
   "riskManagementTitle": "Gestión de riesgo",
   "initialInvestment": "Inversión inicial (USD)",
@@ -364,7 +366,6 @@
     "tourPasso4Descricao": "Haga clic en una región para ampliar el continente deseado.",
     "tourPasso5Titulo": "Central de inteligencia",
     "tourPasso5Descricao": "Ranking de los 5 principales países por dominancia del activo. Haga clic para filtrar el carrusel.",
-    "tourFechar": "¡Entendido!",
     "atualizadoAs": "Actualizado a las",
     "dadosImputados": "Parte de los datos fue estimada (recolección incompleta)",
     "pulsoNarrativa": "Pulso de la narrativa",
@@ -421,8 +422,14 @@
     "passo5Titulo": "Simulación de Estrategia",
     "passo5Descricao": "Pruebe una regla de entrada sobre 180 días y vea lo que habría rendido, con coste y comparada con simplemente mantener el activo.",
     "passo6Titulo": "Historial",
-    "passo6Descricao": "Vea el historial de operaciones filtrado y navegue por las páginas.",
-    "fechar": "¡Entendido!"
+    "passo6Descricao": "Vea el historial de operaciones filtrado y navegue por las páginas."
+  },
+  "tour": {
+    "fechar": "¡Entendido!",
+    "voltar": "Atrás",
+    "proximo": "Siguiente",
+    "proximoComProgresso": "Siguiente ({current} de {total})",
+    "pular": "Saltar"
   },
   "patrimonio": {
     "title": "Patrimonio total",
@@ -552,6 +559,7 @@
     "episodeProfile": "Perfil del episodio",
     "profileSubtitle": "Comparación normalizada vs media de {{coin}} (episodios cargados)",
     "actionDistDetail": "Distribución de acciones",
+    "actionDistTotal": "Total: {{acoes}} acciones en {{steps}} steps",
     "fullDetails": "Detalles completos",
     "allFields": "Todos los campos del episodio",
     "episode": "Episodio",

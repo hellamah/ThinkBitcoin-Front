@@ -194,7 +194,9 @@ export default function CoinCarousel({
         <div className="top-list">
           {moedasCarousel.length === 0 ? (
             <Box sx={{ p: 4, textAlign: 'center', opacity: 0.6 }}>
-              <Typography variant="body2" sx={{ fontStyle: 'italic' }}>{t('loadingCoins')}...</Typography>
+              {/* Sem os três pontos extras: as cinco traduções de `loadingCoins`
+                  já terminam em reticências, e o texto saía com seis. */}
+              <Typography variant="body2" sx={{ fontStyle: 'italic' }}>{t('loadingCoins')}</Typography>
             </Box>
           ) : (
             moedasCarousel

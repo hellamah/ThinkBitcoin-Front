@@ -788,13 +788,15 @@ export default function GeoHeatmapView() {
         run={tourRodando}
         continuous
         onEvent={handleTourCallback}
+        // Mesmos rótulos do tour do dashboard, do mesmo lugar: são a moldura do
+        // Joyride, não o conteúdo de um tour específico. Ver o comentário lá.
         locale={{
-          back: 'Voltar',
-          close: t('heatmap.tourFechar'),
-          last: t('heatmap.tourFechar'),
-          next: 'Próximo',
-          nextWithProgress: 'Próximo ({current} de {total})',
-          skip: 'Pular',
+          back: t('tour.voltar'),
+          close: t('tour.fechar'),
+          last: t('tour.fechar'),
+          next: t('tour.proximo'),
+          nextWithProgress: t('tour.proximoComProgresso'),
+          skip: t('tour.pular'),
         }}
         options={{
           // Sem beacon: o tooltip abre direto em cada passo.
@@ -877,8 +879,10 @@ export default function GeoHeatmapView() {
         onExcluir={excluirAlerta}
         notificacoesLigadas={!!prefs?.notificacoes}
       />
+      {/* O `erro` desta tela já sai traduzido — é montado aqui dentro, onde o
+          `t` existe. O do carrossel vem do hook, que só tem a chave. */}
       <ErrorMessage message={erro} onClose={() => setErro('')} />
-      <ErrorMessage message={erroMoedas} onClose={() => setErroMoedas('')} />
+      <ErrorMessage message={t(erroMoedas)} onClose={() => setErroMoedas('')} />
 
       {/* Carrossel de Ativos */}
       <div data-tour="carrossel">

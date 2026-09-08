@@ -105,6 +105,8 @@
   "notificationsError": "Could not enable notifications",
   "close": "Close",
   "fetchError": "Failed to fetch data, showing demo",
+  "coinListError": "Could not load the coin list. Please try again later.",
+  "coinDataError": "Could not load data for: {{moedas}}",
   "traderLabTitle": "Trader Laboratory",
   "riskManagementTitle": "Risk Management",
   "initialInvestment": "Initial Investment (USD)",
@@ -364,7 +366,6 @@
     "tourPasso4Descricao": "Click a region to zoom into the desired continent.",
     "tourPasso5Titulo": "Intelligence Hub",
     "tourPasso5Descricao": "Top 5 countries ranked by asset dominance. Click to filter the carousel.",
-    "tourFechar": "Got it!",
     "atualizadoAs": "Updated at",
     "dadosImputados": "Part of the data was estimated (incomplete collection)",
     "pulsoNarrativa": "Narrative Pulse",
@@ -421,8 +422,14 @@
     "passo5Titulo": "Strategy Simulation",
     "passo5Descricao": "Test an entry rule over 180 days and see what it would have returned, with cost and compared to simply holding the asset.",
     "passo6Titulo": "History",
-    "passo6Descricao": "Browse the filtered operation history and page through results.",
-    "fechar": "Got it!"
+    "passo6Descricao": "Browse the filtered operation history and page through results."
+  },
+  "tour": {
+    "fechar": "Got it!",
+    "voltar": "Back",
+    "proximo": "Next",
+    "proximoComProgresso": "Next ({current} of {total})",
+    "pular": "Skip"
   },
   "patrimonio": {
     "title": "Total Equity",
@@ -552,6 +559,7 @@
     "episodeProfile": "Episode Profile",
     "profileSubtitle": "Normalized comparison vs {{coin}} average (loaded episodes)",
     "actionDistDetail": "Action Distribution",
+    "actionDistTotal": "Total: {{acoes}} actions in {{steps}} steps",
     "fullDetails": "Full Details",
     "allFields": "All episode fields",
     "episode": "Episode",
