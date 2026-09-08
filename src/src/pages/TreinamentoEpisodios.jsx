@@ -153,14 +153,6 @@ const formatDate = (value, locale) => {
 // só porque uma tela desenha um eixo temporal.
 const LOCALE_DATE_FNS = Object.freeze({ pt: ptBR, en: enUS, es, fr, it })
 
-// Backend aceita ISO 8601 sem timezone (ex.: 2026-07-01T16:00:00), casando com o
-// formato de dataHora retornado. Componentes LOCAIS para bater com o eixo do gráfico.
-const pad2 = (n) => String(n).padStart(2, '0')
-const formatBackendDateTime = (ts) => {
-  const d = new Date(ts)
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`
-}
-
 // As consultas trabalham em grupos (janelas) de 4 horas, alinhados à hora local.
 const ONE_HOUR_MS = 60 * 60 * 1000
 const FOUR_HOURS_MS = 4 * 60 * 60 * 1000
@@ -178,13 +170,24 @@ const extractLista = (resp) =>
       : []
 
 // Busca TODOS os episódios de uma janela [inicioMs, fimMs), paginando se preciso.
+//
+// As bordas vão em UTC, com o Z. Iam em componentes LOCAIS e sem marca de fuso —
+// "2026-09-08T04:00:00" para um instante que era 07:00Z. Quem lê do outro lado
+// não tem como adivinhar que aquilo era hora local, e o carimbo que a API
+// devolve sem fuso É UTC (ver marcarUtcQuandoFaltarFuso no apiClient). A janela
+// pedida saía deslocada pelo fuso do usuário inteiro: em UTC-3, três horas.
+//
+// O alinhamento das janelas continua na hora local — isso é escolha de tela, e
+// bate com o eixo do gráfico. O que muda é só como o instante é escrito na
+// requisição. É o mesmo `toUTCISO` que o resto do app usa, inclusive as duas
+// consultas de mercado logo abaixo, nesta mesma página.
 const fetchWindow = async (moeda, versaoModelo, inicioMs, fimMs) => {
   const QTD = 1000
   const params = (pagina) => ({
     moeda: moeda || undefined,
     versaoModelo: versaoModelo || undefined,
-    dataInicio: formatBackendDateTime(inicioMs),
-    dataFim: formatBackendDateTime(fimMs),
+    dataInicio: toUTCISO(inicioMs),
+    dataFim: toUTCISO(fimMs),
     quantidade: QTD,
     pagina,
     ordenarAscendente: false,
