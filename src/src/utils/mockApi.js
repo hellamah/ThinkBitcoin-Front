@@ -515,12 +515,17 @@ const TREINO_CICLOS_MIN = [50, 60, 45] // duração de cada ciclo
 const TREINO_PAUSA_MIN = 40            // pausa entre ciclos (> 30min ⇒ novo ciclo)
 const TREINO_ANCHOR = Date.now()
 
-const treinoPad = (n) => String(n).padStart(2, '0')
-// dataHora local-naive (YYYY-MM-DDTHH:mm:ss), formato que o front compara/parseia.
-const treinoLocalNaive = (ms) => {
-  const d = new Date(ms)
-  return `${d.getFullYear()}-${treinoPad(d.getMonth() + 1)}-${treinoPad(d.getDate())}T${treinoPad(d.getHours())}:${treinoPad(d.getMinutes())}:${treinoPad(d.getSeconds())}`
-}
+// dataHora sem marca de fuso (YYYY-MM-DDTHH:mm:ss), imitando o `Kind=Unspecified`
+// que o EF Core devolve — mas com os componentes em UTC, que é o que a API real
+// faz: o carimbo vem sem sufixo e os valores SÃO UTC.
+//
+// Saía com os componentes LOCAIS, e isso tornava o modo demo incoerente consigo
+// mesmo: o front carimba o Z que falta (marcarUtcQuandoFaltarFuso), então lia o
+// episódio como tendo acontecido `offset` horas antes do `_ms` pelo qual o
+// próprio mock filtra. Em UTC-3, os episódios das últimas três horas ficavam
+// invisíveis: a lista os pedia numa janela onde não estavam, e abrir um deles
+// por link direto dava "episódio não encontrado".
+const treinoUtcNaive = (ms) => new Date(ms).toISOString().slice(0, 19)
 
 let treinoCache = null
 const buildTreinoEpisodios = () => {
@@ -540,7 +545,7 @@ const buildTreinoEpisodios = () => {
       eps.push({
         idTreinamentoEpisodio: `mock-treino-${ep}`,
         episodio: ep + 1,
-        dataHora: treinoLocalNaive(ts),
+        dataHora: treinoUtcNaive(ts),
         _ms: ts,
         moeda: TREINO_COINS[ep % TREINO_COINS.length],
         versaoModelo: TREINO_VERSAO,
