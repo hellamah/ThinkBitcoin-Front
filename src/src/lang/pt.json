@@ -453,6 +453,7 @@
   "planos": {
     "title": "Plano de Pagamento",
     "currentPlan": "Plano Atual",
+    "naoIdentificado": "Não foi possível identificar seu plano",
     "viewPlans": "Gerenciar Planos",
     "duration": "Duração",
     "days": "dias",

@@ -453,6 +453,7 @@
   "planos": {
     "title": "Payment Plan",
     "currentPlan": "Current Plan",
+    "naoIdentificado": "Could not identify your plan",
     "viewPlans": "Manage Plans",
     "duration": "Duration",
     "days": "days",

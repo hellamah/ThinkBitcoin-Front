@@ -517,10 +517,17 @@ function Settings() {
           <>
             {renderField(t('planos.currentPlan'), (
               <Typography variant="body1" sx={{ color: 'var(--accent-ink)', fontWeight: 800, fontFamily: "'Share Tech Mono', monospace" }}>
+                {/* A reserva aqui era o nome de um plano — "Consultor
+                    (Básico)". Quando a consulta falha, `planoAtivo` fica nulo,
+                    e a tela então AFIRMAVA que o usuário está no plano básico.
+                    Para quem paga por um plano acima, era a assinatura errada
+                    na cara, por causa de uma requisição que não voltou. Dizer
+                    que não foi possível identificar é a única coisa verdadeira
+                    nos dois casos — falha e lista vazia. */}
                 {loadingPlano ? (
                   <CircularProgress size={16} sx={{ color: 'var(--accent-ink)' }} />
                 ) : (
-                  planoAtivo?.nome || 'Consultor (Básico)'
+                  planoAtivo?.nome || t('planos.naoIdentificado')
                 )}
               </Typography>
             ))}

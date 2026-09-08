@@ -453,6 +453,7 @@
   "planos": {
     "title": "Formule de paiement",
     "currentPlan": "Formule actuelle",
+    "naoIdentificado": "Impossible d’identifier votre formule",
     "viewPlans": "Gérer les formules",
     "duration": "Durée",
     "days": "jours",
