@@ -6,7 +6,12 @@ WORKDIR /app
 ARG VITE_API_URL=https://localhost:13501
 ENV VITE_API_URL=$VITE_API_URL
 COPY package*.json ./
-RUN npm install
+# `ci`, e nao `install`: instala exatamente o que o package-lock.json trava e
+# falha se ele estiver fora de sincronia com o package.json. Com `install`, cada
+# build resolvia os ranges `^` de novo, e a imagem publicada podia carregar
+# versoes que nenhum dev testou — inclusive voltar a uma com vulnerabilidade
+# que o lock ja tinha corrigido.
+RUN npm ci
 COPY . .
 
 # A suite roda ANTES do build, e falhar aqui aborta a imagem. Ate agora nada
