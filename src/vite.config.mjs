@@ -36,7 +36,8 @@ export default defineConfig(({ command, mode }) => {
     //
     // ATENÇÃO: são três cópias da mesma política (aqui, vercel.json e
     // default.conf). Mudou uma, mude as três — arquivo estático não importa
-    // constante de JS.
+    // constante de JS. O test/cabecalhosSeguranca.test.js compara as cópias e
+    // falha se alguma divergir fora da exceção descrita abaixo.
     //
     // A única divergência proposital está no connect-src: as duas cópias que
     // servem localmente (esta e a default.conf, que vai na imagem publicada em
