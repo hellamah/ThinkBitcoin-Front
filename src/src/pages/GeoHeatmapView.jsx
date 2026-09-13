@@ -14,7 +14,6 @@ import Menu from '@mui/material/Menu'
 import MenuItem from '@mui/material/MenuItem'
 import Tooltip from '@mui/material/Tooltip'
 import { useTheme } from '@mui/material/styles'
-import { Joyride, STATUS } from 'react-joyride'
 import { readToken } from '../utils/themeTokens'
 import {
   MdPublic,
@@ -31,6 +30,7 @@ import HeatmapInsights from '../components/heatmap/HeatmapInsights'
 import ErrorMessage from '../components/ErrorMessage'
 import CoinCarousel from '../components/dashboard/CoinCarousel'
 import AlertaPrecoModal from '../components/dashboard/AlertaPrecoModal'
+import TourGuiado from '../components/TourGuiadoSobDemanda'
 import { useAuth } from '../context/AuthContext'
 import { useDashboard } from '../context/DashboardContext'
 import useTranslation from '../hooks/useTranslation'
@@ -698,12 +698,8 @@ export default function GeoHeatmapView() {
   }), [chartOptions, chartHeight])
 
   // ---------------------------------------------------------------------------
-  // Tour Onboarding (react-joyride)
+  // Tour Onboarding (moldura em components/TourGuiado)
   // ---------------------------------------------------------------------------
-  // Nota: react-joyride v3 — `skipBeacon`, `showProgress`, cores e ações dos
-  // botões são configurados via prop `options` (não existem `showSkipButton`,
-  // `showProgress` nem `styles.options` de nível superior como na v2), e o
-  // handler de eventos é `onEvent` (não `callback`).
   const passosTour = useMemo(() => [
     {
       target: '[data-tour="carrossel"]',
@@ -740,12 +736,9 @@ export default function GeoHeatmapView() {
     }
   }, [heatmapData])
 
-  const handleTourCallback = (data) => {
-    const { status } = data
-    if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
-      setTourRodando(false)
-      setTourHeatmapVisto()
-    }
+  const encerrarTour = () => {
+    setTourRodando(false)
+    setTourHeatmapVisto()
   }
 
   if (!token) return <Box sx={{ p: 5 }}>{t('redirectingToLogin')}</Box>
@@ -782,58 +775,7 @@ export default function GeoHeatmapView() {
 
       {/* Tour Onboarding — montado apenas enquanto roda para não deixar
           o portal/beacon residual da react-joyride no DOM. */}
-      {tourRodando && (
-      <Joyride
-        steps={passosTour}
-        run={tourRodando}
-        continuous
-        onEvent={handleTourCallback}
-        // Mesmos rótulos do tour do dashboard, do mesmo lugar: são a moldura do
-        // Joyride, não o conteúdo de um tour específico. Ver o comentário lá.
-        locale={{
-          back: t('tour.voltar'),
-          close: t('tour.fechar'),
-          last: t('tour.fechar'),
-          next: t('tour.proximo'),
-          nextWithProgress: t('tour.proximoComProgresso'),
-          skip: t('tour.pular'),
-        }}
-        options={{
-          // Sem beacon: o tooltip abre direto em cada passo.
-          skipBeacon: true,
-          buttons: ['back', 'close', 'skip', 'primary'],
-          showProgress: true,
-          // O ✕ dispensa o tour inteiro (status "skipped" marca como visto);
-          // o default 'close' da v3 avançaria para o próximo passo.
-          closeButtonAction: 'skip',
-          // Clique no overlay e tecla ESC não avançam por acidente.
-          overlayClickAction: false,
-          dismissKeyAction: false,
-          // `primaryColor` sai de readToken, e não como `var(--accent)`: a
-          // react-joyride passa este valor por hexToRGB para montar o fundo do
-          // beacon, e hex é o único formato que aquele parser entende — com
-          // `var()` ele devolve lista vazia e produz um `rgba(, 0.2)` que o
-          // navegador descarta. Os demais viram estilo inline direto, onde
-          // `var()` resolve sozinho e ainda acompanha a troca de tema sem
-          // depender de re-render.
-          primaryColor: readToken('--accent'),
-          // Também por token: o fundo já vinha de --surface-overlay, mas texto
-          // e seta estavam cravados no escuro. No tema claro davam branco sobre
-          // branco e uma seta preta apontando para um balão branco.
-          textColor: 'var(--text-secondary)',
-          backgroundColor: 'var(--surface-overlay)',
-          arrowColor: 'var(--surface-overlay)',
-          zIndex: 9999,
-        }}
-        styles={{
-          tooltipTitle: { color: 'var(--accent-ink)', fontWeight: 800, fontSize: '1rem' },
-          tooltipContent: { color: 'var(--text-secondary)', fontSize: '0.88rem' },
-          buttonPrimary: { backgroundColor: 'var(--accent)', color: 'var(--text-on-accent)', fontWeight: 700, borderRadius: '8px' },
-          buttonBack: { color: 'var(--text-muted)' },
-          buttonSkip: { color: 'var(--text-faint)', fontSize: '0.78rem' },
-        }}
-      />
-      )}
+      {tourRodando && <TourGuiado passos={passosTour} onEncerrar={encerrarTour} />}
 
       {/* Notificações (snackbar) */}
       <Snackbar

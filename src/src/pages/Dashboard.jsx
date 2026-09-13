@@ -13,7 +13,6 @@ import {
 } from 'chart.js'
 import Box from '@mui/material/Box'
 import useMediaQuery from '@mui/material/useMediaQuery'
-import { Joyride, STATUS } from 'react-joyride'
 
 import { useAuth } from '../context/AuthContext'
 import { useDashboard } from '../context/DashboardContext'
@@ -33,7 +32,6 @@ import { simular, dividirParaValidacao, compararEstrategias, CUSTO_PADRAO_PERCEN
 import { getTourVisto, setTourVisto } from '../utils/preferences'
 import { contarAtivos } from '../utils/alertaPreco'
 import { candlestickPlugin } from '../utils/candlestickChart'
-import { readToken } from '../utils/themeTokens'
 import { Normalization, PriceChartMode, SecondaryChart, StopMode, TradeDirection } from '../utils/enums'
 
 // Sub-componentes Refatorados
@@ -52,6 +50,7 @@ import SimulationPanel from '../components/dashboard/SimulationPanel'
 import DashboardCharts from '../components/dashboard/DashboardCharts'
 import HistoryTable from '../components/dashboard/HistoryTable'
 import ErrorMessage from '../components/ErrorMessage'
+import TourGuiado from '../components/TourGuiadoSobDemanda'
 
 ChartJS.register(
   CategoryScale,
@@ -141,13 +140,9 @@ export default function Dashboard() {
 
   const hasInitializedPref = useRef(false)
 
-  // ------ tour onboarding (react-joyride v3) ------
+  // ------ tour onboarding (moldura em components/TourGuiado) ------
   const [tourRodando, setTourRodando] = useState(false)
 
-  // Nota: react-joyride v3 — `skipBeacon`, `showProgress`, cores e ações dos
-  // botões são configurados via prop `options` (não existem `showSkipButton`,
-  // `showProgress` nem `styles.options` de nível superior como na v2), e o
-  // handler de eventos é `onEvent` (não `callback`).
   const passosTour = useMemo(() => [
     {
       target: '[data-tour="dash-patrimonio"]',
@@ -197,12 +192,9 @@ export default function Dashboard() {
     return () => clearTimeout(timer)
   }, [token, moedasCarousel])
 
-  const handleTourCallback = (data) => {
-    const { status } = data
-    if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
-      setTourRodando(false)
-      setTourVisto('dashboard')
-    }
+  const encerrarTour = () => {
+    setTourRodando(false)
+    setTourVisto('dashboard')
   }
 
   // Fechar modal com a tecla Esc
@@ -596,66 +588,7 @@ export default function Dashboard() {
       <div className="dashboard-container">
         {/* Tour onboarding — montado apenas enquanto roda para não deixar
             o portal/beacon residual da react-joyride no DOM. */}
-        {tourRodando && (
-          <Joyride
-            steps={passosTour}
-            run={tourRodando}
-            continuous
-            onEvent={handleTourCallback}
-            // Os seis rótulos saem do dicionário. Três deles ficavam cravados
-            // em português, então o balão aparecia traduzido com os botões em
-            // português — e o tour é a primeira tela que um usuário novo vê.
-            // `{current}` e `{total}` são marcadores do próprio Joyride, de
-            // chave simples: o `t` só substitui `{{nome}}` e passa por eles.
-            locale={{
-              back: t('tour.voltar'),
-              close: t('tour.fechar'),
-              last: t('tour.fechar'),
-              next: t('tour.proximo'),
-              nextWithProgress: t('tour.proximoComProgresso'),
-              skip: t('tour.pular'),
-            }}
-            options={{
-              // Sem beacon: o tooltip abre direto em cada passo.
-              skipBeacon: true,
-              buttons: ['back', 'close', 'skip', 'primary'],
-              showProgress: true,
-              // O ✕ dispensa o tour inteiro (status "skipped" marca como visto);
-              // o default 'close' da v3 avançaria para o próximo passo.
-              closeButtonAction: 'skip',
-              // Clique no overlay e tecla ESC não avançam por acidente.
-              overlayClickAction: false,
-              dismissKeyAction: false,
-              // `primaryColor` sai de readToken, e não como `var(--accent)`: a
-              // react-joyride passa este valor por hexToRGB para montar o fundo do
-              // beacon, e hex é o único formato que aquele parser entende — com
-              // `var()` ele devolve lista vazia e produz um `rgba(, 0.2)` que o
-              // navegador descarta. Os demais viram estilo inline direto, onde
-              // `var()` resolve sozinho e ainda acompanha a troca de tema sem
-              // depender de re-render.
-              primaryColor: readToken('--accent'),
-              // Também por token: o fundo já vinha de --surface-overlay, mas texto
-              // e seta estavam cravados no escuro. No tema claro davam branco sobre
-              // branco e uma seta preta apontando para um balão branco.
-              textColor: 'var(--text-secondary)',
-              backgroundColor: 'var(--surface-overlay)',
-              arrowColor: 'var(--surface-overlay)',
-              zIndex: 9999,
-            }}
-            styles={{
-              tooltip: {
-                border: '1px solid var(--accent-a30)',
-                borderRadius: 16,
-                boxShadow: '0 20px 60px var(--scrim-strong)',
-              },
-              tooltipTitle: { color: 'var(--accent-ink)', fontWeight: 800, fontSize: '1rem' },
-              tooltipContent: { color: 'var(--text-secondary)', fontSize: '0.88rem' },
-              buttonPrimary: { backgroundColor: 'var(--accent)', color: 'var(--text-on-accent)', fontWeight: 700, borderRadius: '8px' },
-              buttonBack: { color: 'var(--text-muted)' },
-              buttonSkip: { color: 'var(--text-faint)', fontSize: '0.78rem' },
-            }}
-          />
-        )}
+        {tourRodando && <TourGuiado passos={passosTour} onEncerrar={encerrarTour} />}
 
         <DashboardHeader
           t={t}
