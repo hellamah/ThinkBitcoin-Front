@@ -96,6 +96,7 @@
   "notificationsEnabled": "Activadas",
   "notificationsDisabled": "Desactivadas",
   "settingsSaved": "Ajustes guardados",
+  "settingsSaveError": "No se pudo guardar en la cuenta. El cambio vale aquí, pero puede perderse en la próxima sesión.",
   "lightOn": "Tema claro activado",
   "darkOn": "Tema oscuro activado",
   "notificationsOn": "Notificaciones activadas",

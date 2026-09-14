@@ -96,6 +96,7 @@
   "notificationsEnabled": "Activées",
   "notificationsDisabled": "Désactivées",
   "settingsSaved": "Paramètres enregistrés",
+  "settingsSaveError": "Impossible d'enregistrer dans votre compte. La modification s'applique ici, mais peut être perdue à la prochaine session.",
   "lightOn": "Thème clair activé",
   "darkOn": "Thème sombre activé",
   "notificationsOn": "Notifications activées",

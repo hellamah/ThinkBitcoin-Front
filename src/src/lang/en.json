@@ -96,6 +96,7 @@
   "notificationsEnabled": "Enabled",
   "notificationsDisabled": "Disabled",
   "settingsSaved": "Settings saved",
+  "settingsSaveError": "Couldn't save to your account. The change applies here, but may be lost next session.",
   "lightOn": "Light theme enabled",
   "darkOn": "Dark theme enabled",
   "notificationsOn": "Notifications enabled",

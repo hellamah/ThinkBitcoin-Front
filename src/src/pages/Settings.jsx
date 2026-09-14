@@ -162,21 +162,25 @@ function Settings() {
     excluir: excluirAlerta,
   } = useAlertasPreco(user)
 
-  const confirm = () => {
-    mostrarToast(t('settingsSaved'), 2000)
+  // Confirma só depois de a API responder. O "Configurações salvas" saía na
+  // linha seguinte ao PUT, antes da resposta — e continuava saindo quando ele
+  // falhava: a tela afirmava ter guardado uma escolha que, na próxima sessão,
+  // voltava ao valor antigo sem explicação.
+  const salvarPreferencia = async (mudanca, mensagem = t('settingsSaved')) => {
+    const salvo = await updatePreferences(mudanca)
+    if (salvo) mostrarToast(mensagem, 2000)
+    else mostrarToast(t('settingsSaveError'), 5000)
   }
 
   const toggleTheme = () => {
     const novo = (prefs?.tema === Theme.DARK) ? Theme.LIGHT : Theme.DARK
-    updatePreferences({ tema: novo })
-    mostrarToast(novo === Theme.LIGHT ? t('lightOn') : t('darkOn'), 2000)
+    salvarPreferencia({ tema: novo }, novo === Theme.LIGHT ? t('lightOn') : t('darkOn'))
   }
 
   const changeLang = (e) => {
     const lang = e.target.value
     if (!Object.values(Language).includes(lang)) return
-    updatePreferences({ idioma: lang })
-    confirm()
+    salvarPreferencia({ idioma: lang })
   }
 
   const changeAlerts = async (e) => {
@@ -188,8 +192,7 @@ function Settings() {
       notificationApi: Notification,
       baseUrl: API_URL,
     })
-    updatePreferences({ notificacoes: result.shouldEnableNotifications })
-    mostrarToast(t(result.messageKey), 2000)
+    await salvarPreferencia({ notificacoes: result.shouldEnableNotifications }, t(result.messageKey))
   }
 
   const handleSalvarNome = async (e) => {
@@ -586,8 +589,7 @@ function Settings() {
                 onChange={(e) => setLocalPrefs(p => ({ ...p, investimentoInicial: e.target.value }))}
                 onBlur={(e) => {
                   const val = parseFloat(e.target.value) || 0
-                  updatePreferences({ investimentoInicial: val })
-                  confirm()
+                  salvarPreferencia({ investimentoInicial: val })
                 }}
                 sx={inputSx}
                 InputProps={{ startAdornment: <Box sx={{ mr: 1, color: 'var(--accent-ink)', fontWeight: 700, fontSize: '0.9rem' }}>$</Box> }}
@@ -600,8 +602,7 @@ function Settings() {
                 onChange={(e) => {
                   const val = e.target.value
                   setLocalPrefs(p => ({ ...p, siglaMoedaPreferida: val }))
-                  updatePreferences({ siglaMoedaPreferida: val })
-                  confirm()
+                  salvarPreferencia({ siglaMoedaPreferida: val })
                 }}
                 size="small"
                 sx={selectSx}
@@ -668,8 +669,7 @@ function Settings() {
                       onChange={(e) => setLocalPrefs(p => ({ ...p, riscoMaximoPerda: e.target.value }))}
                       onBlur={(e) => {
                         const val = parseFloat(e.target.value) || 0
-                        updatePreferences({ riscoMaximoPerda: val })
-                        confirm()
+                        salvarPreferencia({ riscoMaximoPerda: val })
                       }}
                       sx={inputSx}
                       InputProps={{ endAdornment: <Box sx={{ ml: 1, color: 'var(--accent-ink)', fontWeight: 700 }}>%</Box> }}
@@ -682,8 +682,7 @@ function Settings() {
                       onChange={(e) => {
                         const val = e.target.value
                         setLocalPrefs(p => ({ ...p, frequenciaReview: val }))
-                        updatePreferences({ frequenciaReview: val })
-                        confirm()
+                        salvarPreferencia({ frequenciaReview: val })
                       }}
                       size="small"
                       sx={selectSx}
@@ -707,8 +706,7 @@ function Settings() {
                         onChange={(e) => setLocalPrefs(p => ({ ...p, saldoSeguranca: e.target.value }))}
                         onBlur={(e) => {
                           const val = parseFloat(e.target.value) || 0
-                          updatePreferences({ saldoSeguranca: val })
-                          confirm()
+                          salvarPreferencia({ saldoSeguranca: val })
                         }}
                         sx={inputSx}
                       />
@@ -718,8 +716,7 @@ function Settings() {
                         onChange={(e) => {
                           const val = e.target.value
                           setLocalPrefs(p => ({ ...p, siglaMoedaSaldoSeguranca: val }))
-                          updatePreferences({ siglaMoedaSaldoSeguranca: val })
-                          confirm()
+                          salvarPreferencia({ siglaMoedaSaldoSeguranca: val })
                         }}
                         size="small"
                         sx={{ ...selectSx, minWidth: 90 }}
@@ -846,7 +843,9 @@ function Settings() {
         </div>
       </div>
 
-      <Box className={`toast${toast ? ' show' : ''}`} sx={{
+      {/* role="status": o aviso de "salvo" ou de falha era só visual, e quem
+          usa leitor de tela não sabia se a mudança tinha sido guardada. */}
+      <Box role="status" className={`toast${toast ? ' show' : ''}`} sx={{
         background: 'rgba(255, 215, 0, 0.9)',
         color: 'var(--text-on-accent)',
         fontWeight: 700,
