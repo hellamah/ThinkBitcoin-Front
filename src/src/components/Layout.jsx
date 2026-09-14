@@ -19,7 +19,8 @@ function Layout({ children }) {
   const { t } = useTranslation()
   const location = useLocation()
   const navigate = useNavigate()
-  const containerRef = useRef(null)
+  const spotlightRef = useRef(null)
+  const ponteiroRef = useRef({ x: 0, y: 0, quadro: 0 })
   const [upsellVisivel, setUpsellVisivel] = useState(false)
 
   // Documentos que o usuário ainda precisa aceitar. Vem da API, e não de
@@ -48,14 +49,35 @@ function Layout({ children }) {
     setUpsellVisivel(false)
   }, [location.pathname])
   
+  // O spotlight vive dentro de um container `position: fixed`, então a posição
+  // dele é a do cursor na VIEWPORT — clientX/clientY puros. Antes a conta era
+  // relativa ao `.portfolio-screen`, que rola com a página: bastava descer a
+  // tela para o brilho ficar deslocado pela distância rolada, fora da vista.
+  // Medido no dashboard: com ~2.000px rolados, o centro dele ficava ~1.900px
+  // abaixo do cursor.
+  //
+  // A posição vai por `transform` direto no elemento, no máximo uma vez por
+  // quadro. Antes eram as variáveis --mouse-x/y gravadas na raiz da página, e
+  // variável CSS é herdada: cada movimento do mouse invalidava o estilo da
+  // árvore inteira, e o `top`/`left` animado ainda pedia layout a cada passo.
   const handleMouseMove = (e) => {
-    if (!containerRef.current) return
-    const { left, top } = containerRef.current.getBoundingClientRect()
-    const x = e.clientX - left
-    const y = e.clientY - top
-    containerRef.current.style.setProperty('--mouse-x', `${x}px`)
-    containerRef.current.style.setProperty('--mouse-y', `${y}px`)
+    const ponteiro = ponteiroRef.current
+    ponteiro.x = e.clientX
+    ponteiro.y = e.clientY
+    if (ponteiro.quadro) return
+    ponteiro.quadro = requestAnimationFrame(() => {
+      ponteiro.quadro = 0
+      if (spotlightRef.current) {
+        spotlightRef.current.style.transform =
+          `translate3d(${ponteiro.x}px, ${ponteiro.y}px, 0) translate(-50%, -50%)`
+      }
+    })
   }
+
+  useEffect(() => {
+    const ponteiro = ponteiroRef.current
+    return () => cancelAnimationFrame(ponteiro.quadro)
+  }, [])
   const semNav = false /* Padronizado para manter Header/Footer em todas as telas */
 
   // `nav-item` vai como string literal, e não pela forma de função que o
@@ -164,14 +186,13 @@ function Layout({ children }) {
   return (
     <div 
       className={`portfolio-screen${semNav ? ' no-nav' : ''}`}
-      ref={containerRef}
       onMouseMove={handleMouseMove}
     >
       <div className="liquid-mesh-container">
         <div className="blob blob-1"></div>
         <div className="blob blob-2"></div>
         <div className="blob blob-3"></div>
-        <div className="mouse-spotlight"></div>
+        <div className="mouse-spotlight" ref={spotlightRef}></div>
       </div>
       <div className="ambient-glow-aura"></div>
       <div className="grain-overlay-main"></div>

@@ -75,12 +75,15 @@
   width: 600px;
   height: 600px;
   background: radial-gradient(circle, rgba(255, 215, 0, 0.08) 0%, transparent 70%);
-  top: var(--mouse-y, -1000px);
-  left: var(--mouse-x, -1000px);
-  transform: translate(-50%, -50%);
+  /* A posição chega por transform, gravado pelo Layout direto neste elemento
+     (ver o comentário lá). Parte fora da tela até o primeiro movimento. */
+  top: 0;
+  left: 0;
+  transform: translate3d(-1000px, -1000px, 0) translate(-50%, -50%);
   pointer-events: none;
   z-index: 1;
-  transition: top 0.1s ease-out, left 0.1s ease-out;
+  transition: transform 0.1s ease-out;
+  will-change: transform;
 }
 
 .grain-overlay {
@@ -3993,5 +3996,64 @@
   }
   .pricing-plan-card {
     padding: 24px 16px !important;
+  }
+}
+
+/* Movimento reduzido. Quem pede isso ao sistema operacional costuma ter
+   sensibilidade vestibular, e movimento grande e contínuo é o que mais pesa —
+   exatamente o fundo: três manchas de 70vw derivando e girando sem parar, mais
+   um brilho seguindo o cursor. Nada no produto respeitava a preferência.
+
+   Os laços decorativos param. As entradas não podem receber `animation: none`:
+   várias partem de opacidade 0 e dependem do `forwards` para aparecer, então
+   sem animação o elemento ficaria invisível. Elas chegam direto ao estado
+   final, com duração desprezível e sem atraso — `!important` porque há atrasos
+   em escada por filho, de especificidade maior.
+
+   Indicadores de carregamento (spinners do MUI, `.status-dots`) continuam
+   animando de propósito: parados, pareceriam travados. */
+@media (prefers-reduced-motion: reduce) {
+  .blob,
+  .coin-icon-wrapper.pulse,
+  .agent-monitor-panel::after,
+  .exclusive-tag,
+  .exclusive-tag-logado,
+  .ai-core-v3,
+  .orbit-1,
+  .orbit-2,
+  .orbit-3,
+  .status-indicator.pulse,
+  .terminal-line,
+  .blink,
+  .cursor {
+    animation: none;
+  }
+
+  .mouse-spotlight,
+  .scanline {
+    display: none;
+  }
+
+  .reveal-stagger > *,
+  .selected-indicator,
+  .expanded-chart-overlay,
+  .expanded-chart-content,
+  .form-card,
+  .shake,
+  .modal,
+  .agent-message,
+  .hero-tag,
+  .hero-title-v3,
+  .hero-desc-v3,
+  .cta-group,
+  .main-inner-container,
+  .terminal-status-bar,
+  .result-card,
+  .convite-sucesso-icon,
+  .intelligence-panel,
+  .chart-intel-tooltip,
+  .settings-page {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
   }
 }
