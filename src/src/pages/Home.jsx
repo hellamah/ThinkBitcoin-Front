@@ -1,10 +1,13 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { NavLink } from 'react-router-dom'
 import { MdArrowForward, MdBolt, MdAutoGraph, MdShield } from 'react-icons/md'
 import useTranslation from '../hooks/useTranslation'
 import { useAuth } from '../context/AuthContext'
-import CadastroConviteOverlay from '../components/CadastroConviteOverlay'
 import '../App.css'
+
+// O overlay de convite só abre por clique no selo, e só para quem está logado.
+// Com import estático, todo visitante da Home baixava o formulário inteiro.
+const CadastroConviteOverlay = lazy(() => import('../components/CadastroConviteOverlay'))
 
 // Componente para contagem animada de números
 const AnimatedNumber = ({ end, duration = 2000, suffix = '', decimals = 0 }) => {
@@ -153,8 +156,12 @@ function Home() {
       <div style={{ height: '100px' }}></div>
 
       {/* Overlay de cadastro por convite */}
+      {/* Suspense próprio, com fallback nulo: sem ele a espera pelo chunk
+          subiria até o Suspense do App e trocaria a Home pelo spinner. */}
       {overlayAberto && (
-        <CadastroConviteOverlay onFechar={() => setOverlayAberto(false)} />
+        <Suspense fallback={null}>
+          <CadastroConviteOverlay onFechar={() => setOverlayAberto(false)} />
+        </Suspense>
       )}
     </div>
   )

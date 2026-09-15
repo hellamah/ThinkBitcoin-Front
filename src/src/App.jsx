@@ -5,13 +5,15 @@ import CircularProgress from '@mui/material/CircularProgress'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import Home from './pages/Home.jsx'
-import Login from './pages/Login.jsx'
 import Layout from './components/Layout.jsx'
 import { DashboardProvider } from './context/DashboardContext.jsx'
 
 // Páginas pesadas (chart.js, react-google-charts) carregadas sob demanda
 // para não inflar o bundle inicial de quem entra em / ou /login.
 const Dashboard = lazy(() => import('./pages/Dashboard.jsx'))
+// O Login também: quem entra por / ou volta com a sessão guardada nunca o vê,
+// e ele trazia para o bundle inicial o TextField do MUI e o que vem junto.
+const Login = lazy(() => import('./pages/Login.jsx'))
 const Settings = lazy(() => import('./pages/Settings.jsx'))
 const GeoHeatmapView = lazy(() => import('./pages/GeoHeatmapView.jsx'))
 const TreinamentoEpisodios = lazy(() => import('./pages/TreinamentoEpisodios.jsx'))

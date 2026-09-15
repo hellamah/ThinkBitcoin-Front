@@ -51,6 +51,27 @@ export default defineConfig(({ command, mode }) => {
           "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://www.gstatic.com; font-src 'self' data:; img-src 'self' data: blob: https://www.gstatic.com; connect-src 'self' https://api.minerthinkbitcoin.com https://thinkbitcoin-api.ddns.net https://www.gstatic.com http://localhost:* http://127.0.0.1:* https://thinkbitcoin.local:*; frame-src 'none'; upgrade-insecure-requests",
       },
     },
+    build: {
+      rollupOptions: {
+        output: {
+          // React, ReactDOM e o router num chunk próprio. Eles mudam só quando
+          // a dependência muda, enquanto o chunk de entrada muda a cada deploy
+          // — e, juntos, cada deploy fazia quem volta ao site baixar de novo o
+          // react-dom inteiro. Separados, ficam em cache (o /assets sai com
+          // `immutable`) até a próxima atualização de versão.
+          //
+          // Só esses, de propósito. Todos entram no primeiro carregamento de
+          // qualquer jeito, então separá-los não traz nada a mais para a
+          // primeira visita. Agrupar o MUI inteiro faria o contrário: puxaria
+          // para a entrada componentes que só as páginas sob demanda usam.
+          manualChunks(id) {
+            if (/[\\/]node_modules[\\/](react|react-dom|scheduler|react-router|react-router-dom|cookie|set-cookie-parser)[\\/]/.test(id)) {
+              return 'react-vendor'
+            }
+          },
+        },
+      },
+    },
     server: {
       proxy: {
         '/ThinkBitcoin': {
