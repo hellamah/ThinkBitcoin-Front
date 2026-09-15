@@ -12,8 +12,12 @@ try {
 } catch (e) {
   console.warn('[Main] localStorage não disponível para leitura de tema:', e)
 }
+// A classe vai no <html> também, como o AuthContext faz ao aplicar o tema: os
+// tokens valem para o elemento raiz, e só no body o <html> ficava com os do
+// tema escuro até o primeiro efeito do React rodar.
 if (savedTheme === 'light') {
   document.body.classList.add('light')
+  document.documentElement.classList.add('light')
 }
 
 createRoot(document.getElementById('root')).render(
