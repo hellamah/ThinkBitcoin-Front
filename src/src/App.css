@@ -2398,6 +2398,16 @@
   min-width: 190px;
 }
 
+/* A lista que o select abre é desenhada pelo sistema a partir do fundo do
+   próprio select — e o fundo aqui é quase transparente. No Chrome do Windows
+   a lista nascia branca, com o texto branco das opções por cima: só a opção
+   sob o mouse aparecia. As opções ganham fundo opaco e cor explícitos, dos
+   tokens do tema, então a lista acompanha o claro e o escuro. */
+.simulation-campo select option {
+  background-color: var(--surface-panel-solid);
+  color: var(--text-primary);
+}
+
 .simulation-campo-num input:focus,
 .simulation-campo select:focus {
   outline: none;
