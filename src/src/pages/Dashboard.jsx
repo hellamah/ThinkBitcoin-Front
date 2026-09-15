@@ -11,7 +11,6 @@ import {
   Legend,
   Filler,
 } from 'chart.js'
-import Box from '@mui/material/Box'
 import useMediaQuery from '@mui/material/useMediaQuery'
 
 import { useAuth } from '../context/AuthContext'
@@ -580,8 +579,6 @@ export default function Dashboard() {
     const val = last?.precoPercentualVariacao ?? last?.PrecoPercentualVariacao ?? last?.variacaoPercentual ?? last?.VariacaoPercentual ?? last?.variacao ?? last?.Variacao ?? 0
     return mathUtils.formatPercent(val)
   }, [historicosPorMoeda, moedasFiltro])
-
-  if (!token) return <Box sx={{ p: 5 }}>Redirecting to login...</Box>
 
   // Erros de renderização são capturados pelo ErrorBoundary montado no App.
   return (

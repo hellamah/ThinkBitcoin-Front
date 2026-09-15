@@ -53,7 +53,6 @@
   "greetingGuest": "Hello, guest",
   "activeUser": "Active user",
   "refreshData": "Refresh Data",
-  "redirectingToLogin": "Redirecting to login...",
   "statAiAccuracy": "AI Accuracy",
   "statDataPerSecond": "Data/Sec",
   "statCoreUptime": "Core Uptime",

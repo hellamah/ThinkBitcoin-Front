@@ -23,7 +23,7 @@ COPY . .
 # O lint entra junto, e antes dos testes: ele e mais rapido e pega a classe de
 # erro mais barata de corrigir. Ficou de fora ate agora porque o repositorio
 # carregava 58 erros de quando a config existia sem poder rodar; hoje sao zero.
-# Restam 30 avisos, que nao travam o gate de proposito — sao dividas conhecidas
+# Os avisos que restam nao travam o gate de proposito — sao dividas conhecidas
 # (`exhaustive-deps` e `only-export-components`), nao defeitos.
 RUN npm run lint
 

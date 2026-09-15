@@ -741,8 +741,6 @@ export default function GeoHeatmapView() {
     setTourHeatmapVisto()
   }
 
-  if (!token) return <Box sx={{ p: 5 }}>{t('redirectingToLogin')}</Box>
-
   // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------

@@ -53,7 +53,6 @@
   "greetingGuest": "Ciao, visitatore",
   "activeUser": "Utente attivo",
   "refreshData": "Aggiorna dati",
-  "redirectingToLogin": "Reindirizzamento all'accesso...",
   "statAiAccuracy": "Precisione dell'IA",
   "statDataPerSecond": "Dati/sec",
   "statCoreUptime": "Uptime del core",
