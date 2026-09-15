@@ -2136,6 +2136,13 @@
   height: 0.95em;
 }
 
+/* Rótulo de card longo demais para uma linha ("Configurações testadas"): sem
+   equilíbrio, a quebra deixava o ícone sozinho na segunda linha, parecendo
+   solto do rótulo. */
+.intel-label.com-ajuda {
+  text-wrap: balance;
+}
+
 /* O balão padrão do MUI é estreito demais para uma explicação de duas ou três
    linhas, que é o tamanho necessário para a frase ensinar alguma coisa. */
 .ajuda-balao {
@@ -2299,12 +2306,57 @@
 }
 
 /* Simulação de estratégia */
-.simulation-controls {
+
+/* Controles em dois níveis: os cinco que definem a regra sempre à vista, os
+   que a refinam atrás de "Mais regras". O botão fechado diz o custo em vigor
+   e cada regra avançada ligada — nada que muda o resultado fica escondido
+   sem aviso. */
+.simulation-controles {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 16px 0 4px;
+}
+
+.simulation-controles-basicos,
+.simulation-avancado {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
-  gap: 18px;
-  margin: 16px 0 20px;
+  gap: 16px;
+}
+
+.simulation-avancado {
+  padding: 12px 14px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.simulation-mais-regras {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  font-size: 0.85rem;
+}
+
+.simulation-mais-regras-rotulo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+.simulation-mais-regras-dica {
+  color: var(--text-faint);
+}
+
+.simulation-mais-regras-resumo {
+  margin-left: auto;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.76rem;
+  color: var(--text-muted);
 }
 
 .simulation-campo {
@@ -2378,13 +2430,25 @@
   padding: 14px 0;
 }
 
-/* Janela analisada. Discreta de propósito: é contexto permanente, não alerta —
-   mas precisa estar visível, porque separa "a estratégia não funciona" de "a
-   janela não tinha dado". */
-.simulation-janela {
+/* Cabeçalho: o título e, na mesma linha, a janela analisada. Discreta de
+   propósito: é contexto permanente, não alerta — mas precisa estar visível,
+   porque separa "a estratégia não funciona" de "a janela não tinha dado". */
+.simulation-cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 16px;
+}
+
+.simulation-cabecalho h2 {
+  margin-bottom: 0;
+}
+
+.simulation-meta {
   color: var(--text-faint);
   font-size: 0.76rem;
-  margin: -8px 0 16px;
   font-family: "Share Tech Mono", monospace;
 }
 
@@ -2547,9 +2611,525 @@
   overflow-y: auto;
 }
 
+/* Campo que não se aplica à regra atual (risco sem stop): continua visível,
+   para ninguém procurá-lo, mas não parece editável. */
+.simulation-campo-num input:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Resposta principal: o retorno em destaque, já comparado ao buy & hold e ao
+   custo, e ao lado a leitura em uma frase. Vem logo depois dos controles
+   porque é a pergunta que trouxe a pessoa até aqui: funcionou? */
+.simulation-heroi {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.simulation-heroi-numero {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+}
+
+.simulation-heroi-numero .intel-label {
+  margin-bottom: 0;
+}
+
+/* Na sans, como o patrimônio no topo do dashboard, e não na monoespaçada das
+   tabelas: dígitos de largura fixa ficam frouxos em tamanho de destaque. */
+.simulation-heroi-valor {
+  font-size: 3.5rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -1px;
+  color: var(--text-primary);
+}
+
+.simulation-heroi-valor.up,
+.simulation-heroi-comparacao strong.up {
+  color: var(--success);
+}
+
+.simulation-heroi-valor.down,
+.simulation-heroi-comparacao strong.down {
+  color: var(--danger);
+}
+
+.simulation-heroi-comparacao {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+}
+
+.simulation-heroi-comparacao strong {
+  font-family: "Share Tech Mono", monospace;
+  color: var(--text-primary);
+}
+
+/* A caixa do veredito. A cor diz o tom, o ícone e o título dizem a mesma
+   coisa em palavras — a cor nunca é a única pista. */
+.simulation-veredito-caixa {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-subtle);
+}
+
+.simulation-veredito-bom {
+  border-color: color-mix(in srgb, var(--success) 45%, transparent);
+  background: var(--success-a10);
+}
+
+.simulation-veredito-ruim {
+  border-color: color-mix(in srgb, var(--danger) 45%, transparent);
+  background: var(--danger-a10);
+}
+
+.simulation-veredito-alerta {
+  border-color: color-mix(in srgb, var(--warning, #ff9800) 45%, transparent);
+  background: color-mix(in srgb, var(--warning, #ff9800) 8%, transparent);
+}
+
+.simulation-veredito-titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.simulation-veredito-bom .simulation-veredito-titulo {
+  color: var(--success-ink);
+}
+
+.simulation-veredito-ruim .simulation-veredito-titulo {
+  color: var(--danger-ink);
+}
+
+.simulation-veredito-alerta .simulation-veredito-titulo {
+  color: var(--warning, #ff9800);
+}
+
+.simulation-veredito-texto {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.simulation-ressalvas {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.simulation-ressalvas-botao {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--warning, #ff9800);
+}
+
+.simulation-ressalvas ul {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding-left: 18px;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.simulation-nota-alerta {
+  color: var(--warning, #ff9800);
+}
+
+/* Os três cards têm alturas de conteúdo diferentes (um traz histograma, outro
+   uma nota a mais). Centralizados na vertical, como o .intel-card faz, os
+   rótulos ficavam em alturas diferentes lado a lado; pelo topo, alinham. */
+.simulation-essenciais .intel-card {
+  justify-content: flex-start;
+}
+
+/* Número de uma configuração anterior, ainda na tela enquanto a nova é
+   medida no Worker. Esmaecer em vez de apagar evita a tela piscar para vazio
+   a cada clique — e esmaecer em vez de manter evita ler o número velho como
+   se fosse o novo. */
+.simulation-desatualizado {
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+
+.simulation-preco h3,
+.simulation-excursao h3,
+.simulation-mensal h3,
+.simulation-mapa h3,
+.simulation-diario h3,
+.simulation-ranking h3 {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+
+/* "Dá para confiar?": o segundo nível. Fechado, é uma linha que diz o que há
+   dentro e mostra o intervalo do retorno; aberto, os números viram pares
+   compactos agrupados pela pergunta que respondem. */
+.simulation-confianca {
+  margin-top: 22px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-subtle);
+}
+
+.simulation-confianca-botao {
+  box-sizing: border-box;
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 16px;
+  padding: 14px 18px;
+}
+
+.simulation-confianca-titulo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.simulation-confianca-titulo svg {
+  color: var(--accent-ink);
+}
+
+.simulation-confianca-resumo {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+}
+
+.simulation-confianca-dica {
+  flex-basis: 100%;
+  font-size: 0.8rem;
+  color: var(--text-faint);
+}
+
+.simulation-confianca-conteudo {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 0 18px 18px;
+}
+
+/* Dentro do bloco a validação já está separada pelos subtítulos. */
+.simulation-confianca-conteudo .simulation-holdout {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+/* 140 e não 160: com 160 os quatro pares de "resiste a um empurrão?" quebravam
+   em 3 + 1 na largura normal do painel, e o que ficava sozinho na segunda
+   linha parecia outro grupo. */
+.simulation-pares {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.simulation-par {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-subtle);
+}
+
+.simulation-par-rotulo {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.simulation-par-valor {
+  font-family: "Share Tech Mono", monospace;
+  font-size: 1.05rem;
+  color: var(--text-primary);
+}
+
+.simulation-par-valor.up {
+  color: var(--success);
+}
+
+.simulation-par-valor.down {
+  color: var(--danger);
+}
+
+.simulation-par-nota {
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--text-faint);
+}
+
+.simulation-par .simulation-botao-texto {
+  align-self: flex-start;
+  margin-top: 2px;
+}
+
+.simulation-distribuicao {
+  width: 100%;
+  max-width: 140px;
+  height: 32px;
+  margin-top: 6px;
+}
+
+.simulation-distribuicao rect {
+  fill: var(--text-faint);
+}
+
+.simulation-distribuicao line {
+  stroke: var(--accent-ink);
+  stroke-width: 2;
+}
+
+.simulation-botao-texto {
+  margin-top: 8px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-decoration: underline;
+}
+
+.simulation-botao-texto:hover {
+  color: var(--accent-ink);
+}
+
+.simulation-subtitulo {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin: 14px 0 6px;
+}
+
+/* Mesmo motivo do .simulation-curva-container: o Chart.js mede o contêiner
+   posicionado mais próximo. */
+.simulation-submersa-container {
+  position: relative;
+  width: 100%;
+  height: 130px;
+}
+
+/* Terceiro nível: as análises abrem sob demanda, uma de cada vez. */
+.simulation-aprofundar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.simulation-aprofundar .intel-label {
+  margin-bottom: 0;
+}
+
+.simulation-abas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.simulation-aba-painel {
+  margin-top: 18px;
+}
+
+/* Dentro da aba o ranking já está separado pela barra de abas. */
+.simulation-aba-painel > .simulation-ranking {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.simulation-foco-cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.simulation-foco-cabecalho h3 {
+  margin-bottom: 0;
+}
+
+.simulation-foco-navegacao {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.simulation-preco-container,
+.simulation-excursao-container {
+  position: relative;
+  width: 100%;
+  height: 280px;
+}
+
+.simulation-leituras {
+  margin: 12px 0 0;
+  padding-left: 18px;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.simulation-excursao-celula {
+  white-space: nowrap;
+}
+
+.simulation-excursao-celula .up {
+  color: var(--success);
+}
+
+.simulation-excursao-celula .down {
+  color: var(--danger);
+}
+
+/* Mapa de sensibilidade. O fundo de cada célula vem inline, em color-mix
+   sobre os tokens de ganho e perda, com intensidade proporcional ao alfa. */
+.simulation-mapa-tabela {
+  border-collapse: separate;
+  border-spacing: 3px;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.8rem;
+}
+
+.simulation-mapa-tabela th {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  padding: 4px 8px;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.simulation-mapa-tabela th[scope="row"] {
+  text-align: right;
+}
+
+.simulation-mapa-tabela th.simulation-mapa-canto {
+  text-align: left;
+  color: var(--text-faint);
+}
+
+.simulation-mapa-celula {
+  display: block;
+  width: 100%;
+  min-width: 64px;
+  padding: 8px 6px;
+  border-radius: 6px;
+  text-align: center;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+}
+
+.simulation-mapa-celula:disabled {
+  cursor: default;
+  color: var(--text-faint);
+}
+
+.simulation-mapa-celula:not(:disabled):hover {
+  border-color: var(--accent-ink);
+}
+
+.simulation-mapa-atual {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 1px;
+}
+
+/* Régua da sorte no ranking: é contexto para ler a primeira linha, então
+   fica acima da tabela e com o peso de uma nota, não de um resultado. */
+.simulation-sorte {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin: -6px 0 12px;
+  padding: 8px 12px;
+  border-left: 3px solid var(--accent);
+  background: var(--surface-subtle);
+  border-radius: 6px;
+}
+
+.simulation-acima-sorte {
+  color: var(--accent-ink);
+}
+
+.simulation-diario-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+/* A regra é uma frase, não um número: sai da fonte monoespaçada da tabela e
+   pode quebrar linha. */
+.signal-lab-table td.simulation-diario-regra {
+  font-family: inherit;
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+  min-width: 260px;
+}
+
+.simulation-diario-botoes {
+  white-space: nowrap;
+}
+
+.simulation-diario-botoes .botao-nu + .botao-nu {
+  margin-left: 12px;
+}
+
 @media (max-width: 600px) {
-  .simulation-controls {
+  .simulation-controles-basicos,
+  .simulation-avancado {
     gap: 14px;
+  }
+
+  .simulation-heroi {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .simulation-heroi-valor {
+    font-size: 2.6rem;
+  }
+
+  .simulation-mais-regras-resumo,
+  .simulation-confianca-resumo {
+    margin-left: 0;
   }
 
   .simulation-campo select {

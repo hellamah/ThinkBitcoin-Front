@@ -5,14 +5,14 @@
 // pergunta é outra: "e se eu tivesse operado isso?" — o que exige estado
 // sequencial, uma posição por vez, capital e custo.
 //
-// Quatro decisões definem se o número que sai daqui é honesto. Todas são a
+// Cinco decisões definem se o número que sai daqui é honesto. Todas são a
 // mesma pergunta feita em lugares diferentes: o motor está usando algum dado
 // que o operador não teria no instante em que agiu?
 //
 // 1. A entrada acontece na ABERTURA do candle seguinte ao do sinal. Entrar no
 //    fechamento do próprio candle que gerou o sinal é comprar a um preço que só
 //    é conhecido depois do evento — o erro que faz qualquer estratégia parecer
-//    boa.
+//    boa. A saída por sinal segue a mesma regra.
 // 2. Quando o candle toca stop e alvo, o stop ganha. O OHLC não registra a
 //    ordem dentro da barra; supor o alvo primeiro é escolher a versão
 //    otimista de um dado que não existe.
@@ -23,6 +23,13 @@
 //    entrada é na abertura dele, quando a amplitude ainda não existe. O erro
 //    ia sempre para o mesmo lado: candle largo dava stop largo justamente
 //    quando o stop largo salvava a operação.
+// 5. Candle que ABRE além do stop sai na abertura, não no preço do stop. A
+//    ordem de stop vira ordem a mercado quando é atingida, e se o preço já
+//    começou o candle do outro lado, o primeiro preço disponível é a abertura.
+//    Preencher no stop era vender a um preço pelo qual o mercado não passou —
+//    e o erro, de novo, só ia para um lado. O alvo não recebe o tratamento
+//    espelhado de propósito: uma abertura além do alvo daria preço MELHOR que
+//    o alvo, e aqui o motor erra para o lado de não bajular.
 //
 // ---------------------------------------------------------------------------
 // O que AINDA usa informação do período inteiro, e por quê
@@ -40,14 +47,16 @@
 // recalculando os sinais sem o futuro, 5 candles em 1440 mudam de classificação
 // nos dados de demonstração (0,3%). Corrigir de verdade significa separar a
 // régua de exibição da régua causal, e isso muda o laboratório de sinais junto.
-// Quem for mexer nisso: o custo não é o cálculo, é a distinção.
+// Quem for mexer nisso: o custo não é o cálculo, é a distinção. E quem for
+// esticar a janela da simulação precisa mexer nisto ANTES — quanto mais longa a
+// série, mais a mediana do período inteiro se afasta da que existia no começo.
 //
 // Não há requisição aqui: é aritmética sobre o array que o dashboard já tem.
 
 import { intervaloWilson, median, paraNumero } from './mathUtils'
 import { calcularAtrSerie } from './marketStats'
 import { montarSerieDeSinais } from './signalLab'
-import { ExitReason, StopMode, TradeDirection } from './enums'
+import { ExitReason, StopMode, TradeDirection, TrendFilter } from './enums'
 import {
   FRACAO_VALIDACAO_PADRAO,
   dividirParaValidacao,
@@ -71,6 +80,20 @@ export { FRACAO_VALIDACAO_PADRAO, dividirParaValidacao }
 const ATR_MULTIPLICADOR_STOP = 2
 export const ATR_STOP_MINIMO_PERCENTUAL = 1
 export const ATR_STOP_MAXIMO_PERCENTUAL = 10
+
+// Média móvel do filtro de tendência, em candles. 50 e não 200, embora os dois
+// sejam padrões de literatura: a margem de aquecimento da janela é de 3 dias
+// (72 candles horários), que cobre 50 mas não 200. Com 200, o filtro reprovaria
+// toda entrada dos primeiros cinco dias da janela — não por tendência nenhuma,
+// mas porque a média ainda não existia.
+export const PERIODO_MEDIA_TENDENCIA = 50
+
+// Quantos candles, contando o do próprio sinal, a confirmação pode ter
+// acontecido antes. Um só exigiria coincidência exata no mesmo candle, que para
+// sinais de natureza diferente (um padrão de candle e um cruzamento de VWAP) é
+// raro a ponto de a regra quase nunca operar; muitos transformariam
+// "confirmação" em "aconteceu algum dia desta semana".
+export const JANELA_CONFIRMACAO = 3
 
 /**
  * Distância do stop, em %, a partir do ATR daquele candle.
@@ -217,6 +240,208 @@ const cadenciaDe = (instantes) => {
   return median(intervalos)
 }
 
+// ---------------------------------------------------------------------------
+// Preparo da série
+// ---------------------------------------------------------------------------
+// Tudo o que depende só dos candles — e de nenhum parâmetro — calculado uma vez
+// por série de sinais e guardado junto dela.
+//
+// Enquanto a simulação rodava algumas dezenas de vezes por clique, refazer isto
+// a cada chamada custava pouco. A régua aleatória roda a MESMA série centenas
+// de vezes, e aí ler 4.300 carimbos de data, reconverter cada preço e remedir
+// a cadência em toda chamada passa a ser a maior parte do trabalho — trabalho
+// idêntico, jogado fora.
+//
+// A chave é o array da série de sinais, por identidade. É o mesmo contrato que
+// o `serieDeSinais` já tinha: quem passa a série garante que ela descreve
+// aqueles registros, e o motor confere o tamanho. Uma série nova é um preparo
+// novo; o WeakMap solta o antigo quando ninguém mais segura a série.
+const preparos = new WeakMap()
+
+const prepararSerie = (serie) => {
+  const existente = preparos.get(serie)
+  if (existente) return existente
+
+  const n = serie.length
+  const instantes = new Array(n)
+  const aberturas = new Array(n)
+  const maiores = new Array(n)
+  const menores = new Array(n)
+  const fechamentos = new Array(n)
+  const utilizavel = new Array(n)
+
+  for (let i = 0; i < n; i++) {
+    const registro = serie[i].registro
+    instantes[i] = instanteDe(registro)
+    aberturas[i] = aberturaDe(registro)
+    maiores[i] = paraNumero(registro?.precoMaior)
+    menores[i] = paraNumero(registro?.precoMenor)
+    fechamentos[i] = paraNumero(registro?.precoFechamento)
+    utilizavel[i] = candleUtilizavel(registro)
+  }
+
+  const preparo = {
+    instantes,
+    aberturas,
+    maiores,
+    menores,
+    fechamentos,
+    utilizavel,
+    cadencia: cadenciaDe(instantes),
+    // Os três abaixo dependem de um parâmetro (a tolerância, ou nenhum mas são
+    // caros e nem toda simulação precisa deles) e nascem sob demanda.
+    quebras: new Map(),
+    atr: null,
+    media: null,
+    filtros: new Map(),
+  }
+  preparos.set(serie, preparo)
+  return preparo
+}
+
+/**
+ * Onde a série quebra, para uma tolerância de buraco.
+ *
+ * Um candle é "quebra" quando o salto desde o anterior passa da tolerância, ou
+ * quando ele próprio não descreve negociação utilizável.
+ */
+const quebrasDaSerie = (preparo, serie, tolerancia) => {
+  const chave = tolerancia ?? 'sem-tolerancia'
+  const existente = preparo.quebras.get(chave)
+  if (existente) return existente
+
+  const { instantes, utilizavel } = preparo
+  const quebraEm = instantes.map((b, i) => {
+    if (!utilizavel[i]) return true
+    if (i === 0 || tolerancia === null) return false
+    const a = instantes[i - 1]
+    if (a === null || b === null) return true
+    return b - a > tolerancia
+  })
+
+  const descontinuidades = []
+  for (let i = 1; i < serie.length; i++) {
+    if (!quebraEm[i]) continue
+    const a = instantes[i - 1]
+    const b = instantes[i]
+    descontinuidades.push({
+      de: serie[i - 1].registro?.horaReferencia ?? null,
+      ate: serie[i].registro?.horaReferencia ?? null,
+      horasFaltando: a !== null && b !== null ? (b - a) / 3600000 : null,
+    })
+  }
+
+  const resultado = { quebraEm, descontinuidades }
+  preparo.quebras.set(chave, resultado)
+  return resultado
+}
+
+// Alinhado com `serie` posição a posição — é o que permite ler a volatilidade
+// como ela era no candle da entrada, e não como está hoje.
+const atrDaSerie = (preparo, registros) => {
+  if (!preparo.atr) preparo.atr = calcularAtrSerie(registros)
+  return preparo.atr
+}
+
+/**
+ * Média móvel simples dos fechamentos, em ordem cronológica.
+ *
+ * Uma janela que contenha um fechamento ausente sai null, e não com a média dos
+ * que sobraram: com um buraco dentro, a "média de 50" seria de 49, e o filtro
+ * passaria a comparar o preço com uma régua diferente sem avisar.
+ */
+const mediaMovelDaSerie = (preparo) => {
+  if (preparo.media) return preparo.media
+
+  const { fechamentos } = preparo
+  const periodo = PERIODO_MEDIA_TENDENCIA
+  const saida = new Array(fechamentos.length).fill(null)
+  let soma = 0
+  let ausentes = 0
+
+  for (let i = 0; i < fechamentos.length; i++) {
+    const entra = fechamentos[i]
+    if (entra === null) ausentes++
+    else soma += entra
+
+    if (i >= periodo) {
+      const sai = fechamentos[i - periodo]
+      if (sai === null) ausentes--
+      else soma -= sai
+    }
+
+    if (i >= periodo - 1 && ausentes === 0) saida[i] = soma / periodo
+  }
+
+  preparo.media = saida
+  return saida
+}
+
+/**
+ * Em quais candles o filtro de entrada deixa a regra operar.
+ *
+ * Avaliado no candle do SINAL, com o que se sabe no fechamento dele — a entrada
+ * é na abertura do seguinte, então nada aqui olha para depois do instante da
+ * decisão.
+ *
+ * @returns {Uint8Array|null} - null quando não há filtro: "sem filtro" é
+ *   ausência, não um filtro que sempre passa.
+ */
+const filtroDeEntrada = (preparo, serie, { filtroTendencia, sinalConfirmacao }) => {
+  if (!filtroTendencia && !sinalConfirmacao) return null
+
+  const chave = `${filtroTendencia ?? ''}|${sinalConfirmacao ?? ''}`
+  const existente = preparo.filtros.get(chave)
+  if (existente) return existente
+
+  const { fechamentos } = preparo
+  const media = filtroTendencia ? mediaMovelDaSerie(preparo) : null
+  const passa = new Uint8Array(serie.length)
+  let ultimaConfirmacao = -Infinity
+
+  for (let i = 0; i < serie.length; i++) {
+    if (sinalConfirmacao && serie[i].sinais.includes(sinalConfirmacao)) ultimaConfirmacao = i
+
+    let ok = true
+    if (filtroTendencia) {
+      const m = media[i]
+      const f = fechamentos[i]
+      // Sem média ainda, o filtro reprova. Aprovar seria dizer "está em
+      // tendência de alta" sobre um candle do qual não se sabe isso.
+      ok = m !== null && f !== null &&
+        (filtroTendencia === TrendFilter.ALTA ? f > m : f < m)
+    }
+    if (ok && sinalConfirmacao) ok = i - ultimaConfirmacao < JANELA_CONFIRMACAO
+
+    passa[i] = ok ? 1 : 0
+  }
+
+  preparo.filtros.set(chave, passa)
+  return passa
+}
+
+// Instante a partir do qual é permitido abrir posição. Os candles anteriores
+// continuam alimentando os indicadores, mas não geram operação.
+const limiteDeAbertura = (aPartirDe) => {
+  if (aPartirDe === null || aPartirDe === undefined) return null
+  const t = new Date(aPartirDe).getTime()
+  return Number.isFinite(t) ? t : null
+}
+
+const podeAbrir = (instantes, limite, i) => {
+  if (limite === null) return true
+  const t = instantes[i]
+  return t !== null && t >= limite
+}
+
+// A série de sinais a usar: a recebida, se descreve ESTES registros, ou uma
+// nova. Ela é indexada por posição, e uma série de outro array alinharia sinais
+// com candles errados.
+const serieParaOsRegistros = (registros, serieDeSinais) =>
+  Array.isArray(serieDeSinais) && serieDeSinais.length === registros.length
+    ? serieDeSinais
+    : montarSerieDeSinais(registros)
+
 /**
  * Retorno líquido de um trade, em %.
  *
@@ -225,7 +450,7 @@ const cadenciaDe = (instantes) => {
  * assim evita um ramo `if` para cada lado — e ramo duplicado neste cálculo é
  * exatamente onde um erro de sinal passaria despercebido.
  */
-const retornoLiquidoDe = (entrada, saida, direcao, custoPercentual) => {
+export const retornoLiquidoDe = (entrada, saida, direcao, custoPercentual) => {
   const c = custoPercentual / 100
   const entradaEfetiva = entrada * (1 + direcao * c)
   const saidaEfetiva = saida * (1 - direcao * c)
@@ -248,6 +473,7 @@ const retornoBrutoDe = (entrada, saida, direcao) =>
  *   contagem de candles SEGURADOS, não o horizonte fechamento-a-fechamento do
  *   laboratório de sinais: segurar 1 candle é entrar na abertura e sair no
  *   fechamento do mesmo candle. null desliga a saída por tempo.
+ * @param {string} [opcoes.modoStop] - `StopMode`.
  * @param {number|null} [opcoes.stopPercentual] - Distância do stop, em %.
  * @param {number|null} [opcoes.alvoPercentual] - Distância do alvo, em %.
  * @param {number} [opcoes.custoPercentual] - Custo por perna, em %.
@@ -258,6 +484,20 @@ const retornoBrutoDe = (entrada, saida, direcao) =>
  *   existe — mas não geram operação.
  * @param {number|null} [opcoes.toleranciaBuracoMs] - Acima disto, o salto entre
  *   dois candles é buraco. Padrão: cadência mediana × 1,5.
+ * @param {string|null} [opcoes.sinalSaida] - Sinal que fecha a posição, na
+ *   abertura do candle seguinte ao dele.
+ * @param {string|null} [opcoes.filtroTendencia] - `TrendFilter`.
+ * @param {string|null} [opcoes.sinalConfirmacao] - Segundo sinal exigido nos
+ *   últimos `JANELA_CONFIRMACAO` candles.
+ * @param {number|null} [opcoes.riscoPorOperacao] - % do capital que cada
+ *   operação arrisca até o stop. null usa o capital inteiro.
+ * @param {ArrayLike<number>|null} [opcoes.posicoesDeEntrada] - Uma marca por
+ *   candle; onde ≠ 0, conta como sinal de entrada. Substitui `sinalEntrada` —
+ *   é por aqui que a régua aleatória entra com posições sorteadas mantendo
+ *   todo o resto da regra.
+ * @param {boolean} [opcoes.enxuto] - Só o desfecho, sem curva, operações nem
+ *   métricas de risco. Para quem vai rodar a mesma série centenas de vezes e só
+ *   precisa do retorno.
  * @returns {object|null} - null sem série utilizável.
  */
 export const simular = (registros, opcoes = {}) => {
@@ -277,83 +517,84 @@ export const simular = (registros, opcoes = {}) => {
     // divergências 14 vezes sobre os mesmos candles — trabalho idêntico e
     // jogado fora. Omitido, o motor monta a sua.
     serieDeSinais = null,
+    sinalSaida = null,
+    filtroTendencia = null,
+    sinalConfirmacao = null,
+    riscoPorOperacao = null,
+    posicoesDeEntrada = null,
+    enxuto = false,
   } = opcoes
 
   if (!Array.isArray(registros) || registros.length < 2) return null
-  if (!sinalEntrada) return null
+  const porPosicao = posicoesDeEntrada !== null && posicoesDeEntrada !== undefined
+  if (!sinalEntrada && !porPosicao) return null
   if (direcao !== TradeDirection.COMPRA && direcao !== TradeDirection.VENDA) return null
   if (saidaPorTempo !== null && (!Number.isInteger(saidaPorTempo) || saidaPorTempo < 1)) return null
+  const stopPorVolatilidade = modoStop === StopMode.ATR || modoStop === StopMode.ATR_MOVEL
+  const stopMovel = modoStop === StopMode.ATR_MOVEL
   // Sem nenhuma regra de saída a posição nunca fecha e a simulação não descreve
   // estratégia nenhuma — só a primeira entrada segurada até o fim da janela.
-  const stopPorVolatilidade = modoStop === StopMode.ATR
   // No modo ATR o stop existe sempre, então ele já é regra de saída suficiente.
   if (
     saidaPorTempo === null &&
     !stopPorVolatilidade &&
     stopPercentual === null &&
-    alvoPercentual === null
+    alvoPercentual === null &&
+    !sinalSaida
   ) return null
   if (!(capitalInicial > 0)) return null
+  // Zero ou negativo não é "arriscar nada": é campo apagado pela metade. Cai no
+  // capital inteiro, que é o comportamento sem o campo.
+  const risco = riscoPorOperacao > 0 ? riscoPorOperacao : null
 
-  // A série recebida precisa descrever ESTES registros: ela é indexada por
-  // posição, e uma série de outro array alinharia sinais com candles errados.
-  const serie =
-    Array.isArray(serieDeSinais) && serieDeSinais.length === registros.length
-      ? serieDeSinais
-      : montarSerieDeSinais(registros)
-
-  // Alinhado com `serie` posição a posição — é o que permite ler a volatilidade
-  // como ela era no candle da entrada, e não como está hoje.
-  const atrPorPosicao = stopPorVolatilidade ? calcularAtrSerie(registros) : null
+  const serie = serieParaOsRegistros(registros, serieDeSinais)
   if (serie.length < 2) return null
 
-  const instantes = serie.map((s) => instanteDe(s.registro))
-  const cadencia = cadenciaDe(instantes)
+  const preparo = prepararSerie(serie)
+  const { instantes, aberturas, maiores, menores, fechamentos, utilizavel } = preparo
+  const atrPorPosicao = stopPorVolatilidade ? atrDaSerie(preparo, registros) : null
+
+  const cadencia = preparo.cadencia
   const tolerancia =
     toleranciaBuracoMs ??
     (cadencia !== null ? cadencia * FATOR_TOLERANCIA_BURACO : null)
+  const { quebraEm, descontinuidades } = quebrasDaSerie(preparo, serie, tolerancia)
+  const passaFiltro = filtroDeEntrada(preparo, serie, { filtroTendencia, sinalConfirmacao })
 
-  // Um candle é "quebra" quando o salto desde o anterior passa da tolerância,
-  // ou quando ele próprio não descreve negociação utilizável.
-  const quebraEm = serie.map((s, i) => {
-    if (!candleUtilizavel(s.registro)) return true
-    if (i === 0 || tolerancia === null) return false
-    const a = instantes[i - 1]
-    const b = instantes[i]
-    if (a === null || b === null) return true
-    return b - a > tolerancia
-  })
-
-  const descontinuidades = []
-  for (let i = 1; i < serie.length; i++) {
-    if (!quebraEm[i]) continue
-    const a = instantes[i - 1]
-    const b = instantes[i]
-    descontinuidades.push({
-      de: serie[i - 1].registro?.horaReferencia ?? null,
-      ate: serie[i].registro?.horaReferencia ?? null,
-      horasFaltando: a !== null && b !== null ? (b - a) / 3600000 : null,
-    })
-  }
-
-  const limiteAbertura = aPartirDe !== null ? new Date(aPartirDe).getTime() : null
-  const podeAbrirEm = (i) => {
-    if (limiteAbertura === null || !Number.isFinite(limiteAbertura)) return true
-    const t = instantes[i]
-    return t !== null && t >= limiteAbertura
-  }
+  const limite = limiteDeAbertura(aPartirDe)
 
   // A curva cobre a janela que o usuário escolheu, não a margem de aquecimento.
-  const inicio = serie.findIndex((_, i) => podeAbrirEm(i))
+  let inicio = -1
+  for (let i = 0; i < serie.length; i++) {
+    if (podeAbrir(instantes, limite, i)) { inicio = i; break }
+  }
   if (inicio < 0 || inicio >= serie.length - 1) return null
 
+  const comprado = direcao === TradeDirection.COMPRA
   let capital = capitalInicial
   let posicao = null
   let entradaAgendada = false
+  let saidaAgendada = false
   let candlesEmPosicao = 0
+  let totalTrades = 0
+  let tradesConcluidos = 0
 
-  const trades = []
-  const curva = []
+  const trades = enxuto ? null : []
+  const curva = enxuto ? null : []
+
+  // Quanto a posição chegou a andar contra e a favor, em % do preço de
+  // entrada, antes do custo. Só se acumula com preço que de fato aconteceu
+  // ENQUANTO a posição existia — ver o comentário do candle de saída.
+  const registrarExcursao = (precoFavoravel, precoAdverso) => {
+    if (precoFavoravel !== null) {
+      const f = retornoBrutoDe(posicao.precoEntrada, precoFavoravel, direcao)
+      if (f > posicao.favoravel) posicao.favoravel = f
+    }
+    if (precoAdverso !== null) {
+      const a = -retornoBrutoDe(posicao.precoEntrada, precoAdverso, direcao)
+      if (a > posicao.adversa) posicao.adversa = a
+    }
+  }
 
   const fechar = (i, precoSaida, motivo) => {
     const bruto = retornoBrutoDe(posicao.precoEntrada, precoSaida, direcao)
@@ -362,57 +603,91 @@ export const simular = (registros, opcoes = {}) => {
       posicao = null
       return
     }
-    const custoPago = (capital * (bruto - liquido)) / 100
+    // Só a fração comprometida anda com a operação; o resto do capital fica
+    // parado. Sem dimensionamento pelo risco a fração é 1 e a conta é a de
+    // sempre.
+    const fracao = posicao.fracaoCapital
+    const custoPago = (capital * fracao * (bruto - liquido)) / 100
     const capitalAntes = capital
-    capital = capital * (1 + liquido / 100)
+    capital = capital * (1 + (fracao * liquido) / 100)
 
-    trades.push({
-      indiceEntrada: posicao.indice,
-      instanteEntrada: posicao.registro?.horaReferencia ?? null,
-      precoEntrada: posicao.precoEntrada,
-      indiceSaida: i,
-      instanteSaida: serie[i].registro?.horaReferencia ?? null,
-      precoSaida,
-      motivoSaida: motivo,
-      retornoBruto: bruto,
-      retornoLiquido: liquido,
-      custoPago,
-      capitalAntes,
-      capitalDepois: capital,
-      barrasSeguradas: i - posicao.indice + 1,
-      // Qual distância valeu nesta operação. No modo ATR ela muda a cada
-      // entrada, e sem este campo a tabela mostraria "Stop" como motivo sem
-      // dizer stop de quanto.
-      stopPercentualAplicado: posicao.stopPercentualAplicado,
-    })
+    totalTrades++
+    if (motivo !== ExitReason.FIM_DA_SERIE) tradesConcluidos++
+
+    if (!enxuto) {
+      trades.push({
+        indiceEntrada: posicao.indice,
+        instanteEntrada: posicao.registro?.horaReferencia ?? null,
+        precoEntrada: posicao.precoEntrada,
+        indiceSaida: i,
+        instanteSaida: serie[i].registro?.horaReferencia ?? null,
+        precoSaida,
+        motivoSaida: motivo,
+        retornoBruto: bruto,
+        retornoLiquido: liquido,
+        custoPago,
+        capitalAntes,
+        capitalDepois: capital,
+        barrasSeguradas: i - posicao.indice + 1,
+        // Qual distância valeu nesta operação. No modo ATR ela muda a cada
+        // entrada, e sem este campo a tabela mostraria "Stop" como motivo sem
+        // dizer stop de quanto.
+        stopPercentualAplicado: posicao.stopPercentualAplicado,
+        // Onde o stop estava quando a posição fechou. No stop móvel é outro
+        // preço que o da entrada, e é o que o gráfico precisa desenhar.
+        precoStopFinal: posicao.precoStop,
+        precoAlvo: posicao.precoAlvo,
+        fracaoCapital: fracao,
+        // MAE e MFE: o pior e o melhor momento da operação antes de fechar,
+        // em % do preço de entrada e antes do custo. Sempre ≥ 0.
+        excursaoAdversa: posicao.adversa,
+        excursaoFavoravel: posicao.favoravel,
+      })
+    }
     posicao = null
   }
 
-  for (let i = inicio; i < serie.length; i++) {
-    const registro = serie[i].registro
+  // Limites da curva, para os dias analisados. Acompanhados no laço porque a
+  // curva enxuta não existe e a completa não precisa ser relida.
+  let primeiroInstante = null
+  let ultimoInstante = null
 
+  for (let i = inicio; i < serie.length; i++) {
     // Buraco fecha a posição no último preço conhecido: dentro dele não se sabe
     // o que o preço fez, e stop e alvo deixariam de significar qualquer coisa.
     if (posicao && quebraEm[i]) {
-      const anterior = paraNumero(serie[i - 1].registro?.precoFechamento)
+      const anterior = fechamentos[i - 1]
       if (anterior !== null && anterior > 0) {
         fechar(i - 1, anterior, ExitReason.DESCONTINUIDADE)
       } else {
         posicao = null
       }
       entradaAgendada = false
+      saidaAgendada = false
     }
 
     // Candle inutilizável não vira ponto de curva nem gera operação: repetir o
     // capital anterior ali seria desenhar uma linha reta onde não há medição.
-    if (quebraEm[i] && !candleUtilizavel(registro)) {
+    if (quebraEm[i] && !utilizavel[i]) {
       entradaAgendada = false
       continue
     }
 
-    // 1. Entrada agendada no candle anterior executa AGORA, na abertura.
+    const abertura = aberturas[i]
+
+    // 1. Saída agendada pelo sinal de saída executa AGORA, na abertura. Sem
+    //    abertura neste candle, a ordem espera o próximo que tenha uma — sair
+    //    no fechamento anterior seria usar o preço do candle em que o sinal
+    //    foi visto, o mesmo erro que a entrada evita.
+    if (saidaAgendada && posicao && abertura !== null) {
+      registrarExcursao(abertura, abertura)
+      fechar(i, abertura, ExitReason.SINAL)
+      saidaAgendada = false
+    }
+    if (!posicao) saidaAgendada = false
+
+    // 2. Entrada agendada no candle anterior executa AGORA, na abertura.
     if (entradaAgendada && !posicao) {
-      const abertura = aberturaDe(registro)
       // Buraco entre o sinal e a execução invalida a entrada: o preço de
       // abertura já não é a continuação do candle que gerou o sinal.
       if (abertura !== null && !quebraEm[i]) {
@@ -425,7 +700,7 @@ export const simular = (registros, opcoes = {}) => {
         // Usar `i` dava ao stop exatamente o dado que ele não podia ter, e
         // sempre do jeito conveniente: candle largo produzia stop largo
         // justamente quando o stop largo era necessário para sobreviver. É a
-        // mesma família dos três erros que o cabeçalho deste arquivo enumera.
+        // mesma família dos erros que o cabeçalho deste arquivo enumera.
         //
         // Sem ATR ainda — começo da série, antes de a média fechar — a posição
         // abre sem stop, e sai pelo tempo ou pelo alvo. Inventar uma distância
@@ -434,9 +709,20 @@ export const simular = (registros, opcoes = {}) => {
           ? stopPorAtr(atrPorPosicao?.[i - 1] ?? null, abertura)
           : stopPercentual
 
+        // Dimensionamento pelo risco: quanto do capital comprometer para que,
+        // se o stop for atingido, a perda seja `risco`% do capital. Nunca
+        // alavanca — acima de 1 a conta pediria dinheiro emprestado. Sem stop
+        // não há distância para dividir, e a posição usa o capital inteiro,
+        // como sem o campo. Só acontece no modo ATR, nos primeiros candles da
+        // série, que caem na margem de aquecimento.
+        const fracaoCapital =
+          risco !== null && distanciaStop !== null && distanciaStop > 0
+            ? Math.min(1, risco / distanciaStop)
+            : 1
+
         posicao = {
           indice: i,
-          registro,
+          registro: serie[i].registro,
           precoEntrada: abertura,
           stopPercentualAplicado: distanciaStop,
           precoStop:
@@ -447,19 +733,26 @@ export const simular = (registros, opcoes = {}) => {
             alvoPercentual !== null
               ? abertura * (1 + direcao * (alvoPercentual / 100))
               : null,
+          fracaoCapital,
+          // Melhor preço desde a entrada: é dele que o stop móvel mede a
+          // distância.
+          extremo: abertura,
+          adversa: 0,
+          favoravel: 0,
         }
       }
     }
     entradaAgendada = false
 
-    // 2. Saídas, avaliadas contra o range do candle corrente.
+    // 3. Saídas, avaliadas contra o range do candle corrente.
     if (posicao) {
       candlesEmPosicao++
 
-      const maior = paraNumero(registro.precoMaior)
-      const menor = paraNumero(registro.precoMenor)
-      const fechamento = paraNumero(registro.precoFechamento)
-      const comprado = direcao === TradeDirection.COMPRA
+      const maior = maiores[i]
+      const menor = menores[i]
+      const fechamento = fechamentos[i]
+      const precoFavoravel = comprado ? maior : menor
+      const precoAdverso = comprado ? menor : maior
 
       const tocouStop =
         posicao.precoStop !== null &&
@@ -468,57 +761,120 @@ export const simular = (registros, opcoes = {}) => {
         posicao.precoAlvo !== null &&
         (comprado ? maior >= posicao.precoAlvo : menor <= posicao.precoAlvo)
 
+      // No candle de saída a excursão só conta com o que certamente aconteceu
+      // ANTES da saída. O OHLC não diz se a máxima veio antes ou depois do
+      // stop — contá-la seria atribuir à operação um lucro momentâneo que ela
+      // pode nunca ter tido. A abertura sempre vem antes, então ela entra.
       if (tocouStop) {
         // Stop antes de alvo, sempre. Ver o cabeçalho deste arquivo.
-        fechar(i, posicao.precoStop, ExitReason.STOP)
+        //
+        // Abriu além do stop: sai na abertura (item 5 do cabeçalho). No candle
+        // da entrada isso não acontece — a abertura É o preço de entrada, e o
+        // stop está sempre do outro lado dela.
+        const abriuAlem =
+          i > posicao.indice &&
+          abertura !== null &&
+          (comprado ? abertura <= posicao.precoStop : abertura >= posicao.precoStop)
+        const precoSaida = abriuAlem ? abertura : posicao.precoStop
+        if (abertura !== null) registrarExcursao(abertura, abertura)
+        registrarExcursao(null, precoSaida)
+        fechar(i, precoSaida, ExitReason.STOP)
       } else if (tocouAlvo) {
+        // O lado adverso do candle entra inteiro: o stop não foi tocado, então
+        // o pior preço dele aconteceu com a posição aberta ou depois do alvo —
+        // e contar a mais aqui erra para o lado de não embelezar a operação.
+        registrarExcursao(posicao.precoAlvo, precoAdverso)
         fechar(i, posicao.precoAlvo, ExitReason.ALVO)
-      } else if (
-        saidaPorTempo !== null &&
-        i - posicao.indice >= saidaPorTempo - 1
-      ) {
-        fechar(i, fechamento, ExitReason.TEMPO)
+      } else {
+        registrarExcursao(precoFavoravel, precoAdverso)
+        if (saidaPorTempo !== null && i - posicao.indice >= saidaPorTempo - 1) {
+          fechar(i, fechamento, ExitReason.TEMPO)
+        }
+      }
+
+      // Stop móvel: com o candle FECHADO, o melhor preço pode ter mudado, e o
+      // stop acompanha. Só vale a partir do próximo candle — atualizar dentro
+      // deste seria supor que a máxima veio antes de qualquer recuo, e o OHLC
+      // não diz isso. O stop nunca recua.
+      if (posicao && stopMovel && posicao.stopPercentualAplicado !== null) {
+        posicao.extremo = comprado
+          ? Math.max(posicao.extremo, maior)
+          : Math.min(posicao.extremo, menor)
+        const novoStop = posicao.extremo * (1 - direcao * (posicao.stopPercentualAplicado / 100))
+        posicao.precoStop = comprado
+          ? Math.max(posicao.precoStop, novoStop)
+          : Math.min(posicao.precoStop, novoStop)
       }
     }
 
-    // 3. Sinal neste candle agenda entrada para a abertura do próximo.
-    if (!posicao && i < serie.length - 1 && podeAbrirEm(i + 1)) {
-      if (serie[i].sinais.includes(sinalEntrada)) entradaAgendada = true
+    // 4. Sinal de saída neste candle agenda a saída para a abertura do próximo.
+    if (posicao && sinalSaida && serie[i].sinais.includes(sinalSaida)) saidaAgendada = true
+
+    // 5. Sinal de entrada neste candle agenda entrada para a abertura do
+    //    próximo — se o filtro deixar.
+    if (!posicao && i < serie.length - 1 && podeAbrir(instantes, limite, i + 1)) {
+      const temSinal = porPosicao
+        ? Boolean(posicoesDeEntrada[i])
+        : serie[i].sinais.includes(sinalEntrada)
+      if (temSinal && (!passaFiltro || passaFiltro[i])) entradaAgendada = true
     }
 
-    // 4. Ponto da curva, marcado a mercado. Uma curva que só degrau nos
+    if (instantes[i] !== null) {
+      if (primeiroInstante === null) primeiroInstante = instantes[i]
+      ultimoInstante = instantes[i]
+    }
+
+    // 6. Ponto da curva, marcado a mercado. Uma curva que só degrau nos
     //    fechamentos esconde o quanto a posição chegou a perder no meio — que é
     //    justamente o que o drawdown deveria medir.
-    const fechamentoDoCandle = paraNumero(registro.precoFechamento)
-    let capitalMarcado = capital
-    if (posicao) {
-      const naoRealizado =
-        fechamentoDoCandle !== null
-          ? retornoBrutoDe(posicao.precoEntrada, fechamentoDoCandle, direcao)
-          : 0
-      capitalMarcado = capital * (1 + naoRealizado / 100)
-    }
+    if (!enxuto) {
+      const fechamentoDoCandle = fechamentos[i]
+      let capitalMarcado = capital
+      if (posicao) {
+        const naoRealizado =
+          fechamentoDoCandle !== null
+            ? retornoBrutoDe(posicao.precoEntrada, fechamentoDoCandle, direcao)
+            : 0
+        capitalMarcado = capital * (1 + (posicao.fracaoCapital * naoRealizado) / 100)
+      }
 
-    curva.push({
-      instante: registro?.horaReferencia ?? null,
-      capital: capitalMarcado,
-      emPosicao: Boolean(posicao),
-      // O fechamento viaja junto com o ponto para o gráfico poder desenhar o
-      // buy & hold no MESMO eixo, sem precisar da série de candles de volta.
-      // Sem ele, a régua que os cards exibem lado a lado com o retorno some
-      // justamente do elemento que as pessoas de fato olham.
-      precoFechamento: fechamentoDoCandle,
-    })
+      curva.push({
+        // Posição do candle na série. O gráfico de operações precisa dela para
+        // achar, na curva, o ponto de cada entrada e saída.
+        indice: i,
+        instante: serie[i].registro?.horaReferencia ?? null,
+        capital: capitalMarcado,
+        emPosicao: Boolean(posicao),
+        // O fechamento viaja junto com o ponto para o gráfico poder desenhar o
+        // buy & hold no MESMO eixo, sem precisar da série de candles de volta.
+        // Sem ele, a régua que os cards exibem lado a lado com o retorno some
+        // justamente do elemento que as pessoas de fato olham.
+        precoFechamento: fechamentoDoCandle,
+      })
+    }
   }
 
   // Posição aberta no fim da janela: fecha no último fechamento conhecido, mas
   // marcada — o desfecho não aconteceu.
   if (posicao) {
     const ultimo = serie.length - 1
-    const fechamento = paraNumero(serie[ultimo].registro?.precoFechamento)
+    const fechamento = fechamentos[ultimo]
     if (fechamento !== null && fechamento > 0) {
       fechar(ultimo, fechamento, ExitReason.FIM_DA_SERIE)
-      if (curva.length > 0) curva[curva.length - 1].capital = capital
+      if (!enxuto && curva.length > 0) curva[curva.length - 1].capital = capital
+    }
+  }
+
+  const retornoTotal = ((capital - capitalInicial) / capitalInicial) * 100
+  const buyAndHold = buyAndHoldDe(fechamentos[inicio], fechamentos[serie.length - 1])
+
+  if (enxuto) {
+    return {
+      retornoTotal,
+      buyAndHold,
+      alfa: buyAndHold !== null ? retornoTotal - buyAndHold : null,
+      totalTrades,
+      tradesConcluidos,
     }
   }
 
@@ -533,6 +889,10 @@ export const simular = (registros, opcoes = {}) => {
       custoPercentual,
       capitalInicial,
       aPartirDe,
+      sinalSaida,
+      filtroTendencia,
+      sinalConfirmacao,
+      riscoPorOperacao: risco,
       cadenciaMs: cadencia,
       toleranciaBuracoMs: tolerancia,
     },
@@ -542,14 +902,108 @@ export const simular = (registros, opcoes = {}) => {
     metricas: calcularMetricas({
       trades,
       curva,
-      serie,
-      inicio,
+      retornoTotal,
+      buyAndHold,
       capitalInicial,
-      capitalFinal: capital,
       candlesEmPosicao,
       cadenciaMs: cadencia,
+      diasAnalisados:
+        primeiroInstante !== null && ultimoInstante !== null && curva.length >= 2
+          ? (ultimoInstante - primeiroInstante) / (24 * 3600000)
+          : null,
     }),
   }
+}
+
+// Buy & hold sem custo, de propósito: é a régua mais alta, e uma ferramenta de
+// simulação erra para o lado de não bajular a estratégia. Mesma definição usada
+// na avaliação out-of-sample do backend.
+const buyAndHoldDe = (primeiro, ultimo) =>
+  primeiro !== null && primeiro > 0 && ultimo !== null
+    ? ((ultimo - primeiro) / primeiro) * 100
+    : null
+
+/**
+ * Onde a regra PODERIA ter entrado, e em quantos desses candles o sinal de fato
+ * apareceu.
+ *
+ * É a matéria-prima da régua aleatória: sortear entradas "no mesmo número" só
+ * compara alguma coisa se o sorteio acontece no mesmo conjunto de candles em
+ * que o sinal poderia ter aparecido — dentro da janela, com candle utilizável,
+ * e passando pelo mesmo filtro. Sortear também nos candles que o filtro
+ * reprova mediria o filtro junto com o sinal.
+ *
+ * @param {Array<object>} registros - Série na ordem da API.
+ * @param {object} opcoes - As mesmas de `simular`.
+ * @returns {{serie: Array<object>, candidatas: number[], comSinal: number}|null}
+ */
+export const oportunidadesDeEntrada = (registros, opcoes = {}) => {
+  const {
+    sinalEntrada,
+    aPartirDe = null,
+    filtroTendencia = null,
+    sinalConfirmacao = null,
+    serieDeSinais = null,
+  } = opcoes
+  if (!Array.isArray(registros) || registros.length < 2 || !sinalEntrada) return null
+
+  const serie = serieParaOsRegistros(registros, serieDeSinais)
+  const preparo = prepararSerie(serie)
+  const passaFiltro = filtroDeEntrada(preparo, serie, { filtroTendencia, sinalConfirmacao })
+  const limite = limiteDeAbertura(aPartirDe)
+
+  const candidatas = []
+  let comSinal = 0
+  // Mesmas condições do laço de `simular` para AGENDAR uma entrada: candle
+  // dentro da janela, utilizável, com um seguinte também dentro dela.
+  for (let i = 0; i < serie.length - 1; i++) {
+    if (!podeAbrir(preparo.instantes, limite, i)) continue
+    if (!podeAbrir(preparo.instantes, limite, i + 1)) continue
+    if (!preparo.utilizavel[i]) continue
+    if (passaFiltro && !passaFiltro[i]) continue
+    candidatas.push(i)
+    if (serie[i].sinais.includes(sinalEntrada)) comSinal++
+  }
+
+  return { serie, candidatas, comSinal }
+}
+
+/**
+ * Último candle em que a regra teria agendado uma entrada.
+ *
+ * Liga a simulação ao presente: o painel inteiro fala do passado, e a pergunta
+ * natural de quem terminou de ler é "e agora, esse sinal está aparecendo?".
+ * Responde com o que aconteceu — quando o sinal passou pelo filtro pela última
+ * vez — e nada sobre o que fazer com isso.
+ *
+ * @param {Array<object>} registros - Série na ordem da API.
+ * @param {object} opcoes - `sinalEntrada`, filtros e `serieDeSinais`.
+ * @returns {{instante: string|null, candlesAtras: number}|null} - null quando o
+ *   sinal não passou pelo filtro nenhuma vez na série. `candlesAtras` é 0 quando
+ *   o disparo foi no último candle.
+ */
+export const ultimoDisparo = (registros, opcoes = {}) => {
+  const {
+    sinalEntrada,
+    filtroTendencia = null,
+    sinalConfirmacao = null,
+    serieDeSinais = null,
+  } = opcoes
+  if (!Array.isArray(registros) || registros.length === 0 || !sinalEntrada) return null
+
+  const serie = serieParaOsRegistros(registros, serieDeSinais)
+  const preparo = prepararSerie(serie)
+  const passaFiltro = filtroDeEntrada(preparo, serie, { filtroTendencia, sinalConfirmacao })
+
+  for (let i = serie.length - 1; i >= 0; i--) {
+    if (!serie[i].sinais.includes(sinalEntrada)) continue
+    if (passaFiltro && !passaFiltro[i]) continue
+    return {
+      instante: serie[i].registro?.horaReferencia ?? null,
+      candlesAtras: serie.length - 1 - i,
+    }
+  }
+  return null
 }
 
 /**
@@ -566,7 +1020,8 @@ export const simular = (registros, opcoes = {}) => {
  * divergências catorze vezes sobre os mesmos candles.
  *
  * Cada linha traz o resultado na janela cheia, no trecho de ajuste e no de
- * validação.
+ * validação. Filtro de entrada, saída por sinal e dimensionamento valem para
+ * TODAS as linhas: são parte da regra comum, como o stop e o custo.
  *
  * **A ordenação é pelo alfa do AJUSTE.** Era pelo da janela cheia, com a
  * justificativa de que ali há mais operações e menos ruído — e com a afirmação,
@@ -588,7 +1043,8 @@ export const simular = (registros, opcoes = {}) => {
  * **Sobre escolher a melhor:** testar N estratégias e ficar com a de cima é
  * sobreajuste por construção. Com catorze sinais a 95% de confiança, espera-se
  * que **menos de uma** pareça boa por puro acaso. Por isso a validação não é
- * enfeite da tela.
+ * enfeite da tela — e por isso a régua aleatória mede também quanto o melhor de
+ * N sinais sorteados alcançaria (`sorteDoRanking`, em acaso.js).
  *
  * @param {Array<object>} registros - Série na ordem da API.
  * @param {object} opcoes - As mesmas de `simular`, mais:
@@ -621,10 +1077,7 @@ export const compararEstrategias = (registros, opcoes = {}) => {
   // Aqui a régua faz mais do que em `simular`: é desta série que sai o conjunto
   // de sinais PRESENTES, ou seja, quais estratégias entram na tabela. Uma série
   // alheia não produziria só números errados — produziria a lista errada.
-  const serieCompleta =
-    Array.isArray(serieDeSinais) && serieDeSinais.length === registros.length
-      ? serieDeSinais
-      : montarSerieDeSinais(registros)
+  const serieCompleta = serieParaOsRegistros(registros, serieDeSinais)
   if (serieCompleta.length === 0) return null
 
   // Só os sinais que de fato ocorrem. Testar um sinal ausente devolveria uma
@@ -729,24 +1182,6 @@ export const compararEstrategias = (registros, opcoes = {}) => {
 }
 
 /**
- * Extensão real da curva, em dias, do primeiro ao último ponto.
- *
- * Serve para a tela poder dizer o período que ANALISOU em vez do que pediu. São
- * números diferentes sempre que a coleta não cobre a janela inteira, e a
- * diferença não é cosmética: o corte de validação é uma fração do que chegou.
- *
- * @param {Array<{instante: string|null}>} curva
- * @returns {number|null} - null quando os pontos não trazem carimbo utilizável.
- */
-const diasDaCurva = (curva) => {
-  if (!Array.isArray(curva) || curva.length < 2) return null
-  const instantes = curva.map((p) => instanteDe({ horaReferencia: p?.instante }))
-  const validos = instantes.filter((t) => t !== null)
-  if (validos.length < 2) return null
-  return (Math.max(...validos) - Math.min(...validos)) / (24 * 3600000)
-}
-
-/**
  * Métricas da simulação.
  *
  * `calcularDesempenho` de marketStats não serve aqui: ela mede drawdown DO
@@ -756,15 +1191,13 @@ const diasDaCurva = (curva) => {
 const calcularMetricas = ({
   trades,
   curva,
-  serie,
-  inicio,
+  retornoTotal,
+  buyAndHold,
   capitalInicial,
-  capitalFinal,
   candlesEmPosicao,
   cadenciaMs = null,
+  diasAnalisados = null,
 }) => {
-  const retornoTotal = ((capitalFinal - capitalInicial) / capitalInicial) * 100
-
   // Maior queda a partir de um pico da curva de capital.
   let pico = curva.length > 0 ? curva[0].capital : capitalInicial
   let drawdownMaximo = 0
@@ -786,16 +1219,6 @@ const calcularMetricas = ({
     .reduce((a, t) => a + t.retornoLiquido, 0)
 
   const retornos = concluidos.map((t) => t.retornoLiquido)
-
-  // Buy & hold sem custo, de propósito: é a régua mais alta, e uma ferramenta
-  // de simulação erra para o lado de não bajular a estratégia. Mesma definição
-  // usada na avaliação out-of-sample do backend.
-  const primeiro = paraNumero(serie[inicio]?.registro?.precoFechamento)
-  const ultimo = paraNumero(serie[serie.length - 1]?.registro?.precoFechamento)
-  const buyAndHold =
-    primeiro !== null && primeiro > 0 && ultimo !== null
-      ? ((ultimo - primeiro) / primeiro) * 100
-      : null
 
   const { sharpe, volatilidade } = riscoDaCurva(curva, cadenciaMs)
 
@@ -824,7 +1247,7 @@ const calcularMetricas = ({
     // não tem todo o período — moeda listada há pouco, buraco na série, teto da
     // API —, o que foi pedido e o que existe são coisas diferentes, e é sobre o
     // que existe que as operações, o alfa e o corte de validação se apoiam.
-    diasAnalisados: diasDaCurva(curva),
+    diasAnalisados,
     buyAndHold,
     alfa: buyAndHold !== null ? retornoTotal - buyAndHold : null,
     candlesSimulados: curva.length,

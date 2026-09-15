@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -20,18 +20,17 @@ import useCoinPrices from '../hooks/useCoinPrices'
 import useAlertasPreco from '../hooks/useAlertasPreco'
 import useDashboardData from '../hooks/useDashboardData'
 import useDashboardCharts from '../hooks/useDashboardCharts'
-import useSimulationData from '../hooks/useSimulationData'
+import useStrategySimulation from '../hooks/useStrategySimulation'
 import useHistoryPage from '../hooks/useHistoryPage'
 import useMarketAnalytics from '../hooks/useMarketAnalytics'
 import * as mathUtils from '../utils/mathUtils'
 import { calcularLimites } from '../utils/marketStats'
 import { compararMoedas } from '../utils/marketAnalytics'
-import { analisarSinais, montarSerieDeSinais } from '../utils/signalLab'
-import { simular, dividirParaValidacao, compararEstrategias, CUSTO_PADRAO_PERCENTUAL } from '../utils/backtest'
+import { analisarSinais } from '../utils/signalLab'
 import { getTourVisto, setTourVisto } from '../utils/preferences'
 import { contarAtivos } from '../utils/alertaPreco'
 import { candlestickPlugin } from '../utils/candlestickChart'
-import { Normalization, PriceChartMode, SecondaryChart, StopMode, TradeDirection } from '../utils/enums'
+import { Normalization, PriceChartMode, SecondaryChart } from '../utils/enums'
 
 // Sub-componentes Refatorados
 import DashboardHeader from '../components/dashboard/DashboardHeader'
@@ -118,24 +117,6 @@ export default function Dashboard() {
   const [painelSecundario, setPainelSecundario] = useState(SecondaryChart.VARIATION)
   const [horizonteSinal, setHorizonteSinal] = useState(1)
   const [expandedChart, setExpandedChart] = useState(null)
-
-  // Parâmetros da simulação. Ficam aqui, e não no DashboardContext, porque não
-  // são filtro: nenhum outro painel os consulta e nenhuma requisição depende
-  // deles. Levá-los ao contexto global faria toda a tela reagir a um ajuste que
-  // só interessa a um painel.
-  const [paramsSimulacao, setParamsSimulacao] = useState({
-    direcao: TradeDirection.COMPRA,
-    saidaPorTempo: 5,
-    modoStop: StopMode.PERCENTUAL,
-    stopPercentual: null,
-    alvoPercentual: null,
-    custoPercentual: CUSTO_PADRAO_PERCENTUAL,
-    sinalEntrada: null,
-  })
-
-  const alterarParamSimulacao = useCallback((nome, valor) => {
-    setParamsSimulacao((atual) => ({ ...atual, [nome]: valor }))
-  }, [])
 
   const hasInitializedPref = useRef(false)
 
@@ -378,163 +359,11 @@ export default function Dashboard() {
   // ------ simulação de estratégia ------
   //
   // Restrita a uma moeda, como o laboratório: misturar ativos numa única curva
-  // de capital não descreve carteira nenhuma.
-  //
-  // A série NÃO é a do dashboard. Ela é buscada à parte, numa janela de 180
-  // dias, porque a do dashboard é curta demais para a amostra fechar e é a
-  // resposta paginada — que a tabela de histórico troca por baixo de todos os
-  // painéis. Ver utils/simulationWindow.js.
+  // de capital não descreve carteira nenhuma. Toda a fiação — série própria de
+  // 180 dias, corte de validação, ranking, régua aleatória, URL e diário — mora
+  // no hook; aqui só se decide se há uma moeda para simular.
   const siglaSimulacao = moedasFiltro.length === 1 ? moedasFiltro[0] : null
-
-  const {
-    registros: serieSimulacao,
-    aPartirDe: inicioSimulacao,
-    carregando: carregandoSimulacao,
-    erro: erroSimulacao,
-  } = useSimulationData({ token, sigla: siglaSimulacao })
-
-  // A série de sinais é montada UMA vez por série de candles, e todo o resto do
-  // painel a recebe pronta. Antes ela era remontada cinco vezes a cada troca de
-  // parâmetro — pelo seletor, pela simulação, pelas duas pontas do holdout e
-  // pelo ranking — sobre exatamente os mesmos candles. Medido em 4.392 candles:
-  // ~15 ms cada, ~77 ms de trabalho idêntico por clique.
-  //
-  // Como só depende da série, ela sobrevive a qualquer ajuste de parâmetro.
-  const serieDeSinaisSimulacao = useMemo(
-    () => (serieSimulacao?.length ? montarSerieDeSinais(serieSimulacao) : null),
-    [serieSimulacao]
-  )
-
-  // O seletor oferece os sinais presentes na SÉRIE DA SIMULAÇÃO, não na do
-  // laboratório: são janelas diferentes, e um sinal que existe em 180 dias pode
-  // não existir nos 7 que o laboratório analisa. Oferecer o vocabulário inteiro
-  // faria o usuário escolher "marubozu", receber "nenhuma operação" e não ter
-  // como saber se a estratégia é ruim ou se o sinal simplesmente não ocorreu.
-  const sinaisDisponiveis = useMemo(() => {
-    if (!serieDeSinaisSimulacao) return []
-    const presentes = new Set()
-    serieDeSinaisSimulacao.forEach(({ sinais }) => sinais.forEach((s) => presentes.add(s)))
-    // Ordenado pelo RÓTULO traduzido, não pela chave. Pela chave, `marubozu`
-    // vinha antes de `martelo` numa lista que exibe "Martelo" antes de
-    // "Marubozu"; em inglês é pior, porque a chave `estrela` cai no meio das de
-    // "d" enquanto o rótulo é "Shooting Star". `localeCompare` no idioma
-    // corrente, que é quem sabe onde o acento entra na ordem.
-    //
-    // Não é só cosmético: quando a escolha do usuário deixa de existir na
-    // janela, o painel cai no PRIMEIRO da lista. Ordenando pelo rótulo, esse
-    // primeiro passa a ser o que ele vê no topo do seletor.
-    return [...presentes].sort((a, b) =>
-      t(`signal_${a}`).localeCompare(t(`signal_${b}`), idioma.intl)
-    )
-  }, [serieDeSinaisSimulacao, t, idioma])
-
-  // A escolha do usuário pode deixar de existir ao trocar de moeda ou período.
-  // Cair no primeiro disponível mantém o painel útil em vez de vazio.
-  const sinalEntrada = sinaisDisponiveis.includes(paramsSimulacao.sinalEntrada)
-    ? paramsSimulacao.sinalEntrada
-    : sinaisDisponiveis[0] ?? null
-
-  // O corte de validação não depende de parâmetro nenhum: é função da série e da
-  // janela. Fica à parte para o holdout e o ranking usarem o MESMO corte, em vez
-  // de cada um recortar o seu — e para a série de sinais do trecho de ajuste,
-  // que é outro array e portanto precisa da sua, ser montada uma vez só.
-  const corteSimulacao = useMemo(() => {
-    if (!serieSimulacao) return null
-    const corte = dividirParaValidacao(serieSimulacao, undefined, {
-      aPartirDe: inicioSimulacao,
-    })
-    if (!corte) return null
-    return { ...corte, serieDeSinaisAjuste: montarSerieDeSinais(corte.registrosAjuste) }
-  }, [serieSimulacao, inicioSimulacao])
-
-  // Os parâmetros de SAÍDA, sem o sinal de entrada. O ranking roda a mesma regra
-  // de saída sobre todos os sinais, então ele não depende de qual está
-  // selecionado — e memoizá-lo sobre o objeto inteiro fazia clicar num nome da
-  // tabela, que é o que o próprio rodapé convida a fazer, recalcular catorze
-  // estratégias para produzir a tabela idêntica.
-  const {
-    direcao: direcaoSimulacao,
-    saidaPorTempo,
-    modoStop,
-    stopPercentual,
-    alvoPercentual,
-    custoPercentual,
-  } = paramsSimulacao
-
-  // `aPartirDe` vem da janela da simulação, não do filtro do dashboard: é o que
-  // separa os candles de aquecimento do período que de fato vira operação.
-  const opcoesSaidaSimulacao = useMemo(
-    () => ({
-      direcao: direcaoSimulacao,
-      saidaPorTempo,
-      modoStop,
-      stopPercentual,
-      alvoPercentual,
-      custoPercentual,
-      aPartirDe: inicioSimulacao,
-    }),
-    [
-      direcaoSimulacao,
-      saidaPorTempo,
-      modoStop,
-      stopPercentual,
-      alvoPercentual,
-      custoPercentual,
-      inicioSimulacao,
-    ]
-  )
-
-  const opcoesSimulacao = useMemo(
-    () => ({ ...opcoesSaidaSimulacao, sinalEntrada }),
-    [opcoesSaidaSimulacao, sinalEntrada]
-  )
-
-  const simulacao = useMemo(
-    () =>
-      serieSimulacao && sinalEntrada
-        ? simular(serieSimulacao, {
-            ...opcoesSimulacao,
-            serieDeSinais: serieDeSinaisSimulacao,
-          })
-        : null,
-    [serieSimulacao, sinalEntrada, opcoesSimulacao, serieDeSinaisSimulacao]
-  )
-
-  // Corte de validação: o usuário ajusta os parâmetros olhando o trecho de
-  // ajuste, e a coluna de validação mostra como aquilo se sai no pedaço que ele
-  // não usou para escolher. Sem isso, testar dez combinações e ficar com a
-  // melhor é sobreajuste com aparência de método.
-  const holdout = useMemo(() => {
-    if (!corteSimulacao || !sinalEntrada) return null
-
-    return {
-      ajuste: simular(corteSimulacao.registrosAjuste, {
-        ...opcoesSimulacao,
-        serieDeSinais: corteSimulacao.serieDeSinaisAjuste,
-      }),
-      // A validação recebe a série inteira e só abre posição depois do corte:
-      // assim os indicadores de janela móvel chegam aquecidos ao primeiro
-      // candle validado. Sendo a série inteira, a série de sinais dela serve.
-      validacao: simular(corteSimulacao.registrosValidacao, {
-        ...opcoesSimulacao,
-        aPartirDe: corteSimulacao.aPartirDeValidacao,
-        serieDeSinais: serieDeSinaisSimulacao,
-      }),
-    }
-  }, [corteSimulacao, sinalEntrada, opcoesSimulacao, serieDeSinaisSimulacao])
-
-  // Ranking de todas as estratégias sobre a MESMA série e os mesmos parâmetros
-  // de saída. Responde a pergunta que o painel de uma estratégia só não
-  // responde: entre os sinais disponíveis, qual sobrou melhor que não fazer
-  // nada.
-  const comparativoEstrategias = useMemo(() => {
-    if (!serieSimulacao) return null
-    return compararEstrategias(serieSimulacao, {
-      ...opcoesSaidaSimulacao,
-      serieDeSinais: serieDeSinaisSimulacao,
-      serieDeSinaisAjuste: corteSimulacao?.serieDeSinaisAjuste ?? null,
-    })
-  }, [serieSimulacao, opcoesSaidaSimulacao, serieDeSinaisSimulacao, corteSimulacao])
+  const simulacaoEstrategia = useStrategySimulation({ token, sigla: siglaSimulacao, t, idioma })
 
   // Processamento de Gráficos (Hook Customizado)
   const chartConfig = useDashboardCharts({
@@ -681,19 +510,7 @@ export default function Dashboard() {
 
         {siglaSimulacao && (
           <div data-tour="dash-simulacao">
-          <SimulationPanel
-            resultado={simulacao}
-            ajuste={holdout?.ajuste ?? null}
-            validacao={holdout?.validacao ?? null}
-            parametros={{ ...paramsSimulacao, sinalEntrada }}
-            onParametro={alterarParamSimulacao}
-            sinaisDisponiveis={sinaisDisponiveis}
-            comparativo={comparativoEstrategias}
-            carregando={carregandoSimulacao}
-            erro={erroSimulacao}
-            t={t}
-            locale={idioma.intl}
-          />
+          <SimulationPanel {...simulacaoEstrategia} t={t} locale={idioma.intl} />
           </div>
         )}
 

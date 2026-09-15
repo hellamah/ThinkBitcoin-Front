@@ -70,7 +70,10 @@ export const DEFAULT_PREFERENCES = Object.freeze({
   perfilRisco: RiskProfile.MODERATE,
 })
 
-const getStorage = () => {
+// Exportado para o diário da simulação (utils/experimentos.js), que precisa do
+// mesmo acesso tolerante a storage bloqueado. Uma segunda cópia desta checagem
+// seria o lugar onde as duas divergiriam.
+export const getStorage = () => {
   if (!hasLocalStorage()) return null
   try {
     return getWindow().localStorage

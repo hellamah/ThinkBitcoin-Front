@@ -60,6 +60,9 @@ export const FilterInterval = Object.freeze({
  * FIM_DA_SERIE – a janela carregada acabou com a posição ainda aberta. Entra na
  *   curva de capital, mas fica FORA do win rate: o desfecho não aconteceu, e
  *   contá-lo como acerto ou erro seria inventar o que não se sabe.
+ * SINAL – apareceu o sinal de saída escolhido. A posição fecha na ABERTURA do
+ *   candle seguinte, pela mesma razão que a entrada acontece ali: o sinal só é
+ *   conhecido no fechamento do candle que o gerou.
  */
 export const ExitReason = Object.freeze({
   STOP: 'stop',
@@ -67,6 +70,7 @@ export const ExitReason = Object.freeze({
   TEMPO: 'tempo',
   DESCONTINUIDADE: 'descontinuidade',
   FIM_DA_SERIE: 'fimDaSerie',
+  SINAL: 'sinal',
 });
 
 /**
@@ -77,10 +81,28 @@ export const ExitReason = Object.freeze({
  *   2% é apertado num ativo que oscila 5% ao dia e frouxo num que oscila 0,5%;
  *   o ATR ajusta a distância ao que o ativo estava de fato fazendo naquele
  *   momento, em vez de aplicar o mesmo palpite a períodos calmos e agitados.
+ * ATR_MOVEL – nasce igual ao ATR e depois acompanha o preço: a cada candle
+ *   fechado, o stop sobe (comprado) ou desce (vendido) até a mesma distância do
+ *   melhor preço alcançado. Nunca recua.
  */
 export const StopMode = Object.freeze({
   PERCENTUAL: 'percentual',
   ATR: 'atr',
+  ATR_MOVEL: 'atrMovel',
+});
+
+/**
+ * Filtro de tendência aplicado ao candle do sinal de entrada.
+ *
+ * ALTA – só entra com o fechamento acima da média móvel.
+ * BAIXA – só entra com o fechamento abaixo dela.
+ *
+ * Ausente (null) é "sem filtro". Não há um valor NENHUM porque o motor trata a
+ * falta de filtro como falta, e não como um filtro que sempre passa.
+ */
+export const TrendFilter = Object.freeze({
+  ALTA: 'alta',
+  BAIXA: 'baixa',
 });
 
 /**
