@@ -86,7 +86,10 @@ export default defineConfig(({ command, mode }) => {
       setupFiles: ['./test/vitest.setup.js'],
       // Ambiente Node puro: não há window/localStorage reais.
       // Os testes que dependem deles (ex.: cache, preferences) mockam essas APIs manualmente.
-      // Para testar componentes React seria necessário trocar para 'jsdom'.
+      // Testes de componente pedem jsdom por arquivo, com o comentário
+      // `// @vitest-environment jsdom` na primeira linha. O resto da suíte
+      // segue em Node: mais rápido, e sem um DOM falso escondendo dependência
+      // de navegador em código que deveria ser puro.
       environment: 'node',
       globals: false,
     },
