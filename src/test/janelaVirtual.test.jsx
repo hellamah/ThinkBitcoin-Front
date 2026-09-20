@@ -59,11 +59,18 @@ const alturaDe = (testid) => {
   return valor ? Number.parseFloat(valor) : 0
 }
 
+// `scrollTop` precisa ser GRAVÁVEL, e não um valor fixo: o hook corrige a
+// rolagem por conta própria quando a lista encolhe, e um valor somente-leitura
+// faria o teste falhar por um motivo que não é o que ele mede.
 const rolarPara = (scrollTop) => {
   const no = screen.getByTestId('rolagem')
   // O evento carrega o alvo; o hook lê `currentTarget.scrollTop`, que é o que
   // o navegador entrega numa rolagem de verdade.
-  Object.defineProperty(no, 'scrollTop', { configurable: true, value: scrollTop })
+  Object.defineProperty(no, 'scrollTop', {
+    configurable: true,
+    writable: true,
+    value: scrollTop,
+  })
   act(() => {
     no.dispatchEvent(new Event('scroll', { bubbles: false }))
   })
@@ -132,6 +139,36 @@ describe('useJanelaVirtual', () => {
     const indices = indicesRenderizados()
     expect(Math.max(...indices)).toBe(743)
     expect(alturaDe('abaixo')).toBe(0)
+  })
+
+  it('a lista nunca fica vazia quando o total encolhe com a rolagem no fim', () => {
+    // Rolar até o fim do filtro de 1 mês e trocar para 7 dias mantinha o
+    // `scrollTop` apontando para além do novo fim: a fatia saía vazia e a
+    // tabela aparecia em branco, com a barra de rolagem de tamanho normal
+    // por causa do espaçador — nenhuma pista do que tinha acontecido.
+    instalarMedidas()
+    const { rerender } = render(<Lista total={744} />)
+
+    rolarPara(700 * ALTURA_LINHA)
+    expect(indicesRenderizados().length).toBeGreaterThan(0)
+
+    rerender(<Lista total={168} />)
+
+    const indices = indicesRenderizados()
+    expect(indices.length, 'tabela em branco').toBeGreaterThan(0)
+    expect(Math.max(...indices)).toBeLessThan(168)
+  })
+
+  it('encolhida a lista, o espaçador de baixo não sobra e o de cima cabe no total', () => {
+    instalarMedidas()
+    const { rerender } = render(<Lista total={744} />)
+    rolarPara(700 * ALTURA_LINHA)
+    rerender(<Lista total={168} />)
+
+    const renderizadas = indicesRenderizados().length
+    expect(alturaDe('acima') + renderizadas * ALTURA_LINHA + alturaDe('abaixo')).toBe(
+      168 * ALTURA_LINHA
+    )
   })
 
   it('lista curta não é virtualizada: tudo vai para o DOM', () => {

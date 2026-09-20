@@ -87,6 +87,12 @@ export default function HistoryTable({
     alturaInicial: 62,
   })
 
+  // Os espaçadores precisam de uma célula dentro. Um `<tr>` vazio é inválido
+  // no modelo de conteúdo de tabela do HTML, e a altura dele não é garantida:
+  // funciona no Chrome, mas um navegador que colapse a linha para zero levaria
+  // junto a barra de rolagem e o posicionamento da fatia inteira.
+  const colunas = moedasFiltro && moedasFiltro.length > 1 ? 4 : 3
+
   const linhasVisiveis = virtualizada
     ? sortedData.slice(janela.inicio, janela.fim)
     : sortedData
@@ -203,7 +209,9 @@ export default function HistoryTable({
                       barra teria o tamanho da fatia visível e rolar levaria
                       ao fim da tabela em um palmo. */}
                   {janela.alturaAcima > 0 && (
-                    <TableRow aria-hidden="true" sx={{ height: janela.alturaAcima }} />
+                    <TableRow aria-hidden="true" sx={{ height: janela.alturaAcima }}>
+                      <TableCell colSpan={colunas} sx={{ p: 0, border: 0 }} />
+                    </TableRow>
                   )}
                 {linhasVisiveis.map((r, i) => {
                   const idx = janela.inicio + i
@@ -216,7 +224,14 @@ export default function HistoryTable({
 
                   return (
                     <TableRow
-                      key={idx}
+                      // A chave é a posição NA JANELA, não o índice absoluto.
+                      // Com o índice absoluto, rolar uma linha trocava a chave
+                      // de todas as trinta e o React desmontava e remontava a
+                      // fatia inteira a cada evento de scroll, em vez de
+                      // reaproveitar os nós e só trocar o conteúdo — parte do
+                      // custo que a virtualização existe para evitar, de volta
+                      // durante a rolagem.
+                      key={i}
                       // A medição da altura sai daqui: a primeira linha da
                       // fatia é a única que o hook precisa ver.
                       ref={i === 0 ? janela.refLinha : undefined}
@@ -263,7 +278,9 @@ export default function HistoryTable({
                   )
                 })}
                   {janela.alturaAbaixo > 0 && (
-                    <TableRow aria-hidden="true" sx={{ height: janela.alturaAbaixo }} />
+                    <TableRow aria-hidden="true" sx={{ height: janela.alturaAbaixo }}>
+                      <TableCell colSpan={colunas} sx={{ p: 0, border: 0 }} />
+                    </TableRow>
                   )}
                 </>
               )}

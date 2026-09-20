@@ -44,11 +44,29 @@ export default function useJanelaVirtual({ total, ativo, alturaInicial = 48 }) {
   // a lista saltar visivelmente no primeiro scroll.
   useLayoutEffect(() => {
     if (!ativo) return
-    const linha = refLinha.current
-    if (!linha) return
-    const medida = linha.getBoundingClientRect().height
-    // O arredondamento evita um loop de render por diferenças subpixel entre
-    // uma medição e a seguinte.
+    const primeira = refLinha.current
+    if (!primeira) return
+
+    // A MAIOR da fatia, não a primeira. Todo o cálculo de deslocamento assume
+    // altura uniforme, e uma linha mais alta que a medida faria a lista
+    // deslizar conforme se rola. Medir a maior erra para o lado seguro: no
+    // pior caso sobra um fio de espaço entre as linhas, em vez de o conteúdo
+    // sair do lugar. Hoje as linhas da tabela de histórico têm todas a mesma
+    // altura (o selo de anomalia é mais baixo que a linha de texto), mas isso
+    // depende de fonte, idioma e zoom, e não é algo que valha supor.
+    const irmas = primeira.parentElement
+      ? Array.from(primeira.parentElement.children).filter(
+          (no) => !no.hasAttribute('aria-hidden')
+        )
+      : [primeira]
+
+    const medida = irmas.reduce(
+      (maior, no) => Math.max(maior, no.getBoundingClientRect().height),
+      0
+    )
+
+    // O piso de meio pixel evita um laço de render por diferença subpixel
+    // entre uma medição e a seguinte.
     if (medida > 0 && Math.abs(medida - alturaLinha) > 0.5) setAlturaLinha(medida)
   }, [ativo, alturaLinha, total])
 
@@ -77,6 +95,26 @@ export default function useJanelaVirtual({ total, ativo, alturaInicial = 48 }) {
     return () => observador.disconnect()
   }, [ativo])
 
+  // Quando a lista encolhe (trocar o filtro de 1 mês para 7 dias), o
+  // `scrollTop` do contêiner continua onde estava — apontando para além do
+  // novo fim. Sem esta correção a fatia calculada ficava vazia e a tabela
+  // aparecia em branco, com a barra de rolagem de tamanho normal por causa do
+  // espaçador: nenhuma pista do que tinha acontecido.
+  useEffect(() => {
+    if (!ativo) return
+    const no = refRolagem.current
+    if (!no) return
+
+    const limite = Math.max(0, total * alturaLinha - no.clientHeight)
+    if (no.scrollTop > limite) {
+      no.scrollTop = limite
+      // O estado precisa acompanhar: atribuir `scrollTop` por código nem
+      // sempre emite o evento de scroll, e sem isto a fatia continuaria
+      // calculada a partir da posição antiga.
+      setScrollTop(limite)
+    }
+  }, [ativo, total, alturaLinha])
+
   if (!ativo) {
     return {
       refRolagem,
@@ -93,8 +131,18 @@ export default function useJanelaVirtual({ total, ativo, alturaInicial = 48 }) {
   // de linhas: o suficiente para haver o que medir, sem montar a lista inteira.
   const cabemNaTela = alturaVisivel > 0 ? Math.ceil(alturaVisivel / alturaLinha) : 20
 
-  const inicio = Math.max(0, Math.floor(scrollTop / alturaLinha) - MARGEM)
-  const fim = Math.min(total, inicio + cabemNaTela + MARGEM * 2)
+  const quantasRenderizar = cabemNaTela + MARGEM * 2
+
+  // O teto é a defesa que não depende de efeito nenhum ter rodado: mesmo com
+  // o `scrollTop` momentaneamente além do fim — entre o render que encolhe a
+  // lista e o efeito que corrige a rolagem — `inicio` nunca ultrapassa o que
+  // o total comporta, e a fatia nunca sai vazia.
+  const ultimoInicioPossivel = Math.max(0, total - quantasRenderizar)
+  const inicio = Math.min(
+    Math.max(0, Math.floor(scrollTop / alturaLinha) - MARGEM),
+    ultimoInicioPossivel
+  )
+  const fim = Math.min(total, inicio + quantasRenderizar)
 
   return {
     refRolagem,
