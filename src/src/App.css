@@ -3611,8 +3611,8 @@
 
    A regra vale para TUDO, e não para uma lista de seletores. A lista anterior
    nomeava vinte e três classes à mão: ela cobria o que existia no dia em que
-   foi escrita, deixava de fora toda `transition` (são 34 só neste arquivo,
-   mais as que o MUI aplica em linha) e, pior, não tinha como acompanhar —
+   foi escrita, deixava de fora toda `transition` — as dezenas deste arquivo
+   e as que o MUI aplica em linha — e, pior, não tinha como acompanhar:
    componente novo com animação nascia fora dela, sem nada acusando.
 
    As três exceções abaixo são o que a regra universal não consegue decidir
@@ -3638,15 +3638,23 @@
     scroll-behavior: auto !important;
   }
 
-  /* Seis `transition` deste arquivo estão marcadas `!important`. Elas empatam
-     com a regra acima e vencem, porque uma classe pesa mais que o seletor
-     universal. `:not(#sem-id-assim)` casa exatamente com os mesmos elementos
-     que `*` — nenhum id do projeto tem esse nome — mas vale como um id na
-     conta de especificidade, o que basta para passar na frente delas.
+  /* Algumas `transition` deste arquivo estão marcadas `!important`. Elas
+     empatam com a regra acima e vencem, porque uma classe pesa mais que o
+     seletor universal. `:not(#sem-id-assim)` casa exatamente com os mesmos
+     elementos que `*` — nenhum id do projeto tem esse nome — mas vale como um
+     id na conta de especificidade, o que basta para passar na frente delas.
+
+     As duas linhas de pseudo-elemento não são enfeite: `:not()` casa
+     elementos, nunca um `::before` ou `::after`. Sem elas, uma transição
+     marcada `!important` num pseudo-elemento — e este arquivo usa `::after`
+     para brilhos e bordas — escaparia pelo mesmo buraco, de novo sem nada
+     acusando.
 
      Só `transition` precisa disto: nenhuma `animation` do projeto usa
      `!important` fora deste bloco. */
-  :not(#sem-id-assim) {
+  :not(#sem-id-assim),
+  :not(#sem-id-assim)::before,
+  :not(#sem-id-assim)::after {
     transition-duration: 0.01ms !important;
     transition-delay: 0s !important;
   }

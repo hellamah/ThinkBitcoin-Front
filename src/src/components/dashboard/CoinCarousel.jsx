@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react'
+import { comportamentoDeRolagem } from '../../utils/movimento'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import Card from '@mui/material/Card'
@@ -62,13 +63,20 @@ export default function CoinCarousel({
     const selecionado = carrosselRef.current?.querySelector('.carousel-item.selected')
     if (!selecionado) return
     centralizouSelecaoRef.current = true
-    selecionado.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+    // `behavior` vem de quem sabe da preferência de movimento reduzido: um
+    // `'smooth'` fixo aqui venceria o `scroll-behavior` do CSS, porque a
+    // especificação só consulta o CSS quando o argumento é `auto`.
+    selecionado.scrollIntoView({
+      behavior: comportamentoDeRolagem(),
+      block: 'nearest',
+      inline: 'center',
+    })
   }, [moedasFiltro])
 
   const rolar = (direcao) => {
     const el = carrosselRef.current
     if (!el) return
-    el.scrollBy({ left: direcao * el.clientWidth * 0.7, behavior: 'smooth' })
+    el.scrollBy({ left: direcao * el.clientWidth * 0.7, behavior: comportamentoDeRolagem() })
   }
 
   const carouselContent = (

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { comportamentoDeRolagem } from '../../utils/movimento'
 import { useTheme } from '@mui/material/styles'
 import { MdPlayCircleOutline, MdWarningAmber } from 'react-icons/md'
 
@@ -105,7 +106,10 @@ export default function SimulationPanel({
     setAba(Aba.OPERACOES)
     // Quem clicou num ponto do gráfico de excursão ou numa linha lá embaixo
     // precisa ver o gráfico de preço, que pode estar fora da tela.
-    graficoRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
+    graficoRef.current?.scrollIntoView?.({
+      behavior: comportamentoDeRolagem(),
+      block: 'center',
+    })
   }, [])
 
   const focarEntrada = useCallback(
