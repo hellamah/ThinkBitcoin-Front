@@ -133,8 +133,16 @@ export const instalarCapturaGlobal = () => {
   if (typeof window === 'undefined') return
 
   window.addEventListener('error', (evento) => {
-    // Erro de carregamento de recurso (imagem, chunk) chega neste mesmo evento
-    // sem `error` preenchido. Vira um relato próprio, com o que dá para saber.
+    // Sem `capture`, e isso importa: falha de carregamento de recurso (imagem,
+    // chunk, folha de estilo) dispara `error` no próprio elemento e NÃO
+    // borbulha, então só chegaria aqui na fase de captura. Verificado no
+    // navegador: com uma <img> quebrada, o listener em captura recebe o evento
+    // e este não. Fica de fora de propósito — são dezenas de relatos sem
+    // mensagem nem pilha, que diriam apenas que algo não carregou e gastariam
+    // a cota da sessão que os erros de JavaScript precisam.
+    //
+    // O `??` cobre o outro caso: erro vindo de outra origem chega sem `error`
+    // preenchido, como um 'Script error.' sem detalhe nenhum.
     const erro = evento.error ?? new Error(evento.message || 'Erro sem detalhes')
     relatarErro(erro, { origem: 'window.onerror' })
   })

@@ -24,6 +24,7 @@ const ROTULO_DA_ROTA = [
   ['/heatmap', 'nav.heatmap'],
   ['/treinamento-episodios', 'nav.training'],
   ['/login', 'nav.login'],
+  ['/redefinir-senha', 'senha.redefinirTitulo'],
   ['/privacidade', 'consentimento.tipos.privacidade'],
   ['/termos', 'consentimento.tipos.termos'],
 ]
@@ -34,7 +35,7 @@ function Layout({ children }) {
   const navigate = useNavigate()
   const spotlightRef = useRef(null)
   const refConteudo = useRef(null)
-  const primeiraRota = useRef(true)
+  const rotaAnterior = useRef(location.pathname)
 
   // Numa SPA, trocar de rota não recarrega nada: o foco do teclado fica
   // exatamente onde estava — medido como `document.activeElement === body`
@@ -50,10 +51,14 @@ function Layout({ children }) {
     // A primeira rota não conta. No carregamento inicial o foco pertence ao
     // navegador — barra de endereço, aba restaurada — e tomá-lo dali é
     // justamente o tipo de sequestro de foco que esta mudança combate.
-    if (primeiraRota.current) {
-      primeiraRota.current = false
-      return
-    }
+    //
+    // A guarda compara a rota, e não "já rodei uma vez": sob StrictMode o
+    // React executa o efeito duas vezes no mount, e uma marca de primeira
+    // execução era consumida na primeira passagem — a segunda roubava o foco
+    // no carregamento, justamente o que este código evita. Comparar a rota dá
+    // o mesmo resultado nas duas passagens.
+    if (rotaAnterior.current === location.pathname) return
+    rotaAnterior.current = location.pathname
     refConteudo.current?.focus()
   }, [location.pathname])
   const ponteiroRef = useRef({ x: 0, y: 0, quadro: 0 })

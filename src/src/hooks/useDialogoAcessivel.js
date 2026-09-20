@@ -23,10 +23,30 @@ const estaVisivel = (el) =>
 const focaveisDe = (raiz) =>
   raiz ? Array.from(raiz.querySelectorAll(FOCAVEIS)).filter(estaVisivel) : []
 
+// Camadas flutuantes do MUI. Elas montam o próprio nó direto no body — fora
+// do nó do diálogo — e é para lá que o MUI manda o foco ao abrir um menu, um
+// seletor ou um autocomplete DE DENTRO do diálogo.
+//
+// O mesmo detalhe que o `useFecharComEsc` abaixo já documenta: para o trap,
+// esse foco parece ter escapado para a página coberta, e puxá-lo de volta
+// tira o foco do menu que a pessoa acabou de abrir. O seletor de moeda do
+// modal de alertas é exatamente esse caso.
+const CAMADAS_FLUTUANTES = '.MuiPopover-root, .MuiPopper-root, .MuiMenu-root, .MuiAutocomplete-popper, .MuiDialog-root'
+
+const estaEmCamadaFlutuante = (el) =>
+  typeof el?.closest === 'function' && el.closest(CAMADAS_FLUTUANTES) !== null
+
 // Quantos diálogos estão abertos agora. Sem esta conta, fechar um diálogo
 // aberto por cima de outro devolvia o scroll à página enquanto o de baixo
 // ainda cobria a tela.
 let dialogosAbertos = 0
+
+// O overflow de antes do PRIMEIRO diálogo, e não o de cada um. Quando cada
+// diálogo guardava o seu, o segundo a abrir capturava o `hidden` que o
+// primeiro tinha acabado de aplicar e o restaurava ao fechar — bastava
+// fecharem fora de ordem para a página inteira ficar sem rolagem até um
+// reload, sem nenhum diálogo aberto.
+let overflowAntesDosDialogos = ''
 
 /**
  * Prende o foco do teclado dentro de um diálogo enquanto ele está aberto e o
@@ -80,6 +100,10 @@ export function useDialogoAcessivel(ativo) {
       const ultimo = alvos[alvos.length - 1]
       const atual = document.activeElement
 
+      // Menu, seletor ou autocomplete aberto de dentro do diálogo: o foco
+      // está legitimamente fora do nó, e quem cuida do ciclo ali é o MUI.
+      if (!no.contains(atual) && estaEmCamadaFlutuante(atual)) return
+
       // O contêiner tem tabIndex -1 e não está em `alvos`, então logo depois de
       // abrir o foco está nele: o primeiro Tab não casaria com nenhuma das duas
       // bordas e escaparia. Por isso o `!no.contains(atual)` e o caso do
@@ -104,15 +128,15 @@ export function useDialogoAcessivel(ativo) {
 
     // A página atrás não deve rolar sob o diálogo. É comportamento de diálogo
     // modal, e sem ele a roda do mouse sobre o scrim move o conteúdo coberto.
+    if (dialogosAbertos === 0) overflowAntesDosDialogos = document.body.style.overflow
     dialogosAbertos += 1
-    const overflowOriginal = document.body.style.overflow
     document.body.style.overflow = 'hidden'
 
     return () => {
       document.removeEventListener('keydown', aoTabular, true)
 
-      dialogosAbertos -= 1
-      if (dialogosAbertos === 0) document.body.style.overflow = overflowOriginal
+      dialogosAbertos = Math.max(0, dialogosAbertos - 1)
+      if (dialogosAbertos === 0) document.body.style.overflow = overflowAntesDosDialogos
 
       // Só devolve o foco se o elemento ainda existe e ainda é focável. Depois
       // de excluir a conta ou migrar de plano, o botão que abriu o diálogo

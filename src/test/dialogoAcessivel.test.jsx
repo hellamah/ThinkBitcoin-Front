@@ -158,6 +158,55 @@ describe('Modal — página atrás', () => {
     expect(document.body.style.overflow).toBe('')
   })
 
+  it('dois diálogos fechados fora de ordem não deixam o corpo travado', () => {
+    // Cada diálogo guardava o overflow no momento em que abria, então o
+    // segundo capturava o `hidden` que o primeiro tinha acabado de aplicar.
+    // Fechando fora de ordem, o último a sair restaurava `hidden` e a página
+    // inteira ficava sem rolagem, sem nenhum diálogo aberto.
+    const Cena = ({ a, b }) => (
+      <>
+        <Modal visible={a} onClose={() => {}} rotulo="de baixo">
+          <button type="button">a</button>
+        </Modal>
+        <Modal visible={b} onClose={() => {}} rotulo="de cima">
+          <button type="button">b</button>
+        </Modal>
+      </>
+    )
+
+    const { rerender } = render(<Cena a b={false} />)
+    expect(document.body.style.overflow).toBe('hidden')
+
+    rerender(<Cena a b />)
+    rerender(<Cena a={false} b />)
+    rerender(<Cena a={false} b={false} />)
+
+    expect(document.body.style.overflow, 'corpo ficou travado').toBe('')
+  })
+
+  it('não rouba o foco de um menu do MUI aberto de dentro do diálogo', () => {
+    // Menu, seletor e autocomplete do MUI montam o próprio nó direto no body,
+    // fora do nó do diálogo, e o MUI manda o foco para lá. Para o trap isso
+    // parecia foco escapando para a página coberta, e puxá-lo de volta tirava
+    // o foco do menu que a pessoa tinha acabado de abrir. O seletor de moeda
+    // do modal de alertas é exatamente esse caso.
+    abrir()
+
+    const camada = document.createElement('div')
+    camada.className = 'MuiPopover-root'
+    const opcao = document.createElement('button')
+    opcao.textContent = 'BTC'
+    camada.appendChild(opcao)
+    document.body.appendChild(camada)
+    opcao.focus()
+
+    fireEvent.keyDown(opcao, { key: 'Tab' })
+
+    expect(document.activeElement, 'o trap puxou o foco de volta').toBe(opcao)
+
+    camada.remove()
+  })
+
   it('Esc fecha', () => {
     const aoFechar = vi.fn()
     abrir({ onClose: aoFechar })
