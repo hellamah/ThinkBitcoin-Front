@@ -3607,17 +3607,57 @@
 /* Movimento reduzido. Quem pede isso ao sistema operacional costuma ter
    sensibilidade vestibular, e movimento grande e contínuo é o que mais pesa —
    exatamente o fundo: três manchas de 70vw derivando e girando sem parar, mais
-   um brilho seguindo o cursor. Nada no produto respeitava a preferência.
+   um brilho seguindo o cursor.
 
-   Os laços decorativos param. As entradas não podem receber `animation: none`:
-   várias partem de opacidade 0 e dependem do `forwards` para aparecer, então
-   sem animação o elemento ficaria invisível. Elas chegam direto ao estado
-   final, com duração desprezível e sem atraso — `!important` porque há atrasos
-   em escada por filho, de especificidade maior.
+   A regra vale para TUDO, e não para uma lista de seletores. A lista anterior
+   nomeava vinte e três classes à mão: ela cobria o que existia no dia em que
+   foi escrita, deixava de fora toda `transition` (são 34 só neste arquivo,
+   mais as que o MUI aplica em linha) e, pior, não tinha como acompanhar —
+   componente novo com animação nascia fora dela, sem nada acusando.
 
-   Os indicadores de carregamento (spinners do MUI) continuam animando de
-   propósito: parados, pareceriam travados. */
+   As três exceções abaixo são o que a regra universal não consegue decidir
+   sozinha, e por isso continuam nomeadas.
+
+   `0.01ms` em vez de zero: é o valor que ainda dispara `animationend` e
+   `transitionend`, e há componente que depende desses eventos para concluir o
+   que começou. Zerar de verdade deixaria alguns pela metade.
+
+   As entradas não podem receber `animation: none`: várias partem de opacidade
+   0 e dependem do `forwards` para aparecer, então sem animação o elemento
+   ficaria invisível. Elas chegam direto ao estado final, que é o que a duração
+   desprezível faz. */
 @media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Seis `transition` deste arquivo estão marcadas `!important`. Elas empatam
+     com a regra acima e vencem, porque uma classe pesa mais que o seletor
+     universal. `:not(#sem-id-assim)` casa exatamente com os mesmos elementos
+     que `*` — nenhum id do projeto tem esse nome — mas vale como um id na
+     conta de especificidade, o que basta para passar na frente delas.
+
+     Só `transition` precisa disto: nenhuma `animation` do projeto usa
+     `!important` fora deste bloco. */
+  :not(#sem-id-assim) {
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+  }
+
+  /* Exceção 1 — laços decorativos param de vez, em vez de correrem uma vez.
+
+     Estes keyframes não fecham o ciclo: `move-1` vai de translate(0,0) a
+     translate(20%,15%) scale(1.1) e volta por `animation-direction: alternate`.
+     Terminar uma iteração deixaria a mancha parada no destino — deslocada e
+     maior do que o layout supõe. `none` devolve cada elemento ao estado que o
+     CSS descreve fora da animação. */
   .blob,
   .coin-icon-wrapper.pulse,
   .exclusive-tag,
@@ -3627,29 +3667,25 @@
   .orbit-2,
   .orbit-3,
   .cursor {
-    animation: none;
+    animation: none !important;
   }
 
+  /* Exceção 2 — o brilho do cursor não tem estado parado que faça sentido. */
   .mouse-spotlight {
     display: none;
   }
 
-  .selected-indicator,
-  .expanded-chart-overlay,
-  .expanded-chart-content,
-  .form-card,
-  .shake,
-  .modal,
-  .hero-tag,
-  .hero-title-v3,
-  .hero-desc-v3,
-  .cta-group,
-  .convite-sucesso-icon,
-  .intelligence-panel,
-  .chart-intel-tooltip,
-  .settings-page {
-    animation-duration: 0.01ms !important;
-    animation-delay: 0s !important;
+  /* Exceção 3 — os indicadores de carregamento continuam girando. Parados,
+     pareceriam travados, e a pessoa fica sem saber se a tela ainda está
+     trabalhando. Giro constante no lugar não é o movimento que incomoda quem
+     pede movimento reduzido; tela que parece congelada, sim.
+
+     Os valores repetem os do CircularProgress do MUI (1,4s em laço, nas duas
+     partes), porque a regra universal acima já os teria apagado. */
+  .MuiCircularProgress-root,
+  .MuiCircularProgress-circle {
+    animation-duration: 1.4s !important;
+    animation-iteration-count: infinite !important;
   }
 }
 
