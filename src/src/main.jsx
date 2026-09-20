@@ -5,6 +5,15 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App.jsx'
 import { AuthProvider } from './context/AuthContext'
 import { TranslationProvider } from './context/TranslationContext'
+import { instalarCapturaGlobal } from './utils/relatarErro'
+import { registrarServiceWorker } from './utils/registrarServiceWorker'
+
+// Antes de qualquer render: um erro na subida do app é justamente o que
+// ninguém vê, e é o que mais importa saber.
+instalarCapturaGlobal()
+
+// Instalável e utilizável sem rede. Só faz efeito em build de produção.
+registrarServiceWorker()
 
 let savedTheme = null
 try {

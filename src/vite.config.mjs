@@ -51,6 +51,21 @@ export default defineConfig(({ command, mode }) => {
           "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://www.gstatic.com; font-src 'self' data:; img-src 'self' data: blob: https://www.gstatic.com; connect-src 'self' https://api.minerthinkbitcoin.com https://thinkbitcoin-api.ddns.net https://www.gstatic.com http://localhost:* http://127.0.0.1:* https://thinkbitcoin.local:*; frame-src 'none'; upgrade-insecure-requests",
       },
     },
+    // Tira do bundle publicado o console de depuração, e SÓ ele.
+    //
+    // `console.warn` e `console.error` ficam de propósito: são o que a
+    // pessoa lê ao abrir o DevTools para contar o que aconteceu, e o que
+    // resta de diagnóstico quando não há coletor de erros configurado
+    // (VITE_ERROR_ENDPOINT em utils/relatarErro.js). Apagar os quatro de uma
+    // vez é o atalho comum e custa exatamente a informação que mais falta no
+    // dia em que algo quebra só em produção.
+    //
+    // `pure` e não `drop`: o esbuild marca as chamadas como sem efeito
+    // colateral e as remove na minificação, o que deixa o build de
+    // desenvolvimento intacto — lá os logs continuam todos.
+    esbuild: {
+      pure: command === "build" ? ["console.log", "console.debug", "console.info"] : [],
+    },
     build: {
       rollupOptions: {
         output: {

@@ -3,6 +3,7 @@ import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
 import useTranslation from '../hooks/useTranslation'
+import { relatarErro } from '../utils/relatarErro'
 
 /**
  * Error Boundary de renderização. Um try/catch em volta do JSX de um componente
@@ -22,7 +23,14 @@ class LimiteDeErro extends Component {
   }
 
   componentDidCatch(error, info) {
-    console.error('Erro não tratado na renderização:', error, info?.componentStack)
+    // O console sozinho só existia na máquina de quem esbarrou no erro: a
+    // tela vermelha aparecia em produção e do lado de cá não havia sinal
+    // nenhum de que ela tinha aparecido. O relatarErro mantém o console e
+    // acrescenta o relato — que não sai se não houver coletor configurado.
+    relatarErro(error, {
+      origem: 'render',
+      componentStack: info?.componentStack,
+    })
   }
 
   render() {
