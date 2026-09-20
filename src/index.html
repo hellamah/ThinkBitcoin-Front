@@ -10,6 +10,21 @@
     <meta name="description" content="Painel do ThinkBitcoin: acompanhe cotações de criptoativos com candles, VWAP, RSI e bandas de Bollinger, e meça o desfecho de cada sinal no laboratório." />
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- Instalável na tela inicial: o manifest dá nome, ícone, cor e a rota
+         de abertura (/dashboard — quem instala um painel quer o painel, e
+         sem sessão o ProtectedRoute manda para /login sozinho).
+
+         O ícone maskable é um arquivo próprio, e não o favicon: o Android
+         recorta o ícone na forma do aparelho, e a arte do favicon encosta
+         nas bordas. Ver o comentário dentro de icon-maskable.svg.
+
+         Os dois são SVG. O iOS ignora os ícones do manifest e quer um PNG
+         no apple-touch-icon; sem ele, o atalho no iPhone usa uma captura da
+         página em vez da marca. Para resolver, exportar um PNG de 180px a
+         partir do icon-maskable.svg e apontar um <link rel=apple-touch-icon>
+         para ele. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
     <!-- Cor da barra do navegador no mobile, acompanhando o tema do sistema.
          Os valores são os tokens --surface-page de cada tema (index.css). -->
     <meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)" />

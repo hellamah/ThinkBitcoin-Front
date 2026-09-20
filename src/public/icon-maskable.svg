@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 80 80" fill="none">
+    <!-- Ícone `maskable` do manifest: a mesma marca do favicon.svg, com duas
+         diferenças que o formato exige.
+
+         1. O fundo vai até a borda, sem o `rx` do favicon. O Android recorta
+            este ícone na forma que o aparelho usa — círculo, quadrado
+            arredondado, gota — e canto transparente vira buraco no recorte.
+
+         2. A marca é menor. A "zona segura" do maskable é o círculo central de
+            80% do lado: tudo fora dele pode ser cortado. Com o `scale(1.28)`
+            do favicon, o hexágono encostaria na borda e perderia as pontas em
+            qualquer aparelho de ícone redondo. Em 0.82 ele ocupa de 18,7 a
+            61,3 dos 80, folgado dentro do círculo.
+
+         Se um dia for preciso um PNG (o apple-touch-icon do iOS não lê SVG),
+         regerar a partir deste arquivo — é a mesma prática do og-image.html. -->
+    <rect width="80" height="80" fill="#0d0d0d" />
+
+    <g transform="translate(40 40) scale(0.82) translate(-40 -40)">
+        <polygon points="27,17.5 53,17.5 66,40 53,62.5 27,62.5 14,40"
+                 fill="none" stroke="#FFD700" stroke-width="2.5" stroke-linejoin="round" />
+
+        <path d="M36 24 L36 35 L26 54 Q25 56.5 27.5 56.5 L52.5 56.5 Q55 56.5 54 54 L44 35 L44 24"
+              fill="none" stroke="#FFD700" stroke-width="2.4" stroke-linejoin="round" />
+        <line x1="33" y1="24" x2="47" y2="24" stroke="#FFD700" stroke-width="2.4" stroke-linecap="round" />
+
+        <polyline points="30,52 35,47 39,49 45,41"
+                  fill="none" stroke="#27c07a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M42 41 L45.5 40.8 L44.8 44"
+              fill="none" stroke="#27c07a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+</svg>

@@ -58,7 +58,12 @@ const lerNginx = (conf) => {
   const locations = {}
   let server = ''
   let cursor = 0
-  const inicio = /location\s+(\S+)\s*\{/g
+  // O modificador é opcional e não faz parte do caminho: `location = /sw.js`,
+  // `location ^~ /assets/`, `location ~* \.svg`. Sem reconhecê-lo, um location
+  // com modificador não casava e o bloco inteiro era lido como se fosse do
+  // server — os add_header dele entravam na lista tida por herdada, e o teste
+  // dava por cumprida uma repetição que não existia.
+  const inicio = /location\s+(?:(=|\^~|~\*?)\s+)?(\S+)\s*\{/g
   let achado
   while ((achado = inicio.exec(semComentarios))) {
     server += semComentarios.slice(cursor, achado.index)
@@ -69,7 +74,7 @@ const lerNginx = (conf) => {
       if (semComentarios[i] === '}') profundidade--
       i++
     }
-    locations[achado[1]] = lerAddHeaders(semComentarios.slice(inicio.lastIndex, i - 1))
+    locations[achado[2]] = lerAddHeaders(semComentarios.slice(inicio.lastIndex, i - 1))
     cursor = i
     inicio.lastIndex = i
   }
@@ -89,12 +94,38 @@ const vercel = Object.fromEntries(
 const cspPreview = viteConfig({ command: 'serve', mode: 'test' }).preview.headers[CSP]
 
 describe('cabeçalhos de segurança', () => {
-  it('o nginx repete no /assets todos os cabeçalhos do server, com o mesmo valor', () => {
-    const assets = nginx.locations['/assets/']
-    expect(assets).toBeDefined()
-    for (const [nome, valor] of Object.entries(nginx.server)) {
-      expect(assets[nome], `/assets sem ${nome}`).toBe(valor)
+  // A regra do nginx: um `location` que declara QUALQUER add_header descarta
+  // todos os herdados do server. Quem não declara nenhum (o `location /`)
+  // herda a lista inteira e está correto.
+  //
+  // Isto cobria só o /assets/, que era o único location com cabeçalhos na
+  // época. Vale para todos porque o próximo a ser criado — o /sw.js foi o
+  // segundo — cai na mesma armadilha, e o teste precisa pegá-lo sem que
+  // alguém lembre de vir aqui acrescentá-lo à mão.
+  const locationsComCabecalhos = Object.entries(nginx.locations).filter(
+    ([, cabecalhos]) => Object.keys(cabecalhos).length > 0
+  )
+
+  it('todo location do nginx que declara cabeçalhos declara também os seis de segurança', () => {
+    expect(locationsComCabecalhos.length).toBeGreaterThan(0)
+
+    for (const [caminho, cabecalhos] of locationsComCabecalhos) {
+      for (const [nome, valor] of Object.entries(nginx.server)) {
+        expect(cabecalhos[nome], `${caminho} sem ${nome}`).toBe(valor)
+      }
     }
+  })
+
+  it('o service worker é revalidado a cada visita, nos dois caminhos de deploy', () => {
+    // Um sw.js servido do cache é a única forma de o app ficar preso numa
+    // versão antiga sem conseguir se corrigir sozinho: é ele quem decide o
+    // que sai do cache.
+    expect(nginx.locations['/sw.js']?.['Cache-Control'], 'default.conf sem no-cache no /sw.js').toBe('no-cache')
+
+    const regra = JSON.parse(ler('vercel.json')).headers.find((r) => r.source === '/sw.js')
+    expect(regra, 'vercel.json sem regra para /sw.js').toBeDefined()
+    const cabecalhos = Object.fromEntries(regra.headers.map(({ key, value }) => [key, value]))
+    expect(cabecalhos['Cache-Control']).toBe('no-cache')
   })
 
   it('o nginx publica os mesmos cabeçalhos que o vercel.json', () => {
