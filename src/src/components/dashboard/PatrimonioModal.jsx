@@ -90,7 +90,7 @@ export default function PatrimonioModal({ visible, onClose, user, patrimonio, on
   }
 
   return (
-    <Modal visible={visible} onClose={onClose} className="modal-md">
+    <Modal visible={visible} onClose={onClose} className="modal-md" rotulo={t('patrimonio.manage')}>
       <Box sx={{ p: 1, maxWidth: '100%' }}>
         <Typography variant="h5" className="patrimonio-title-glow" sx={{ mb: 4, display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <MdAttachMoney style={{ fontSize: '1.8rem' }} /> {t('patrimonio.manage')}

@@ -3652,3 +3652,11 @@
     animation-delay: 0s !important;
   }
 }
+
+/* O foco vai para cá a cada troca de rota (Layout.jsx), e é foco de código,
+   não de teclado: sem isto o navegador desenharia um anel em volta da página
+   inteira ao navegar. Quem chega aqui por Tab não passa por este seletor — o
+   contêiner tem tabIndex -1 e está fora do ciclo. */
+.main-content-premium:focus {
+  outline: none;
+}

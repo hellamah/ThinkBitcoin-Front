@@ -14,12 +14,48 @@ import ConsentimentoLGPD from './ConsentimentoLGPD'
 import CookieBanner from './CookieBanner'
 import useTranslation from '../hooks/useTranslation'
 import { useRef, useState, useEffect } from 'react'
+
+// Nome acessível de cada rota, reaproveitando os rótulos que a própria
+// navegação já usa — assim não existe um segundo lugar para traduzir.
+// Prefixo, e não igualdade: /treinamento-episodios/:id é a mesma página.
+const ROTULO_DA_ROTA = [
+  ['/dashboard', 'nav.dashboard'],
+  ['/settings', 'nav.settings'],
+  ['/heatmap', 'nav.heatmap'],
+  ['/treinamento-episodios', 'nav.training'],
+  ['/login', 'nav.login'],
+  ['/privacidade', 'consentimento.tipos.privacidade'],
+  ['/termos', 'consentimento.tipos.termos'],
+]
 function Layout({ children }) {
   const { token, user, logout } = useAuth()
   const { t } = useTranslation()
   const location = useLocation()
   const navigate = useNavigate()
   const spotlightRef = useRef(null)
+  const refConteudo = useRef(null)
+  const primeiraRota = useRef(true)
+
+  // Numa SPA, trocar de rota não recarrega nada: o foco do teclado fica
+  // exatamente onde estava — medido como `document.activeElement === body`
+  // depois de navegar para /dashboard — e o leitor de tela não tem como
+  // saber que a página mudou, porque para ele nada mudou. Quem navega por
+  // teclado precisava tabular de volta pelo cabeçalho inteiro a cada
+  // troca de página.
+  //
+  // Mover o foco para o <main> resolve os dois de uma vez: o leitor anuncia
+  // a região e seu `aria-label` (o nome da rota), e o próximo Tab começa no
+  // conteúdo novo.
+  useEffect(() => {
+    // A primeira rota não conta. No carregamento inicial o foco pertence ao
+    // navegador — barra de endereço, aba restaurada — e tomá-lo dali é
+    // justamente o tipo de sequestro de foco que esta mudança combate.
+    if (primeiraRota.current) {
+      primeiraRota.current = false
+      return
+    }
+    refConteudo.current?.focus()
+  }, [location.pathname])
   const ponteiroRef = useRef({ x: 0, y: 0, quadro: 0 })
   const [upsellVisivel, setUpsellVisivel] = useState(false)
 
@@ -275,7 +311,17 @@ function Layout({ children }) {
         </Container>
       </AppBar>
       
-      <main className="main-content-premium" key={location.pathname}>
+      {/* `tabIndex={-1}` existe só para o efeito acima poder focar esta
+          região: focável por código, fora do ciclo do Tab. O `aria-label`
+          é o que o leitor de tela anuncia ao chegar aqui — sem ele, a troca
+          de rota seria anunciada como "main", sem dizer qual página. */}
+      <main
+        ref={refConteudo}
+        className="main-content-premium"
+        key={location.pathname}
+        tabIndex={-1}
+        aria-label={t(ROTULO_DA_ROTA.find(([rota]) => location.pathname.startsWith(rota))?.[1] ?? 'nav.home')}
+      >
         {upsellVisivel && (
           <Box
             role="status"

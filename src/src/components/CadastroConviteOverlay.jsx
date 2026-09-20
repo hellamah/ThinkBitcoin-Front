@@ -25,6 +25,7 @@ import { TipoConsentimento, montarAceite } from '../utils/consentimento'
 import useTranslation from '../hooks/useTranslation'
 import { DEFAULT_PREFERENCES } from '../utils/preferences'
 import { LANGUAGES } from '../lang'
+import { useDialogoAcessivel } from '../hooks/useDialogoAcessivel'
 
 
 /**
@@ -36,6 +37,15 @@ import { LANGUAGES } from '../lang'
 const CadastroConviteOverlay = ({ onFechar }) => {
 
   const { t } = useTranslation()
+
+  // `true` fixo: este overlay não tem estado de fechado — o pai o desmonta
+  // para fechá-lo, então enquanto ele existe o diálogo está aberto. O
+  // `visivel` logo abaixo é só a classe da animação de entrada.
+  //
+  // O `role="dialog"` e o `aria-modal` já estavam aqui, mas sozinhos eles
+  // não seguram o Tab: o cadastro tem doze campos e o foco escapava do
+  // primeiro deles para a Home atrás do overlay.
+  const refDialogo = useDialogoAcessivel(true)
 
   const [nome, setNome] = useState('')
   const [email, setEmail] = useState('')
@@ -242,7 +252,9 @@ const CadastroConviteOverlay = ({ onFechar }) => {
 
   return (
     <div
+      ref={refDialogo}
       className={`convite-overlay-backdrop ${visivel ? 'convite-overlay-visible' : ''}`}
+      tabIndex={-1}
       onClick={handleBackdropClick}
       role="dialog"
       aria-modal="true"

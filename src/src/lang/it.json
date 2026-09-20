@@ -896,5 +896,8 @@
   "erroGlobal": {
     "titulo": "Si è verificato un errore durante il caricamento della pagina.",
     "recarregar": "Ricarica pagina"
+  },
+  "dialogo": {
+    "generico": "Finestra di dialogo"
   }
 }

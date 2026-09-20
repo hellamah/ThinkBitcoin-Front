@@ -148,7 +148,7 @@ export default function AlertaPrecoModal({
   }
 
   return (
-    <Modal visible={visible} onClose={onClose} className="alerta-preco-modal">
+    <Modal visible={visible} onClose={onClose} className="alerta-preco-modal" rotulo={t('alertas.titulo')}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
         <MdNotificationsActive size={22} style={{ color: 'var(--accent-ink)' }} />
         <Typography

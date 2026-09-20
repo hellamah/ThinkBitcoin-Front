@@ -1,8 +1,9 @@
-import React, { useMemo, useState, useRef } from 'react';
+import React, { useMemo, useState, useRef, useCallback } from 'react';
 import { Bar, Line, getElementAtEvent } from 'react-chartjs-2';
 import { MdClose, MdAnalytics, MdTimeline, MdSpeed, MdUpdate, MdPublic } from 'react-icons/md';
 import { ChartType } from '../../utils/enums';
 import { readToken } from '../../utils/themeTokens';
+import { useDialogoAcessivel, useFecharComEsc } from '../../hooks/useDialogoAcessivel';
 
 /**
  * Modal expandido para exibir o gráfico selecionado junto a um painel de inteligência
@@ -138,7 +139,19 @@ const ExpandedChartModal = ({
     }
   };
 
-  const handleClose = () => setExpandedChart(null);
+  const handleClose = useCallback(() => setExpandedChart(null), [setExpandedChart]);
+
+  // Os dois hooks ficam ACIMA da guarda, pelo mesmo motivo que os useMemo: o
+  // componente vive sempre montado e trocar a contagem de hooks entre os
+  // renders quebraria a ordem que o React exige. Ambos recebem o estado de
+  // aberto e não fazem nada enquanto ele é falso.
+  const abertoComoDialogo = Boolean(expandedChart);
+
+  // Esc fechava todos os outros diálogos do app, menos este: o gráfico
+  // expandido cobre a tela inteira e só saía pelo ✕ ou clicando no fundo.
+  useFecharComEsc(abertoComoDialogo, handleClose);
+
+  const refDialogo = useDialogoAcessivel(abertoComoDialogo);
 
   // A guarda fica DEPOIS dos hooks, e nao no topo. Com ela la em cima, o
   // componente — que o DashboardCharts mantem sempre montado — renderizava com
@@ -152,11 +165,24 @@ const ExpandedChartModal = ({
 
   return (
     <div className="expanded-chart-overlay" onClick={handleClose}>
-      <div className="expanded-chart-content" onClick={(e) => e.stopPropagation()}>
+      {/* Era uma <div> de overlay e nada mais: sem `role`, o leitor de tela
+          seguia lendo o dashboard atrás dela como se nada tivesse aberto, e o
+          Tab passeava pela página coberta. `aria-labelledby` aponta para o
+          <h2> que já existia, então o nome anunciado é exatamente o título na
+          tela e acompanha a troca de gráfico sozinho. */}
+      <div
+        ref={refDialogo}
+        className="expanded-chart-content"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="titulo-grafico-expandido"
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+      >
         <button className="btn-close-premium" onClick={handleClose} aria-label={t('close')}>
           <MdClose size={32} />
         </button>
-        <h2>{isTraded ? t('tradedValue') : (isBarra ? t('volume') : t('percentVariation'))}</h2>
+        <h2 id="titulo-grafico-expandido">{isTraded ? t('tradedValue') : (isBarra ? t('volume') : t('percentVariation'))}</h2>
         <div className="chart-container">
           <ChartComp
             ref={chartRef}

@@ -516,7 +516,7 @@ export default function PlanosPagamentoModal({ visible, onClose, token, user, on
   }
 
   return (
-    <Modal visible={visible} onClose={onClose} className={getModalSizeClass()}>
+    <Modal visible={visible} onClose={onClose} className={getModalSizeClass()} rotulo={t('planos.viewPlans')}>
       <Box sx={{ p: 1, maxWidth: '100%' }}>
         <Typography variant="h5" className="patrimonio-title-glow" sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <MdPayment style={{ fontSize: '1.8rem' }} /> {t('planos.viewPlans')}

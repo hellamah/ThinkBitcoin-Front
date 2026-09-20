@@ -896,5 +896,8 @@
   "erroGlobal": {
     "titulo": "Something went wrong while loading this page.",
     "recarregar": "Reload page"
+  },
+  "dialogo": {
+    "generico": "Dialog"
   }
 }

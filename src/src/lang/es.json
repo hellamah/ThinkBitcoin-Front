@@ -896,5 +896,8 @@
   "erroGlobal": {
     "titulo": "Se produjo un error al cargar la página.",
     "recarregar": "Recargar página"
+  },
+  "dialogo": {
+    "generico": "Diálogo"
   }
 }

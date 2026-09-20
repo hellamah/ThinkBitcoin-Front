@@ -50,7 +50,7 @@ export default function ExcluirContaModal({ visible, onClose, onDeleted }) {
   }
 
   return (
-    <Modal visible={visible} onClose={fechar}>
+    <Modal visible={visible} onClose={fechar} rotulo={t('account.deleteConfirmTitle')}>
       <Box component="form" onSubmit={confirmar} sx={{ display: 'flex', flexDirection: 'column', gap: 3, p: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Box sx={{ color: 'var(--danger-ink)', display: 'flex', fontSize: '2rem' }}>

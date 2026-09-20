@@ -1,26 +1,17 @@
-import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { MdClose } from 'react-icons/md'
 import useTranslation from '../hooks/useTranslation'
+import { useDialogoAcessivel, useFecharComEsc } from '../hooks/useDialogoAcessivel'
 import '../App.css'
 
-export default function Modal({ visible, onClose, children, className = '' }) {
+export default function Modal({ visible, onClose, children, className = '', rotulo }) {
   const { t } = useTranslation()
 
-  // Esc fecha. O listener fica no `document` e na fase de bolha de propósito:
-  // popups do MUI abertos DENTRO do modal (o menu do seletor de moeda, por
-  // exemplo) montam o próprio nó direto no body e chamam `stopPropagation()`
-  // no Escape antes que ele suba até aqui. Com isso o Esc fecha primeiro o
-  // menu e só depois o modal, que é a ordem que o usuário espera. Em captura,
-  // ou preso ao nó do modal, os dois fechariam de uma vez.
-  useEffect(() => {
-    if (!visible || !onClose) return undefined
-    const aoTeclar = (e) => {
-      if (e.key === 'Escape') onClose()
-    }
-    document.addEventListener('keydown', aoTeclar)
-    return () => document.removeEventListener('keydown', aoTeclar)
-  }, [visible, onClose])
+  useFecharComEsc(visible, onClose)
+
+  // Prende o Tab dentro do diálogo, foca-o ao abrir e devolve o foco ao
+  // elemento que o abriu. Ver o hook para o que estava acontecendo sem isto.
+  const refDialogo = useDialogoAcessivel(visible)
 
   if (!visible) return null
 
@@ -28,11 +19,23 @@ export default function Modal({ visible, onClose, children, className = '' }) {
     <div className="modal-backdrop" onClick={onClose}>
       {/* role/aria-modal para o leitor de tela anunciar como diálogo e ignorar
           o conteúdo atrás — sem eles, o portal é só mais uma <div> no fim do
-          body e a leitura continua na página coberta. */}
+          body e a leitura continua na página coberta.
+
+          `aria-label` vem de quem chama porque o título vive no `children`, e
+          um diálogo sem nome é anunciado só como "diálogo": quem não enxerga a
+          tela não tem como saber o que abriu. O fallback genérico existe para
+          não deixar nenhum caminho sem nome, mas o certo é sempre passar o
+          `rotulo`.
+
+          `tabIndex={-1}` é o que permite focar o contêiner ao abrir — focável
+          por código, fora do ciclo do Tab. */}
       <div
+        ref={refDialogo}
         className={`modal ${className}`}
         role="dialog"
         aria-modal="true"
+        aria-label={rotulo || t('dialogo.generico')}
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
       >
         {/* O nome acessível é a única coisa que o leitor de tela tem aqui — o

@@ -896,5 +896,8 @@
   "erroGlobal": {
     "titulo": "Une erreur est survenue lors du chargement de la page.",
     "recarregar": "Recharger la page"
+  },
+  "dialogo": {
+    "generico": "Boîte de dialogue"
   }
 }
