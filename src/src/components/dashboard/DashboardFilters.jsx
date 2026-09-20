@@ -33,7 +33,24 @@ export default function DashboardFilters({ t }) {
     }
   }), [])
 
-  const boxFlexSx = { flex: '1 1 180px', minWidth: '150px' }
+  // Em `row` o flex-basis governa a LARGURA do campo; em `column`, a ALTURA.
+  // Os valores aqui (180px, 140px) foram escritos para a linha, e abaixo de
+  // 900px — onde o layout vira coluna — passavam a esticar cada campo para
+  // 180px de ALTURA: o painel de filtros ficava com 752px, com vãos enormes
+  // entre um campo e o seguinte.
+  //
+  // O mesmo vale para o `alignItems: flex-end` do contêiner: em linha ele
+  // alinha os campos pela base, que é o que se quer com rótulo e input de
+  // alturas diferentes; em coluna vira alinhamento à direita, e os campos
+  // ficavam encostados na borda com o resto da faixa vazia.
+  //
+  // Em coluna, então, cada campo ocupa a largura toda e a altura que o
+  // conteúdo pedir.
+  const caixaDoCampo = (baseNaLinha, larguraMinima) => ({
+    flex: { xs: '0 0 auto', md: baseNaLinha },
+    width: { xs: '100%', md: 'auto' },
+    minWidth: { md: larguraMinima },
+  })
 
   return (
     <section className="panel filters-panel">
@@ -41,11 +58,11 @@ export default function DashboardFilters({ t }) {
         display: 'flex',
         flexDirection: { xs: 'column', md: 'row' },
         gap: 3,
-        alignItems: 'flex-end',
+        alignItems: { xs: 'stretch', md: 'flex-end' },
         justifyContent: 'center',
         flexWrap: 'wrap'
       }}>
-        <Box sx={boxFlexSx}>
+        <Box sx={caixaDoCampo('1 1 180px', '150px')}>
           <TextField
             fullWidth
             label={t('startDate')}
@@ -59,7 +76,7 @@ export default function DashboardFilters({ t }) {
           />
         </Box>
 
-        <Box sx={boxFlexSx}>
+        <Box sx={caixaDoCampo('1 1 180px', '150px')}>
           <TextField
             fullWidth
             label={t('endDate')}
@@ -73,7 +90,7 @@ export default function DashboardFilters({ t }) {
           />
         </Box>
 
-        <Box sx={{ flex: '0 1 140px', minWidth: '120px' }}>
+        <Box sx={caixaDoCampo('0 1 140px', '120px')}>
           <TextField
             fullWidth
             select
@@ -93,7 +110,7 @@ export default function DashboardFilters({ t }) {
           </TextField>
         </Box>
 
-        <Box sx={{ flex: '0 1 180px', minWidth: '160px' }}>
+        <Box sx={caixaDoCampo('0 1 180px', '160px')}>
           <div className="interval-selector-mini">
             {[FilterInterval.H24, FilterInterval.D7, FilterInterval.M1].map((opt) => (
               <button
