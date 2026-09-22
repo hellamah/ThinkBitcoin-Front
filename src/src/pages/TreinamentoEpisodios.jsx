@@ -116,11 +116,17 @@ export default function TreinamentoEpisodios() {
 
   // Navegações levam filtros e aba junto e, no detalhe, a data do episódio
   // (?dt=), para o link funcionar recarregado ou compartilhado.
-  const abrirEpisodio = useCallback((epId) => {
+  const abrirEpisodio = useCallback((epId, { substituir = false } = {}) => {
     const alvo = dados.itens.find((i) => i.idTreinamentoEpisodio === epId)
     const qs = consulta({ dt: alvo?.dataHora })
-    navigate(`/treinamento-episodios/${epId}${qs ? `?${qs}` : ''}`)
+    navigate(`/treinamento-episodios/${epId}${qs ? `?${qs}` : ''}`, { replace: substituir })
   }, [dados.itens, consulta, navigate])
+
+  // Andar entre episódios no detalhe (anterior/próximo, setas, pontos do
+  // gráfico) substitui a entrada do histórico: com as setas é fácil passar por
+  // vinte episódios, e o voltar do navegador deve levar à lista, não refazer
+  // o caminho um por um.
+  const andarEntreEpisodios = useCallback((epId) => abrirEpisodio(epId, { substituir: true }), [abrirEpisodio])
 
   if (id) {
     const item = dados.itens.find((i) => i.idTreinamentoEpisodio === id)
@@ -136,7 +142,7 @@ export default function TreinamentoEpisodios() {
       navigate(`/treinamento-episodios${qs ? `?${qs}` : ''}`)
     }
     if (!item) return <EpisodioNaoEncontrado onBack={voltarParaLista} />
-    return <DetalheEpisodio item={item} allItems={dados.itens} onBack={voltarParaLista} onNavigate={abrirEpisodio} />
+    return <DetalheEpisodio item={item} allItems={dados.itens} onBack={voltarParaLista} onNavigate={andarEntreEpisodios} />
   }
 
   const propsDaAba = {

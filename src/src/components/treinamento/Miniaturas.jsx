@@ -50,18 +50,62 @@ const SEGMENTOS = [
  * em contagem: as barras absolutas do gráfico antigo saíam quase idênticas,
  * porque o total de ações acompanha o número de episódios, não o comportamento.
  */
-export function BarraDeAcoes({ acoes, rotulo, largura = 96 }) {
+export function BarraDeAcoes({ acoes, rotulo, largura = 96, altura = 8 }) {
   if (!acoes) return <span aria-hidden="true">–</span>
   return (
     <Box
       role="img"
       aria-label={rotulo}
       title={rotulo}
-      sx={{ display: 'flex', width: largura, height: 8, borderRadius: 4, overflow: 'hidden', background: 'var(--surface-fill)' }}
+      sx={{ display: 'flex', width: largura, height: altura, borderRadius: altura / 2, overflow: 'hidden', background: 'var(--surface-fill)' }}
     >
       {SEGMENTOS.map(({ chave, cor }) => (
         <Box key={chave} sx={{ width: `${(acoes[chave] * 100).toFixed(2)}%`, background: cor }} />
       ))}
+    </Box>
+  )
+}
+
+/**
+ * Onde um valor cai entre os vizinhos: o trilho é a faixa dos vizinhos (do
+ * menor ao maior), o traço é a média deles e o ponto é o episódio. Substitui o
+ * radar do detalhe, que normalizava cada eixo por mínimo e máximo, não dizia
+ * que loss menor é melhor e não deixava ler número nenhum.
+ */
+export function FaixaEntreVizinhos({ faixa, valor, cor, rotulo }) {
+  if (!faixa || valor === null || valor === undefined) return null
+  // O episódio pode cair fora da faixa dos vizinhos; a escala o inclui.
+  const menor = Math.min(faixa.min, valor)
+  const maior = Math.max(faixa.max, valor)
+  const amplitude = maior - menor || 1
+  const pos = (v) => ((v - menor) / amplitude) * 100
+  return (
+    <Box role="img" aria-label={rotulo} title={rotulo} sx={{ position: 'relative', height: 14, width: '100%' }}>
+      <Box sx={{ position: 'absolute', top: 6, left: 0, right: 0, height: 2, borderRadius: 1, background: 'var(--surface-fill-strong)' }} />
+      <Box
+        sx={{
+          position: 'absolute',
+          top: 5,
+          height: 4,
+          borderRadius: 2,
+          left: `${pos(faixa.min)}%`,
+          width: `${Math.max(0.5, pos(faixa.max) - pos(faixa.min))}%`,
+          background: 'var(--border-interactive)',
+        }}
+      />
+      <Box sx={{ position: 'absolute', top: 1, height: 12, width: 2, borderRadius: 1, left: `calc(${pos(faixa.media)}% - 1px)`, background: 'var(--text-muted)' }} />
+      <Box
+        sx={{
+          position: 'absolute',
+          top: 2,
+          width: 10,
+          height: 10,
+          borderRadius: '50%',
+          left: `calc(${pos(valor)}% - 5px)`,
+          background: cor,
+          boxShadow: '0 0 0 2px var(--surface-page)',
+        }}
+      />
     </Box>
   )
 }

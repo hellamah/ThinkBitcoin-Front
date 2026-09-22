@@ -6,11 +6,7 @@ import {
   LinearScale,
   PointElement,
   LineElement,
-  BarElement,
-  ArcElement,
-  RadialLinearScale,
   TimeScale,
-  Title,
   Tooltip,
   Legend,
   Filler,
@@ -24,14 +20,11 @@ import { ptBR, enUS, es, fr, it } from 'date-fns/locale'
 import { readToken } from '../../utils/themeTokens'
 import { azulEpsilon, comSinal, formatarNumero, formatarPercentual } from './formato'
 
-// Sem o plugin de zoom de propósito. O zoom pela roda do mouse sequestrava a
-// rolagem da página toda vez que o ponteiro passava por cima de um gráfico, e
-// quem escolhe o período agora é o seletor da aba.
-ChartJS.register(
-  CategoryScale, LinearScale, PointElement, LineElement, BarElement,
-  ArcElement, RadialLinearScale, TimeScale,
-  Title, Tooltip, Legend, Filler,
-)
+// Só linhas: a tela não desenha mais barra, rosca nem radar. Sem o plugin de
+// zoom de propósito — o zoom pela roda do mouse sequestrava a rolagem da página
+// toda vez que o ponteiro passava por cima de um gráfico, e quem escolhe o
+// período agora é o seletor da aba.
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, TimeScale, Tooltip, Legend, Filler)
 
 // Locale do date-fns por código de idioma, para o adaptador de tempo. Fica
 // aqui, e não no registro de idiomas, porque é dependência de biblioteca de

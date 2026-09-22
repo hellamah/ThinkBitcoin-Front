@@ -374,3 +374,67 @@ export const janelaDoPeriodo = ({ duracaoMs, fimMs }, maisRecenteMs) => {
     ancorada: fimMs === null || fimMs === undefined,
   }
 }
+
+// ── Detalhe de um episódio ──────────────────────────────────────────────────
+
+// Quantos episódios da mesma moeda, de cada lado, formam a base de comparação.
+export const RAIO_DE_VIZINHOS = 10
+
+/**
+ * Os episódios em volta de `idx` numa série da mesma moeda, sem ele próprio.
+ *
+ * É a base justa para julgar um episódio: o modelo melhora ao longo do treino,
+ * e comparar contra a média de tudo o que estava carregado fazia todo episódio
+ * antigo parecer ruim e todo recente parecer bom — além de mudar conforme
+ * quanto histórico a tela tinha buscado.
+ */
+export const vizinhosDe = (serie, idx, raio = RAIO_DE_VIZINHOS) =>
+  idx < 0 ? [] : [...serie.slice(Math.max(0, idx - raio), idx), ...serie.slice(idx + 1, idx + 1 + raio)]
+
+/** Mínimo, média e máximo de uma lista, ignorando o que não é número. */
+export const faixaDe = (valores) => {
+  const v = valores.filter((x) => x !== null && x !== undefined && Number.isFinite(Number(x))).map(Number)
+  if (v.length === 0) return null
+  let min = v[0]
+  let max = v[0]
+  for (const x of v) {
+    if (x < min) min = x
+    if (x > max) max = x
+  }
+  return { min, max, media: media(v), total: v.length }
+}
+
+/**
+ * Onde `valor` cai entre `valores`: quantos ficam abaixo e o percentil (0–1),
+ * com empates contando meio. Null sem base de comparação.
+ */
+export const posicaoEntre = (valor, valores) => {
+  const v = valores.filter((x) => x !== null && x !== undefined && Number.isFinite(Number(x))).map(Number)
+  if (v.length === 0 || valor === null || valor === undefined || !Number.isFinite(Number(valor))) return null
+  let abaixo = 0
+  let iguais = 0
+  for (const x of v) {
+    if (x < valor) abaixo += 1
+    else if (x === valor) iguais += 1
+  }
+  return { abaixo, total: v.length, percentil: (abaixo + iguais / 2) / v.length }
+}
+
+// Com menos que isto a comparação vira sorteio: não há veredito.
+export const MINIMO_PARA_VEREDITO = 3
+
+/** 'acima' | 'dentro' | 'abaixo' do esperado, pelo percentil do reward. */
+export const vereditoDoEpisodio = (posicao) => {
+  if (!posicao || posicao.total < MINIMO_PARA_VEREDITO) return null
+  if (posicao.percentil >= 0.8) return 'acima'
+  if (posicao.percentil <= 0.2) return 'abaixo'
+  return 'dentro'
+}
+
+/** O ciclo que contém o episódio, com a posição dele dentro do ciclo (1-based). */
+export const cicloDoEpisodio = (timeline, id) => {
+  const idx = timeline.findIndex((r) => r.idTreinamentoEpisodio === id)
+  if (idx < 0) return null
+  const ciclo = detectarCiclos(timeline).find((c) => idx >= c.de && idx <= c.ate)
+  return ciclo ? { ...ciclo, posicao: idx - ciclo.de + 1 } : null
+}

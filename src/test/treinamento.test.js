@@ -2,14 +2,17 @@ import { describe, it, expect } from 'vitest'
 import {
   UM_MINUTO_MS,
   UMA_HORA_MS,
+  cicloDoEpisodio,
   detectarCiclos,
   estatisticas,
+  faixaDe,
   filtrarJanela,
   janelaDoPeriodo,
   janelaParaMistura,
   limiarDeLacuna,
   mediaMovel,
   mesclarEpisodios,
+  posicaoEntre,
   proporcaoDeAcoes,
   reduzirPontos,
   resumirCiclos,
@@ -19,6 +22,8 @@ import {
   statusDoTreino,
   tendencia,
   variacao,
+  vereditoDoEpisodio,
+  vizinhosDe,
 } from '../src/utils/treinamento'
 
 const BASE = Date.UTC(2026, 8, 22, 12, 0, 0)
@@ -246,5 +251,61 @@ describe('treinamento › janelaDoPeriodo', () => {
 
   it('é null sem nenhum episódio carregado', () => {
     expect(janelaDoPeriodo({ duracaoMs: UMA_HORA_MS, fimMs: null }, null)).toBeNull()
+  })
+})
+
+describe('treinamento › vizinhosDe', () => {
+  const serie = [0, 1, 2, 3, 4, 5, 6]
+
+  it('pega até `raio` de cada lado, sem o próprio episódio', () => {
+    expect(vizinhosDe(serie, 3, 2)).toEqual([1, 2, 4, 5])
+  })
+
+  it('corta nas pontas em vez de inventar vizinho', () => {
+    expect(vizinhosDe(serie, 0, 2)).toEqual([1, 2])
+    expect(vizinhosDe(serie, 6, 2)).toEqual([4, 5])
+  })
+
+  it('é vazio quando o episódio não está na série', () => {
+    expect(vizinhosDe(serie, -1, 2)).toEqual([])
+  })
+})
+
+describe('treinamento › faixaDe', () => {
+  it('devolve mínimo, média e máximo ignorando ausentes', () => {
+    expect(faixaDe([2, null, 4, undefined, 6])).toEqual({ min: 2, max: 6, media: 4, total: 3 })
+  })
+
+  it('é null sem números', () => {
+    expect(faixaDe([null, undefined])).toBeNull()
+  })
+})
+
+describe('treinamento › posicaoEntre e vereditoDoEpisodio', () => {
+  it('conta quantos ficam abaixo, com empate valendo meio', () => {
+    expect(posicaoEntre(3, [1, 2, 3, 4])).toEqual({ abaixo: 2, total: 4, percentil: 0.625 })
+  })
+
+  it('julga pelo percentil: 80% ou mais é acima, 20% ou menos é abaixo', () => {
+    expect(vereditoDoEpisodio(posicaoEntre(10, [1, 2, 3, 4, 5]))).toBe('acima')
+    expect(vereditoDoEpisodio(posicaoEntre(0, [1, 2, 3, 4, 5]))).toBe('abaixo')
+    expect(vereditoDoEpisodio(posicaoEntre(3, [1, 2, 3, 4, 5]))).toBe('dentro')
+  })
+
+  it('não dá veredito com base pequena demais', () => {
+    expect(vereditoDoEpisodio(posicaoEntre(10, [1, 2]))).toBeNull()
+    expect(posicaoEntre(null, [1, 2, 3])).toBeNull()
+  })
+})
+
+describe('treinamento › cicloDoEpisodio', () => {
+  it('acha o ciclo e a posição do episódio dentro dele', () => {
+    const timeline = [ep(1, 0), ep(2, 1), ep(1, 2), ep(2, 3), ep(3, 4)]
+    const c = cicloDoEpisodio(timeline, timeline[3].idTreinamentoEpisodio)
+    expect(c).toMatchObject({ de: 2, ate: 4, total: 3, posicao: 2 })
+  })
+
+  it('é null para episódio fora da timeline', () => {
+    expect(cicloDoEpisodio([ep(1, 0)], 'outro')).toBeNull()
   })
 })
