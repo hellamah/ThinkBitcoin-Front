@@ -16,10 +16,10 @@ export default defineConfig([
     ],
     // Só `jsx-uses-vars` do eslint-plugin-react, e não o preset inteiro. Sem ela,
     // `no-unused-vars` não enxerga identificador consumido em JSX e acusa como
-    // morto o que está vivo: `ChartComp` em TreinamentoEpisodios é recebido como
-    // prop e renderizado em `<ChartComp .../>`, e apagá-lo confiando no lint
-    // quebraria os quatro gráficos daquela tela. O preset completo traria dezenas
-    // de regras novas, que é outra decisão.
+    // morto o que está vivo: `ChartComp` em ExpandedChartModal escolhe entre
+    // `Bar` e `Line` e é renderizado em `<ChartComp .../>`, e apagá-lo confiando
+    // no lint quebraria o gráfico ampliado do painel. O preset completo traria
+    // dezenas de regras novas, que é outra decisão.
     plugins: { react },
     languageOptions: {
       ecmaVersion: 2020,
