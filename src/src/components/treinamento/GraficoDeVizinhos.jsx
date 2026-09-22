@@ -49,6 +49,9 @@ export default function GraficoDeVizinhos({ item, trecho, vizinhos, onNavegar })
   const dados = useMemo(() => {
     const corMoeda = corDaMoeda(item.moeda)
     const destaque = readToken('--accent-ink')
+    // Contorno na cor do texto: no tema claro o dourado escuro do destaque e o
+    // marrom da linha do BTC ficavam quase iguais, e a forma sozinha não bastava.
+    const contorno = readToken('--text-primary', '#ffffff')
     const eAtual = (r) => r.idTreinamentoEpisodio === item.idTreinamentoEpisodio
     return {
       labels: trecho.map((r) => `#${r.episodio}`),
@@ -59,7 +62,8 @@ export default function GraficoDeVizinhos({ item, trecho, vizinhos, onNavegar })
           borderColor: comAlfa(corMoeda, 0.7),
           backgroundColor: corMoeda,
           pointBackgroundColor: trecho.map((r) => (eAtual(r) ? destaque : corMoeda)),
-          pointBorderColor: trecho.map((r) => (eAtual(r) ? destaque : corMoeda)),
+          pointBorderColor: trecho.map((r) => (eAtual(r) ? contorno : corMoeda)),
+          pointBorderWidth: trecho.map((r) => (eAtual(r) ? 2 : 1)),
           pointRadius: trecho.map((r) => (eAtual(r) ? 7 : 3.5)),
           pointHoverRadius: trecho.map((r) => (eAtual(r) ? 8 : 6)),
           pointStyle: trecho.map((r) => (eAtual(r) ? 'rectRot' : 'circle')),

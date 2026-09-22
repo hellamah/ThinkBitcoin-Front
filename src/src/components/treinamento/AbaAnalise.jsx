@@ -100,8 +100,8 @@ export default function AbaAnalise({ timeline, resumo, periodo, onPeriodo, maisR
   }), [itensPorMoeda, metrica, limiar])
 
   const faixas = useMemo(
-    () => pluginFaixasDeCiclo(ciclos, (idx, c) => t('treinamento.cycleLabel', { num: idx + 1, count: c.total })),
-    [ciclos, t]
+    () => pluginFaixasDeCiclo(ciclos, (idx, c) => t('treinamento.cycleLabel', { num: idx + 1, count: c.total }), escuro),
+    [ciclos, t, escuro]
   )
 
   const dataCurta = useMemo(() => padraoDeDataCurta(idioma.intl), [idioma.intl])

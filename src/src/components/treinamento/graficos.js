@@ -167,11 +167,19 @@ export const corDaVariacao = (id, d) => {
 export const setaDaVariacao = (d) =>
   (d === null || d === undefined || Math.abs(d) < 1e-9 ? '' : d > 0 ? '▲' : '▼')
 
+// Cores das faixas de ciclo, alternadas, em "r,g,b" para compor com alfa. No
+// claro escurecem: o dourado e o azul puros como texto do rótulo sumiam no
+// fundo branco.
+const CORES_DAS_FAIXAS = {
+  escuro: ['255,215,0', '92,184,255'],
+  claro: ['138,106,0', '50,101,140'],
+}
+
 /**
  * Faixas de fundo marcando cada ciclo de treino. Recortadas à área de
  * plotagem, com rótulo preso à borda visível e omitido quando não cabe.
  */
-export const pluginFaixasDeCiclo = (ciclos, rotular) => ({
+export const pluginFaixasDeCiclo = (ciclos, rotular, escuro = true) => ({
   id: 'faixasDeCiclo',
   beforeDatasetsDraw: (chart) => {
     if (ciclos.length <= 1) return
@@ -184,7 +192,7 @@ export const pluginFaixasDeCiclo = (ciclos, rotular) => ({
     ctx.clip()
     ctx.font = 'bold 11px sans-serif'
     ciclos.forEach((c, idx) => {
-      const cor = idx % 2 === 0 ? '255,215,0' : '92,184,255'
+      const cor = CORES_DAS_FAIXAS[escuro ? 'escuro' : 'claro'][idx % 2]
       const x1 = scales.x.getPixelForValue(c.inicio)
       const x2 = scales.x.getPixelForValue(c.fim)
       if (x2 < left || x1 > right) return
