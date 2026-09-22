@@ -86,8 +86,11 @@ export default function TreinamentoEpisodios() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, consulta])
 
+  // Filtra aqui mesmo quando o servidor já filtra (uma moeda só): enquanto a
+  // carga do filtro novo não chega, a lista na tela ainda é a do filtro
+  // anterior, e sem isto o chip "BTC" aparecia aceso sobre as nove moedas.
   const filtrados = useMemo(() => {
-    if (moedasSelecionadas.length <= 1) return dados.itens
+    if (moedasSelecionadas.length === 0) return dados.itens
     return dados.itens.filter((i) => moedasSelecionadas.includes(i.moeda))
   }, [dados.itens, moedasSelecionadas])
 
