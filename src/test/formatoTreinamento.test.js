@@ -1,9 +1,12 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import {
   MINIMO_TEXTO,
   MOEDAS_DA_PALETA,
   contraste,
   corDaMoeda,
+  definirIdiomaDosNumeros,
+  formatarNumero,
+  formatarPercentual,
   fundoDoChip,
   textoSobre,
   tintaDaMoeda,
@@ -46,5 +49,25 @@ describe('formato do treinamento › contraste', () => {
     expect(textoSobre(corDaMoeda('BTC'))).toBe('#ffffff')
     expect(textoSobre(corDaMoeda('LINK'))).toBe('#ffffff')
     expect(textoSobre(corDaMoeda('SOL'))).toBe('#000000')
+  })
+})
+
+describe('formato do treinamento › idioma dos números', () => {
+  afterEach(() => definirIdiomaDosNumeros(undefined))
+
+  it('segue o idioma definido pela página, não o do ambiente', () => {
+    definirIdiomaDosNumeros('en-US')
+    expect(formatarNumero(1234.5, 2)).toBe('1,234.50')
+    expect(formatarPercentual(0.3745)).toBe('37.45%')
+
+    definirIdiomaDosNumeros('pt-BR')
+    expect(formatarNumero(1234.5, 2)).toBe('1.234,50')
+    expect(formatarPercentual(0.3745)).toBe('37,45%')
+  })
+
+  it('mostra traço para valor ausente, em qualquer idioma', () => {
+    definirIdiomaDosNumeros('fr-FR')
+    expect(formatarNumero(null)).toBe('–')
+    expect(formatarPercentual(undefined)).toBe('–')
   })
 })

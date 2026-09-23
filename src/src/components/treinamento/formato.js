@@ -131,9 +131,25 @@ export const azulEpsilon = (escuro) => (escuro ? '#5CB8FF' : escurecer('#5CB8FF'
 
 const vazio = (v) => v === null || v === undefined || Number.isNaN(Number(v))
 
+// Idioma dos números da tela. As datas já seguiam o idioma escolhido no app
+// (idioma.intl, passado a cada chamada), mas os números iam com `undefined`,
+// que é o idioma do navegador: com o app em inglês num navegador em português,
+// "9/22/2026, 7:30 PM" aparecia ao lado de "0,612".
+//
+// Passar o locale pelas ~50 chamadas espalharia um parâmetro por onze
+// arquivos, gráficos incluídos. Em vez disso a página o define aqui no próprio
+// render: o React renderiza o pai antes dos filhos, então toda formatação da
+// tela já o encontra. Não usa o <html lang>, que o TranslationContext escreve
+// num efeito — depois do render —, e ficaria um render atrasado a cada troca.
+let idiomaDosNumeros
+
+export const definirIdiomaDosNumeros = (locale) => {
+  idiomaDosNumeros = locale || undefined
+}
+
 export const formatarNumero = (valor, casas = 4) => {
   if (vazio(valor)) return '–'
-  return Number(valor).toLocaleString(undefined, {
+  return Number(valor).toLocaleString(idiomaDosNumeros, {
     minimumFractionDigits: casas,
     maximumFractionDigits: casas,
   })

@@ -13,6 +13,7 @@ import Cabecalho from '../components/treinamento/Cabecalho'
 import DetalheEpisodio, { EpisodioNaoEncontrado } from '../components/treinamento/DetalheEpisodio'
 import Filtros from '../components/treinamento/Filtros'
 import { EstadoVazio, Painel } from '../components/treinamento/Painel'
+import { definirIdiomaDosNumeros } from '../components/treinamento/formato'
 import useTreinamentoEpisodios from '../hooks/useTreinamentoEpisodios'
 import useTranslation from '../hooks/useTranslation'
 import { UMA_HORA_MS, cadenciaMediana, instanteDe, ordenarPorData } from '../utils/treinamento'
@@ -38,7 +39,10 @@ const estiloDasAbas = {
 }
 
 export default function TreinamentoEpisodios() {
-  const { t } = useTranslation()
+  const { t, idioma } = useTranslation()
+  // No render, e não num efeito: os filhos formatam números neste mesmo
+  // render, e precisam achar o idioma já trocado (ver formato.js).
+  definirIdiomaDosNumeros(idioma.intl)
   const { id } = useParams()
   const navigate = useNavigate()
 

@@ -194,6 +194,9 @@ export default function ContextoDeMercado({ item, inicioMs, fimMs }) {
   const opcoes = useMemo(() => ({
     responsive: true,
     maintainAspectRatio: false,
+    // O eixo de preço não tem formatador próprio: sem isto, o Chart.js
+    // separava milhar pelo idioma do navegador, e não pelo do app.
+    locale: idioma.intl,
     interaction: { mode: 'index', intersect: false },
     plugins: {
       legend: { display: false },
