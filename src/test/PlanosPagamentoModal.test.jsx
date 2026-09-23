@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, render, screen } from '@testing-library/react'
 import { apiRequest, AuthenticationEndpoint, PlanosPagamentoEndpoint } from '../src/utils/apiClient'
 import PlanosPagamentoModal from '../src/components/PlanosPagamentoModal'
@@ -13,6 +13,23 @@ import PlanosPagamentoModal from '../src/components/PlanosPagamentoModal'
 //
 // Sem provider de tradução, `t` devolve a própria chave: as asserções leem as
 // chaves, que não mudam quando alguém revisa a redação.
+
+// O Scheduler do React roda cada tarefa — inclusive os efeitos passivos, onde
+// o polling é registrado — num setImmediate. Aqui ele espera 5 ms, de
+// propósito. É a ordem que um CI carregado produz de vez em quando e que numa
+// máquina rápida quase nunca acontece: o findBy devolve o controle ao teste
+// ANTES de o efeito rodar, o teste avança o relógio, e o avanço cai no vazio
+// porque o intervalo ainda não existe. Foi assim que o deploy quebrou uma vez
+// em tantas, com o teste passando sempre aqui. Com o atraso fixo essa ordem
+// acontece sempre, e quem avançar o relógio sem `esperarPolling` falha na hora.
+const { setImmediateOriginal } = vi.hoisted(() => {
+  const setImmediateOriginal = globalThis.setImmediate
+  globalThis.setImmediate = (cb, ...args) => setTimeout(cb, 5, ...args)
+  return { setImmediateOriginal }
+})
+afterAll(() => {
+  globalThis.setImmediate = setImmediateOriginal
+})
 
 vi.mock('../src/utils/apiClient', async (importOriginal) => ({
   ...(await importOriginal()),
@@ -50,10 +67,24 @@ const consultasDeStatus = () =>
 
 const props = { onClose: () => {}, token: 't', user: { idUsuarioTB: 1 } }
 
+// Espera o polling existir. O QR code aparecer não basta: o intervalo é criado
+// num efeito que roda depois do commit (ver o atraso do Scheduler no topo). Só
+// o polling usa setInterval nesta árvore, então a contagem de timers falsos diz
+// exatamente quando ele está no ar. Espera com setTimeout real — o waitFor da
+// Testing Library sonda por setInterval, que aqui é falso e nunca dispararia.
+const esperarPolling = async () => {
+  const limite = Date.now() + 2000
+  while (vi.getTimerCount() === 0) {
+    if (Date.now() > limite) throw new Error('o polling da cobrança não foi registrado')
+    await new Promise((resolve) => setTimeout(resolve, 1))
+  }
+}
+
 // Abre o modal com uma cobrança pendente: ele vai direto para o QR code.
 const abrirNoPagamento = async (extra = {}) => {
   const tela = render(<PlanosPagamentoModal visible {...props} {...extra} />)
   await screen.findByText('planos.awaitingPayment')
+  await esperarPolling()
   return tela
 }
 
