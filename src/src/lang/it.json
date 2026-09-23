@@ -696,7 +696,7 @@
     "filterCoin": "Filtra per {{moeda}}",
     "episodesCount": "{{n}} ep.",
     "learningByCoin": "Curva di apprendimento per criptovaluta",
-    "learningByCoinSub": "Media mobile di {{n}} episodi di ogni criptovaluta · fasce: cicli rilevati",
+    "learningByCoinSub": "Linea spessa: tutte le criptovalute · sottili: media mobile di {{n}} episodi di ogni criptovaluta · fasce: cicli",
     "metricLabel": "Metrica del grafico",
     "coinPerformance": "Rendimento per criptovaluta",
     "coinPerformanceSub": "Nella finestra selezionata · clicca sulla criptovaluta per filtrare",
@@ -747,7 +747,9 @@
     "metricsVsNeighbors": "Confrontato con i {{n}} episodi vicini di {{moeda}} nello stesso ciclo (fino a 10 prima e 10 dopo) · barra: intervallo dei vicini, trattino: media, punto: questo episodio",
     "noNeighborsLoaded": "Nessun altro episodio di {{moeda}} caricato in questo ciclo.",
     "neighborsTitle": "Episodi vicini di {{moeda}}",
-    "neighborsSub": "Fino a 10 prima e 10 dopo, nello stesso ciclo · rombo: questo episodio · clicca su un punto per aprirlo"
+    "neighborsSub": "Fino a 10 prima e 10 dopo, nello stesso ciclo · rombo: questo episodio · clicca su un punto per aprirlo",
+    "allCoins": "Tutte le criptovalute",
+    "sinceDate": "dal {{data}}"
   },
   "ajuda": {
     "atr": "Quanto il prezzo percorre di solito all'interno di una candela. Serve a dimensionare le distanze in base alla volatilità misurata anziché a intuito; non indica la direzione.",

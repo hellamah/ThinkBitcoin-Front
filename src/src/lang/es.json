@@ -696,7 +696,7 @@
     "filterCoin": "Filtrar por {{moeda}}",
     "episodesCount": "{{n}} ep.",
     "learningByCoin": "Curva de aprendizaje por moneda",
-    "learningByCoinSub": "Media móvil de {{n}} episodios de cada moneda · franjas: ciclos detectados",
+    "learningByCoinSub": "Línea gruesa: todas las monedas · finas: media móvil de {{n}} episodios de cada moneda · franjas: ciclos",
     "metricLabel": "Métrica del gráfico",
     "coinPerformance": "Rendimiento por moneda",
     "coinPerformanceSub": "En la ventana seleccionada · haga clic en la moneda para filtrar",
@@ -747,7 +747,9 @@
     "metricsVsNeighbors": "Comparado con los {{n}} episodios vecinos de {{moeda}} en el mismo ciclo (hasta 10 antes y 10 después) · barra: rango de los vecinos, trazo: media, punto: este episodio",
     "noNeighborsLoaded": "Ningún otro episodio de {{moeda}} cargado en este ciclo.",
     "neighborsTitle": "Episodios vecinos de {{moeda}}",
-    "neighborsSub": "Hasta 10 antes y 10 después, en el mismo ciclo · rombo: este episodio · haga clic en un punto para abrirlo"
+    "neighborsSub": "Hasta 10 antes y 10 después, en el mismo ciclo · rombo: este episodio · haga clic en un punto para abrirlo",
+    "allCoins": "Todas las monedas",
+    "sinceDate": "desde {{data}}"
   },
   "ajuda": {
     "atr": "Cuánto suele recorrer el precio dentro de una vela. Sirve para dimensionar distancias por volatilidad medida en vez de por corazonada; no indica dirección.",

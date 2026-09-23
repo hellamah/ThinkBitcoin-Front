@@ -178,6 +178,12 @@ export const formatarHora = (ms, locale, comSegundos = false) =>
 export const formatarDataCurta = (ms, locale) =>
   new Date(ms).toLocaleString(locale, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 
+/** Só dia e mês ("02/07"), na ordem do idioma. '' se a data não for válida. */
+export const formatarDia = (valor, locale) => {
+  const d = new Date(valor)
+  return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString(locale, { day: '2-digit', month: '2-digit' })
+}
+
 // Rótulo curto de um intervalo: só as horas quando cabe no mesmo dia,
 // data e hora quando atravessa a meia-noite.
 export const formatarIntervalo = (inicio, fim, locale) => {

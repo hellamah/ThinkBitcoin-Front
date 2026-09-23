@@ -6,12 +6,14 @@ import { useTheme } from '@mui/material/styles'
 import { Line } from 'react-chartjs-2'
 import useTranslation from '../../hooks/useTranslation'
 import { padraoDeDataCurta } from '../../utils/dateUtils'
+import { readToken } from '../../utils/themeTokens'
 import {
   PERIODOS_ANALISE,
   detectarCiclos,
   filtrarJanela,
   instanteDe,
   janelaDoPeriodo,
+  janelaParaMistura,
   limiarDeLacuna,
   resumirCiclos,
   resumirPorMoeda,
@@ -19,6 +21,7 @@ import {
   serieSuavizada,
 } from '../../utils/treinamento'
 import {
+  comAlfa,
   comBordaDeEixo,
   corDaGrade,
   corDaLegenda,
@@ -40,7 +43,8 @@ import { corDaMoeda, formaDaMoeda } from './formato'
 // em qual versão? Horizonte maior que o da aba ao vivo, e tudo separado por
 // moeda — misturar as moedas numa série só era o que produzia o serrote.
 
-const METRICAS_DA_CURVA = ['rewardMedio', 'winRate', 'lossMedia']
+// Sem loss: é da rede, não da moeda, e as dez curvas saíam idênticas.
+const METRICAS_DA_CURVA = ['rewardMedio', 'winRate']
 const JANELA_POR_MOEDA = 5
 
 const estiloDoGrupo = {
@@ -84,20 +88,47 @@ export default function AbaAnalise({ timeline, resumo, periodo, onPeriodo, maisR
     return [...grupos.entries()].sort(([a], [b]) => a.localeCompare(b))
   }, [itens])
 
-  const dadosCurva = useMemo(() => ({
-    datasets: itensPorMoeda.map(([moeda, eps]) => ({
+  // Com dados reais as dez curvas se sobrepõem numa faixa estreita, e a
+  // tendência geral sumia no emaranhado. A linha "todas as moedas", grossa e
+  // por cima, carrega a leitura; as moedas ficam finas e translúcidas, como
+  // contexto — e seguem destacáveis pela legenda.
+  const dadosCurva = useMemo(() => {
+    const porMoeda = itensPorMoeda.map(([moeda, eps]) => ({
       label: moeda,
       data: serieSuavizada(eps, metrica, JANELA_POR_MOEDA, limiar),
-      borderColor: corDaMoeda(moeda),
+      borderColor: comAlfa(corDaMoeda(moeda), 0.6),
       backgroundColor: corDaMoeda(moeda),
       pointStyle: formaDaMoeda(moeda),
       pointRadius: 0,
       pointHoverRadius: 4,
-      borderWidth: 1.75,
+      borderWidth: 1.25,
       tension: 0.3,
       spanGaps: false,
-    })),
-  }), [itensPorMoeda, metrica, limiar])
+      order: 1,
+    }))
+    if (itensPorMoeda.length < 2) return { datasets: porMoeda }
+    const cor = readToken('--accent-ink')
+    return {
+      datasets: [
+        {
+          label: t('treinamento.allCoins'),
+          data: serieSuavizada(itens, metrica, janelaParaMistura(itensPorMoeda.length), limiar),
+          borderColor: cor,
+          backgroundColor: cor,
+          pointStyle: 'line',
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          borderWidth: 3,
+          tension: 0.3,
+          spanGaps: false,
+          order: 0,
+        },
+        ...porMoeda,
+      ],
+    }
+  // `escuro` entra para reler o token do destaque quando o tema muda.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [itensPorMoeda, itens, metrica, limiar, t, escuro])
 
   const faixas = useMemo(
     () => pluginFaixasDeCiclo(ciclos, (idx, c) => t('treinamento.cycleLabel', { num: idx + 1, count: c.total }), escuro),

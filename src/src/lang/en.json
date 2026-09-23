@@ -696,7 +696,7 @@
     "filterCoin": "Filter by {{moeda}}",
     "episodesCount": "{{n}} ep.",
     "learningByCoin": "Learning curve by coin",
-    "learningByCoinSub": "{{n}}-episode moving average per coin · bands: detected cycles",
+    "learningByCoinSub": "Thick line: all coins · thin: {{n}}-episode moving average per coin · bands: cycles",
     "metricLabel": "Chart metric",
     "coinPerformance": "Performance by coin",
     "coinPerformanceSub": "In the selected window · click a coin to filter",
@@ -747,7 +747,9 @@
     "metricsVsNeighbors": "Compared with the {{n}} neighboring {{moeda}} episodes in the same cycle (up to 10 before and 10 after) · bar: neighbors' range, tick: average, dot: this episode",
     "noNeighborsLoaded": "No other {{moeda}} episodes loaded in this cycle.",
     "neighborsTitle": "Neighboring {{moeda}} episodes",
-    "neighborsSub": "Up to 10 before and 10 after, in the same cycle · diamond: this episode · click a point to open it"
+    "neighborsSub": "Up to 10 before and 10 after, in the same cycle · diamond: this episode · click a point to open it",
+    "allCoins": "All coins",
+    "sinceDate": "since {{data}}"
   },
   "ajuda": {
     "atr": "How far the price typically travels within a candle. Useful to size distances by measured volatility instead of by guesswork; it indicates no direction.",

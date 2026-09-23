@@ -10,15 +10,21 @@ import TableSortLabel from '@mui/material/TableSortLabel'
 import useTranslation from '../../hooks/useTranslation'
 import { BarraDeAcoes, Sparkline } from './Miniaturas'
 import { MoedaChip, Painel, Variacao } from './Painel'
-import { compararPor, corDaMoeda, estiloDeTabela, formatarNumero, formatarPercentual } from './formato'
+import { compararPor, corDaMoeda, estiloDeTabela, formatarDia, formatarNumero, formatarPercentual } from './formato'
 
 // Uma linha por moeda. Junta o que antes eram quatro blocos separados — a
 // tabela "Evolução desde o início", o gráfico de barras que misturava três
 // unidades no mesmo eixo, a distribuição de ações em contagem absoluta e o
 // top 5 — num lugar só, onde cada número tem a própria coluna e unidade.
+//
+// Sem coluna de loss: o loss é da rede, não da moeda. As moedas se alternam a
+// cada episódio sobre a mesma rede, e com dados reais a coluna mostrava o mesmo
+// 0,081 nas dez linhas — um número que não distingue nada. O loss segue no
+// cartão da aba ao vivo, na tabela de episódios e na de versões, onde a
+// comparação faz sentido.
 
 export default function TabelaMoedas({ linhas, resumo, onSelecionarMoeda, onAbrir }) {
-  const { t } = useTranslation()
+  const { t, idioma } = useTranslation()
   const [ordenarPor, setOrdenarPor] = useState('rewardMedio')
   const [ordem, setOrdem] = useState('desc')
 
@@ -32,7 +38,6 @@ export default function TabelaMoedas({ linhas, resumo, onSelecionarMoeda, onAbri
     { id: 'tendencia', rotulo: t('treinamento.colTrend'), ordenavel: true, numerica: true, dica: t('treinamento.trendHint') },
     { id: 'curva', rotulo: t('treinamento.colCurve') },
     { id: 'winRate', rotulo: t('treinamento.colWinRate'), ordenavel: true, numerica: true },
-    { id: 'lossMedia', rotulo: t('treinamento.colLossAvg'), ordenavel: true, numerica: true },
     { id: 'acoes', rotulo: t('treinamento.colActions'), dica: t('treinamento.colActionsHint') },
     { id: 'desdeInicio', rotulo: t('treinamento.colSinceStart'), numerica: true, dica: t('treinamento.sinceStartHint') },
     { id: 'melhor', rotulo: t('treinamento.colBestEpisode'), numerica: true },
@@ -100,7 +105,6 @@ export default function TabelaMoedas({ linhas, resumo, onSelecionarMoeda, onAbri
                     />
                   </TableCell>
                   <TableCell align="right">{formatarPercentual(m.winRate, 1)}</TableCell>
-                  <TableCell align="right">{formatarNumero(m.lossMedia, 3)}</TableCell>
                   <TableCell>
                     <BarraDeAcoes
                       acoes={m.acoes}
@@ -119,6 +123,9 @@ export default function TabelaMoedas({ linhas, resumo, onSelecionarMoeda, onAbri
                         <Variacao d={deltaInicio} />
                         <Box component="span" sx={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
                           {formatarNumero(inicio.rewardInicial, 3)} → {formatarNumero(inicio.rewardAtual, 3)}
+                          {/* Sem a data, "desde o início" não dizia de quando: o
+                              histórico da API real começa meses antes da janela. */}
+                          {inicio.dataHoraInicial && ` · ${t('treinamento.sinceDate', { data: formatarDia(inicio.dataHoraInicial, idioma.intl) })}`}
                         </Box>
                       </>
                     ) : '–'}
