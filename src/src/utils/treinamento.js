@@ -41,8 +41,13 @@ export const mesclarEpisodios = (atuais, novos) => {
 
 export const instanteDe = (r) => new Date(r?.dataHora).getTime()
 
+// Desempate pelo número do episódio. O carimbo vem com precisão de segundo e o
+// treino grava vários episódios no mesmo segundo; ordenados só pela hora, eles
+// saíam na ordem em que a API os devolveu — que é decrescente — e a numeração
+// parecia recuar dentro do segundo. Nos dados reais de um dia eram 4 recuos
+// falsos para 4 reinícios de verdade, cada um virando um ciclo inventado.
 export const ordenarPorData = (itens) =>
-  [...itens].sort((a, b) => instanteDe(a) - instanteDe(b))
+  [...itens].sort((a, b) => instanteDe(a) - instanteDe(b) || (a.episodio ?? 0) - (b.episodio ?? 0))
 
 /** Episódios com dataHora em [inicio, fim], ambos inclusivos. */
 export const filtrarJanela = (itens, inicio, fim) =>
@@ -149,6 +154,14 @@ export const cadenciaMediana = (timeline) => {
 export const limiarDeLacuna = (timeline) =>
   Math.max(30 * UM_MINUTO_MS, (cadenciaMediana(timeline) ?? 0) * 12)
 
+// Recuo de numeração que ainda é ordem de gravação, e não reinício: até 3
+// episódios, a até 5 s do anterior. O desempate da ordenação resolve os
+// empates no mesmo segundo; isto cobre a gravação que atravessa a virada do
+// segundo. Um reinício de verdade volta ao episódio 1 depois de centenas, e
+// com pausa de minutos (nos dados reais, 300 → 1 com 5 a 8 min entre eles).
+const RECUO_DE_ORDEM = 3
+const JANELA_DE_ORDEM_MS = 5000
+
 /**
  * Ciclos de treino numa timeline já ordenada por data. Novo ciclo quando a
  * numeração do episódio CAI (reset do treino) — o sinal forte — ou quando há
@@ -176,8 +189,11 @@ export const detectarCiclos = (timeline) => {
   for (let i = 1; i < timeline.length; i++) {
     const anterior = timeline[i - 1]
     const atual = timeline[i]
-    const reset = (atual.episodio ?? 0) < (anterior.episodio ?? 0)
-    const pausa = instanteDe(atual) - instanteDe(anterior) > limiar
+    const intervalo = instanteDe(atual) - instanteDe(anterior)
+    const recuo = (anterior.episodio ?? 0) - (atual.episodio ?? 0)
+    const foraDeOrdem = recuo <= RECUO_DE_ORDEM && intervalo <= JANELA_DE_ORDEM_MS
+    const reset = recuo > 0 && !foraDeOrdem
+    const pausa = intervalo > limiar
     if (reset || pausa) {
       fechar(de, i - 1)
       de = i

@@ -12,6 +12,7 @@ import {
   limiarDeLacuna,
   mediaMovel,
   mesclarEpisodios,
+  ordenarPorData,
   posicaoEntre,
   proporcaoDeAcoes,
   reduzirPontos,
@@ -122,6 +123,27 @@ describe('treinamento › detectarCiclos', () => {
 
   it('devolve lista vazia sem episódios', () => {
     expect(detectarCiclos([])).toEqual([])
+  })
+
+  // Nos dados reais o treino grava vários episódios no mesmo segundo, e a API
+  // os devolve em ordem decrescente: #189 antes de #187 às 01:49:23. Ordenado
+  // só pela hora, isso parecia um reinício e partia o ciclo em pedaços.
+  it('não abre ciclo por episódios gravados no mesmo segundo fora de ordem', () => {
+    const mesmoSegundo = (n) => ep(n, 2, { idTreinamentoEpisodio: `mesmo-${n}` })
+    const timeline = ordenarPorData([ep(1, 0), ep(2, 1), mesmoSegundo(5), mesmoSegundo(3), mesmoSegundo(4), ep(6, 3)])
+    expect(timeline.map((r) => r.episodio)).toEqual([1, 2, 3, 4, 5, 6])
+    expect(detectarCiclos(timeline)).toHaveLength(1)
+  })
+
+  it('tolera um recuo pequeno colado no anterior, mesmo em segundos diferentes', () => {
+    const s = (n, segundo) => ({ ...ep(n, 0), idTreinamentoEpisodio: `s-${n}`, dataHora: iso(BASE + segundo * 1000) })
+    const timeline = [s(10, 0), s(12, 1), s(11, 2), s(13, 3)]
+    expect(detectarCiclos(timeline)).toHaveLength(1)
+  })
+
+  it('segue abrindo ciclo no reinício de verdade, como 300 → 1', () => {
+    const timeline = [ep(299, 0), ep(300, 1), ep(1, 7), ep(2, 8)]
+    expect(detectarCiclos(timeline).map((c) => [c.epInicio, c.epFim])).toEqual([[299, 300], [1, 2]])
   })
 })
 
