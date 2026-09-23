@@ -267,10 +267,25 @@ export default function DetalheEpisodio({ item, allItems, onBack, onNavigate }) 
   const anterior = idx > 0 ? daMoeda[idx - 1] : null
   const proximo = idx >= 0 && idx < daMoeda.length - 1 ? daMoeda[idx + 1] : null
 
-  const vizinhos = useMemo(() => vizinhosDe(daMoeda, idx), [daMoeda, idx])
+  const ciclo = useMemo(() => cicloDoEpisodio(timeline, item.idTreinamentoEpisodio), [timeline, item.idTreinamentoEpisodio])
+
+  // A vizinhança fica dentro do ciclo do episódio. Cada ciclo é um treino que
+  // recomeça do zero (epsilon volta a 1, e às vezes a versão do modelo muda):
+  // perto da borda, os vizinhos mais próximos eram do treino anterior, e o
+  // episódio era julgado contra outra execução. Anterior/próximo continuam
+  // atravessando ciclos — ali a ideia é andar, não comparar.
+  const daMoedaNoCiclo = useMemo(
+    () => (ciclo ? timeline.slice(ciclo.de, ciclo.ate + 1).filter((r) => r.moeda === item.moeda) : daMoeda),
+    [ciclo, timeline, item.moeda, daMoeda]
+  )
+  const idxNoCiclo = daMoedaNoCiclo.findIndex((r) => r.idTreinamentoEpisodio === item.idTreinamentoEpisodio)
+
+  const vizinhos = useMemo(() => vizinhosDe(daMoedaNoCiclo, idxNoCiclo), [daMoedaNoCiclo, idxNoCiclo])
   const trecho = useMemo(
-    () => (idx < 0 ? [item] : daMoeda.slice(Math.max(0, idx - RAIO_DE_VIZINHOS), idx + RAIO_DE_VIZINHOS + 1)),
-    [daMoeda, idx, item]
+    () => (idxNoCiclo < 0
+      ? [item]
+      : daMoedaNoCiclo.slice(Math.max(0, idxNoCiclo - RAIO_DE_VIZINHOS), idxNoCiclo + RAIO_DE_VIZINHOS + 1)),
+    [daMoedaNoCiclo, idxNoCiclo, item]
   )
   const faixas = useMemo(
     () => Object.fromEntries(METRICAS.map((id) => [id, faixaDe(vizinhos.map((r) => r[id]))])),
@@ -281,7 +296,6 @@ export default function DetalheEpisodio({ item, allItems, onBack, onNavigate }) 
     [item.rewardMedio, vizinhos]
   )
   const veredito = vereditoDoEpisodio(posicao)
-  const ciclo = useMemo(() => cicloDoEpisodio(timeline, item.idTreinamentoEpisodio), [timeline, item.idTreinamentoEpisodio])
 
   // dataHora marca o FIM do episódio; o início sai da duração.
   const fimMs = instanteDe(item)

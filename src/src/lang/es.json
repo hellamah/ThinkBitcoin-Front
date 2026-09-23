@@ -744,10 +744,10 @@
     "idCopied": "ID copiado",
     "previousHint": "Episodio anterior de {{moeda}} (←)",
     "nextHint": "Siguiente episodio de {{moeda}} (→)",
-    "metricsVsNeighbors": "Comparado con los {{n}} episodios vecinos de {{moeda}} (hasta 10 antes y 10 después) · barra: rango de los vecinos, trazo: media, punto: este episodio",
-    "noNeighborsLoaded": "Ningún otro episodio de {{moeda}} cargado cerca.",
+    "metricsVsNeighbors": "Comparado con los {{n}} episodios vecinos de {{moeda}} en el mismo ciclo (hasta 10 antes y 10 después) · barra: rango de los vecinos, trazo: media, punto: este episodio",
+    "noNeighborsLoaded": "Ningún otro episodio de {{moeda}} cargado en este ciclo.",
     "neighborsTitle": "Episodios vecinos de {{moeda}}",
-    "neighborsSub": "Hasta 10 antes y 10 después · rombo: este episodio · haga clic en un punto para abrirlo"
+    "neighborsSub": "Hasta 10 antes y 10 después, en el mismo ciclo · rombo: este episodio · haga clic en un punto para abrirlo"
   },
   "ajuda": {
     "atr": "Cuánto suele recorrer el precio dentro de una vela. Sirve para dimensionar distancias por volatilidad medida en vez de por corazonada; no indica dirección.",

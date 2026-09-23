@@ -744,10 +744,10 @@
     "idCopied": "ID copié",
     "previousHint": "Épisode {{moeda}} précédent (←)",
     "nextHint": "Épisode {{moeda}} suivant (→)",
-    "metricsVsNeighbors": "Comparé aux {{n}} épisodes {{moeda}} voisins (jusqu'à 10 avant et 10 après) · barre : plage des voisins, trait : moyenne, point : cet épisode",
-    "noNeighborsLoaded": "Aucun autre épisode {{moeda}} chargé à proximité.",
+    "metricsVsNeighbors": "Comparé aux {{n}} épisodes {{moeda}} voisins dans le même cycle (jusqu'à 10 avant et 10 après) · barre : plage des voisins, trait : moyenne, point : cet épisode",
+    "noNeighborsLoaded": "Aucun autre épisode {{moeda}} chargé dans ce cycle.",
     "neighborsTitle": "Épisodes {{moeda}} voisins",
-    "neighborsSub": "Jusqu'à 10 avant et 10 après · losange : cet épisode · cliquez sur un point pour l'ouvrir"
+    "neighborsSub": "Jusqu'à 10 avant et 10 après, dans le même cycle · losange : cet épisode · cliquez sur un point pour l'ouvrir"
   },
   "ajuda": {
     "atr": "La distance que le prix parcourt habituellement à l'intérieur d'une bougie. Sert à dimensionner les distances par volatilité mesurée plutôt qu'au jugé ; n'indique pas de direction.",

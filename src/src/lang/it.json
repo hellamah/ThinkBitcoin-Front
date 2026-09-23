@@ -744,10 +744,10 @@
     "idCopied": "ID copiato",
     "previousHint": "Episodio precedente di {{moeda}} (←)",
     "nextHint": "Episodio successivo di {{moeda}} (→)",
-    "metricsVsNeighbors": "Confrontato con i {{n}} episodi vicini di {{moeda}} (fino a 10 prima e 10 dopo) · barra: intervallo dei vicini, trattino: media, punto: questo episodio",
-    "noNeighborsLoaded": "Nessun altro episodio di {{moeda}} caricato nelle vicinanze.",
+    "metricsVsNeighbors": "Confrontato con i {{n}} episodi vicini di {{moeda}} nello stesso ciclo (fino a 10 prima e 10 dopo) · barra: intervallo dei vicini, trattino: media, punto: questo episodio",
+    "noNeighborsLoaded": "Nessun altro episodio di {{moeda}} caricato in questo ciclo.",
     "neighborsTitle": "Episodi vicini di {{moeda}}",
-    "neighborsSub": "Fino a 10 prima e 10 dopo · rombo: questo episodio · clicca su un punto per aprirlo"
+    "neighborsSub": "Fino a 10 prima e 10 dopo, nello stesso ciclo · rombo: questo episodio · clicca su un punto per aprirlo"
   },
   "ajuda": {
     "atr": "Quanto il prezzo percorre di solito all'interno di una candela. Serve a dimensionare le distanze in base alla volatilità misurata anziché a intuito; non indica la direzione.",
