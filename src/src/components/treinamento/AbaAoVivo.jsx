@@ -9,6 +9,8 @@ import { padraoDeDataCurta } from '../../utils/dateUtils'
 import { readToken } from '../../utils/themeTokens'
 import {
   PERIODOS_AO_VIVO,
+  cicloDoEpisodio,
+  detectarCiclos,
   estatisticas,
   filtrarJanela,
   janelaDoPeriodo,
@@ -33,6 +35,7 @@ import {
   eixoDeTempo,
   formatarMetrica,
   formatarVariacaoDaMetrica,
+  pluginFaixasDeCiclo,
   rotuloDaMetrica,
   setaDaVariacao,
   tooltipBase,
@@ -252,6 +255,32 @@ export default function AbaAoVivo({ timeline, periodo, onPeriodo, maisRecenteMs,
 
   const ultimos = useMemo(() => itens.slice(-12).reverse(), [itens])
 
+  // Ciclos na janela, para as faixas do gráfico: nos dados reais um treino dura
+  // cerca de uma hora e meia, e a janela de 1h ou 4h costuma pegar a virada.
+  const ciclosNaJanela = useMemo(() => detectarCiclos(itens), [itens])
+  const faixas = useMemo(
+    () => pluginFaixasDeCiclo(ciclosNaJanela, (idx, c) => t('treinamento.cycleLabel', { num: idx + 1, count: c.total }), escuro),
+    [ciclosNaJanela, t, escuro]
+  )
+
+  // O treino em andamento: a versão e desde quando. Calculado sobre tudo o que
+  // está carregado, não só a janela, para o início do ciclo não ficar cortado.
+  const cicloAtual = useMemo(() => {
+    const ultimo = timeline[timeline.length - 1]
+    const ciclo = ultimo ? cicloDoEpisodio(timeline, ultimo.idTreinamentoEpisodio) : null
+    return ciclo ? { ...ciclo, versao: ultimo.versaoModelo } : null
+  }, [timeline])
+
+  // Quando um treino novo começa entre a janela anterior e a atual, as setas
+  // dos cartões comparam execuções diferentes: epsilon volta a 1 no começo de
+  // cada treino, e o reward do começo é pior por construção. Sem aviso, isso
+  // se lia como piora do modelo.
+  const viradaDeCiclo = useMemo(() => {
+    if (anteriores.length === 0 || itens.length === 0) return null
+    const ciclos = detectarCiclos([...anteriores, ...itens])
+    return ciclos.length > 1 ? ciclos[ciclos.length - 1].inicio : null
+  }, [anteriores, itens])
+
   const dataCurta = useMemo(() => padraoDeDataCurta(idioma.intl), [idioma.intl])
   const mediaAnterior = statsAnterior.total > 0 ? statsAnterior[metrica] : null
 
@@ -327,14 +356,25 @@ export default function AbaAoVivo({ timeline, periodo, onPeriodo, maisRecenteMs,
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <SeletorDePeriodo
-        opcoes={PERIODOS_AO_VIVO}
-        periodo={periodo}
-        onChange={onPeriodo}
-        janela={janela}
-        maisRecenteMs={maisRecenteMs}
-        carregando={carregandoPeriodo}
-      />
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
+        <SeletorDePeriodo
+          opcoes={PERIODOS_AO_VIVO}
+          periodo={periodo}
+          onChange={onPeriodo}
+          janela={janela}
+          maisRecenteMs={maisRecenteMs}
+          carregando={carregandoPeriodo}
+        />
+        {cicloAtual && (
+          <Typography variant="caption" sx={{ color: 'var(--text-muted)' }}>
+            {t('treinamento.currentCycle', {
+              versao: cicloAtual.versao || '–',
+              inicio: formatarHora(cicloAtual.inicio, idioma.intl),
+              n: cicloAtual.total,
+            })}
+          </Typography>
+        )}
+      </Box>
 
       {itens.length === 0 ? (
         <Painel>
@@ -360,6 +400,11 @@ export default function AbaAoVivo({ timeline, periodo, onPeriodo, maisRecenteMs,
               </Grid>
             ))}
           </Grid>
+          {viradaDeCiclo !== null && statsAnterior.total > 0 && (
+            <Typography variant="caption" role="note" sx={{ color: 'var(--text-secondary)', mt: -1 }}>
+              {t('treinamento.cycleBoundary', { hora: formatarHora(viradaDeCiclo, idioma.intl) })}
+            </Typography>
+          )}
 
           <Grid container spacing={2}>
             <Grid size={{ xs: 12, md: 8 }}>
@@ -368,7 +413,7 @@ export default function AbaAoVivo({ timeline, periodo, onPeriodo, maisRecenteMs,
                 subtitulo={t('treinamento.liveChartSub', { n: janelaMM })}
                 sx={{ height: { xs: 340, md: 400 } }}
               >
-                <Line data={dadosGrafico} options={opcoesGrafico} />
+                <Line data={dadosGrafico} options={opcoesGrafico} plugins={[faixas]} />
               </Painel>
             </Grid>
             <Grid size={{ xs: 12, md: 4 }} sx={{ height: { xs: 'auto', md: 400 }, maxHeight: { xs: 420, md: 'none' } }}>

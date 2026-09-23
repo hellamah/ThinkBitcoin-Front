@@ -749,6 +749,8 @@
     "neighborsTitle": "Épisodes {{moeda}} voisins",
     "neighborsSub": "Jusqu'à 10 avant et 10 après, dans le même cycle · losange : cet épisode · cliquez sur un point pour l'ouvrir",
     "allCoins": "Toutes les cryptos",
+    "currentCycle": "Cycle en cours : {{versao}} · depuis {{inicio}} · {{n}} épisodes",
+    "cycleBoundary": "Un nouvel entraînement a commencé à {{hora}} : la comparaison avec la fenêtre précédente couvre des exécutions différentes (l'epsilon repart à chaque entraînement).",
     "sinceDate": "depuis le {{data}}"
   },
   "ajuda": {

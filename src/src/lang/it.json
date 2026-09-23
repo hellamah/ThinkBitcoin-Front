@@ -749,6 +749,8 @@
     "neighborsTitle": "Episodi vicini di {{moeda}}",
     "neighborsSub": "Fino a 10 prima e 10 dopo, nello stesso ciclo · rombo: questo episodio · clicca su un punto per aprirlo",
     "allCoins": "Tutte le criptovalute",
+    "currentCycle": "Ciclo attuale: {{versao}} · dalle {{inicio}} · {{n}} episodi",
+    "cycleBoundary": "Un nuovo addestramento è iniziato alle {{hora}}: il confronto con la finestra precedente attraversa esecuzioni diverse (l'epsilon riparte a ogni addestramento).",
     "sinceDate": "dal {{data}}"
   },
   "ajuda": {

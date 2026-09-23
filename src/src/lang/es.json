@@ -749,6 +749,8 @@
     "neighborsTitle": "Episodios vecinos de {{moeda}}",
     "neighborsSub": "Hasta 10 antes y 10 después, en el mismo ciclo · rombo: este episodio · haga clic en un punto para abrirlo",
     "allCoins": "Todas las monedas",
+    "currentCycle": "Ciclo actual: {{versao}} · desde {{inicio}} · {{n}} episodios",
+    "cycleBoundary": "Un entrenamiento nuevo empezó a las {{hora}}: la comparación con la ventana anterior abarca ejecuciones distintas (el epsilon se reinicia en cada entrenamiento).",
     "sinceDate": "desde {{data}}"
   },
   "ajuda": {

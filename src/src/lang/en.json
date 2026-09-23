@@ -749,6 +749,8 @@
     "neighborsTitle": "Neighboring {{moeda}} episodes",
     "neighborsSub": "Up to 10 before and 10 after, in the same cycle · diamond: this episode · click a point to open it",
     "allCoins": "All coins",
+    "currentCycle": "Current cycle: {{versao}} · since {{inicio}} · {{n}} episodes",
+    "cycleBoundary": "A new training run started at {{hora}}: the comparison with the previous window spans different runs (epsilon restarts on every run).",
     "sinceDate": "since {{data}}"
   },
   "ajuda": {
