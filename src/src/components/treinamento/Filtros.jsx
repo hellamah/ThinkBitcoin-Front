@@ -3,7 +3,7 @@ import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
 import Typography from '@mui/material/Typography'
 import useTranslation from '../../hooks/useTranslation'
-import { corDaMoeda } from './formato'
+import { corDaMoeda, textoSobre } from './formato'
 
 const ROXO_VERSAO = '#A78BFA'
 
@@ -36,7 +36,7 @@ function ChipDeFiltro({ rotulo, ativo, cor, onClick }) {
       sx={{
         cursor: 'pointer',
         background: ativo ? cor : 'var(--surface-fill-strong)',
-        color: ativo ? '#000' : 'var(--text-primary)',
+        color: ativo ? textoSobre(cor) : 'var(--text-primary)',
         fontWeight: ativo ? 700 : 500,
         border: `1px solid ${ativo ? cor : 'var(--border-strong)'}`,
         '&:hover': { background: ativo ? cor : 'var(--border-strong)' },
