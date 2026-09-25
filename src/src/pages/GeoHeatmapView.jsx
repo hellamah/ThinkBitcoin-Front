@@ -636,6 +636,8 @@ export default function GeoHeatmapView() {
   // ---------------------------------------------------------------------------
   // Eventos do gráfico
   // ---------------------------------------------------------------------------
+  // Clique num país do mapa: o NativeGeoChart registra o `select` e entrega a
+  // linha da tabela aqui.
   const handleChartSelect = useCallback((row) => {
     const currentData = heatmapDataRef.current
     if (currentData?.[row + 1]) {
@@ -644,32 +646,6 @@ export default function GeoHeatmapView() {
       handleCountryClick(countryCode)
     }
   }, [handleCountryClick])
-
-  // NAO REMOVER SEM DECIDIR: o lint acusa `chartEvents` como nao usado, e esta
-  // certo — nada o consome. Mas ele carrega o handler de `select` do Google
-  // Charts, ou seja, clicar num pais no mapa nunca foi ligado. Apagar faria o
-  // lint passar e apagaria a unica pista de que a feature ficou pela metade.
-  // Ligar ou remover de vez e decisao de produto, nao de faxina.
-  // Excecao deliberada, e a unica do repositorio: a nota acima explica por que
-  // isto fica. Sem o disable, um achado que decidimos PRESERVAR travaria o gate
-  // de lint no CI — e a saida seria apagar a pista, que e o oposto do que a nota
-  // pede. Quando a decisao for tomada, o disable sai junto.
-  // eslint-disable-next-line no-unused-vars
-  const chartEvents = useMemo(() => [
-    {
-      eventName: 'select',
-      callback: ({ chartWrapper }) => {
-        const chart = chartWrapper.getChart()
-        const selection = chart.getSelection()
-        if (selection.length > 0) {
-          const row = selection[0].row
-          handleChartSelect(row)
-          // Limpa seleção para evitar coloração cinza padrão do Google Charts
-          chart.setSelection([])
-        }
-      }
-    }
-  ], [handleChartSelect])
 
   // O GeoChart pinta atributos SVG via JS: precisa de cor resolvida, var() não
   // funciona aqui. Os tons de "sem dado" e a rampa da escala também invertem —
