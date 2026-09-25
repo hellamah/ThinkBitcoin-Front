@@ -316,7 +316,7 @@ export default function PlanosPagamentoModal({ visible, onClose, token, user, on
                     inteira — o modal fica sob o ErrorBoundary da raiz — se o
                     plano viesse sem limite diário. Os outros números do cartão
                     já são interpolados crus e sobrevivem a um null. */}
-                <span>{t('planos.limiteDiario')}: R$ {Number(plano.limiteDiarioResgate ?? 0).toLocaleString()}</span>
+                <span>{t('planos.limiteDiario')}: R$ {Number(plano.limiteDiarioResgate ?? 0).toLocaleString(idioma.intl)}</span>
               </div>
             </div>
 

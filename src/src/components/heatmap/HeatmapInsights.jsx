@@ -31,11 +31,13 @@ export const formatarMinutos = (min) => {
   return m > 0 ? `${h}h ${m}min` : `${h}h`
 }
 
-export const formatarHora = (iso) => {
+// `locale` é o idioma do app (idioma.intl). Com `[]`, a hora seguia o navegador:
+// "02:30 PM" numa tela em português.
+export const formatarHora = (iso, locale) => {
   if (!iso) return null
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return null
-  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  return d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
 }
 
 // O Google Trends normaliza a série em 0-100, mas registros imputados podem
@@ -110,7 +112,7 @@ const BarraMedida = ({ label, valorLabel, percent, cor }) => (
   </Box>
 )
 
-export default function HeatmapInsights({ trend, fear, t }) {
+export default function HeatmapInsights({ trend, fear, t, locale }) {
   // Countdown até a próxima atualização do Fear & Greed (timeUntilUpdateSeg).
   const [segundosRestantes, setSegundosRestantes] = useState(null)
   const fearUpdateSeg = num(fear?.timeUntilUpdateSeg)
@@ -137,7 +139,7 @@ export default function HeatmapInsights({ trend, fear, t }) {
   const pico = formatarMinutos(trend?.minutosDesdePico)
   const rank = num(trend?.rankNoMinuto)
   const hhi = normalizarHHI(trend?.geoHHI)
-  const horaRef = formatarHora(trend?.horaReferencia)
+  const horaRef = formatarHora(trend?.horaReferencia, locale)
   const dadosImputados = trend?.isTimeseriesOk === false || trend?.isGeoOk === false
 
   const fearValor = num(fear?.valor)

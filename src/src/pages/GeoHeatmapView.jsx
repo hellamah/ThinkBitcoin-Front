@@ -1170,7 +1170,7 @@ export default function GeoHeatmapView() {
 
                   {/* Pulso da narrativa + concentração geográfica + Fear & Greed
                       (dados do /trend e /fear-greed já carregados pelo carrossel) */}
-                  <HeatmapInsights trend={moedaSelObj?.trend} fear={moedaSelObj?.fear} t={t} />
+                  <HeatmapInsights trend={moedaSelObj?.trend} fear={moedaSelObj?.fear} t={t} locale={localeIdioma} />
 
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, mt: 2 }}>
                     {topRegioes.length > 0 ? (

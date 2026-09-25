@@ -18,7 +18,8 @@ import { useDialogoAcessivel, useFecharComEsc } from '../../hooks/useDialogoAces
  *   opcoesPreco: object,
  *   opcoesVariacao: object,
  *   trendAtual?: object,
- *   t: (key: string, options?: object) => string
+ *   t: (key: string, options?: object) => string,
+ *   locale?: string
  * }} props
  */
 const ExpandedChartModal = ({
@@ -33,6 +34,7 @@ const ExpandedChartModal = ({
   trendAtual,
   mostraVolume,
   t,
+  locale,
 }) => {
   const isTraded = expandedChart === ChartType.TRADED_VALUE;
   // O assunto do segundo painel vem do seletor "Painel", igual à versão
@@ -246,7 +248,7 @@ const ExpandedChartModal = ({
                           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <div style={{ width: '10px', height: '10px', borderRadius: '2px', backgroundColor: ds.color }}></div>
                             <span style={{ color: 'var(--text-muted)', minWidth: '40px' }}>{ds.label}:</span>
-                            <span>{ds.lastValue != null ? Number(ds.lastValue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 }) : '-'}</span>
+                            <span>{ds.lastValue != null ? Number(ds.lastValue).toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 6 }) : '-'}</span>
                           </div>
                         ))}
                       </div>

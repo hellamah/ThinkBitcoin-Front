@@ -11,7 +11,7 @@ import useTranslation from '../../hooks/useTranslation'
 import PatrimonioModal from './PatrimonioModal'
 
 export default function PatrimonioCard({ token, user }) {
-  const { t } = useTranslation()
+  const { t, idioma } = useTranslation()
   const [patrimonio, setPatrimonio] = useState(null)
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
@@ -63,10 +63,10 @@ export default function PatrimonioCard({ token, user }) {
 
           <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'flex-start', sm: 'baseline' }, gap: { xs: 1, sm: 3 } }}>
             <Typography className="patrimonio-value-brl">
-              R$ {saldoBRL.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              R$ {saldoBRL.toLocaleString(idioma.intl, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </Typography>
             <Typography className="patrimonio-value-usd">
-              / $ {saldoUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              / $ {saldoUSD.toLocaleString(idioma.intl, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </Typography>
           </Box>
         </Grid>

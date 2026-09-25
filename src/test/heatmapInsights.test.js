@@ -63,6 +63,13 @@ describe('Helpers do HeatmapInsights', () => {
       expect(formatarHora(null)).toBeNull()
       expect(formatarHora('nao-e-data')).toBeNull()
     })
+
+    // Segue o idioma do app, e não o do navegador. AM/PM só aparece em inglês,
+    // o que torna a checagem independente do fuso de quem roda o teste.
+    it('usa o locale recebido', () => {
+      expect(formatarHora('2026-07-15T14:30:00Z', 'en-US')).toMatch(/AM|PM/)
+      expect(formatarHora('2026-07-15T14:30:00Z', 'pt-BR')).not.toMatch(/AM|PM/)
+    })
   })
 
   describe('clampInteresse', () => {

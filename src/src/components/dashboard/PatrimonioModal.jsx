@@ -186,10 +186,10 @@ export default function PatrimonioModal({ visible, onClose, user, patrimonio, on
                         </Box>
                       </TableCell>
                       <TableCell sx={{ ...tableCellSx, fontWeight: 700 }} align="right">
-                        R$ {reg.valorBRL.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        R$ {reg.valorBRL.toLocaleString(idioma.intl, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </TableCell>
                       <TableCell sx={{ ...tableCellSx, color: 'var(--accent-ink) !important' }} align="right">
-                        $ {reg.valorUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        $ {reg.valorUSD.toLocaleString(idioma.intl, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </TableCell>
                       <TableCell sx={{ ...tableCellSx, opacity: 0.8, maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={reg.observacao}>
                         {reg.observacao}

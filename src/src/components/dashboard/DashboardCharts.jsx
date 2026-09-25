@@ -29,7 +29,7 @@ const classeAlternador = (ativo) => `pill-toggle ${ativo ? 'ativo' : ''}`
  * @param {string} props.ultimaVariacao - Última variação formatada.
  * @param {object} props.trendAtual - Dados de tendência atual.
  * @param {Function} props.t - Função de tradução.
- * @param {string} props.locale - Etiqueta BCP 47 do idioma escolhido, para as datas.
+ * @param {string} props.locale - Etiqueta BCP 47 do idioma escolhido, para datas e números.
  */
 export default function DashboardCharts({
   multiMoeda,
@@ -245,6 +245,7 @@ export default function DashboardCharts({
         trendAtual={trendAtual}
         mostraVolume={mostraVolume}
         t={t}
+        locale={locale}
       />
     </>
   )

@@ -11,6 +11,7 @@ const CadastroConviteOverlay = lazy(() => import('../components/CadastroConviteO
 
 // Componente para contagem animada de números
 const AnimatedNumber = ({ end, duration = 2000, suffix = '', decimals = 0 }) => {
+  const { idioma } = useTranslation()
   const [current, setCurrent] = useState(0)
   const countRef = useRef(null)
 
@@ -31,7 +32,7 @@ const AnimatedNumber = ({ end, duration = 2000, suffix = '', decimals = 0 }) => 
 
   return (
     <span>
-      {current.toLocaleString(undefined, {
+      {current.toLocaleString(idioma.intl, {
         minimumFractionDigits: decimals,
         maximumFractionDigits: decimals,
       })}
