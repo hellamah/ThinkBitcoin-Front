@@ -659,7 +659,7 @@ function Settings() {
         <div style={{ gridColumn: '1 / -1' }}>
           {renderPanel(<MdSecurity />, t('riskManagementTitle'), (
             <Grid container spacing={4}>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                   {renderField(t('maxRiskPerTrade'), (
                     <TextField
@@ -694,7 +694,7 @@ function Settings() {
                   ))}
                 </Box>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                   {renderField(t('safetyBalance'), (
                     <Box sx={{ display: 'flex', gap: 1, width: '100%' }}>
@@ -741,7 +741,7 @@ function Settings() {
                 {t('changePasswordDescription')}
               </Typography>
               <Grid container spacing={3}>
-                <Grid item xs={12} md={4}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <TextField
                     fullWidth
                     label={t('currentPassword')}
@@ -752,7 +752,7 @@ function Settings() {
                     InputLabelProps={{ sx: { color: 'var(--text-muted)' } }}
                   />
                 </Grid>
-                <Grid item xs={12} md={4}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <TextField
                     fullWidth
                     label={t('newPassword')}
@@ -763,7 +763,7 @@ function Settings() {
                     InputLabelProps={{ sx: { color: 'var(--text-muted)' } }}
                   />
                 </Grid>
-                <Grid item xs={12} md={4}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <TextField
                     fullWidth
                     label={t('confirmNewPassword')}

@@ -374,7 +374,7 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                         <MdPerson /> {t('personalInfo')}
                     </Typography>
                     <Grid container spacing={2} justifyContent="center">
-                      <Grid item xs={12} sm={6}>
+                      <Grid size={{ xs: 12, sm: 6 }}>
                         <TextField
                           fullWidth label={t('name')} value={nome}
                           onChange={(e) => setNome(e.target.value)}
@@ -382,7 +382,7 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                           InputProps={{ disableUnderline: true }} sx={inputSx}
                         />
                       </Grid>
-                      <Grid item xs={12} sm={6}>
+                      <Grid size={{ xs: 12, sm: 6 }}>
                         <TextField
                           fullWidth label={t('email')} type="email" value={email}
                           onChange={(e) => setEmail(e.target.value)}
@@ -390,7 +390,7 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                           InputProps={{ disableUnderline: true }} sx={inputSx}
                         />
                       </Grid>
-                      <Grid item xs={12} sm={6}>
+                      <Grid size={{ xs: 12, sm: 6 }}>
                         <TextField
                           fullWidth label={t('password')} type="password" value={senha}
                           onChange={(e) => setSenha(e.target.value)}
@@ -398,7 +398,7 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                           InputProps={{ disableUnderline: true }} sx={inputSx}
                         />
                       </Grid>
-                      <Grid item xs={12} sm={6}>
+                      <Grid size={{ xs: 12, sm: 6 }}>
                         <FormControl fullWidth variant="filled" sx={{ ...inputSx, minWidth: 200 }}>
                           <InputLabel id="cadastro-cargo-label">{t('cargo')}</InputLabel>
                           <Select
@@ -413,7 +413,7 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                           </Select>
                         </FormControl>
                       </Grid>
-                      <Grid item xs={12} sm={6}>
+                      <Grid size={{ xs: 12, sm: 6 }}>
                         <FormControl fullWidth variant="filled" sx={{ ...inputSx, minWidth: 160 }}>
                           <InputLabel id="cadastro-idioma-label">{t('language')}</InputLabel>
                           <Select
@@ -445,7 +445,7 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                         <MdSettings /> {t('traderLabTitle')}
                     </Typography>
                     <Grid container spacing={2} justifyContent="center">
-                      <Grid item xs={12} sm={6}>
+                      <Grid size={{ xs: 12, sm: 6 }}>
                         <TextField
                           fullWidth label={t('initialInvestment')} type="number"
                           value={preferencias.investimentoInicial}
@@ -462,7 +462,7 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                           sx={inputSx}
                         />
                       </Grid>
-                      <Grid item xs={12} sm={6}>
+                      <Grid size={{ xs: 12, sm: 6 }}>
                         <FormControl fullWidth variant="filled" sx={{ ...inputSx, minWidth: 160 }}>
                           <InputLabel id="cadastro-moeda-label" shrink>{t('preferredCoin')}</InputLabel>
                           <Select

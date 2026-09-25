@@ -48,7 +48,7 @@ export default function PatrimonioCard({ token, user }) {
   return (
     <Box className="patrimonio-summary-card">
       <Grid container spacing={3} alignItems="center">
-        <Grid item xs={12} md={7}>
+        <Grid size={{ xs: 12, md: 7 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
             <MdAccountBalanceWallet style={{ fontSize: '1.4rem', color: 'var(--accent-ink)' }} />
             <Typography className="patrimonio-title-glow" variant="subtitle2" sx={{ fontWeight: 800 }}>
@@ -71,7 +71,7 @@ export default function PatrimonioCard({ token, user }) {
           </Box>
         </Grid>
 
-        <Grid item xs={12} md={5} sx={{ display: 'flex', justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
+        <Grid size={{ xs: 12, md: 5 }} sx={{ display: 'flex', justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
           <Button
             variant="outlined"
             onClick={() => setModalOpen(true)}
