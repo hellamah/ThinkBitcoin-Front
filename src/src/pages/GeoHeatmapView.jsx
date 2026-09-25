@@ -782,13 +782,16 @@ export default function GeoHeatmapView() {
         onClose={() => setSnackbarAberto(false)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
+        {/* Fundo por token, como o texto. Cravado em rgba(20,20,20,0.97), no
+            tema claro ficava texto quase preto sobre fundo quase preto
+            (1,04:1): "Link copiado" e "Exportação concluída" sumiam. */}
         <Alert
           onClose={() => setSnackbarAberto(false)}
           severity={snackbarSeveridade}
           variant="filled"
           sx={{
             fontFamily: 'Outfit, sans-serif',
-            background: snackbarSeveridade === 'success' ? 'rgba(20,20,20,0.97)' : undefined,
+            background: snackbarSeveridade === 'success' ? 'var(--surface-overlay)' : undefined,
             border: '1px solid var(--accent-a30)',
             color: 'var(--text-primary)',
           }}
