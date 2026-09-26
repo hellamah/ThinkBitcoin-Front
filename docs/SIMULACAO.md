@@ -1283,6 +1283,24 @@ lado do acumulado, as duas davam "nenhum cruzamento" — iguais entre si. Voltar
 ao acumulado passava em todos os testes. A régua passou a ser a série **sem
 passado nenhum**, e aí a injeção derruba o teste.
 
+### A-21 — A curva marcava a posição aberta sem custo ✅ **corrigido**
+
+Com posição aberta, a curva de capital era marcada pelo retorno **bruto**: ficava
+~0,2% acima do que dava para realizar fechando naquele candle, e caía de uma vez
+na saída, quando o custo das duas pernas entrava. Picos que nenhum operador
+teria tido — e o drawdown e o Sharpe são medidos a partir da curva.
+
+Passa a marcar pelo **retorno líquido de fechar agora** (`retornoLiquidoDe`, a
+mesma conta da saída). Com preço parado, a curva durante a posição vale
+exatamente o que a operação devolve ao fechar; o teste crava isso, e falhava
+antes (1.000 contra 998).
+
+Efeito medido em dado real (44 sinais em BTC, ETH e SOL, comprado, segurando 5):
+retorno idêntico em todos, drawdown com mudança mediana zero e máxima de
+0,18 p.p. (divergência baixista no BTC, −13,94% → −14,12%), Sharpe com mudança
+máxima de 0,07. Correção de honestidade, não de resultado: o número mudava pouco,
+mas mudava para o lado que bajulava.
+
 ### A-07 — Zero operações não é retorno zero 🟡
 
 Encontrado ao ver a tela funcionando, não nos testes.

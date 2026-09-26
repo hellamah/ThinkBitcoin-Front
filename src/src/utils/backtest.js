@@ -823,13 +823,19 @@ export const simular = (registros, opcoes = {}) => {
     // 6. Ponto da curva, marcado a mercado. Uma curva que só degrau nos
     //    fechamentos esconde o quanto a posição chegou a perder no meio — que é
     //    justamente o que o drawdown deveria medir.
+    //
+    //    Marcado pelo que a posição devolveria se fechasse AGORA, com o custo
+    //    das duas pernas. Era pelo retorno bruto: com a posição aberta a curva
+    //    ficava ~0,2% acima do que dava para realizar e caía de uma vez na
+    //    saída. Isso punha picos na curva que nenhum operador teria tido — e o
+    //    drawdown e o Sharpe são medidos a partir deles.
     if (!enxuto) {
       const fechamentoDoCandle = fechamentos[i]
       let capitalMarcado = capital
       if (posicao) {
         const naoRealizado =
           fechamentoDoCandle !== null
-            ? retornoBrutoDe(posicao.precoEntrada, fechamentoDoCandle, direcao)
+            ? retornoLiquidoDe(posicao.precoEntrada, fechamentoDoCandle, direcao, custoPercentual) ?? 0
             : 0
         capitalMarcado = capital * (1 + (posicao.fracaoCapital * naoRealizado) / 100)
       }

@@ -348,6 +348,23 @@ describe('utils/backtest › métricas', () => {
     expect(r.metricas.drawdownMaximo).toBeCloseTo(-50, 6)
   })
 
+  it('deve marcar a posição aberta pelo que ela devolveria fechando agora', () => {
+    // Preço parado e custo de 0,1% por perna: enquanto a posição existe,
+    // fechá-la devolveria ~0,2% a menos. Marcada sem custo, a curva ficava em
+    // 1.000 até a saída e caía de uma vez ali — um degrau que não é movimento
+    // de preço, e um valor que nenhum operador teria conseguido realizar.
+    const r = simular(
+      serie([{ ...parado(100), martelo: true }, parado(100), parado(100), parado(100), parado(100)]),
+      { ...PADRAO, custoPercentual: 0.1, saidaPorTempo: 3 }
+    )
+    const { indiceEntrada, indiceSaida, capitalDepois } = r.trades[0]
+    const naPosicao = r.curva.filter((p) => p.indice >= indiceEntrada && p.indice <= indiceSaida)
+
+    expect(capitalDepois).toBeLessThan(1000)
+    expect(naPosicao).toHaveLength(3)
+    naPosicao.forEach((p) => expect(p.capital).toBeCloseTo(capitalDepois, 9))
+  })
+
   it('deve marcar amostra insuficiente abaixo de 20 trades concluídos', () => {
     const r = simular(
       serie([{ ...parado(100), martelo: true }, parado(100), parado(100)]),
