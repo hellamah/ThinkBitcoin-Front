@@ -1595,3 +1595,174 @@ entre front e .NET. O Python é referência de leitura (seção 3) e nada mais.
 - ~~**Desacoplar a paginação da tabela da série dos painéis** (A-02).~~ ✅ Feito
   em 2026-08-15: a tabela ganhou busca própria e a série de análise fixou a
   primeira página. Ver A-02.
+
+---
+
+## 13. D-04 — Mais dado fora da amostra ⬜ **em desenho**
+
+Nasceu como "a validação quase sempre tem poucas operações": 20% de 180 dias
+são 36 dias, e o card mostrava *"só 8 operação(ões): amostra curta"*. A saída
+óbvia era esticar a janela ou dividir a validação em vários trechos
+(walk-forward).
+
+Medir antes de desenhar mudou o diagnóstico. O "só 8" era do mock. Em dado real
+a amostra curta é problema de **parte** dos sinais — e apareceram dois problemas
+maiores, que nenhuma janela resolve sozinha.
+
+Medições de 2026-09-26, na API local, sobre ~750 dias (18.000 candles) de BTC,
+ETH e SOL. Regra de todas: comprado, segurando 5 candles, custo de 0,1%.
+
+### 13.1 O que a medição mostrou
+
+**1. A amostra da validação é curta só para os sinais raros.** BTC, os 14 sinais,
+corte 80/20:
+
+| Janela | Dias de validação | Operações na validação (mediana) | Sinais abaixo de 20 |
+|---|---|---|---|
+| 180 dias (hoje) | 36 | 30 | 4 de 14 |
+| 365 dias | 73 | 60 | 3 de 14 |
+| 730 dias | 146 | 121 | 0 de 14 |
+
+No ETH e no SOL, com 180 dias, são **7 de 15** abaixo de 20 — metade.
+
+Os sinais frequentes (padrões de candle, volume, VWAP) já passam de 20 hoje. Os
+que não passam são os raros: divergências e extremos de RSI nas três moedas, e
+no ETH e no SOL também doji, ticket alto e rompimento da banda inferior. Somam-se
+a eles as regras com filtro de tendência ou confirmação, que cortam as entradas
+— justamente para onde o usuário vai quando refina uma regra.
+
+**2. O trecho reservado não está reservado.** O card "Fora da amostra" e o
+veredito mostram o alfa da validação ao vivo, para **toda** configuração
+testada. Quem ajusta olhando o card está escolhendo pela validação, e depois de
+vinte tentativas ela é um segundo trecho de ajuste.
+
+O próprio painel já sabia disso em outro lugar. O mapa de sensibilidade
+([sensibilidade.js](../src/src/utils/sensibilidade.js)) roda **só no ajuste**, e
+o comentário diz por quê: *mostrar a validação ali daria ao usuário 36
+combinações para escolher olhando o trecho reservado*. O card faz,
+configuração por configuração, o que o mapa se recusa a fazer de uma vez. E a
+contagem de tentativas sobe o limiar da régua aleatória (Bonferroni), mas não
+entra em nada que diga respeito à validação.
+
+**3. Escolher pelo ranking não tem habilidade medida fora da amostra.** O
+ranking ordena os sinais pelo alfa do ajuste, e a primeira linha convida a
+escolher. Para medir se essa escolha funciona, um protótipo de walk-forward do
+**procedimento**: a cada 30 dias, escolher o sinal de maior alfa nos N dias
+anteriores e operá-lo nos 30 seguintes. Os sinais são causais desde o A-19,
+então são montados uma vez e valem para todas as dobras.
+
+A comparação que importa não é com a média dos sinais. É com um **controle que
+não olha resultado nenhum**: o sinal que menos operou no treino. O motivo é o
+mesmo do A-17 — quem opera menos paga menos custo, e isso sozinho já põe um
+sinal acima da média.
+
+| Moeda | Treino | Escolhido pelo alfa | Controle (menos operações) | Buy & hold | Posição no mês seguinte (escolhido / controle) |
+|---|---|---|---|---|---|
+| BTC | 60 d | −30,2% | **+1,8%** | +0,2% | 0,67 / **0,78** |
+| BTC | 90 d | −14,5% | **−3,0%** | −23,2% | 0,72 / **0,79** |
+| BTC | 180 d | +2,1% | **+10,3%** | −11,1% | 0,77 / **0,82** |
+| ETH | 60 d | −56,2% | **−12,7%** | −16,7% | 0,57 / **0,64** |
+| ETH | 90 d | −37,9% | **−23,8%** | −38,4% | 0,60 / **0,61** |
+| ETH | 180 d | −31,6% | **−10,7%** | +9,5% | 0,56 / **0,57** |
+| SOL | 60 d | −44,9% | **+5,0%** | −50,2% | 0,58 / **0,60** |
+| SOL | 90 d | −71,1% | **+14,4%** | −57,9% | 0,44 / **0,63** |
+| SOL | 180 d | −50,8% | **+5,3%** | −28,5% | 0,51 / **0,60** |
+
+Posição: 0 é o pior sinal do mês seguinte, 1 o melhor, 0,5 o acaso. Retornos
+compostos sobre 18 a 22 dobras de 30 dias.
+
+**O controle ganha nas 9 de 9**, em retorno e em posição. A persistência que o
+escolhido parece ter (0,67 a 0,77 no BTC) é frequência de operação, não sinal. E
+o controle bater o buy & hold nas quedas também não é habilidade: é ficar fora
+do mercado a maior parte do tempo.
+
+Ou seja, a tabela de ranking convida a uma escolha que o dado diz não
+funcionar, e nem o alerta de sobreajuste nem o ▲ da sorte dizem isso. O ▲ julga
+cada linha contra o acaso **na mesma janela**; não diz se o topo da tabela
+continua no topo no mês seguinte, que é a pergunta de quem escolhe por ela.
+
+### 13.2 Opções
+
+**A. Janela maior, mesmo corte 80/20.**
+
+- Resolve o **1**, em parte: com 365 dias a mediana dobra (60), mas 3 de 14
+  sinais continuam abaixo de 20. Com 730, nenhum.
+- Não toca no **2** nem no **3**.
+- Custo medido:
+  - **Dado:** 3,7 MB por moeda hoje; 7,4 MB (365) ou 15 MB (730), em 2 a 4
+    requisições por causa do teto de 5.000 candles.
+  - **Thread da tela:** o ranking roda a cada clique num parâmetro de saída e vai
+    de 27 ms para 78 ms (365) e 172 ms (730). Com 730 ele precisa ir para o
+    worker.
+  - **Worker:** a sorte do ranking vai de 0,3 s para 0,5 s (365) e 1,1 s (730).
+
+**B. Walk-forward do procedimento de escolha.**
+
+- Uma aba nova em "Aprofundar": *"Escolher pelo passado funciona?"* — o
+  protótipo acima, com a regra de saída da tela, mostrando o escolhido, o
+  controle e o buy & hold, e a posição média.
+- Resolve o **3**, que é o único dos três que a tela hoje afirma o contrário.
+  E produz 100 a 500 operações fora da amostra, contra as ~30 do corte único.
+- Precisa de pelo menos 1 ano de série (2 anos dão 18 a 22 dobras). Pode ser
+  buscada **só quando a aba abre**, para a troca de moeda não pagar 15 MB.
+- Custo: o protótipo leva ~11 s por configuração, mas refaz o preparo da série
+  a cada dobra, porque o motor só tem início (`aPartirDe`) e não fim. Com um
+  limite de fim no `simular` e o modo enxuto no treino, são ~600 simulações de
+  60 a 180 dias cada — estimado em menos de 1 s no worker. **Estimativa, não
+  medida.**
+- Em aberto: só o sinal, ou também re-escolher stop e alvo na grade do mapa de
+  sensibilidade a cada dobra.
+
+**C. Validação cega (pré-registro).**
+
+- O card "Fora da amostra" e o veredito deixam de mostrar a validação até o
+  usuário **fixar** a configuração. Revelar grava no diário a configuração e o
+  resultado, com data. Mudar a regra e revelar de novo conta como outra olhada,
+  e o veredito diz quantas configurações já foram reveladas — Bonferroni na
+  validação, como a régua aleatória já tem.
+- Resolve o **2**. Custo pequeno: tela e `experimentos.js`, nenhum dado novo.
+- Muda o fluxo da tela: até fixar, o veredito não passa de "frágil", pela regra
+  do A-18 (validação ausente não é validação aprovada).
+- Versão mais fraca, **C'**: continuar mostrando e só contar as olhadas.
+
+**D. (Descartada) Validação em blocos da mesma janela.** Para uma regra escolhida
+olhando a janela inteira, os blocos dela não estão fora da amostra. É a aba
+"Por mês", que já existe.
+
+### 13.3 Recomendação
+
+**C, depois B, e A só se ainda fizer falta.**
+
+- **C primeiro** porque é barato e conserta o número que já está na tela. Mais
+  dado de validação (A) ou mais dobras (B) não adiantam enquanto a validação é
+  olhada a cada ajuste.
+- **B em seguida** porque responde a pergunta que o ranking levanta — e a
+  resposta medida hoje é "não", o que a tela precisa dizer. Ela traz a série
+  longa, sob demanda.
+- **A por último**, decidido depois do B, quando já se souber o custo real de
+  buscar a série longa. Independente disso, vale ativar compressão na API
+  (B-06 abaixo).
+
+### 13.4 Decisões em aberto
+
+1. **C:** esconder a validação até fixar a configuração (C), ou só contar as
+   olhadas (C')?
+2. **B:** só o sinal, ou também stop e alvo? Treino fixo (90 dias, o do meio) ou
+   escolhível?
+3. **A:** manter 180 dias por enquanto?
+4. **B-06** entra nesta entrega (é Back-DotNet)?
+
+### B-06 — A API não comprime a resposta 🟡
+
+Medido em 2026-09-26 direto na porta da API (13501), com `Accept-Encoding: gzip,
+br`: a resposta volta sem `Content-Encoding`, 3,7 MB para 180 dias. Com gzip a
+mesma resposta tem 0,58 MB — **6,4× menos**. A janela longa do D-04 (15 MB por
+moeda) passaria a ~2,3 MB.
+
+Não foi verificado se o ingress de produção comprime antes de entregar ao
+navegador — só a API direta. É a primeira coisa a conferir: se o ingress já
+comprime, B-06 não tem nada a fazer.
+
+Fica também anotado que o motor e os sinais leem 14 dos 25 campos de cada
+candle. Uma projeção enxuta cortaria os outros 11, mas mexe no contrato do
+endpoint; a compressão não mexe em nada.
