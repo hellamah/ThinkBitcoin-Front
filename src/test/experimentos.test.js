@@ -6,6 +6,8 @@ import {
   lerDiario,
   guardarNoDiario,
   removerDoDiario,
+  lerRevelacoes,
+  registrarRevelacao,
   MAX_DIARIO,
 } from '../src/utils/experimentos'
 
@@ -60,6 +62,36 @@ describe('utils/experimentos › tentativas', () => {
     }
     expect(() => registrarTentativa('BTC', 'a')).not.toThrow()
     expect(lerTentativas('BTC')).toEqual([])
+  })
+})
+
+describe('utils/experimentos › validação revelada', () => {
+  it('deve anotar cada configuração uma vez, com a data da primeira revelação', () => {
+    registrarRevelacao('BTC', 'a', new Date('2026-09-01T10:00:00Z'))
+    registrarRevelacao('BTC', 'b', new Date('2026-09-02T10:00:00Z'))
+    registrarRevelacao('BTC', 'a', new Date('2026-09-03T10:00:00Z'))
+    expect(lerRevelacoes('BTC')).toEqual([
+      { impressao: 'a', em: '2026-09-01T10:00:00.000Z' },
+      { impressao: 'b', em: '2026-09-02T10:00:00.000Z' },
+    ])
+  })
+
+  it('deve separar por moeda', () => {
+    registrarRevelacao('BTC', 'a')
+    expect(lerRevelacoes('ETH')).toEqual([])
+  })
+
+  it('não deve ser apagada junto com as tentativas', () => {
+    // Zerar a contagem é decisão de quem testa; desver um resultado não é.
+    registrarTentativa('BTC', 'a')
+    registrarRevelacao('BTC', 'a')
+    zerarTentativas('BTC')
+    expect(lerRevelacoes('BTC')).toHaveLength(1)
+  })
+
+  it('deve descartar registro malformado vindo do storage', () => {
+    window.localStorage.setItem('tb_sim_revelacoes_BTC', JSON.stringify([{ impressao: 'a' }, 7, { impressao: 'b', em: 'x' }]))
+    expect(lerRevelacoes('BTC')).toEqual([{ impressao: 'b', em: 'x' }])
   })
 })
 

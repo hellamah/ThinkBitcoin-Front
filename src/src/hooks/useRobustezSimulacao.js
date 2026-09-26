@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { executarRobustez, prepararContextoRobustez } from '../utils/tarefaRobustez'
+import { executarRobustez, prepararContextoRobustez, TrechoRobustez } from '../utils/tarefaRobustez'
 
 // Espera depois do último ajuste antes de pedir as medições. Digitar "2,5" no
 // campo de stop passa por "2" e "2,": sem a espera, cada tecla dispararia uma
@@ -34,9 +34,11 @@ const criarWorker = () => {
  * @param {string|null} params.aPartirDe
  * @param {object|null} params.opcoes - Opções completas da simulação, sem a
  *   série de sinais (ela é montada do outro lado).
+ * @param {string} [params.trecho] - `TrechoRobustez`: onde a régua aleatória
+ *   mede a estratégia. Enquanto a validação está reservada, no ajuste.
  * @returns {{acaso: object|null, mapa: object|null, sorte: object|null, calculando: boolean}}
  */
-export default function useRobustezSimulacao({ registros, aPartirDe, opcoes }) {
+export default function useRobustezSimulacao({ registros, aPartirDe, opcoes, trecho = TrechoRobustez.CHEIA }) {
   const [estado, setEstado] = useState(VAZIO)
   const workerRef = useRef(null)
   const contextoLocalRef = useRef(null)
@@ -114,14 +116,14 @@ export default function useRobustezSimulacao({ registros, aPartirDe, opcoes }) {
     setEstado((atual) => (atual.calculando ? atual : { ...atual, calculando: true }))
 
     const timer = setTimeout(() => {
-      const pedido = { opcoes }
+      const pedido = { opcoes, trecho }
       ultimoRef.current = { id, pedido }
       if (workerRef.current) workerRef.current.postMessage({ tipo: 'calcular', id, pedido })
       else executarLocal(id, pedido)
     }, ATRASO_MS)
 
     return () => clearTimeout(timer)
-  }, [registros, aPartirDe, opcoes, executarLocal])
+  }, [registros, aPartirDe, opcoes, trecho, executarLocal])
 
   return estado
 }

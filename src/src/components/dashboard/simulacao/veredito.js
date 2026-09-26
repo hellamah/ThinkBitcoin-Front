@@ -36,10 +36,20 @@ const frase = (chave, valores = {}) => ({ chave, valores })
  * @param {number} entrada.limiar - Percentil exigido da régua (Bonferroni).
  * @param {object|null} entrada.bootstrap - Intervalo do retorno.
  * @param {object|null} entrada.validacao - Simulação no trecho reservado.
+ * @param {boolean} [entrada.reservada] - A validação existe, mas ainda não foi
+ *   revelada: a regra não foi fixada.
  * @returns {{tom: string, titulo: {chave: string, valores: object},
  *   frases: Array<{chave: string, valores: object}>}}
  */
-export const montarVeredito = ({ metricas, acaso, calculando = false, limiar, bootstrap, validacao }) => {
+export const montarVeredito = ({
+  metricas,
+  acaso,
+  calculando = false,
+  limiar,
+  bootstrap,
+  validacao,
+  reservada = false,
+}) => {
   const frases = []
   const alfa = metricas.alfa
   const temAlfa = alfa !== null && alfa !== undefined && Number.isFinite(alfa)
@@ -76,9 +86,11 @@ export const montarVeredito = ({ metricas, acaso, calculando = false, limiar, bo
   // motivo à vista.
   const operouNaValidacao = Boolean(validacao && validacao.trades.length > 0)
   frases.push(
-    operouNaValidacao
-      ? frase('simulationVerdictValidation', { valor: pct(validacao.metricas.alfa) })
-      : frase('simulationVerdictValidationNone')
+    reservada
+      ? frase('simulationVerdictValidationReserved')
+      : operouNaValidacao
+        ? frase('simulationVerdictValidation', { valor: pct(validacao.metricas.alfa) })
+        : frase('simulationVerdictValidationNone')
   )
 
   if (metricas.amostraInsuficiente) {
@@ -95,6 +107,13 @@ export const montarVeredito = ({ metricas, acaso, calculando = false, limiar, bo
   // Sem operação no trecho reservado não há alfa de validação — e não haver o
   // número não é o número ter sido positivo. Contar isso como "sem perda"
   // aprovava justamente a regra que nunca foi testada fora da amostra.
+  // Com a validação ainda guardada, uma regra que passou em tudo o que se pode
+  // ver não é "frágil" — ela está pronta para o teste que falta. O título diz
+  // isso, e continua sem dizer "passou": sem validação não há aprovação (A-18).
+  if (reservada && passouAcaso && icPositivo) {
+    return { tom: TomVeredito.ALERTA, titulo: frase('simulationVerdictAwaitingValidation'), frases }
+  }
+
   const validouSemPerda = operouNaValidacao && validacao.metricas.alfa > 0
   const passou = passouAcaso && icPositivo && validouSemPerda
   return {
@@ -115,15 +134,24 @@ export const montarVeredito = ({ metricas, acaso, calculando = false, limiar, bo
  * @param {object} entrada.metricas
  * @param {number} entrada.descontinuidades - Quantos buracos a série tem.
  * @param {object|null} entrada.validacao
+ * @param {number|null} [entrada.diasJanela] - Dias que a série cobre. Com a
+ *   validação reservada, as métricas são só do ajuste, e medir a cobertura
+ *   por elas anunciaria "janela curta" em toda simulação.
+ * @param {number} [entrada.revelacoes] - Quantas regras desta moeda já tiveram
+ *   a validação revelada, quando a atual é uma delas; zero quando não é.
  * @returns {Array<{chave: string, valores: object}>}
  */
-export const montarRessalvas = ({ metricas, descontinuidades = 0, validacao }) => {
+export const montarRessalvas = ({
+  metricas,
+  descontinuidades = 0,
+  validacao,
+  diasJanela = null,
+  revelacoes = 0,
+}) => {
   const ressalvas = []
 
-  const dias =
-    metricas.diasAnalisados !== null && metricas.diasAnalisados !== undefined
-      ? Math.round(metricas.diasAnalisados)
-      : null
+  const cobertura = diasJanela ?? metricas.diasAnalisados
+  const dias = cobertura !== null && cobertura !== undefined ? Math.round(cobertura) : null
   if (dias !== null && dias < DIAS_JANELA_SIMULACAO) {
     ressalvas.push(frase('simulationWindowShort', { pedidos: DIAS_JANELA_SIMULACAO, dias }))
   }
@@ -136,6 +164,11 @@ export const montarRessalvas = ({ metricas, descontinuidades = 0, validacao }) =
       frase('simulationCaveatValidation', { count: opsValidacao, minimo: MINIMO_TRADES_CONCLUSIVO })
     )
   }
+
+  // Cada regra revelada usa o MESMO trecho reservado. Com várias, a melhor
+  // delas pode ter passado por sorte — é o problema que a validação existe
+  // para resolver, voltando pela porta dos fundos.
+  if (revelacoes > 1) ressalvas.push(frase('simulationCaveatRevealedMany', { count: revelacoes }))
 
   return ressalvas
 }

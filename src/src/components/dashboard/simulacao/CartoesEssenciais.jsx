@@ -2,6 +2,7 @@ import React from 'react'
 
 import RotuloComAjuda from '../RotuloComAjuda'
 import { FRACAO_VALIDACAO_PADRAO, MINIMO_TRADES_CONCLUSIVO } from '../../../utils/backtest'
+import { toLocalChartLabel } from '../../../utils/dateUtils'
 import { classeSinal, pct } from './formatacao'
 
 const LARGURA = 140
@@ -50,8 +51,11 @@ const MiniDistribuicao = ({ distribuicao, real }) => {
  * escolhido? quantas operações sustentam isso? As outras leituras (drawdown,
  * Sharpe, custo, intervalo, dependência das melhores) continuam no painel,
  * dentro de "Dá para confiar?".
+ *
+ * O do meio guarda a validação até a regra ser fixada, e é nele que se fixa:
+ * é o card que ela ocupa depois de revelada.
  */
-export default function CartoesEssenciais({ metricas, robustez, validacao, disparo, fraco, t }) {
+export default function CartoesEssenciais({ metricas, robustez, validacao, disparo, fraco, reserva, t, locale }) {
   const { acaso, calculando } = robustez
   const operouNaValidacao = Boolean(validacao && validacao.trades.length > 0)
   const opsValidacao = validacao?.metricas.tradesConcluidos ?? 0
@@ -79,18 +83,37 @@ export default function CartoesEssenciais({ metricas, robustez, validacao, dispa
 
       <div className="intel-card">
         <RotuloComAjuda className="intel-label" texto={t('simulationOutOfSample')} ajuda={t('ajuda.simHoldout')} />
-        <div className={`intel-value ${operouNaValidacao ? classeSinal(validacao.metricas.alfa) || '' : ''}`}>
-          {operouNaValidacao ? pct(validacao.metricas.alfa) : '—'}
-        </div>
-        <div className="intel-subvalue" style={{ opacity: 0.7 }}>
-          {operouNaValidacao
-            ? t('simulationOutOfSampleSub', { fracao: Math.round(FRACAO_VALIDACAO_PADRAO * 100) })
-            : t('simulationOutOfSampleNone')}
-        </div>
-        {operouNaValidacao && opsValidacao < MINIMO_TRADES_CONCLUSIVO && (
-          <div className="intel-subvalue simulation-nota-alerta">
-            {t('simulationOutOfSampleShort', { count: opsValidacao })}
-          </div>
+        {reserva?.reservada ? (
+          <>
+            <div className="intel-value simulation-reservada">{t('simulationReservedValue')}</div>
+            <div className="intel-subvalue" style={{ opacity: 0.7 }}>
+              {t('simulationReservedSub', { fracao: Math.round(FRACAO_VALIDACAO_PADRAO * 100) })}
+            </div>
+            <button type="button" className="pill-toggle ativo simulation-revelar" onClick={reserva.onRevelar}>
+              {t('simulationReveal')}
+            </button>
+          </>
+        ) : (
+          <>
+            <div className={`intel-value ${operouNaValidacao ? classeSinal(validacao.metricas.alfa) || '' : ''}`}>
+              {operouNaValidacao ? pct(validacao.metricas.alfa) : '—'}
+            </div>
+            <div className="intel-subvalue" style={{ opacity: 0.7 }}>
+              {operouNaValidacao
+                ? t('simulationOutOfSampleSub', { fracao: Math.round(FRACAO_VALIDACAO_PADRAO * 100) })
+                : t('simulationOutOfSampleNone')}
+            </div>
+            {operouNaValidacao && opsValidacao < MINIMO_TRADES_CONCLUSIVO && (
+              <div className="intel-subvalue simulation-nota-alerta">
+                {t('simulationOutOfSampleShort', { count: opsValidacao })}
+              </div>
+            )}
+            {reserva?.reveladaEm && (
+              <div className="intel-subvalue" style={{ opacity: 0.5 }}>
+                {t('simulationRevealedOn', { data: toLocalChartLabel(reserva.reveladaEm, locale) })}
+              </div>
+            )}
+          </>
         )}
       </div>
 

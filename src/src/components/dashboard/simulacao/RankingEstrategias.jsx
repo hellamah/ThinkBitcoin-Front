@@ -3,6 +3,7 @@ import { MdLeaderboard, MdWarningAmber } from 'react-icons/md'
 
 import RotuloComAjuda from '../RotuloComAjuda'
 import { MINIMO_TRADES_CONCLUSIVO } from '../../../utils/backtest'
+import { impressaoDaConfiguracao } from '../../../utils/parametrosSimulacao'
 import { classeSinal, pct, resumoDaRegra } from './formatacao'
 
 /**
@@ -26,11 +27,37 @@ const validacaoCurta = (linha) =>
  * uma tabela de N sinais parece bom por construção; a linha de sorte esperada
  * diz até ONDE — o alfa que o melhor de N sinais sorteados alcança. Linha acima
  * do percentil 95 dessa régua recebe a marca.
+ *
+ * **Os números são todos do AJUSTE.** A tabela mostrava também a janela cheia,
+ * e ela contém o trecho reservado: catorze regras com a validação embutida no
+ * retorno, prontas para escolher olhando-a. A validação aparece só na linha
+ * cuja regra já foi fixada — a regra da linha é a da tela com aquele sinal.
+ * Sem trecho reservado (janela curta demais para cortar), a tabela mostra a
+ * janela inteira, que é tudo o que existe.
  */
-export default function RankingEstrategias({ comparativo, sorte, calculando, parametros, onParametro, t }) {
+export default function RankingEstrategias({
+  comparativo,
+  sorte,
+  calculando,
+  parametros,
+  onParametro,
+  impressoesReveladas = null,
+  t,
+}) {
   if (!comparativo || comparativo.linhas.length < 2) {
     return <p className="simulation-vazio">{t('simulationNoTrades')}</p>
   }
+
+  const temAjuste = comparativo.linhas.some((l) => l.tradesAjuste !== null)
+  const numeros = (linha) =>
+    temAjuste
+      ? { trades: linha.tradesAjuste, retorno: linha.retornoAjuste, alfa: linha.alfaAjuste }
+      : { trades: linha.metricas.tradesConcluidos, retorno: linha.metricas.retornoTotal, alfa: linha.metricas.alfa }
+  // Sem o conjunto (quem usa o painel sem a tela que reserva a validação),
+  // nada está guardado.
+  const revelada = (linha) =>
+    impressoesReveladas === null ||
+    impressoesReveladas.has(impressaoDaConfiguracao({ ...parametros, sinalEntrada: linha.sinal }))
 
   const acimaDaSorte = (linha) =>
     sorte && linha.alfaAjuste !== null && linha.alfaAjuste > sorte.p95
@@ -47,6 +74,7 @@ export default function RankingEstrategias({ comparativo, sorte, calculando, par
       {/* Sob qual regra a tabela foi montada. A ordem das linhas é
           inteiramente condicional a isto. */}
       <p className="simulation-regra-saida">{resumoDaRegra(parametros, t)}</p>
+      {temAjuste && <p className="correlation-hint">{t('simulationRankingTuningOnly')}</p>}
 
       {sorte ? (
         <p className={`simulation-sorte ${calculando ? 'simulation-desatualizado' : ''}`}>
@@ -68,21 +96,26 @@ export default function RankingEstrategias({ comparativo, sorte, calculando, par
               <th scope="col">{t('simulationTrades')}</th>
               <th scope="col">{t('simulationReturn')}</th>
               <th scope="col">{t('simulationAlpha')}</th>
-              {/* Ajuste e validação, lado a lado. É o par que mede degradação
-                  de verdade: eles não se sobrepõem, enquanto a coluna de alfa
-                  (janela cheia) CONTÉM o trecho de validação. */}
-              <th scope="col">{t('simulationTuning')}</th>
-              <th scope="col">
-                <RotuloComAjuda texto={t('simulationValidation')} ajuda={t('ajuda.simHoldout')} />
-              </th>
+              {/* A validação ao lado do ajuste é o par que mede degradação:
+                  eles não se sobrepõem. Mas só nas regras já fixadas. */}
+              {temAjuste && (
+                <th scope="col">
+                  <RotuloComAjuda texto={t('simulationValidation')} ajuda={t('ajuda.simHoldout')} />
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
-            {comparativo.linhas.map((linha) => (
+            {comparativo.linhas.map((linha) => {
+              const n = numeros(linha)
+              // "Não operou" não é "rendeu zero": as colunas ficam vazias em
+              // vez de fingir um resultado.
+              const operou = n.alfa !== null && n.alfa !== undefined
+              return (
               <tr
                 key={linha.sinal}
                 className={[
-                  linha.metricas.amostraInsuficiente ? 'signal-lab-fraco' : '',
+                  (n.trades ?? 0) < MINIMO_TRADES_CONCLUSIVO ? 'signal-lab-fraco' : '',
                   linha.sinal === parametros.sinalEntrada ? 'simulation-linha-ativa' : '',
                 ].filter(Boolean).join(' ') || undefined}
               >
@@ -98,13 +131,10 @@ export default function RankingEstrategias({ comparativo, sorte, calculando, par
                     {t(`signal_${linha.sinal}`)}
                   </button>
                 </th>
-                <td>{linha.metricas.tradesConcluidos}</td>
-                <td className={classeSinal(linha.metricas.retornoTotal)}>{pct(linha.metricas.retornoTotal)}</td>
-                <td className={classeSinal(linha.metricas.alfa)}>{pct(linha.metricas.alfa)}</td>
-                {/* "Não operou" não é "rendeu zero": as colunas ficam vazias em
-                    vez de fingir um resultado. */}
-                <td className={classeSinal(linha.alfaAjuste)}>
-                  {linha.alfaAjuste === null ? '—' : `${pct(linha.alfaAjuste)} (${linha.tradesAjuste})`}
+                <td>{n.trades ?? '—'}</td>
+                <td className={operou ? classeSinal(n.retorno) : undefined}>{operou ? pct(n.retorno) : '—'}</td>
+                <td className={operou ? classeSinal(n.alfa) : undefined}>
+                  {operou ? pct(n.alfa) : '—'}
                   {acimaDaSorte(linha) && (
                     <span
                       className="simulation-acima-sorte"
@@ -117,26 +147,32 @@ export default function RankingEstrategias({ comparativo, sorte, calculando, par
                 </td>
                 {/* A validação é 20% da janela, então ela SEMPRE tem cerca de
                     um quinto das operações — e cai abaixo do mínimo conclusivo
-                    com frequência mesmo quando a janela cheia passa longe dele.
+                    com frequência mesmo quando o ajuste passa longe dele.
                     Marcar a célula impede a coluna mais importante da tabela de
                     ser também a única cujo tamanho de amostra ninguém confere. */}
-                <td
-                  className={[
-                    classeSinal(linha.alfaValidacao) || '',
-                    validacaoCurta(linha) ? 'simulation-amostra-curta' : '',
-                  ].filter(Boolean).join(' ') || undefined}
-                  title={
-                    validacaoCurta(linha)
-                      ? t('simulationHoldoutSmall', { minimo: MINIMO_TRADES_CONCLUSIVO })
-                      : undefined
-                  }
-                >
-                  {linha.alfaValidacao === null
-                    ? '—'
-                    : `${pct(linha.alfaValidacao)} (${linha.tradesValidacao})`}
-                </td>
+                {temAjuste &&
+                  (revelada(linha) ? (
+                    <td
+                      className={[
+                        classeSinal(linha.alfaValidacao) || '',
+                        validacaoCurta(linha) ? 'simulation-amostra-curta' : '',
+                      ].filter(Boolean).join(' ') || undefined}
+                      title={
+                        validacaoCurta(linha)
+                          ? t('simulationHoldoutSmall', { minimo: MINIMO_TRADES_CONCLUSIVO })
+                          : undefined
+                      }
+                    >
+                      {linha.alfaValidacao === null
+                        ? '—'
+                        : `${pct(linha.alfaValidacao)} (${linha.tradesValidacao})`}
+                    </td>
+                  ) : (
+                    <td className="simulation-reservada">{t('simulationReservedValue')}</td>
+                  ))}
               </tr>
-            ))}
+              )
+            })}
           </tbody>
         </table>
       </div>

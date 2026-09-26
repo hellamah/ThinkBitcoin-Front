@@ -1,7 +1,7 @@
-// Memória da simulação: quantas configurações já foram testadas e quais foram
-// guardadas para comparar.
+// Memória da simulação: quantas configurações já foram testadas, quais foram
+// guardadas para comparar e quais já tiveram a validação revelada.
 //
-// As duas coisas vivem no localStorage, por moeda. Não são dado da conta — são
+// As três coisas vivem no localStorage, por moeda. Não são dado da conta — são
 // o rastro do que ESTA pessoa olhou NESTE navegador, e a contagem só serve
 // enquanto descreve isso. Mandá-la para o backend faria dela uma métrica sobre
 // o usuário, que não é o que ela é.
@@ -22,6 +22,7 @@ export const MAX_DIARIO = 10
 
 const chaveTentativas = (sigla) => `tb_sim_tentativas_${sigla}`
 const chaveDiario = (sigla) => `tb_sim_diario_${sigla}`
+const chaveRevelacoes = (sigla) => `tb_sim_revelacoes_${sigla}`
 
 const lerLista = (chave) => {
   try {
@@ -125,5 +126,44 @@ export const guardarNoDiario = (sigla, entrada) => {
 export const removerDoDiario = (sigla, id) => {
   const nova = lerDiario(sigla).filter((e) => e.id !== id)
   if (sigla) gravarLista(chaveDiario(sigla), nova)
+  return nova
+}
+
+// ---------------------------------------------------------------------------
+// Validação revelada
+// ---------------------------------------------------------------------------
+// O trecho de validação só vale enquanto não é olhado. A tela o guarda até a
+// pessoa fixar uma regra; fixar é revelar, e revelar não se desfaz — quem viu
+// o resultado não deixa de tê-lo visto. Por isso não há "desrevelar", nem aqui
+// nem na tela.
+
+/**
+ * Configurações desta moeda cuja validação já foi revelada, na ordem em que
+ * foram reveladas.
+ *
+ * @param {string|null} sigla
+ * @returns {Array<{impressao: string, em: string}>}
+ */
+export const lerRevelacoes = (sigla) =>
+  sigla
+    ? lerLista(chaveRevelacoes(sigla)).filter(
+        (r) => r && typeof r.impressao === 'string' && typeof r.em === 'string'
+      )
+    : []
+
+/**
+ * Anota a configuração como revelada. Revelar de novo a mesma não conta outra
+ * vez, e mantém a data da primeira: é dela que o resultado deixou de ser cego.
+ *
+ * @param {string|null} sigla
+ * @param {string} impressao - Ver `impressaoDaConfiguracao`.
+ * @param {Date} [agora]
+ * @returns {Array<{impressao: string, em: string}>} - A lista depois.
+ */
+export const registrarRevelacao = (sigla, impressao, agora = new Date()) => {
+  const lista = lerRevelacoes(sigla)
+  if (!sigla || !impressao || lista.some((r) => r.impressao === impressao)) return lista
+  const nova = [...lista, { impressao, em: agora.toISOString() }].slice(-MAX_TENTATIVAS)
+  gravarLista(chaveRevelacoes(sigla), nova)
   return nova
 }

@@ -1599,7 +1599,7 @@ entre front e .NET. O Python é referência de leitura (seção 3) e nada mais.
 
 ---
 
-## 13. D-04 — Mais dado fora da amostra ⬜ **em desenho**
+## 13. D-04 — Mais dado fora da amostra 🟡 **C feito; B a seguir**
 
 > O D-04 foi desenhado com a simulação ainda no dashboard. Desde o D-05 ela tem
 > tela própria, e é lá que as opções B e C entram — o custo novo delas não cai
@@ -1748,14 +1748,82 @@ olhando a janela inteira, os blocos dela não estão fora da amostra. É a aba
   buscar a série longa. Independente disso, vale ativar compressão na API
   (B-06 abaixo).
 
-### 13.4 Decisões em aberto
+### 13.4 Decisões
 
-1. **C:** esconder a validação até fixar a configuração (C), ou só contar as
-   olhadas (C')?
-2. **B:** só o sinal, ou também stop e alvo? Treino fixo (90 dias, o do meio) ou
-   escolhível?
-3. **A:** manter 180 dias por enquanto?
-4. **B-06** entra nesta entrega (é Back-DotNet)?
+1. **C:** esconder a validação até fixar a configuração. ✅ **Decidido e
+   implementado** — ver 13.5.
+2. **B:** só o sinal, com treino fixo de 90 dias. ✅ Decidido; ainda não
+   implementado. Stop e alvo na grade multiplicariam a conta por 36 e
+   embaralhariam a leitura; treino escolhível recriaria o problema do C
+   (testar tamanhos até um parecer bom).
+3. **A:** manter 180 dias por enquanto. ✅ Decidido; reavaliar depois do B,
+   que traz a série longa sob demanda.
+4. **B-06:** ⬜ depende de saber se o que fica na frente da API em produção já
+   comprime.
+
+### 13.5 C — Validação cega ✅ **implementada**
+
+**O desenho do 13.2 estava incompleto, e só apareceu ao implementar.**
+Esconder o card "Fora da amostra" e a frase do veredito não esconderia a
+validação: o retorno, a curva, a aba "Por mês", as operações e a régua
+aleatória eram todos calculados sobre a janela **cheia** — que contém o trecho
+reservado. Quem ajustasse olhando a curva estaria olhando a validação do mesmo
+jeito, e o card escondido seria teatro.
+
+A versão que conserta de verdade: **enquanto a regra não é fixada, a tela
+inteira é do trecho de ajuste.** Fixar é revelar: aí aparecem a validação e a
+janela cheia, para aquela regra.
+
+| Parte da tela | Validação reservada | Regra fixada |
+|---|---|---|
+| Retorno, curva, cards, "Dá para confiar?", operações, excursão, "Por mês" | trecho de ajuste | janela cheia |
+| Régua aleatória | medida no ajuste (`TrechoRobustez.AJUSTE`) | na janela cheia |
+| Linha da janela | *"96 dias de ajuste · 2305 candles · 24 dias reservados"* | *"120 dias · 2881 candles"* |
+| Card "Fora da amostra" | "Reservada" + botão **Fixar regra e revelar** | o alfa da validação + *"revelada em …"* |
+| Veredito | *"Passou no ajuste — falta a validação"* quando o resto passou; nunca "passou" (A-18) | como antes |
+| Ranking | sempre números do **ajuste**; validação só na linha da regra já fixada | idem |
+| Mapa de sensibilidade, sorte do ranking | ajuste (já eram) | ajuste |
+
+Detalhes que a implementação decidiu:
+
+- **Qualquer mudança de parâmetro é outra regra**, e volta a ser só ajuste. A
+  identidade é a mesma `impressaoDaConfiguracao` que conta tentativas.
+- **Revelar não se desfaz.** Fica no localStorage por moeda
+  (`registrarRevelacao`), com a data da primeira vez, e não é apagado junto com
+  as tentativas: zerar a contagem é decisão de quem testa; desver um resultado
+  não é.
+- **Fixar grava no diário** a regra, os números do ajuste que a escolheram e a
+  validação revelada: o registro do que se decidiu antes de ver a prova. O
+  diário passa a guardar sempre o ajuste, e guardar uma regra já fixada não
+  sobrescreve o registro com números da janela cheia.
+- **Várias revelações gastam o trecho.** Todas usam o mesmo trecho reservado;
+  a partir da segunda regra revelada numa moeda, o veredito ganha a ressalva de
+  que a que passou pode ter passado por sorte. Sem inventar um número de
+  correção para isso — a contagem e o aviso são o que se sustenta.
+- **O ranking perdeu as colunas de janela cheia.** Mostrava retorno e alfa da
+  janela inteira — catorze regras com a validação embutida, prontas para
+  escolher olhando-a. Agora é tudo do ajuste; `compararEstrategias` passou a
+  devolver `retornoAjuste`.
+- **A janela desliza.** Ela termina "agora", então o trecho reservado anda um
+  dia por dia. Uma regra revelada continua revelada — o que foi visto foi
+  visto —, e com o tempo o trecho reservado passa a conter dias que ninguém viu.
+
+**Verificado na tela (mock, BTC, segurando 3):** antes de fixar, retorno do
+ajuste −85,54% e alfa −88,78%; depois de fixar, a tabela "ajuste × validação"
+mostra exatamente esses dois números na linha do ajuste, e a validação
+(−16,02%) aparece no card, no veredito e no diário. Trocar para 5 candles volta
+a "Reservada"; voltar a 3, revelada de novo; recarregar a página, continua. No
+ranking, 1 das 14 linhas com validação. Nenhum erro de console num roteiro de
+troca de regra, de moeda e revelação no ETH.
+
+**Testes:** `registrarRevelacao` (uma vez por regra, data da primeira,
+separado por moeda, imune a zerar tentativas, registro malformado);
+`retornoAjuste` igual ao de simular o ajuste; régua aleatória no ajuste igual
+ao retorno do ajuste, na cheia igual ao da cheia, sem misturar as duas na
+memória; veredito "falta a validação" e seus limites; ressalva de várias
+revelações; cobertura da janela medida pela série e não pelo ajuste; tela com
+card reservado, botão, linha da janela, tabela escondida e ranking com a
+validação só na regra fixada.
 
 ### B-06 — A API não comprime a resposta 🟡
 

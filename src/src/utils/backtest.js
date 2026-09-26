@@ -1155,6 +1155,11 @@ export const compararEstrategias = (registros, opcoes = {}) => {
         // os dois é a única medida limpa de quanto o resultado sobrevive fora
         // da amostra.
         alfaAjuste: ajuste && ajuste.trades.length > 0 ? ajuste.metricas.alfa : null,
+        // O retorno do ajuste vai junto porque, com a validação reservada, a
+        // tabela inteira passa a ser do trecho de ajuste: a janela cheia
+        // contém o trecho reservado, e exibi-la seria mostrá-lo por outro
+        // caminho.
+        retornoAjuste: ajuste && ajuste.trades.length > 0 ? ajuste.metricas.retornoTotal : null,
         tradesAjuste: ajuste ? ajuste.metricas.tradesConcluidos : null,
       }
     })

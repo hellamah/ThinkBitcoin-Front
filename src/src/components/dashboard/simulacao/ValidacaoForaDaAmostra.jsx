@@ -10,9 +10,11 @@ import { classeSinal, pct } from './formatacao'
  *
  * Fica fora das abas: é a única leitura que julga a escolha dos parâmetros, e
  * escondê-la atrás de um clique seria deixar à vista só os números que se
- * escolhe.
+ * escolhe. Até a regra ser fixada, ela fica guardada — a mesma razão, pelo
+ * outro lado: mostrá-la a cada ajuste faria dela um número que se escolhe.
  */
-export default function ValidacaoForaDaAmostra({ ajuste, validacao, t }) {
+export default function ValidacaoForaDaAmostra({ ajuste, validacao, reservada = false, t }) {
+  if (reservada) return <p className="simulation-vazio">{t('simulationHoldoutReserved')}</p>
   if (!ajuste || !validacao) return <p className="simulation-vazio">{t('simulationTooShort')}</p>
 
   return (

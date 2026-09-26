@@ -15,7 +15,7 @@ import {
 } from '../src/utils/robustez'
 import { compararComAcaso } from '../src/utils/acaso'
 import { mapaDeSensibilidade } from '../src/utils/sensibilidade'
-import { PARAMETROS_PADRAO } from '../src/utils/parametrosSimulacao'
+import { PARAMETROS_PADRAO, impressaoDaConfiguracao } from '../src/utils/parametrosSimulacao'
 import { CandlePattern } from '../src/utils/candlePatterns'
 import { serie } from './fixtures/candlesSimulacao'
 
@@ -272,5 +272,57 @@ describe('SimulationPanel › tela própria', () => {
     unmount()
     render(<SimulationPanel {...montarProps()} />)
     expect(screen.getByRole('heading', { level: 2, name: 'simulation' })).toBeTruthy()
+  })
+})
+
+describe('SimulationPanel › validação reservada', () => {
+  const reserva = (extra = {}) => ({
+    reservada: true,
+    revelada: false,
+    reveladaEm: null,
+    revelacoes: 0,
+    impressoesReveladas: new Set(),
+    diasJanela: 180,
+    diasReservados: 36,
+    onRevelar: vi.fn(),
+    ...extra,
+  })
+
+  it('deve guardar a validação e oferecer fixar a regra', () => {
+    const r = reserva()
+    render(<SimulationPanel {...montarProps({ validacao: null, ajuste: null })} reserva={r} />)
+
+    expect(screen.getByText('simulationReservedValue')).toBeTruthy()
+    expect(screen.queryByText('simulationOutOfSampleSub')).toBeNull()
+    clicar('simulationReveal')
+    expect(r.onRevelar).toHaveBeenCalledTimes(1)
+  })
+
+  it('deve dizer na linha da janela que os números são do ajuste', () => {
+    // Sem provider, `t` devolve a chave: basta saber qual chave foi usada.
+    render(<SimulationPanel {...montarProps({ validacao: null, ajuste: null })} reserva={reserva()} />)
+    expect(screen.getByText('simulationWindowReserved')).toBeTruthy()
+    expect(screen.queryByText('simulationWindow')).toBeNull()
+  })
+
+  it('não deve mostrar o ajuste contra a validação antes de a regra ser fixada', () => {
+    render(<SimulationPanel {...montarProps({ validacao: null, ajuste: null })} reserva={reserva()} />)
+    clicar(/simulationTrust/)
+    expect(screen.getByText('simulationHoldoutReserved')).toBeTruthy()
+    expect(screen.queryByText('simulationHoldout')).toBeNull()
+  })
+
+  it('deve guardar a validação do ranking, menos na linha da regra já fixada', () => {
+    const props = montarProps()
+    const fixada = impressaoDaConfiguracao(props.parametros)
+    render(<SimulationPanel {...props} reserva={reserva({ reservada: false, revelada: true, impressoesReveladas: new Set([fixada]) })} />)
+    clicar('simulationTabRanking')
+
+    const linhas = screen.getAllByRole('row').slice(1)
+    const daRegra = linhas.find((l) => l.textContent.includes(`signal_${props.parametros.sinalEntrada}`))
+    const outras = linhas.filter((l) => l !== daRegra)
+    expect(daRegra.textContent).not.toContain('simulationReservedValue')
+    expect(outras.length).toBeGreaterThan(0)
+    outras.forEach((l) => expect(l.textContent).toContain('simulationReservedValue'))
   })
 })

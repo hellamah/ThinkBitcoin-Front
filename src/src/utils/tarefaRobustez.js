@@ -23,6 +23,19 @@ const SEMENTE_ACASO = 1
 const SEMENTE_SORTE = 2
 
 /**
+ * Sobre que trecho a régua aleatória mede a estratégia em detalhe.
+ *
+ * AJUSTE enquanto a validação está reservada: a régua é uma das leituras que se
+ * olha para escolher a regra, e medi-la na janela cheia mostraria o trecho
+ * reservado por dentro dela. CHEIA depois de a regra ser fixada. O mapa e a
+ * sorte do ranking são sempre do ajuste — são ferramentas de escolha.
+ */
+export const TrechoRobustez = Object.freeze({
+  CHEIA: 'cheia',
+  AJUSTE: 'ajuste',
+})
+
+/**
  * O que só depende dos candles: a série de sinais, o corte de validação e a
  * série do trecho de ajuste. Montado uma vez por série carregada.
  *
@@ -78,17 +91,25 @@ const pausa = () => new Promise((resolver) => setTimeout(resolver, 0))
  * todos. Clicar num nome do ranking, então, só refaz a régua daquele sinal.
  *
  * @param {object} contexto - De `prepararContextoRobustez`.
- * @param {{opcoes: object}} pedido - Opções completas da simulação, com
- *   `sinalEntrada` e `aPartirDe`.
+ * @param {{opcoes: object, trecho?: string}} pedido - Opções completas da
+ *   simulação, com `sinalEntrada` e `aPartirDe`; `trecho` é `TrechoRobustez`.
  * @param {{emitir: Function, cancelado?: Function}} canal
  */
 export const executarRobustez = async (contexto, pedido, { emitir, cancelado = () => false }) => {
   const opcoes = pedido?.opcoes ?? {}
   const { registros, serie, corte, sinais } = contexto
 
+  // Sem corte não há trecho reservado, e o ajuste é a janela inteira.
+  const noAjuste = pedido?.trecho === TrechoRobustez.AJUSTE && corte !== null
   const acaso = opcoes.sinalEntrada
-    ? lembrar(contexto, `acaso:${JSON.stringify(opcoes)}`, () =>
-        compararComAcaso(registros, { ...opcoes, serieDeSinais: serie }, { semente: SEMENTE_ACASO })
+    ? lembrar(contexto, `acaso:${noAjuste ? 'ajuste' : 'cheia'}:${JSON.stringify(opcoes)}`, () =>
+        noAjuste
+          ? compararComAcaso(
+              corte.registrosAjuste,
+              { ...opcoes, serieDeSinais: corte.serieAjuste },
+              { semente: SEMENTE_ACASO }
+            )
+          : compararComAcaso(registros, { ...opcoes, serieDeSinais: serie }, { semente: SEMENTE_ACASO })
       )
     : null
   emitir('acaso', acaso)

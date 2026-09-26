@@ -2473,6 +2473,20 @@
   margin-bottom: 0;
 }
 
+/* Validação guardada até a regra ser fixada: no card, na tabela do ranking.
+   Apagada, mas legível — é estado, não dado faltando. */
+.simulation-reservada {
+  color: var(--text-muted);
+}
+
+.intel-value.simulation-reservada {
+  font-size: 1.1rem;
+}
+
+.simulation-revelar {
+  margin-top: 10px;
+}
+
 /* Seletor de moeda da tela da simulação. */
 .simulation-moedas {
   display: flex;

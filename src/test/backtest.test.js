@@ -994,6 +994,18 @@ describe('utils/backtest › o que ordena o ranking', () => {
     expect(estrela.alfaAjuste).toBeLessThan(martelo.alfaAjuste)
   })
 
+  it('deve trazer o retorno do ajuste igual ao de simular só o trecho de ajuste', () => {
+    // Com a validação reservada, a tabela mostra só o ajuste: o retorno dela
+    // tem de ser o mesmo que a simulação em detalhe mostra para a regra.
+    const registros = serieComReversao()
+    const r = compararEstrategias(registros, PARAMS_REVERSAO)
+    const corte = dividirParaValidacao(registros)
+    r.linhas.forEach((linha) => {
+      const ajuste = simular(corte.registrosAjuste, { ...PARAMS_REVERSAO, sinalEntrada: linha.sinal })
+      expect(linha.retornoAjuste).toBeCloseTo(ajuste.metricas.retornoTotal, 10)
+    })
+  })
+
   it('deve cair para a janela cheia quando não há corte', () => {
     // Sem trecho de ajuste não existe critério limpo, e a janela cheia é tudo
     // o que há. Aí a estrela volta ao topo — e está certo, porque ali não se

@@ -78,6 +78,29 @@ describe('simulacao/veredito › título', () => {
     expect(v.frases.find((f) => f.chave === 'simulationVerdictChanceWeak').valores.limiar).toBe('99.5')
   })
 
+  it('deve dizer que falta a validação, e não "frágil", quando só ela está reservada', () => {
+    const v = montarVeredito({ ...TUDO_BEM, validacao: null, reservada: true })
+    expect(v.tom).toBe(TomVeredito.ALERTA)
+    expect(v.titulo.chave).toBe('simulationVerdictAwaitingValidation')
+    expect(chaves(v)).toContain('simulationVerdictValidationReserved')
+    expect(chaves(v)).not.toContain('simulationVerdictValidationNone')
+  })
+
+  it('não deve aprovar com a validação reservada, mesmo que ela exista', () => {
+    // A validação existe e é boa, mas ainda não foi revelada: quem chama não a
+    // passa, e mesmo que passasse, "reservada" não vira "passou".
+    const v = montarVeredito({ ...TUDO_BEM, reservada: true })
+    expect(v.tom).not.toBe(TomVeredito.BOM)
+  })
+
+  it.each([
+    ['o acaso', { acaso: { percentil: 60 } }],
+    ['o intervalo', { bootstrap: { inferior: -2, superior: 9 } }],
+  ])('deve continuar frágil com a validação reservada quando falha %s', (_, sobrescrever) => {
+    const v = montarVeredito({ ...TUDO_BEM, validacao: null, reservada: true, ...sobrescrever })
+    expect(v.titulo.chave).toBe('simulationVerdictFragile')
+  })
+
   it('deve pôr a amostra curta no título, acima de qualquer outra leitura', () => {
     const v = montarVeredito({ ...TUDO_BEM, metricas: metricas({ amostraInsuficiente: true, tradesConcluidos: 7 }) })
     expect(v.tom).toBe(TomVeredito.ALERTA)
@@ -122,6 +145,24 @@ describe('simulacao/veredito › ressalvas', () => {
   it('não deve ter ressalva quando nada merece uma', () => {
     expect(montarRessalvas({ metricas: metricas(), descontinuidades: 0, validacao: validacao(1) })).toEqual([])
   })
+
+  it('deve medir a janela pela cobertura da série, e não pelo trecho de ajuste', () => {
+    // Com a validação reservada as métricas são só do ajuste (~144 dias). Medir
+    // a janela por elas anunciaria "janela curta" em toda simulação.
+    const r = montarRessalvas({
+      metricas: metricas({ diasAnalisados: 144 }),
+      diasJanela: 180,
+      validacao: null,
+    })
+    expect(r).toEqual([])
+  })
+
+  it('deve avisar quando várias regras já foram reveladas no mesmo trecho', () => {
+    const umaSo = montarRessalvas({ metricas: metricas(), validacao: validacao(1), revelacoes: 1 })
+    const varias = montarRessalvas({ metricas: metricas(), validacao: validacao(1), revelacoes: 4 })
+    expect(umaSo).toEqual([])
+    expect(varias).toEqual([{ chave: 'simulationCaveatRevealedMany', valores: { count: 4 } }])
+  })
 })
 
 describe('simulacao/veredito › chaves', () => {
@@ -134,6 +175,7 @@ describe('simulacao/veredito › chaves', () => {
       { ...TUDO_BEM, acaso: null, calculando: true },
       { ...TUDO_BEM, metricas: metricas({ amostraInsuficiente: true }) },
       { ...TUDO_BEM, validacao: validacao(0, 0) },
+      { ...TUDO_BEM, validacao: null, reservada: true },
     ]
     const pedidas = cenarios.flatMap((c) => {
       const v = montarVeredito(c)
@@ -144,6 +186,7 @@ describe('simulacao/veredito › chaves', () => {
         metricas: metricas({ diasAnalisados: 10 }),
         descontinuidades: 1,
         validacao: validacao(1, 2),
+        revelacoes: 3,
       }).map((r) => r.chave)
     )
 

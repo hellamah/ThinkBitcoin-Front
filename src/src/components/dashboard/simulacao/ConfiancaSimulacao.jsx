@@ -37,6 +37,7 @@ export default function ConfiancaSimulacao({
   ajuste,
   validacao,
   experimentos,
+  reservada = false,
   cores,
   t,
   locale,
@@ -153,7 +154,7 @@ export default function ConfiancaSimulacao({
 
           <DistanciaDoPico curva={resultado.curva} submersa={submersa} cores={cores} t={t} locale={locale} />
 
-          <ValidacaoForaDaAmostra ajuste={ajuste} validacao={validacao} t={t} />
+          <ValidacaoForaDaAmostra ajuste={ajuste} validacao={validacao} reservada={reservada} t={t} />
         </div>
       )}
     </div>

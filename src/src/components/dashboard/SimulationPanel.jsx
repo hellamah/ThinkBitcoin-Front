@@ -36,6 +36,19 @@ const Aba = Object.freeze({
   DIARIO: 'diario',
 })
 
+// Sem o hook da tela — nos testes, e em qualquer uso que não passe `reserva` —
+// o painel se comporta como antes: nada guardado, validação à vista.
+const SEM_RESERVA = Object.freeze({
+  reservada: false,
+  revelada: false,
+  reveladaEm: null,
+  revelacoes: 0,
+  impressoesReveladas: null,
+  diasJanela: null,
+  diasReservados: 0,
+  onRevelar: () => {},
+})
+
 const ABAS = [
   [Aba.OPERACOES, 'simulationTabTrades'],
   [Aba.EXCURSAO, 'simulationTabExcursion'],
@@ -88,6 +101,7 @@ export default function SimulationPanel({
   disparo,
   experimentos,
   diario,
+  reserva = SEM_RESERVA,
   t,
   locale,
   seletor = null,
@@ -206,10 +220,17 @@ export default function SimulationPanel({
         limiar: experimentos.limiar,
         bootstrap: analises?.bootstrap ?? null,
         validacao,
+        reservada: reserva.reservada,
       })
     : null
   const ressalvas = temOperacoes
-    ? montarRessalvas({ metricas, descontinuidades: resultado.descontinuidades.length, validacao })
+    ? montarRessalvas({
+        metricas,
+        descontinuidades: resultado.descontinuidades.length,
+        validacao,
+        diasJanela: reserva.diasJanela,
+        revelacoes: reserva.revelada ? reserva.revelacoes : 0,
+      })
     : []
 
   return (
@@ -220,13 +241,24 @@ export default function SimulationPanel({
             diferença entre "a estratégia não funciona" e "a janela não tinha
             dado" fica invisível. É `candlesSimulados`, não o tamanho da série
             recebida: esta vem com os 3 dias de margem de aquecimento. */}
+        {/* Com a validação guardada, os números são do ajuste, e a linha diz
+            isso — e quantos dias ficaram de fora, esperando a regra ser
+            fixada. */}
         {metricas && (
           <RotuloComAjuda
             className="simulation-meta"
-            texto={t('simulationWindow', {
-              dias: diasAnalisados ?? DIAS_JANELA_SIMULACAO,
-              candles: metricas.candlesSimulados,
-            })}
+            texto={
+              reserva.reservada
+                ? t('simulationWindowReserved', {
+                    dias: diasAnalisados ?? '—',
+                    candles: metricas.candlesSimulados,
+                    reservados: reserva.diasReservados,
+                  })
+                : t('simulationWindow', {
+                    dias: diasAnalisados ?? DIAS_JANELA_SIMULACAO,
+                    candles: metricas.candlesSimulados,
+                  })
+            }
             ajuda={t('ajuda.simJanela')}
           />
         )}
@@ -269,7 +301,9 @@ export default function SimulationPanel({
             validacao={validacao}
             disparo={disparo}
             fraco={metricas.amostraInsuficiente}
+            reserva={reserva}
             t={t}
+            locale={locale}
           />
 
           <ConfiancaSimulacao
@@ -278,6 +312,7 @@ export default function SimulationPanel({
             ajuste={ajuste}
             validacao={validacao}
             experimentos={experimentos}
+            reservada={reserva.reservada}
             cores={cores}
             t={t}
             locale={locale}
@@ -348,6 +383,7 @@ export default function SimulationPanel({
                     calculando={robustez.calculando}
                     parametros={parametros}
                     onParametro={onParametro}
+                    impressoesReveladas={reserva.impressoesReveladas}
                     t={t}
                   />
                 )}
