@@ -53,7 +53,10 @@ export const calcularCvd = (cronologico) => {
  * Marca as janelas em que preço e fluxo apontam para lados opostos.
  *
  * @param {Array<object>} registros - Série na ordem da API (mais recente primeiro).
- * @param {number|null} medianaVolume - Régua para normalizar o movimento de fluxo.
+ * @param {number|Array<number|null>|null} medianaVolume - Régua para normalizar
+ *   o movimento de fluxo. Um número vale para a série inteira (exibição); um
+ *   array em ordem CRONOLÓGICA dá a régua de cada candle (sinal — ver
+ *   `calcularLimitesMoveis`).
  * @returns {Array<string|null>} - Uma entrada por candle, em ordem CRONOLÓGICA;
  *   valor de DivergenceKind onde há divergência, null onde não há.
  */
@@ -63,18 +66,20 @@ export const detectarDivergencias = (registros, medianaVolume) => {
   const cronologico = [...registros].reverse()
   const cvd = calcularCvd(cronologico)
   const marcas = new Array(cronologico.length).fill(null)
-
-  // Sem régua de volume não dá para dizer se o movimento de fluxo é relevante;
-  // marcar tudo seria pior do que não marcar nada.
-  if (!Number.isFinite(medianaVolume) || medianaVolume <= 0) return marcas
+  const reguaEm = Array.isArray(medianaVolume) ? (i) => medianaVolume[i] : () => medianaVolume
 
   for (let i = WINDOW; i < cronologico.length; i++) {
+    // Sem régua de volume não dá para dizer se o movimento de fluxo é
+    // relevante; marcar tudo seria pior do que não marcar nada.
+    const regua = reguaEm(i)
+    if (!Number.isFinite(regua) || regua <= 0) continue
+
     const fechamento = paraNumero(cronologico[i]?.precoFechamento)
     const anterior = paraNumero(cronologico[i - WINDOW]?.precoFechamento)
     if (fechamento === null || anterior === null || anterior <= 0) continue
 
     const varPreco = ((fechamento - anterior) / anterior) * 100
-    const varFluxo = (cvd[i] - cvd[i - WINDOW]) / medianaVolume
+    const varFluxo = (cvd[i] - cvd[i - WINDOW]) / regua
 
     // Os dois lados precisam ter se movido de forma relevante: divergência
     // entre dois movimentos irrelevantes não é sinal, é ruído.

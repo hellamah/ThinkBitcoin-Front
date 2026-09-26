@@ -6,6 +6,7 @@ import {
   calcularAtrSerie,
   calcularDesempenho,
   calcularLimites,
+  calcularLimitesMoveis,
 } from '../src/utils/marketStats'
 
 // A API entrega do mais recente ao mais antigo (ordemAsc=false); os helpers
@@ -103,6 +104,60 @@ describe('utils/marketStats › calcularLimites', () => {
   it('deve devolver null quando nenhuma variação é utilizável', () => {
     const semDado = Array.from({ length: 10 }, () => ({ precoPercentualVariacao: null }))
     expect(calcularLimites(semDado)).toBeNull()
+  })
+})
+
+describe('utils/marketStats › calcularLimitesMoveis', () => {
+  // Valores irregulares, com ausentes no meio: é onde uma janela que anda
+  // (entra um, sai outro) mais facilmente discorda de recalcular do zero.
+  const cronologico = Array.from({ length: 40 }, (_, i) => ({
+    precoPercentualVariacao: i % 7 === 3 ? null : Math.sin(i * 1.7) * 3 + (i % 5),
+    precoVolume: i % 11 === 6 ? null : 100 + ((i * 37) % 53) + (i > 25 ? 400 : 0),
+    precoFinanceiroPorTrade: 10 + ((i * 13) % 17),
+  }))
+
+  it('deve devolver em cada candle a régua dos últimos N até ele', () => {
+    const janela = 12
+    const moveis = calcularLimitesMoveis(cronologico, janela)
+    moveis.forEach((limites, i) => {
+      // `calcularLimites` recebe na ordem da API, do mais recente ao mais antigo.
+      const esperado = calcularLimites(cronologico.slice(Math.max(0, i - janela + 1), i + 1).reverse())
+      if (esperado === null) {
+        expect(limites).toBeNull()
+        return
+      }
+      expect(limites.mediaVariacao).toBeCloseTo(esperado.mediaVariacao, 10)
+      expect(limites.desvioVariacao).toBeCloseTo(esperado.desvioVariacao, 10)
+      expect(limites.medianaVolume).toBe(esperado.medianaVolume)
+      expect(limites.medianaTicket).toBe(esperado.medianaTicket)
+      expect(limites.amostras).toBe(esperado.amostras)
+    })
+  })
+
+  it('não deve ter régua antes de haver candles para medi-la', () => {
+    const moveis = calcularLimitesMoveis(cronologico, 12)
+    expect(moveis.slice(0, 7)).toEqual(Array(7).fill(null))
+    expect(moveis[7]).not.toBeNull()
+  })
+
+  it('não deve chamar de atípico um candle igual a todos os da janela', () => {
+    // 0,3 não é representável exatamente: a média sai 0,30000000000000004 e o
+    // desvio, 5e-17 em vez de zero. O candle fica a ±1σ desse desvio de
+    // arredondamento — abaixo do limiar de 2, e é isso que precisa continuar.
+    const constante = Array.from({ length: 30 }, () => ({
+      precoPercentualVariacao: 0.3,
+      precoVolume: 100,
+      precoFinanceiroPorTrade: 10,
+    }))
+    const moveis = calcularLimitesMoveis(constante, 10)
+    constante.slice(7).forEach((r, k) => {
+      expect(avaliarAnomalia(r, moveis[k + 7])).toMatchObject({ variacao: false, volume: false, ticket: false })
+    })
+  })
+
+  it('deve tolerar entrada vazia', () => {
+    expect(calcularLimitesMoveis([])).toEqual([])
+    expect(calcularLimitesMoveis(null)).toEqual([])
   })
 })
 

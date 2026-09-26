@@ -36,6 +36,9 @@ obriga a escolher os topos a olho. Aqui a janela é fixa (5 candles) e os pisos
 são explícitos: 0,5% de movimento de preço e 0,5× a mediana de volume no
 fluxo. Sem os pisos, oscilação lateral gera divergência a cada candle.
 
+No sinal, a mediana de volume é a dos 30 dias **anteriores** a cada candle, como
+nas anomalias abaixo. O card de fluxo continua com a do período.
+
 Sinais no laboratório: `divergenciaBaixista`, `divergenciaAltista`.
 
 ### Padrões de candle — `utils/candlePatterns.js`
@@ -53,6 +56,13 @@ Volume acima de 3× a mediana, variação além de 2σ, ticket médio acima de 2
 mediana. Réguas diferentes de propósito: volume é assimétrico e de cauda longa,
 então usa múltiplo da mediana em vez de desvio padrão.
 
+**Duas réguas, uma para cada pergunta.** A tabela de histórico destaca o que é
+atípico *para o período na tela* (`calcularLimites`, sobre a série inteira). O
+sinal — o que o laboratório mede e a simulação opera — usa a régua dos **30 dias
+anteriores** a cada candle (`calcularLimitesMoveis`): no fechamento de um candle
+de abril, a mediana de setembro não existia. Em 180 dias reais, a régua do
+período inteiro mudava a classe de até 3,5% dos candles.
+
 ---
 
 ### VWAP — `utils/vwap.js`
@@ -60,13 +70,19 @@ então usa múltiplo da mediana em vez de desvio padrão.
 Preço médio ponderado por volume, o benchmark que mesa institucional usa para
 avaliar execução: comprou abaixo do VWAP, comprou bem.
 
-**Acumulado** a partir do início da janela (`Σ nocional ÷ Σ volume`), que é
-como se plota. A média dos VWAPs por candle seria outra coisa — daria peso
-igual a uma hora de 200 trades e a uma de 20.000.
+Na linha do gráfico e no card, **acumulado** a partir do início da janela
+(`Σ nocional ÷ Σ volume`), que é como se plota. A média dos VWAPs por candle
+seria outra coisa — daria peso igual a uma hora de 200 trades e a uma de 20.000.
 
 O sinal é o **cruzamento**, não o lado. Estar acima do VWAP é estado: quase
 todo candle está de um lado ou do outro, então medir isso devolveria algo
 próximo da taxa base. A travessia é o acontecimento.
+
+E o cruzamento é com o VWAP **móvel das últimas 24 horas**, não com o
+acumulado. Numa janela de 180 dias o acumulado começa com três dias e termina
+com seis meses: o BTC o cruzou 8 vezes em abril e só 3 de junho a setembro, e o
+sinal quase só existia no começo da simulação. Com o móvel são 60 a 90 cruzamentos
+por mês, e o sinal quer dizer a mesma coisa em qualquer ponto da janela.
 
 Sinais: `vwapCruzamentoAlta`, `vwapCruzamentoBaixa`.
 

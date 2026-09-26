@@ -32,24 +32,20 @@
 //    o alvo, e aqui o motor erra para o lado de não bajular.
 //
 // ---------------------------------------------------------------------------
-// O que AINDA usa informação do período inteiro, e por quê
+// E os sinais também não podem olhar para a frente
 // ---------------------------------------------------------------------------
-// Três sinais do vocabulário — volume atípico, variação atípica e ticket alto —
-// e a normalização da divergência de fluxo saem do `calcularLimites`, que mede
-// a régua de normalidade sobre a série INTEIRA. Um candle no começo da janela é
-// classificado contra a mediana de candles que ainda não aconteceram.
+// Volume atípico, variação atípica, ticket alto e a normalização da divergência
+// de fluxo eram medidos contra a régua do período INTEIRO: um candle do começo
+// da janela era classificado contra a mediana de meses que ainda não tinham
+// acontecido. Isto estava anotado aqui como pendência pequena, medida em 0,3%
+// dos candles nos dados de demonstração, com o aviso de que precisava ser
+// resolvido antes de esticar a janela. A janela foi para 180 dias antes disso.
 //
-// Para a EXIBIÇÃO isso é defensável, e é a escolha declarada lá: "atípico para
-// este período" é uma afirmação descritiva legítima. Para a SIMULAÇÃO não é —
-// no instante do trade, aquela mediana não existia.
-//
-// Fica registrado em vez de corrigido porque o tamanho foi medido e é pequeno:
-// recalculando os sinais sem o futuro, 5 candles em 1440 mudam de classificação
-// nos dados de demonstração (0,3%). Corrigir de verdade significa separar a
-// régua de exibição da régua causal, e isso muda o laboratório de sinais junto.
-// Quem for mexer nisso: o custo não é o cálculo, é a distinção. E quem for
-// esticar a janela da simulação precisa mexer nisto ANTES — quanto mais longa a
-// série, mais a mediana do período inteiro se afasta da que existia no começo.
+// Em dado real a pendência não era pequena: até 3,5% dos candles mudavam de
+// classe, e o alfa simulado chegava a mudar 14 pontos. Hoje o vocabulário
+// usa a régua dos 30 dias anteriores a cada candle (`calcularLimitesMoveis`), e
+// o `montarSerieDeSinais` tem um teste que corta a série e confere que nenhum
+// sinal do passado muda. A régua do período inteiro ficou só na exibição.
 //
 // Não há requisição aqui: é aritmética sobre o array que o dashboard já tem.
 

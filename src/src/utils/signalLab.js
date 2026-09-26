@@ -26,10 +26,10 @@
 // isso a única que pode desmentir a tabela.
 
 import { intervaloWilson } from './mathUtils'
-import { avaliarAnomalia, calcularLimites } from './marketStats'
+import { avaliarAnomalia, calcularLimitesMoveis } from './marketStats'
 import { CandlePattern, classificarCandle } from './candlePatterns'
 import { detectarDivergencias } from './flowDivergence'
-import { resumirVwap } from './vwap'
+import { cruzamentosDoVwapMovel } from './vwap'
 import { resumirOsciladores } from './oscillators'
 import { FRACAO_VALIDACAO_PADRAO, dividirParaValidacao, instanteDe } from './validacaoJanela'
 
@@ -70,6 +70,13 @@ const resumir = (retornos) => {
  * montado fora do laço. Errar o índice de um desses não quebra nada visível —
  * só atribui o sinal ao candle vizinho e muda todos os números depois dele.
  *
+ * E todo sinal é CAUSAL: o de um candle só usa o que se sabia no fechamento
+ * dele. Cortar a série logo depois não pode mudá-lo — há um teste para isso.
+ * Por essa regra, anomalias e divergência são medidas contra a régua dos 30
+ * dias anteriores (`calcularLimitesMoveis`), e não contra a do período
+ * inteiro, que é a da exibição; e o cruzamento de VWAP é com o das últimas 24
+ * horas, e não com o acumulado desde o início da série.
+ *
  * @param {Array<object>} registros - Série na ordem da API (mais recente
  *   primeiro, ordemAsc=false).
  * @returns {Array<{registro: object, sinais: string[]}>} - Uma entrada por
@@ -80,11 +87,15 @@ export const montarSerieDeSinais = (registros) => {
 
   // O desfecho é cronológico; a API entrega ao contrário.
   const cronologico = [...registros].reverse()
-  const limites = calcularLimites(registros)
+  // Uma régua por candle, alinhada com `cronologico`.
+  const limites = calcularLimitesMoveis(cronologico)
 
   // Já vem em ordem cronológica, alinhado com `cronologico` posição a posição.
-  const divergencias = detectarDivergencias(registros, limites?.medianaVolume)
-  const cruzamentosVwap = resumirVwap(registros)?.cruzamentos ?? []
+  const divergencias = detectarDivergencias(
+    registros,
+    limites.map((l) => l?.medianaVolume ?? null)
+  )
+  const cruzamentosVwap = cruzamentosDoVwapMovel(cronologico)
   // Cada posição pode carregar mais de uma marca (RSI e banda no mesmo candle).
   const osciladores = resumirOsciladores(registros)?.marcas ?? []
 
@@ -96,7 +107,7 @@ export const montarSerieDeSinais = (registros) => {
     // quase a própria base e não ensina nada.
     if (padrao && padrao !== CandlePattern.NEUTRO) sinais.push(padrao)
 
-    const anomalia = avaliarAnomalia(registro, limites)
+    const anomalia = avaliarAnomalia(registro, limites[i])
     if (anomalia?.volume) sinais.push(SignalKey.VOLUME_ATIPICO)
     if (anomalia?.variacao) sinais.push(SignalKey.VARIACAO_ATIPICA)
     if (anomalia?.ticket) sinais.push(SignalKey.TICKET_ALTO)

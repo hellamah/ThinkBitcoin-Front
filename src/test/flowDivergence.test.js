@@ -93,6 +93,17 @@ describe('utils/flowDivergence › detectarDivergencias', () => {
     expect(detectarDivergencias(entrada, null).every((m) => m === null)).toBe(true)
   })
 
+  it('deve aceitar uma régua por candle', () => {
+    // A mesma série, com régua só no último candle: é ele que se marca, e o
+    // penúltimo, que teria a mesma janela de preço, fica sem régua e sem marca.
+    const entrada = comoDaApi(
+      serie([100, 102, 104, 106, 108, 110, 112], [0, -20, -20, -20, -20, -20, -20])
+    )
+    const marcas = detectarDivergencias(entrada, [null, null, null, null, null, null, 100])
+    expect(marcas[5]).toBeNull()
+    expect(marcas[6]).toBe(DivergenceKind.BEARISH)
+  })
+
   it('deve devolver uma marca por candle', () => {
     const entrada = comoDaApi(serie([100, 102, 104, 106, 108, 110], [0, -20, -20, -20, -20, -20]))
     expect(detectarDivergencias(entrada, 100)).toHaveLength(6)

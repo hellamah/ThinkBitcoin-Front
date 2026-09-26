@@ -1170,6 +1170,97 @@ rebaixado ficaria sem motivo à vista.
 Não vira ressalva, e sim frase: é o motivo do título, e o título é onde o
 veredito explica a si mesmo.
 
+### A-19 — Os sinais eram classificados contra o futuro ✅ **corrigido**
+
+Pendência anotada desde a primeira versão no cabeçalho do
+[backtest.js](../src/src/utils/backtest.js): volume atípico, variação atípica,
+ticket alto e a normalização da divergência saíam do `calcularLimites`, que mede
+a régua sobre a série **inteira**. Um candle de abril era classificado contra a
+mediana de setembro. O cabeçalho media o efeito em 0,3% dos candles, nos dados
+de demonstração, e avisava que ele tinha de ser resolvido **antes** de esticar a
+janela. O D-03 esticou a janela para 180 dias antes disso.
+
+**Medido em dado real** (API local, 2026-09-26, 4.391 candles, a série que a
+simulação de fato busca — o endpoint é anônimo, então não precisou de login):
+
+| | Anomalias: candles que mudam de classe | Maior mudança num mês |
+|---|---|---|
+| BTC | 63 a 99 (1,4% a 2,3%) | ticket alto em maio: 58 → 28 |
+| ETH | 59 a 143 (1,3% a 3,3%) | ticket alto em setembro: 88 → 25 |
+| SOL | 41 a 155 (0,9% a 3,5%) | volume atípico em agosto: 65 → 141 |
+
+Na divergência, que só usa a régua para normalizar o fluxo, são 3 a 19 candles.
+
+O mock não mostrava nada disso (19 candles em 2.809), porque é estacionário: a
+mediana do período inteiro e a dos 30 dias anteriores quase coincidem.
+
+No resultado da simulação (comprado, segurando 5, custo 0,1%), o alfa mudou de
+0,1 a 14,7 pontos, sem direção fixa — variação atípica no SOL foi de −48,0% para
+−62,7%, no ETH de −32,9% para −24,2%.
+
+**A correção:** `calcularLimitesMoveis`
+([marketStats.js](../src/src/utils/marketStats.js)) devolve, em cada candle, o que
+o `calcularLimites` devolveria para os **720 candles até ele** (30 dias,
+inclusive o próprio — no fechamento dele volume e variação já são conhecidos).
+As medianas andam com a janela num array ordenado; refazê-las do zero custava
+centenas de milissegundos. `detectarDivergencias` passou a aceitar uma régua por
+candle. A régua do período inteiro continua na **exibição** (tabela de
+histórico, card de fluxo), onde "atípico para este período" é a afirmação certa.
+
+Vale para o laboratório **e** a simulação — um vocabulário só. Os números do
+laboratório mudam junto, por decisão tomada ao ver as medições acima.
+
+**O teste que trava a classe inteira**, e não só estes quatro sinais: corta a
+série em cinco pontos e confere que **nenhum sinal de candle anterior ao corte
+muda**. Qualquer sinal futuro que olhe para a frente derruba o teste. Verificado
+por injeção: voltar as anomalias à régua do período derruba 2 testes; voltar a
+divergência, 3; uma janela que nunca solta o candle antigo, 1.
+
+Consequência visível nos testes de caracterização do passo 0: um candle sem 8
+anteriores não tem régua, e não pode ser atípico. Os fixtures que punham o pico
+no 3º ou 4º candle foram movidos para depois do 8º — e um teste novo crava que o
+pico no 3º candle **não** é marcado. A divergência da série de 14 candles passou
+de 8 para 6 ocorrências pelo mesmo motivo.
+
+Custo: `montarSerieDeSinais` de 20 para 28 ms numa série de 180 dias. Roda uma
+vez por moeda carregada, não por clique.
+
+### A-20 — "Cruzou VWAP" só existia nos dois primeiros meses ✅ **corrigido**
+
+O cruzamento era com o VWAP **acumulado desde o início da série**. Na janela de
+180 dias isso é uma média que começa com três dias e termina com seis meses — e
+uma média de seis meses quase não é cruzada. Cruzamentos por mês, dado real:
+
+| | abr | mai | jun | jul | ago | set |
+|---|---|---|---|---|---|---|
+| BTC, acumulado | 8 | 7 | **0** | **0** | 3 | **0** |
+| ETH, acumulado | 16 | 13 | **0** | **0** | 1 | **0** |
+| SOL, acumulado | 27 | 36 | **0** | 6 | 1 | **0** |
+| BTC, móvel de 24h | 72 | 93 | 88 | 72 | 69 | 60 |
+
+O sinal operava 9 a 33 vezes. Dos cruzamentos dentro da janela, 87% a 97%
+caíam nos dois primeiros meses, e **nenhum no trecho de validação**, nas três
+moedas. Não é olhar para a frente — o acumulado é causal —, é o sinal mudar
+de natureza ao longo da janela. E o mesmo nome queria dizer outra coisa no
+laboratório, onde a série tem ~10 dias.
+
+Passa a ser o VWAP **móvel dos últimos 24 candles** (`calcularVwapMovel`), que só
+existe com a janela cheia — a margem de aquecimento cobre a espera. Com ele o
+sinal opera 177 a 205 vezes em 180 dias, e perde para o buy & hold em todas as
+três moedas (alfa de −41% a −65%). Era a leitura que o sinal antigo, com 9
+operações nos primeiros dois meses, não tinha amostra para dar.
+
+O VWAP da **exibição** (linha do gráfico, card) continua acumulado, que é como
+se plota. `resumirVwap` perdeu o campo `cruzamentos`: o único consumidor era o
+vocabulário, e deixá-lo lá ofereceria o sinal antigo a quem o procurasse pelo
+nome.
+
+**O primeiro teste que escrevi não pegava o defeito.** Comparava duas séries com
+o mesmo final e passados em níveis opostos (50 e 200): com o preço sempre de um
+lado do acumulado, as duas davam "nenhum cruzamento" — iguais entre si. Voltar
+ao acumulado passava em todos os testes. A régua passou a ser a série **sem
+passado nenhum**, e aí a injeção derruba o teste.
+
 ### A-07 — Zero operações não é retorno zero 🟡
 
 Encontrado ao ver a tela funcionando, não nos testes.

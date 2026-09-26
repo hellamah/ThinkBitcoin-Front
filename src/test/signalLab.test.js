@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { analisarSinais, SignalKey } from '../src/utils/signalLab'
+import { analisarSinais, montarSerieDeSinais, SignalKey } from '../src/utils/signalLab'
 import { CandlePattern } from '../src/utils/candlePatterns'
 import { DivergenceKind } from '../src/utils/flowDivergence'
-import { VwapSignal } from '../src/utils/vwap'
+import { PERIODO_VWAP_MOVEL, VwapSignal } from '../src/utils/vwap'
 import { OscillatorSignal } from '../src/utils/oscillators'
+import { geradorAleatorio } from '../src/utils/mathUtils'
 
 // Geometrias fixas: martelo tem sombra inferior longa, neutro fica no meio.
 const MARTELO = { corpo: 10, sup: 2, inf: 30 }
@@ -79,13 +80,25 @@ describe('utils/signalLab › analisarSinais', () => {
   })
 
   it('deve captar volume atípico quando a série sustenta a régua', () => {
-    // calcularLimites exige 8 registros; o pico de volume é 10× a mediana.
-    const cronologico = Array.from({ length: 9 }, (_, i) => reg(100 + i, NEUTRO, 100))
-    cronologico[2] = reg(102, NEUTRO, 1000)
+    // A régua é a dos candles até ele, e exige 8: o pico vem no 9º, a 10× a
+    // mediana dos que vieram antes.
+    const cronologico = Array.from({ length: 10 }, (_, i) => reg(100 + i, NEUTRO, 100))
+    cronologico[8] = reg(108, NEUTRO, 1000)
 
     const r = analisarSinais(comoDaApi(cronologico))
     const vol = r.sinais.find((s) => s.chave === SignalKey.VOLUME_ATIPICO)
     expect(vol.ocorrencias).toBe(1)
+  })
+
+  it('não deve chamar de atípico um candle sem histórico para compará-lo', () => {
+    // O mesmo pico no 3º candle. Contra a régua do período inteiro ele era
+    // atípico — mas no fechamento dele só existiam três candles, e os seis
+    // seguintes, que fariam a régua, ainda não tinham acontecido.
+    const cronologico = Array.from({ length: 10 }, (_, i) => reg(100 + i, NEUTRO, 100))
+    cronologico[2] = reg(102, NEUTRO, 1000)
+
+    const r = analisarSinais(comoDaApi(cronologico))
+    expect(r.sinais.find((s) => s.chave === SignalKey.VOLUME_ATIPICO)).toBeUndefined()
   })
 
   it('deve ordenar pelo maior deslocamento em relação à base', () => {
@@ -264,43 +277,46 @@ describe('utils/signalLab › famílias de alinhamento posicional', () => {
       const cron = Array.from({ length: 14 }, (_, i) => regCompleto(100 + i, { delta: -20 }))
       const d = acharSinal(analisarSinais(daApi(cron)), DivergenceKind.BEARISH)
 
-      // Marcado das posições 5 a 12: antes da 5 não há janela, e a 13 fica de
-      // fora por não ter futuro dentro da série.
-      expect(d.ocorrencias).toBe(8)
-      // Média de 1/105, 1/106 … 1/112. Escorregar uma posição em qualquer
+      // Marcado das posições 7 a 12. A janela de preço existe desde a 5, mas a
+      // régua de volume só a partir da 7: ela é medida nos candles até ali, e
+      // exige 8. A 13 fica de fora por não ter futuro dentro da série.
+      expect(d.ocorrencias).toBe(6)
+      // Média de 1/107, 1/108 … 1/112. Escorregar uma posição em qualquer
       // direção muda tanto a contagem quanto esta média.
-      expect(d.retornoMedio).toBeCloseTo(0.92207, 5)
+      expect(d.retornoMedio).toBeCloseTo(0.91346, 5)
     })
 
     it('deve marcar divergência altista no candle certo', () => {
       const cron = Array.from({ length: 14 }, (_, i) => regCompleto(120 - i, { delta: 20 }))
       const d = acharSinal(analisarSinais(daApi(cron)), DivergenceKind.BULLISH)
 
-      expect(d.ocorrencias).toBe(8)
-      expect(d.retornoMedio).toBeCloseTo(-0.89724, 5)
+      expect(d.ocorrencias).toBe(6)
+      expect(d.retornoMedio).toBeCloseTo(-0.90519, 5)
     })
   })
 
   describe('cruzamentos de VWAP', () => {
-    // O VWAP é acumulado desde o início da janela, então a travessia depende de
-    // toda a série anterior — não dá para montar por candle isolado.
-    const SERIE = [100, 100, 100, 100, 90, 95, 99, 120, 132, 100, 105, 105]
+    // O VWAP é o das últimas 24 horas e só existe com a janela cheia: os 24
+    // primeiros candles, parados em 100, levam o VWAP a 100 na posição 23. A
+    // travessia depende dos 23 anteriores — não dá para montar por candle
+    // isolado.
+    const SERIE = [...Array(24).fill(100), 90, 95, 99, 120, 132, 100, 105, 105]
 
     it('deve atribuir o cruzamento para cima ao candle certo', () => {
       const r = analisarSinais(daApi(SERIE.map((p) => regCompleto(p))))
       const alta = acharSinal(r, VwapSignal.CROSS_UP)
 
-      // Posições 6 e 10.
+      // Posições 27 (120, contra VWAP de 100,17) e 30 (105, contra 101,71).
       expect(alta.ocorrencias).toBe(2)
-      // 99 → 120 (+21,21%) e 105 → 105 (0%).
-      expect(alta.retornoMedio).toBeCloseTo(10.60606, 5)
+      // 120 → 132 (+10%) e 105 → 105 (0%).
+      expect(alta.retornoMedio).toBeCloseTo(5, 5)
     })
 
     it('deve atribuir o cruzamento para baixo ao candle certo', () => {
       const r = analisarSinais(daApi(SERIE.map((p) => regCompleto(p))))
       const baixa = acharSinal(r, VwapSignal.CROSS_DOWN)
 
-      // Posições 4 e 9.
+      // Posições 24 (90) e 29 (100, contra VWAP de 101,5).
       expect(baixa.ocorrencias).toBe(2)
       // 90 → 95 (+5,56%) e 100 → 105 (+5%).
       expect(baixa.retornoMedio).toBeCloseTo(5.27778, 5)
@@ -362,23 +378,102 @@ describe('utils/signalLab › famílias de alinhamento posicional', () => {
       const cron = Array.from({ length: 12 }, (_, i) =>
         regCompleto(100 + i, { ticket: 10, variacao: 1 })
       )
-      // Posição 3: ticket 5× a mediana e variação a mais de 3σ da média.
-      cron[3] = regCompleto(103, { ticket: 50, variacao: 40 })
+      // Posição 9, com nove candles antes para fazer a régua: ticket 5× a
+      // mediana e variação a 3σ da média dos dez.
+      cron[9] = regCompleto(109, { ticket: 50, variacao: 40 })
       return cron
     }
 
     it('deve captar ticket alto', () => {
       const t = acharSinal(analisarSinais(daApi(serieComPico())), SignalKey.TICKET_ALTO)
       expect(t.ocorrencias).toBe(1)
-      // 103 → 104.
-      expect(t.retornoMedio).toBeCloseTo(0.97087, 5)
+      // 109 → 110.
+      expect(t.retornoMedio).toBeCloseTo(0.91743, 5)
     })
 
     it('deve captar variação atípica', () => {
       const v = acharSinal(analisarSinais(daApi(serieComPico())), SignalKey.VARIACAO_ATIPICA)
       expect(v.ocorrencias).toBe(1)
-      expect(v.retornoMedio).toBeCloseTo(0.97087, 5)
+      expect(v.retornoMedio).toBeCloseTo(0.91743, 5)
     })
+  })
+})
+
+describe('utils/signalLab › causalidade da série de sinais', () => {
+  // Série com mudança de regime no meio: volume, ticket e oscilação baixos na
+  // primeira metade e altos na segunda, com picos espalhados. É o formato em
+  // que uma régua medida sobre o período INTEIRO mais se afasta da que existia
+  // no instante de cada candle.
+  const serieComRegime = (n = 160, semente = 3) => {
+    const sortear = geradorAleatorio(semente)
+    let preco = 100
+    return Array.from({ length: n }, (_, i) => {
+      const escala = i < n / 2 ? 1 : 4
+      const variacao = (sortear() - 0.5) * 2 * escala
+      const abertura = preco
+      preco = Math.max(1, preco * (1 + variacao / 100))
+      const volume = (50 + sortear() * 100) * escala * (sortear() < 0.05 ? 6 : 1)
+      const corpo = Math.abs(preco - abertura) + 0.01
+      const sup = sortear() * 3
+      const inf = sortear() * 3
+      return {
+        horaReferencia: new Date(Date.UTC(2026, 0, 1) + i * 3600000).toISOString(),
+        precoAbertura: abertura,
+        precoFechamento: preco,
+        precoMaior: Math.max(abertura, preco) + sup,
+        precoMenor: Math.min(abertura, preco) - inf,
+        precoCorpoCandle: corpo,
+        precoSombraSuperior: sup,
+        precoSombraInferior: inf,
+        precoAmplitude: corpo + sup + inf,
+        precoPercentualVariacao: variacao,
+        precoVolume: volume,
+        precoTotalNegociada: volume * preco,
+        precoFinanceiroPorTrade: (8 + sortear() * 4) * escala * (sortear() < 0.05 ? 3 : 1),
+        volumeDelta: (sortear() - 0.5) * volume,
+      }
+    })
+  }
+
+  it('não deve deixar candle futuro mudar o sinal de um candle passado', () => {
+    // O sinal de um candle é o que o operador veria no fechamento dele. Se
+    // cortar a série logo depois muda esse sinal, ele foi montado com dado que
+    // ainda não existia — e a simulação operava sobre essa informação.
+    const cronologico = serieComRegime()
+    const inteira = montarSerieDeSinais([...cronologico].reverse())
+
+    for (const corte of [30, 60, 80, 100, 130]) {
+      const ate = montarSerieDeSinais(cronologico.slice(0, corte).reverse())
+      const diferentes = ate.filter((c, i) => c.sinais.join() !== inteira[i].sinais.join())
+      expect(diferentes.map((c) => c.registro.horaReferencia)).toEqual([])
+    }
+  })
+
+  it('deve ler o cruzamento de VWAP só nas últimas 24 horas', () => {
+    // Mesmos 60 candles finais, históricos anteriores em níveis de preço
+    // opostos. Ancorado no início da série, o VWAP carregava esse passado para
+    // sempre: seis meses depois ainda era a média de seis meses, e quase não
+    // era mais cruzado.
+    const fim = serieComRegime(60, 9)
+    const passado = (nivel) => serieComRegime(48, 5).map((r, i) => ({
+      ...r,
+      horaReferencia: new Date(Date.UTC(2025, 11, 30) + i * 3600000).toISOString(),
+      precoFechamento: nivel,
+      precoAbertura: nivel,
+      precoTotalNegociada: r.precoVolume * nivel,
+    }))
+    const cruzamentos = (cronologico) =>
+      montarSerieDeSinais([...cronologico].reverse())
+        .slice(-60 + PERIODO_VWAP_MOVEL)
+        .map((c) => c.sinais.filter((s) => s.startsWith('vwap')).join())
+
+    // A régua é a série SEM passado nenhum, e não uma com o outro passado: com
+    // o preço sempre acima (ou abaixo) do acumulado, as duas versões dariam
+    // "nenhum cruzamento" — iguais entre si, e o teste passaria com o defeito.
+    const soFim = cruzamentos(fim)
+    expect(soFim.some(Boolean)).toBe(true)
+    expect(cruzamentos([...passado(50), ...fim])).toEqual(soFim)
+    expect(cruzamentos([...passado(200), ...fim])).toEqual(soFim)
   })
 })
 
