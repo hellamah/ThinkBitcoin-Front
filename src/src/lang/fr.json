@@ -358,6 +358,7 @@
   "simulationVerdictCiNegative": "L'intervalle de confiance du rendement est entièrement sous zéro.",
   "simulationVerdictCiZero": "Mais l'intervalle de confiance du rendement inclut zéro.",
   "simulationVerdictValidation": "Sur la portion réservée à la validation, l'alpha a été de {{valor}}.",
+  "simulationVerdictValidationNone": "Aucune opération sur la portion réservée à la validation : le résultat n'a pas été testé hors échantillon.",
   "simulationChance": "Contre le hasard",
   "simulationChanceSub": "Médiane des tirages : {{mediana}} · {{iteracoes}} tirages",
   "simulationCalculating": "Calcul en cours…",

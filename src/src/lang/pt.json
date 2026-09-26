@@ -358,6 +358,7 @@
   "simulationVerdictCiNegative": "O intervalo de confiança do retorno fica todo abaixo de zero.",
   "simulationVerdictCiZero": "Mas o intervalo de confiança do retorno inclui zero.",
   "simulationVerdictValidation": "No trecho reservado para validação, o alfa foi {{valor}}.",
+  "simulationVerdictValidationNone": "Não houve operação no trecho reservado para validação: o resultado não foi testado fora da amostra.",
   "simulationChance": "Contra o acaso",
   "simulationChanceSub": "Mediana dos sorteios: {{mediana}} · {{iteracoes}} sorteios",
   "simulationCalculating": "Calculando…",

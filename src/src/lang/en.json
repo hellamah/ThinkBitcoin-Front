@@ -358,6 +358,7 @@
   "simulationVerdictCiNegative": "The return's confidence interval lies entirely below zero.",
   "simulationVerdictCiZero": "But the return's confidence interval includes zero.",
   "simulationVerdictValidation": "In the stretch reserved for validation, alpha was {{valor}}.",
+  "simulationVerdictValidationNone": "There were no trades in the stretch reserved for validation: the result was not tested out of sample.",
   "simulationChance": "Against chance",
   "simulationChanceSub": "Median of draws: {{mediana}} · {{iteracoes}} draws",
   "simulationCalculating": "Calculating…",

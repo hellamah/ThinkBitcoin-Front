@@ -8,9 +8,11 @@
 //
 // O título nunca é mais otimista que a pior leitura: "passou nos testes" exige
 // alfa positivo, régua aleatória acima do limiar (que sobe com as tentativas),
-// intervalo do retorno acima de zero e validação sem perda. Qualquer uma que
-// falhe rebaixa para "frágil". E diz "desta janela" de propósito — é o que foi
-// medido, não uma promessa sobre a próxima.
+// intervalo do retorno acima de zero e validação com operação e sem perda.
+// Qualquer uma que falhe rebaixa para "frágil" — e leitura AUSENTE conta como
+// falha, não como aprovação: a régua ainda não medida já rebaixava, e a
+// validação sem operação passava. E diz "desta janela" de propósito — é o que
+// foi medido, não uma promessa sobre a próxima.
 //
 // Devolve chaves de tradução e valores, não texto: quem traduz é a tela.
 
@@ -69,10 +71,15 @@ export const montarVeredito = ({ metricas, acaso, calculando = false, limiar, bo
     else frases.push(frase('simulationVerdictCiZero'))
   }
 
+  // Sem operação no trecho reservado, a frase diz isso em vez de sumir: as
+  // outras leituras podem ter passado todas, e o título rebaixado ficaria sem
+  // motivo à vista.
   const operouNaValidacao = Boolean(validacao && validacao.trades.length > 0)
-  if (operouNaValidacao) {
-    frases.push(frase('simulationVerdictValidation', { valor: pct(validacao.metricas.alfa) }))
-  }
+  frases.push(
+    operouNaValidacao
+      ? frase('simulationVerdictValidation', { valor: pct(validacao.metricas.alfa) })
+      : frase('simulationVerdictValidationNone')
+  )
 
   if (metricas.amostraInsuficiente) {
     return {
@@ -85,8 +92,11 @@ export const montarVeredito = ({ metricas, acaso, calculando = false, limiar, bo
     return { tom: TomVeredito.RUIM, titulo: frase('simulationVerdictBad'), frases }
   }
 
-  const validacaoSemPerda = !operouNaValidacao || validacao.metricas.alfa > 0
-  const passou = passouAcaso && icPositivo && validacaoSemPerda
+  // Sem operação no trecho reservado não há alfa de validação — e não haver o
+  // número não é o número ter sido positivo. Contar isso como "sem perda"
+  // aprovava justamente a regra que nunca foi testada fora da amostra.
+  const validouSemPerda = operouNaValidacao && validacao.metricas.alfa > 0
+  const passou = passouAcaso && icPositivo && validouSemPerda
   return {
     tom: passou ? TomVeredito.BOM : TomVeredito.ALERTA,
     titulo: frase(passou ? 'simulationVerdictGood' : 'simulationVerdictFragile'),

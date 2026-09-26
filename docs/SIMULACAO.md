@@ -1148,6 +1148,28 @@ Os textos que descreviam o método — `ajuda.simAcaso` e
 `simulationVerdictChance` — foram reescritos nos cinco idiomas: diziam "candles
 sorteados, no mesmo número de vezes", que deixou de ser o que acontece.
 
+### A-18 — "Passou nos testes" sem ter sido validado ✅ **corrigido**
+
+O veredito declara no cabeçalho que o título nunca é mais otimista que a pior
+leitura. Para a validação, a conta era `!operouNaValidacao || alfa > 0`: **sem
+operação no trecho reservado, a validação contava como aprovada**. Uma regra
+com alfa positivo, acima do acaso e com intervalo acima de zero saía com
+"Passou nos testes desta janela" sem ter sido testada fora da amostra — e sem
+ressalva nenhuma, porque a ressalva de validação só aparecia com 1 a 19
+operações. Havia um teste cravando isso.
+
+O próprio veredito já tinha o precedente certo: a régua aleatória **ainda não
+medida** rebaixa para "frágil". Leitura ausente não é leitura aprovada, e agora
+vale o mesmo para a validação — sem operação, ou sem trecho reservado.
+
+A frase de validação passou a aparecer também quando ela não operou: *"Não
+houve operação no trecho reservado para validação: o resultado não foi testado
+fora da amostra."* Sem ela, com as outras três leituras aprovadas, o título
+rebaixado ficaria sem motivo à vista.
+
+Não vira ressalva, e sim frase: é o motivo do título, e o título é onde o
+veredito explica a si mesmo.
+
 ### A-07 — Zero operações não é retorno zero 🟡
 
 Encontrado ao ver a tela funcionando, não nos testes.

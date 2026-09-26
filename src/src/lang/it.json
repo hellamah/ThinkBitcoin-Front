@@ -358,6 +358,7 @@
   "simulationVerdictCiNegative": "L'intervallo di confidenza del rendimento è tutto sotto lo zero.",
   "simulationVerdictCiZero": "Ma l'intervallo di confidenza del rendimento include lo zero.",
   "simulationVerdictValidation": "Nel tratto riservato alla validazione, l'alfa è stato {{valor}}.",
+  "simulationVerdictValidationNone": "Nessuna operazione nel tratto riservato alla validazione: il risultato non è stato testato fuori campione.",
   "simulationChance": "Contro il caso",
   "simulationChanceSub": "Mediana dei sorteggi: {{mediana}} · {{iteracoes}} sorteggi",
   "simulationCalculating": "Calcolo in corso…",

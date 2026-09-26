@@ -62,6 +62,10 @@ describe('simulacao/veredito › título', () => {
     ['o intervalo', { bootstrap: { inferior: -2, superior: 9 } }],
     ['a validação', { validacao: validacao(-1) }],
     ['a régua ainda não medida', { acaso: null, calculando: true }],
+    // Leitura ausente não é leitura aprovada: mesma regra da régua ainda não
+    // medida, logo acima.
+    ['a validação sem operação', { validacao: validacao(3, 0) }],
+    ['a validação que não coube na janela', { validacao: null }],
   ])('deve rebaixar para frágil quando falha %s', (_, sobrescrever) => {
     const v = montarVeredito({ ...TUDO_BEM, ...sobrescrever })
     expect(v.tom).toBe(TomVeredito.ALERTA)
@@ -92,10 +96,12 @@ describe('simulacao/veredito › frases', () => {
     expect(chaves(v).some((c) => c.startsWith('simulationVerdictCi'))).toBe(false)
   })
 
-  it('deve omitir a validação quando ela não operou', () => {
+  it('deve dizer que não houve validação quando ela não operou', () => {
+    // Sem a frase, o título rebaixado não teria motivo à vista: as outras três
+    // leituras passaram.
     const v = montarVeredito({ ...TUDO_BEM, validacao: validacao(0, 0) })
     expect(chaves(v)).not.toContain('simulationVerdictValidation')
-    expect(v.tom).toBe(TomVeredito.BOM)
+    expect(chaves(v)).toContain('simulationVerdictValidationNone')
   })
 })
 
@@ -127,6 +133,7 @@ describe('simulacao/veredito › chaves', () => {
       { ...TUDO_BEM, bootstrap: { inferior: -5, superior: -1 } },
       { ...TUDO_BEM, acaso: null, calculando: true },
       { ...TUDO_BEM, metricas: metricas({ amostraInsuficiente: true }) },
+      { ...TUDO_BEM, validacao: validacao(0, 0) },
     ]
     const pedidas = cenarios.flatMap((c) => {
       const v = montarVeredito(c)
