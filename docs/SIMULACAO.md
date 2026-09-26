@@ -1138,7 +1138,29 @@ horário, e isso a deixaria mais alta — erra para o lado de não bajular.
 
 **No mock, os percentis quase não mudam** (volume atípico 22 → 14, estrela
 74 → 76; os extremos seguem em 0 e 100): as estratégias ali acertam ou erram
-demais para a régua decidir alguma coisa. O efeito em dado real não foi medido.
+demais para a régua decidir alguma coisa.
+
+**Em dado real, mudam** — medido depois, na série de 180 dias da API local
+(2026-09-26, comprado, segurando 5, já com os sinais do A-19 e do A-20):
+
+| Sinal | Operações do sinal | Sorteio antigo | Rotação | Percentil antigo → novo |
+|---|---|---|---|---|
+| BTC, cruzou VWAP p/ baixo | 184 | 190 | 184 | **97 → 89** |
+| BTC, ticket alto | 148 | 208 | 148 | 88 → 70 |
+| BTC, divergência baixista | 36 | 63 | 36 | 87 → 79 |
+| ETH, volume atípico | 188 | 282 | 188 | **100 → 94** |
+| ETH, divergência baixista | 43 | 76 | 43 | 65 → 43 |
+| ETH, ticket alto | 92 | 133 | 93 | 28 → 17 |
+| SOL, martelo | 440 | 432 | 440 | 67 → 76 |
+
+Os dois em negrito atravessam o limiar de 95: com a régua antiga o veredito
+dizia que eles superavam o acaso. A maior parte das mudanças é para baixo, nos
+sinais em rajada — divergência, ticket, volume —, que é a direção prevista: o
+sorteio operava mais, pagava mais custo e ficava abaixo do sinal por isso. No
+martelo os sorteios antigos já operavam quase o mesmo tanto, e o percentil anda
+para os dois lados conforme a moeda (SOL 67 → 76, ETH 80 → 77): é a variação de
+trocar um sorteio por outro, não viés. Nas três moedas, as operações da rotação
+batem com as do sinal com diferença máxima de 1.
 
 **Verificado por injeção:** a régua antiga derruba os três testes de rajada
 (operações 27,5 contra 10, percentil 100, ▲ indevido); zerar a margem de
