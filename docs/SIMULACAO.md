@@ -1082,6 +1082,72 @@ onde as estratégias acertam demais, e porque anualizar retorno horário amplifi
 Em dado real a escala é outra; o que a tabela mostra é a **ordenação**, que é o
 que a métrica existe para dar.
 
+### A-17 — A régua aleatória comparava estratégias de tamanhos diferentes ✅ **corrigido**
+
+A régua aleatória ([acaso.js](../src/src/utils/acaso.js)) mede o sinal contra
+entradas sorteadas, com a mesma saída, custo, direção e filtro. Ela sorteava
+**candles avulsos**, no mesmo número de vezes em que o sinal apareceu — e
+comentava a escolha: "mesmo número de oportunidades, e não de operações".
+
+Era essa a falha. Sinal de verdade vem em **rajadas**: RSI em sobrecompra,
+rompimento de banda e divergência disparam em candles seguidos enquanto a
+condição dura, e com a posição aberta as ocorrências seguintes são ignoradas.
+Os sorteios não tinham rajada nenhuma, então operavam outro tanto:
+
+| Sinal (demonstração, 120 dias, segurando 5) | Ocorrências | Operações do sinal | Operações dos sorteios |
+|---|---|---|---|
+| Divergência altista | 208 | 76 | **161** |
+| Divergência baixista | 231 | 84 | **175** |
+| Ticket alto | 222 | 221 | **169** |
+| Volume atípico | 262 | 262 | **193** |
+
+Com o dobro de operações, o sorteio paga o dobro de custo e fica o dobro do
+tempo exposto. O percentil comparava duas estratégias de tamanhos diferentes, e
+o erro mudava de lado conforme o sinal: rajada operava menos que os sorteios,
+ocorrência espaçada operava mais.
+
+**O caso que o teste crava:** um sinal sem valor nenhum — preço parado, cinco
+martelos seguidos a cada 25 candles, custo de 0,1% — saía no **percentil 100**.
+Os sorteios operavam 27 vezes contra 10 do sinal; a única diferença entre eles
+era o custo que o sinal deixava de pagar. O ▲ do ranking tinha o mesmo defeito:
+o p95 da sorte ficava em −4,9% contra −2,0% do sinal.
+
+**A correção é rotação circular.** A lista de candidatas é girada por uma
+distância sorteada: a ocorrência que estava na posição `p` vai para `p + d`, e a
+que passa do fim volta pelo começo. Mantém tudo que não é o momento — quantas
+ocorrências, quantas seguidas, a distância entre uma rajada e outra. Depois
+dela, as operações da régua batem com as do sinal nos 14 sinais (diferença
+máxima de 1, que é a rajada partida na volta do fim para o começo).
+
+Três decisões junto:
+
+- **Os deslocamentos curtos ficam de fora** (5% das candidatas em cada ponta,
+  ~9 dias em 180). Deslocado em um candle, o sinal ainda é o sinal: entra no
+  meio do mesmo movimento. Uma régua feita dessas cópias julgaria o sinal
+  contra ele mesmo.
+- **Sem reposição na régua da estratégia**, e com todos os deslocamentos quando
+  eles cabem nas 300 iterações. Aí o percentil deixa de ser estimativa e vira a
+  conta exata. Na sorte do ranking cada sinal gira com a sua distância, com
+  reposição — o que se repetiria é a combinação inteira, e isso não acontece.
+- **Custo nenhum.** Marcar uma rotação percorre as mesmas ocorrências que o
+  sorteio percorria: 24 ms por sinal, contra 28 antes.
+
+O que a rotação **não** resolve: deslocamentos múltiplos de 24 mantêm a hora do
+dia. Um sinal cujo valor viesse só do horário teria parte da régua com o mesmo
+horário, e isso a deixaria mais alta — erra para o lado de não bajular.
+
+**No mock, os percentis quase não mudam** (volume atípico 22 → 14, estrela
+74 → 76; os extremos seguem em 0 e 100): as estratégias ali acertam ou erram
+demais para a régua decidir alguma coisa. O efeito em dado real não foi medido.
+
+**Verificado por injeção:** a régua antiga derruba os três testes de rajada
+(operações 27,5 contra 10, percentil 100, ▲ indevido); zerar a margem de
+deslocamento derruba o teste de cópias (percentil 99,49 em vez de 100).
+
+Os textos que descreviam o método — `ajuda.simAcaso` e
+`simulationVerdictChance` — foram reescritos nos cinco idiomas: diziam "candles
+sorteados, no mesmo número de vezes", que deixou de ser o que acontece.
+
 ### A-07 — Zero operações não é retorno zero 🟡
 
 Encontrado ao ver a tela funcionando, não nos testes.
