@@ -194,6 +194,14 @@ export default function useStrategySimulation({ token, sigla, t, idioma }) {
     [opcoesComuns, sinalEntrada]
   )
 
+  // A regra comum sem a janela, para a leitura "escolher pelo passado", que
+  // percorre dois anos e tem os seus próprios períodos. Memorizada: é
+  // dependência da conta de lá.
+  const regraComum = useMemo(() => {
+    const { aPartirDe: _janela, ...regra } = opcoesComuns
+    return regra
+  }, [opcoesComuns])
+
   const resultado = useMemo(
     () =>
       serieSimulacao && opcoesSimulacao
@@ -420,6 +428,12 @@ export default function useStrategySimulation({ token, sigla, t, idioma }) {
       diasReservados,
       onRevelar: revelar,
     },
+    // O que a aba "escolher pelo passado" precisa para buscar a própria série
+    // e caminhar por ela. `ate` é o início do trecho reservado: os períodos
+    // param ali, para não mostrar a validação por outro caminho.
+    escolhaPeloPassado: sigla
+      ? { token, sigla, regra: regraComum, ate: corte?.aPartirDeValidacao ?? null }
+      : null,
     experimentos: {
       tentativas: Math.max(1, tentativas.length),
       limiar: limiarPorTentativas(tentativas.length),

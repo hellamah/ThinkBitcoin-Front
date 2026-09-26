@@ -2883,11 +2883,20 @@
 .simulation-mensal h3,
 .simulation-mapa h3,
 .simulation-diario h3,
-.simulation-ranking h3 {
+.simulation-ranking h3,
+.simulation-passado h3 {
   font-size: 0.9rem;
   font-weight: 700;
   color: var(--text-secondary);
   margin-bottom: 10px;
+}
+
+/* A leitura de "escolher pelo passado", em uma frase, entre os cards e a
+   tabela: é a resposta à pergunta do título. */
+.simulation-passado-leitura {
+  margin: 14px 0 4px;
+  font-weight: 600;
+  font-size: 0.9rem;
 }
 
 /* "Dá para confiar?": o segundo nível. Fechado, é uma linha que diz o que há

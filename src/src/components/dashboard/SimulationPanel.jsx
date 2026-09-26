@@ -22,6 +22,7 @@ import ExcursaoOperacoes from './simulacao/ExcursaoOperacoes'
 import ConsistenciaMensal from './simulacao/ConsistenciaMensal'
 import MapaSensibilidade from './simulacao/MapaSensibilidade'
 import RankingEstrategias from './simulacao/RankingEstrategias'
+import EscolhaPeloPassado from './simulacao/EscolhaPeloPassado'
 import DiarioExperimentos from './simulacao/DiarioExperimentos'
 import { montarRessalvas, montarVeredito } from './simulacao/veredito'
 
@@ -33,6 +34,7 @@ const Aba = Object.freeze({
   MENSAL: 'mensal',
   SENSIBILIDADE: 'sensibilidade',
   RANKING: 'ranking',
+  PASSADO: 'passado',
   DIARIO: 'diario',
 })
 
@@ -49,12 +51,15 @@ const SEM_RESERVA = Object.freeze({
   onRevelar: () => {},
 })
 
+// "Escolher pelo passado" vem logo depois do ranking: é a pergunta que ele
+// levanta.
 const ABAS = [
   [Aba.OPERACOES, 'simulationTabTrades'],
   [Aba.EXCURSAO, 'simulationTabExcursion'],
   [Aba.MENSAL, 'simulationTabMonthly'],
   [Aba.SENSIBILIDADE, 'simulationTabSensitivity'],
   [Aba.RANKING, 'simulationTabRanking'],
+  [Aba.PASSADO, 'simulationTabPast'],
   [Aba.DIARIO, 'simulationTabJournal'],
 ]
 
@@ -102,6 +107,7 @@ export default function SimulationPanel({
   experimentos,
   diario,
   reserva = SEM_RESERVA,
+  escolhaPeloPassado = null,
   t,
   locale,
   seletor = null,
@@ -324,7 +330,9 @@ export default function SimulationPanel({
                 clicar na aberta a fecha. O papel de tab exigiria sempre uma
                 selecionada. */}
             <div className="simulation-abas" role="group" aria-label={t('simulationDeepen')}>
-              {ABAS.map(([valor, chave]) => (
+              {/* Sem o descritor (quem usa o painel sem a tela), a aba que busca
+                  a própria série não tem o que buscar. */}
+              {ABAS.filter(([valor]) => valor !== Aba.PASSADO || escolhaPeloPassado).map(([valor, chave]) => (
                 <button
                   key={valor}
                   type="button"
@@ -386,6 +394,9 @@ export default function SimulationPanel({
                     impressoesReveladas={reserva.impressoesReveladas}
                     t={t}
                   />
+                )}
+                {aba === Aba.PASSADO && escolhaPeloPassado && (
+                  <EscolhaPeloPassado descritor={escolhaPeloPassado} parametros={parametros} t={t} locale={locale} />
                 )}
                 {aba === Aba.DIARIO && (
                   <DiarioExperimentos

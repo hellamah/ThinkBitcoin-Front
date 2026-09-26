@@ -494,6 +494,12 @@ const retornoBrutoDe = (entrada, saida, direcao) =>
  * @param {boolean} [opcoes.enxuto] - Só o desfecho, sem curva, operações nem
  *   métricas de risco. Para quem vai rodar a mesma série centenas de vezes e só
  *   precisa do retorno.
+ * @param {string|number|null} [opcoes.ate] - Instante em que a simulação
+ *   ACABA, exclusivo: candles a partir dele não existem para ela, e a posição
+ *   aberta fecha no último antes dele. Equivale a simular a série cortada ali
+ *   — mas sem cortar: o preparo da série, guardado por identidade, serve a
+ *   todos os trechos. É o que deixa o walk-forward rodar centenas de janelas
+ *   sobre a mesma série sem remontá-la.
  * @returns {object|null} - null sem série utilizável.
  */
 export const simular = (registros, opcoes = {}) => {
@@ -519,6 +525,7 @@ export const simular = (registros, opcoes = {}) => {
     riscoPorOperacao = null,
     posicoesDeEntrada = null,
     enxuto = false,
+    ate = null,
   } = opcoes
 
   if (!Array.isArray(registros) || registros.length < 2) return null
@@ -559,12 +566,22 @@ export const simular = (registros, opcoes = {}) => {
 
   const limite = limiteDeAbertura(aPartirDe)
 
+  // Onde a simulação acaba: o primeiro candle no instante `ate` ou depois dele.
+  // Daí em diante a série não existe para ela.
+  const limiteFim = limiteDeAbertura(ate)
+  let fim = serie.length
+  if (limiteFim !== null) {
+    for (let i = 0; i < serie.length; i++) {
+      if (instantes[i] !== null && instantes[i] >= limiteFim) { fim = i; break }
+    }
+  }
+
   // A curva cobre a janela que o usuário escolheu, não a margem de aquecimento.
   let inicio = -1
-  for (let i = 0; i < serie.length; i++) {
+  for (let i = 0; i < fim; i++) {
     if (podeAbrir(instantes, limite, i)) { inicio = i; break }
   }
-  if (inicio < 0 || inicio >= serie.length - 1) return null
+  if (inicio < 0 || inicio >= fim - 1) return null
 
   const comprado = direcao === TradeDirection.COMPRA
   let capital = capitalInicial
@@ -648,7 +665,7 @@ export const simular = (registros, opcoes = {}) => {
   let primeiroInstante = null
   let ultimoInstante = null
 
-  for (let i = inicio; i < serie.length; i++) {
+  for (let i = inicio; i < fim; i++) {
     // Buraco fecha a posição no último preço conhecido: dentro dele não se sabe
     // o que o preço fez, e stop e alvo deixariam de significar qualquer coisa.
     if (posicao && quebraEm[i]) {
@@ -808,7 +825,7 @@ export const simular = (registros, opcoes = {}) => {
 
     // 5. Sinal de entrada neste candle agenda entrada para a abertura do
     //    próximo — se o filtro deixar.
-    if (!posicao && i < serie.length - 1 && podeAbrir(instantes, limite, i + 1)) {
+    if (!posicao && i < fim - 1 && podeAbrir(instantes, limite, i + 1)) {
       const temSinal = porPosicao
         ? Boolean(posicoesDeEntrada[i])
         : serie[i].sinais.includes(sinalEntrada)
@@ -859,7 +876,7 @@ export const simular = (registros, opcoes = {}) => {
   // Posição aberta no fim da janela: fecha no último fechamento conhecido, mas
   // marcada — o desfecho não aconteceu.
   if (posicao) {
-    const ultimo = serie.length - 1
+    const ultimo = fim - 1
     const fechamento = fechamentos[ultimo]
     if (fechamento !== null && fechamento > 0) {
       fechar(ultimo, fechamento, ExitReason.FIM_DA_SERIE)
@@ -868,7 +885,7 @@ export const simular = (registros, opcoes = {}) => {
   }
 
   const retornoTotal = ((capital - capitalInicial) / capitalInicial) * 100
-  const buyAndHold = buyAndHoldDe(fechamentos[inicio], fechamentos[serie.length - 1])
+  const buyAndHold = buyAndHoldDe(fechamentos[inicio], fechamentos[fim - 1])
 
   if (enxuto) {
     return {
@@ -891,6 +908,7 @@ export const simular = (registros, opcoes = {}) => {
       custoPercentual,
       capitalInicial,
       aPartirDe,
+      ate,
       sinalSaida,
       filtroTendencia,
       sinalConfirmacao,

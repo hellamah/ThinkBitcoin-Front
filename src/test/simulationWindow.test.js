@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   montarJanelaSimulacao,
+  dividirEmBlocos,
   DIAS_JANELA_SIMULACAO,
   DIAS_DE_AQUECIMENTO,
+  DIAS_SERIE_LONGA,
 } from '../src/utils/simulationWindow'
 import { QUANTIDADE_MAXIMA_CANDLES } from '../src/utils/apiClient'
 
@@ -61,5 +63,40 @@ describe('utils/simulationWindow', () => {
     // diferença o corte de validação não valida nada e o intervalo de confiança
     // nunca fecha.
     expect(DIAS_JANELA_SIMULACAO).toBeGreaterThanOrEqual(90)
+  })
+})
+
+describe('utils/simulationWindow › blocos da série longa', () => {
+  const HORA_MS = 3600000
+
+  it('deve cobrir o período inteiro, sem buraco entre um bloco e o seguinte', () => {
+    const j = montarJanelaSimulacao(AGORA, DIAS_SERIE_LONGA)
+    const blocos = dividirEmBlocos(j.dataInicio, j.dataFim)
+
+    expect(blocos[0].dataInicio).toBe(j.dataInicio)
+    expect(blocos[blocos.length - 1].dataFim).toBe(j.dataFim)
+    blocos.slice(1).forEach((b, k) => expect(b.dataInicio).toBe(blocos[k].dataFim))
+  })
+
+  it('deve caber no teto da API com as duas pontas inclusivas', () => {
+    // Um bloco de N horas com as duas pontas tem N + 1 candles: é isso que
+    // precisa caber, e não as N horas.
+    const j = montarJanelaSimulacao(AGORA, DIAS_SERIE_LONGA)
+    dividirEmBlocos(j.dataInicio, j.dataFim).forEach((b) => {
+      const horas = (Date.parse(b.dataFim) - Date.parse(b.dataInicio)) / HORA_MS
+      expect(horas + 1).toBeLessThanOrEqual(QUANTIDADE_MAXIMA_CANDLES)
+      expect(b.quantidade).toBeLessThanOrEqual(QUANTIDADE_MAXIMA_CANDLES)
+      expect(b.quantidade).toBe(Math.floor(horas) + 1)
+    })
+  })
+
+  it('deve pedir dois anos em quatro requisições', () => {
+    const j = montarJanelaSimulacao(AGORA, DIAS_SERIE_LONGA)
+    expect(dividirEmBlocos(j.dataInicio, j.dataFim)).toHaveLength(4)
+  })
+
+  it('deve devolver nada para um período vazio ou invertido', () => {
+    expect(dividirEmBlocos('2026-01-02T00:00:00Z', '2026-01-01T00:00:00Z')).toEqual([])
+    expect(dividirEmBlocos('x', '2026-01-01T00:00:00Z')).toEqual([])
   })
 })

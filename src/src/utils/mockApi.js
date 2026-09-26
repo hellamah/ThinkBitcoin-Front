@@ -103,13 +103,30 @@ const CHOQUE = 0.028
 // numa banda plausível sem deixar de ter tendência.
 const REVERSAO = 0.012
 
-// Quantas horas de histórico o mock gera. 120 dias cobrem o preset de 1 mês
-// (~720 candles) com folga, sem pagar a geração de um ano inteiro de hora em
-// hora a cada requisição.
-const HORAS_DE_HISTORICO = 120 * 24
+// Quantas horas de histórico o mock gera: dois anos e uma semana. A simulação
+// busca 180 dias, e a leitura "escolher pelo passado", dois anos; com os 120
+// dias de antes, a primeira anunciava "janela curta" em todo teste no modo demo
+// e a segunda não tinha período nenhum para mostrar.
+const HORAS_DE_HISTORICO = (2 * 365 + 7) * 24
 
-const buildCoinValueResponse = (symbol, urlParams) => {
-  const normalized = symbol.toUpperCase()
+// A série gerada, por moeda e por hora cheia. Gerar ~17.700 candles a cada
+// requisição custava o que custavam os 120 dias antes, vezes seis; guardada, a
+// geração acontece uma vez por hora por moeda. Quem recebe a resposta recebe
+// cópias — o `normalizeApiKeys` do apiClient refaz cada registro —, então
+// nada do que a tela fizer com elas volta para cá.
+const historicosMock = new Map()
+
+const historicoMockDe = (normalized) => {
+  const agora = new Date()
+  agora.setMinutes(0, 0, 0)
+  const guardado = historicosMock.get(normalized)
+  if (guardado?.hora === agora.getTime()) return guardado.registros
+  const registros = gerarHistoricoMock(normalized, agora)
+  historicosMock.set(normalized, { hora: agora.getTime(), registros })
+  return registros
+}
+
+const gerarHistoricoMock = (normalized, agora) => {
   const baseValue = MOCK_COIN_BASE_VALUE[normalized] ?? 100
   const variationFactor = ((hashSymbol(normalized) % 17) - 8) * 0.0025
 
@@ -122,13 +139,11 @@ const buildCoinValueResponse = (symbol, urlParams) => {
   const sortear = geradorSemeado(hashSymbol(normalized))
   let precoRelativo = 1
   let momentum = 0
-  // Base truncada na hora para todas as moedas caírem na mesma grade de
-  // horários. Com `new Date()` puro cada moeda era gerada num milissegundo
+  // `agora` chega truncado na hora para todas as moedas caírem na mesma grade
+  // de horários. Com `new Date()` puro cada moeda era gerada num milissegundo
   // diferente, então nenhuma série se alinhava com outra: o gráfico multi-moeda
   // ficava com um ponto por moeda por instante e a correlação não achava um
   // par sequer. O backend real amostra em cadência fixa, que é o que isto imita.
-  const agora = new Date()
-  agora.setMinutes(0, 0, 0)
 
   // Um candle por hora, como o backend real amostra.
   //
@@ -267,6 +282,13 @@ const buildCoinValueResponse = (symbol, urlParams) => {
       })
     }
   }
+
+  return registros
+}
+
+const buildCoinValueResponse = (symbol, urlParams) => {
+  // Cópia: o `reverse()` abaixo inverteria no lugar a série guardada.
+  let registros = [...historicoMockDe(symbol.toUpperCase())]
 
   // Filtragem
   if (urlParams) {

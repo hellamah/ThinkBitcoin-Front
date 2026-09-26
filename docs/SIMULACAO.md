@@ -1599,7 +1599,7 @@ entre front e .NET. O Python é referência de leitura (seção 3) e nada mais.
 
 ---
 
-## 13. D-04 — Mais dado fora da amostra 🟡 **C feito; B a seguir**
+## 13. D-04 — Mais dado fora da amostra 🟡 **C e B feitos; A em espera**
 
 > O D-04 foi desenhado com a simulação ainda no dashboard. Desde o D-05 ela tem
 > tela própria, e é lá que as opções B e C entram — o custo novo delas não cai
@@ -1752,9 +1752,9 @@ olhando a janela inteira, os blocos dela não estão fora da amostra. É a aba
 
 1. **C:** esconder a validação até fixar a configuração. ✅ **Decidido e
    implementado** — ver 13.5.
-2. **B:** só o sinal, com treino fixo de 90 dias. ✅ Decidido; ainda não
-   implementado. Stop e alvo na grade multiplicariam a conta por 36 e
-   embaralhariam a leitura; treino escolhível recriaria o problema do C
+2. **B:** só o sinal, com treino fixo de 90 dias. ✅ **Decidido e
+   implementado** — ver 13.6. Stop e alvo na grade multiplicariam a conta por
+   36 e embaralhariam a leitura; treino escolhível recriaria o problema do C
    (testar tamanhos até um parecer bom).
 3. **A:** manter 180 dias por enquanto. ✅ Decidido; reavaliar depois do B,
    que traz a série longa sob demanda.
@@ -1824,6 +1824,58 @@ memória; veredito "falta a validação" e seus limites; ressalva de várias
 revelações; cobertura da janela medida pela série e não pelo ajuste; tela com
 card reservado, botão, linha da janela, tabela escondida e ranking com a
 validação só na regra fixada.
+
+### 13.6 B — "Escolher pelo passado funciona?" ✅ **implementada**
+
+Aba nova em "Aprofundar", logo depois do ranking: é a pergunta que ele
+levanta. A cada 30 dias, escolhe o sinal de maior alfa nos 90 dias anteriores
+— o topo do ranking — e o opera nos 30 seguintes, com a regra de saída da tela.
+Ao lado, o **controle**: no mesmo treino, o sinal que menos operou, sem olhar
+resultado. E o buy & hold dos mesmos períodos.
+
+A tela mostra os três retornos compostos, a posição média do escolhido e do
+controle no período seguinte (0 = pior sinal, 1 = melhor, 0,5 = acaso), uma
+frase de leitura e a tabela período a período. "Superou" exige as duas
+leituras — retorno composto e posição —, porque um período extremo decide o
+composto sozinho.
+
+O que a implementação decidiu:
+
+- **Série própria de dois anos, buscada só quando a aba abre**
+  ([useSerieLonga.js](../src/src/hooks/useSerieLonga.js)). São ~17.600 candles
+  em 4 requisições paralelas (teto de 5.000 por pedido; `dividirEmBlocos` em
+  [simulationWindow.js](../src/src/utils/simulationWindow.js) conta as duas
+  pontas inclusivas), juntadas sem repetição. Guardada por moeda durante uma
+  hora — a cadência da coleta.
+- **Os períodos param onde começa o trecho reservado** da validação (13.5).
+  Mostrar como o procedimento se saiu nele seria mostrar a validação por outro
+  caminho. Custa um período (21 → 20).
+- **`simular` ganhou `ate`**, o fim exclusivo da simulação. O protótipo
+  recortava a série a cada período e refazia o preparo dela: ~11 s por
+  configuração. Com `aPartirDe` e `ate` sobre a mesma série, o preparo é
+  reaproveitado e a caminhada inteira leva **~100 ms** em dois anos reais
+  (21 períodos, o maior de 40 ms), mais ~200 ms para a série de sinais, uma vez
+  por série. Por isso **não foi para o worker**: um período por vez, com a vez
+  devolvida à tela entre eles, e a tela diz em que período a conta está.
+- **Reproduz o protótipo exatamente** em dado real: BTC, treino de 90 dias —
+  escolhido −14,5% (146 operações, posição 0,72), controle −3,0% (0,79), buy &
+  hold −23,2%; ETH e SOL idem. Ou seja, a tabela do 13.1 é o que a aba mostra.
+- **O mock passou a ter dois anos** (era 120 dias), guardado por moeda e hora:
+  sem isso a aba não tinha período nenhum no modo demo, e a própria simulação
+  anunciava "janela curta" em todo teste. Gerar dois anos leva ~160 ms na
+  primeira requisição da hora; as seguintes, ~10 ms. No mock os números são
+  absurdos (+7.856.169%): os sinais sintéticos acertam demais, como o A-16 já
+  registrava.
+
+**Verificado por injeção:** o treino enxergar o mês de teste derruba o teste
+de causalidade (o período cujo teste começa na virada tem de ter escolhido o
+sinal que só ganhava no treino); o controle pelo maior número de operações
+derruba o teste de escolha. `simular` com `ate` é conferido contra a série
+cortada em três pontos, inclusive com posição aberta no corte.
+
+**Na tela (mock, BTC):** do clique ao resultado, ~0,8 s — busca dos 4 blocos,
+série de sinais e 20 períodos —, passando por "Calculando o período 15 de
+20…"; rodapé com a data em que os períodos param; nenhum erro de console.
 
 ### B-06 — A API não comprime a resposta 🟡
 

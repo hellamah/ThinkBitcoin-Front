@@ -1147,3 +1147,52 @@ describe('utils/backtest › extensão real da janela analisada', () => {
     expect(longa.metricas.diasAnalisados).toBeCloseTo(6, 6)
   })
 })
+
+describe('utils/backtest › fim da simulação (`ate`)', () => {
+  // Série que oscila, com martelos a cada 7 candles: operações ao longo da
+  // série toda, e alguma aberta em qualquer ponto de corte.
+  const oscilante = () =>
+    serie(
+      Array.from({ length: 120 }, (_, i) => {
+        const p = 100 + Math.sin(i / 5) * 8
+        return { abertura: p, maior: p + 3, menor: p - 3, fechamento: p + (i % 2 ? 1 : -1), martelo: i % 7 === 0 }
+      })
+    )
+  const REGRA = { ...PADRAO, saidaPorTempo: 5, custoPercentual: 0.1 }
+  const instanteDaPosicao = (registros, k) => [...registros].reverse()[k].horaReferencia
+
+  it.each([40, 63, 90])('deve dar o mesmo que simular a série cortada no candle %i', (k) => {
+    const registros = oscilante()
+    const ate = instanteDaPosicao(registros, k)
+    const aPartirDe = instanteDaPosicao(registros, 10)
+    // Na ordem da API, os candles anteriores ao corte são o FIM do array.
+    const cortada = registros.slice(registros.length - k)
+
+    const comAte = simular(registros, { ...REGRA, aPartirDe, ate })
+    const semAte = simular(cortada, { ...REGRA, aPartirDe })
+
+    expect(comAte.trades).toEqual(semAte.trades)
+    expect(comAte.curva).toEqual(semAte.curva)
+    expect(comAte.metricas).toEqual(semAte.metricas)
+  })
+
+  it('deve fechar no último candle antes do corte a posição que ficou aberta', () => {
+    const registros = oscilante()
+    // Martelo no 63: entra no 64 e seguraria até o 68. Cortando no 66, a
+    // operação acaba no 65, pela janela — e não no 68, que ela não enxerga.
+    const r = simular(registros, { ...REGRA, ate: instanteDaPosicao(registros, 66) })
+    const ultima = r.trades[r.trades.length - 1]
+    expect(ultima.indiceSaida).toBe(65)
+    expect(ultima.motivoSaida).toBe(ExitReason.FIM_DA_SERIE)
+  })
+
+  it('deve servir o mesmo resultado no modo enxuto', () => {
+    const registros = oscilante()
+    const ate = instanteDaPosicao(registros, 80)
+    const completo = simular(registros, { ...REGRA, ate })
+    const enxuto = simular(registros, { ...REGRA, ate, enxuto: true })
+    expect(enxuto.retornoTotal).toBeCloseTo(completo.metricas.retornoTotal, 10)
+    expect(enxuto.buyAndHold).toBeCloseTo(completo.metricas.buyAndHold, 10)
+    expect(enxuto.tradesConcluidos).toBe(completo.metricas.tradesConcluidos)
+  })
+})

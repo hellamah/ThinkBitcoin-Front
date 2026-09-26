@@ -23,6 +23,12 @@ import { QUANTIDADE_MAXIMA_CANDLES } from './apiClient'
 // Quantos dias a simulação analisa.
 export const DIAS_JANELA_SIMULACAO = 180
 
+// Quantos dias a leitura "escolher pelo passado" percorre. Dois anos dão ~21
+// períodos de teste de 30 dias depois de um treino de 90; com um ano seriam
+// ~9, perto demais do mínimo para um mês ruim não decidir sozinho. O banco
+// tem ~870 dias (V17).
+export const DIAS_SERIE_LONGA = 730
+
 // Dias pedidos ANTES da janela só para aquecer indicadores de janela móvel.
 // Mesmo motivo e mesmo valor do dashboard: Bollinger de 20 e RSI de 14 precisam
 // de candles anteriores ao primeiro ponto analisado, senão o indicador só passa
@@ -60,4 +66,36 @@ export const montarJanelaSimulacao = (agora = new Date(), dias = DIAS_JANELA_SIM
     quantidade: Math.min(horasPedidas, QUANTIDADE_MAXIMA_CANDLES),
     aPartirDe: inicioAnalise.toISOString(),
   }
+}
+
+/**
+ * Divide um período em blocos que cabem, cada um, numa requisição.
+ *
+ * A API recusa mais de 5.000 candles por pedido (B-01), e a série longa tem
+ * ~17.600. Cada bloco cobre no máximo `maxCandles − 1` horas: com as duas
+ * pontas inclusivas, isso dá no máximo `maxCandles` candles. O candle da
+ * emenda vem nos dois blocos vizinhos — quem junta descarta a repetição pelo
+ * carimbo de hora.
+ *
+ * @param {string} dataInicio - ISO.
+ * @param {string} dataFim - ISO.
+ * @param {number} [maxCandles]
+ * @returns {Array<{dataInicio: string, dataFim: string, quantidade: number}>}
+ */
+export const dividirEmBlocos = (dataInicio, dataFim, maxCandles = QUANTIDADE_MAXIMA_CANDLES) => {
+  const inicio = new Date(dataInicio).getTime()
+  const fim = new Date(dataFim).getTime()
+  if (!Number.isFinite(inicio) || !Number.isFinite(fim) || fim <= inicio || maxCandles < 2) return []
+
+  const passo = (maxCandles - 1) * HORA_MS
+  const blocos = []
+  for (let a = inicio; a < fim; a += passo) {
+    const b = Math.min(a + passo, fim)
+    blocos.push({
+      dataInicio: new Date(a).toISOString(),
+      dataFim: new Date(b).toISOString(),
+      quantidade: Math.min(maxCandles, Math.floor((b - a) / HORA_MS) + 1),
+    })
+  }
+  return blocos
 }
