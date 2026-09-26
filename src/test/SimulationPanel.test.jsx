@@ -248,3 +248,29 @@ describe('SimulationPanel › aprofundar', () => {
     expect(props.diario.onGuardar).toHaveBeenCalled()
   })
 })
+
+describe('SimulationPanel › tela própria', () => {
+  const seletor = <div data-testid="seletor-moeda">BTC</div>
+
+  it('deve mostrar o seletor de moeda também enquanto a série carrega', () => {
+    // Trocar de moeda enquanto a série carrega é justamente quando se quer: um
+    // seletor que só aparece com o resultado prenderia a tela na moeda errada.
+    render(<SimulationPanel {...montarProps()} carregando seletor={seletor} />)
+    expect(screen.getByTestId('seletor-moeda')).toBeTruthy()
+    expect(screen.getByText('simulationLoading')).toBeTruthy()
+  })
+
+  it('deve mostrar o seletor com o resultado na tela', () => {
+    render(<SimulationPanel {...montarProps()} seletor={seletor} />)
+    expect(screen.getByTestId('seletor-moeda')).toBeTruthy()
+    expect(screen.getByText('simulationReturnLabel')).toBeTruthy()
+  })
+
+  it('deve usar o título como h1 da página, e como h2 dentro de outra tela', () => {
+    const { unmount } = render(<SimulationPanel {...montarProps()} nivelTitulo="h1" />)
+    expect(screen.getByRole('heading', { level: 1, name: 'simulation' })).toBeTruthy()
+    unmount()
+    render(<SimulationPanel {...montarProps()} />)
+    expect(screen.getByRole('heading', { level: 2, name: 'simulation' })).toBeTruthy()
+  })
+})

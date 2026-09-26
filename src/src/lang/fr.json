@@ -71,7 +71,8 @@
     "login": "Se connecter",
     "logout": "Se déconnecter",
     "heatmap": "Géopolitique",
-    "training": "Entraînement IA"
+    "training": "Entraînement IA",
+    "simulation": "Simulation"
   },
   "dashboard": "Tableau de bord",
   "sequence": "Séquence de rendement",
@@ -256,6 +257,10 @@
   "chartModeLineHint": "Ligne du prix de clôture",
   "chartModeCandleHint": "Bougies OHLC — ouverture, plus haut, plus bas et clôture",
   "simulation": "Simulation de Stratégie",
+  "simulationCoin": "Crypto",
+  "simulationShortcutHint": "Testez une règle d'entrée sur 180 jours et voyez ce qu'elle aurait rapporté, frais inclus, face au buy & hold et face au hasard.",
+  "simulationShortcutOpen": "Simuler {{moeda}}",
+  "signalSimulate": "Simuler ce signal",
   "simulationHint": "Et si vous aviez tradé ce signal ? L'entrée a lieu à l'ouverture de la bougie qui suit le signal, et les frais sont prélevés sur les deux jambes.",
   "simulationSignal": "Signal d'entrée",
   "simulationDirection": "Sens",
@@ -544,7 +549,7 @@
     "passo4Titulo": "Graphiques",
     "passo4Descricao": "Comparez prix et variation, changez la normalisation et agrandissez pour voir le détail.",
     "passo5Titulo": "Simulation de Stratégie",
-    "passo5Descricao": "Testez une règle d'entrée sur 180 jours et voyez ce qu'elle aurait rapporté, frais inclus et comparée au simple fait de conserver l'actif.",
+    "passo5Descricao": "La simulation de stratégie a son propre écran, et ce raccourci l'ouvre avec la crypto sélectionnée. Vous y testez une règle d'entrée sur 180 jours, frais inclus et comparée au simple fait de conserver l'actif.",
     "passo6Titulo": "Historique",
     "passo6Descricao": "Consultez l'historique des opérations filtré et naviguez entre les pages."
   },

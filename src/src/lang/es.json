@@ -71,7 +71,8 @@
     "login": "Entrar",
     "logout": "Salir",
     "heatmap": "Geopolítica",
-    "training": "Entrenamiento IA"
+    "training": "Entrenamiento IA",
+    "simulation": "Simulación"
   },
   "dashboard": "Panel",
   "sequence": "Secuencia de retorno",
@@ -256,6 +257,10 @@
   "chartModeLineHint": "Línea del precio de cierre",
   "chartModeCandleHint": "Velas OHLC — apertura, máximo, mínimo y cierre",
   "simulation": "Simulación de Estrategia",
+  "simulationCoin": "Moneda",
+  "simulationShortcutHint": "Pruebe una regla de entrada sobre 180 días y vea lo que habría rendido, con coste, frente al buy & hold y frente al azar.",
+  "simulationShortcutOpen": "Simular {{moeda}}",
+  "signalSimulate": "Simular esta señal",
   "simulationHint": "¿Y si hubieras operado esta señal? La entrada ocurre en la apertura de la vela siguiente a la señal, y el coste se cobra en las dos patas.",
   "simulationSignal": "Señal de entrada",
   "simulationDirection": "Dirección",
@@ -544,7 +549,7 @@
     "passo4Titulo": "Gráficos",
     "passo4Descricao": "Compare precio y variación, cambie la normalización y expanda para ver en detalle.",
     "passo5Titulo": "Simulación de Estrategia",
-    "passo5Descricao": "Pruebe una regla de entrada sobre 180 días y vea lo que habría rendido, con coste y comparada con simplemente mantener el activo.",
+    "passo5Descricao": "La simulación de estrategia tiene pantalla propia, y este atajo la abre con la moneda seleccionada. Allí prueba una regla de entrada sobre 180 días, con coste y comparada con simplemente mantener el activo.",
     "passo6Titulo": "Historial",
     "passo6Descricao": "Vea el historial de operaciones filtrado y navegue por las páginas."
   },

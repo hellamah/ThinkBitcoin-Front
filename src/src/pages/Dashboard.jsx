@@ -20,14 +20,13 @@ import useCoinPrices from '../hooks/useCoinPrices'
 import useAlertasPreco from '../hooks/useAlertasPreco'
 import useDashboardData from '../hooks/useDashboardData'
 import useDashboardCharts from '../hooks/useDashboardCharts'
-import useStrategySimulation from '../hooks/useStrategySimulation'
 import useHistoryPage from '../hooks/useHistoryPage'
 import useMarketAnalytics from '../hooks/useMarketAnalytics'
 import * as mathUtils from '../utils/mathUtils'
 import { calcularLimites } from '../utils/marketStats'
 import { compararMoedas } from '../utils/marketAnalytics'
 import { analisarSinais } from '../utils/signalLab'
-import { getTourVisto, setTourVisto } from '../utils/preferences'
+import { acharMoedaPreferida, getTourVisto, setTourVisto } from '../utils/preferences'
 import { contarAtivos } from '../utils/alertaPreco'
 import { candlestickPlugin } from '../utils/candlestickChart'
 import { Normalization, PriceChartMode, SecondaryChart } from '../utils/enums'
@@ -44,7 +43,7 @@ import PeriodStatsPanel from '../components/dashboard/PeriodStatsPanel'
 import CorrelationMatrix from '../components/dashboard/CorrelationMatrix'
 import CoinComparisonPanel from '../components/dashboard/CoinComparisonPanel'
 import SignalLabPanel from '../components/dashboard/SignalLabPanel'
-import SimulationPanel from '../components/dashboard/SimulationPanel'
+import SimulacaoAtalho from '../components/dashboard/SimulacaoAtalho'
 import DashboardCharts from '../components/dashboard/DashboardCharts'
 import HistoryTable from '../components/dashboard/HistoryTable'
 import ErrorMessage from '../components/ErrorMessage'
@@ -146,9 +145,11 @@ export default function Dashboard() {
     },
     // A simulação vem antes do histórico porque é essa a ordem na tela — o
     // Joyride rola até cada alvo, e um passo fora de ordem faria a página
-    // saltar para trás no meio do tour.
+    // saltar para trás no meio do tour. O alvo é o atalho para a tela própria
+    // dela: o passo continua existindo para apresentar a ferramenta a quem só
+    // conhece o dashboard.
     //
-    // Só entra com uma moeda selecionada, que é a condição de o painel existir.
+    // Só entra com uma moeda selecionada, que é a condição de o atalho existir.
     // A verificação é sobre o ESTADO, não sobre o DOM: no primeiro render nada
     // está montado ainda, e um `querySelector` aqui filtraria o tour inteiro.
     ...(moedasFiltro.length === 1
@@ -186,45 +187,15 @@ export default function Dashboard() {
     return () => window.removeEventListener('keydown', handleEsc)
   }, [])
 
-  // Inicializa a moeda preferida
+  // Inicializa a moeda preferida. A busca mora em utils/preferences, porque a
+  // tela da simulação precisa da mesma escolha.
   useEffect(() => {
-    try {
-      if (!token || hasInitializedPref.current || !moedasCarousel?.length) return
-
-      const moedaProp =
-        prefs?.siglaMoedaPreferida ||
-        prefs?.SiglaMoedaPreferida ||
-        prefs?.idMoedaPreferida ||
-        prefs?.IdMoedaPreferida ||
-        prefs?.moedaPreferida ||
-        prefs?.MoedaPreferida
-
-      let initialized = false
-      if (moedaProp) {
-        const match = moedasCarousel.find(m =>
-          (m.id && String(m.id) === String(moedaProp)) ||
-          (m.simbolo && String(m.simbolo).toUpperCase() === String(moedaProp).toUpperCase().trim())
-        )
-        if (match) {
-          setMoedasFiltro([match.simbolo])
-          setMoedaSelecionada(match.simbolo)
-          initialized = true
-        }
-      }
-
-      if (!initialized && moedasCarousel.length > 0) {
-        const btc = moedasCarousel.find(m => m.simbolo === 'BTC') || moedasCarousel[0]
-        if (btc) {
-          setMoedasFiltro([btc.simbolo])
-          setMoedaSelecionada(btc.simbolo)
-          initialized = true
-        }
-      }
-
-      if (initialized) hasInitializedPref.current = true
-    } catch (err) {
-      console.error('Erro na inicialização:', err)
-    }
+    if (!token || hasInitializedPref.current || !moedasCarousel?.length) return
+    const sigla = acharMoedaPreferida(prefs, moedasCarousel)
+    if (!sigla) return
+    setMoedasFiltro([sigla])
+    setMoedaSelecionada(sigla)
+    hasInitializedPref.current = true
   }, [prefs, token, moedasCarousel, setMoedaSelecionada])
 
   // Hook customizado para carregar os dados
@@ -356,14 +327,10 @@ export default function Dashboard() {
     })
   }, [historicosPorMoeda, moedasFiltro, horizonteSinal, dataInicio])
 
-  // ------ simulação de estratégia ------
-  //
-  // Restrita a uma moeda, como o laboratório: misturar ativos numa única curva
-  // de capital não descreve carteira nenhuma. Toda a fiação — série própria de
-  // 180 dias, corte de validação, ranking, régua aleatória, URL e diário — mora
-  // no hook; aqui só se decide se há uma moeda para simular.
-  const siglaSimulacao = moedasFiltro.length === 1 ? moedasFiltro[0] : null
-  const simulacaoEstrategia = useStrategySimulation({ token, sigla: siglaSimulacao, t, idioma })
+  // A simulação de estratégia tem tela própria (pages/Simulacao.jsx). Aqui fica
+  // só o atalho, restrito a uma moeda como o laboratório: misturar ativos numa
+  // única curva de capital não descreve carteira nenhuma.
+  const siglaUnica = moedasFiltro.length === 1 ? moedasFiltro[0] : null
 
   // Processamento de Gráficos (Hook Customizado)
   const chartConfig = useDashboardCharts({
@@ -505,12 +472,13 @@ export default function Dashboard() {
           analise={analiseSinais}
           horizonte={horizonteSinal}
           setHorizonte={setHorizonteSinal}
+          sigla={siglaUnica}
           t={t}
         />
 
-        {siglaSimulacao && (
+        {siglaUnica && (
           <div data-tour="dash-simulacao">
-          <SimulationPanel {...simulacaoEstrategia} t={t} locale={idioma.intl} />
+            <SimulacaoAtalho sigla={siglaUnica} t={t} />
           </div>
         )}
 

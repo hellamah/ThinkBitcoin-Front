@@ -5,7 +5,9 @@ import {
   lerParametrosDaUrl,
   escreverParametrosNaUrl,
   impressaoDaConfiguracao,
+  enderecoDaSimulacao,
 } from '../src/utils/parametrosSimulacao'
+import { temParametrosDaSimulacao } from '../src/utils/rotaSimulacao'
 import { StopMode, TradeDirection, TrendFilter } from '../src/utils/enums'
 
 const COMPLETO = {
@@ -74,6 +76,32 @@ describe('utils/parametrosSimulacao › URL', () => {
     const url = escreverParametrosNaUrl('', { direcao: TradeDirection.VENDA, saidaPorTempo: null })
     expect(url.get('sim.direcao')).toBe('venda')
     expect(url.get('sim.segurar')).toBe('sem')
+  })
+})
+
+describe('utils/parametrosSimulacao › endereço da tela', () => {
+  it('deve reconhecer um link de simulação de antes da tela própria', () => {
+    // O link compartilhado quando a simulação morava no dashboard.
+    expect(temParametrosDaSimulacao('?sim.sinal=martelo&sim.segurar=24')).toBe(true)
+    expect(temParametrosDaSimulacao(escreverParametrosNaUrl('', COMPLETO))).toBe(true)
+  })
+
+  it('não deve confundir os parâmetros do dashboard com os da simulação', () => {
+    expect(temParametrosDaSimulacao('?moeda=BTC')).toBe(false)
+    expect(temParametrosDaSimulacao('')).toBe(false)
+  })
+
+  it('deve montar o endereço com a moeda e só o que difere do padrão', () => {
+    expect(enderecoDaSimulacao('BTC')).toBe('/simulacao?moeda=BTC')
+    expect(enderecoDaSimulacao('ETH', { sinalEntrada: 'martelo' })).toBe('/simulacao?moeda=ETH&sim.sinal=martelo')
+    expect(enderecoDaSimulacao(null)).toBe('/simulacao')
+  })
+
+  it('deve levar para a tela a mesma configuração que ela lê', () => {
+    const endereco = enderecoDaSimulacao('SOL', COMPLETO)
+    const busca = new URLSearchParams(endereco.split('?')[1])
+    expect(lerParametrosDaUrl(busca)).toEqual(COMPLETO)
+    expect(busca.get('moeda')).toBe('SOL')
   })
 })
 

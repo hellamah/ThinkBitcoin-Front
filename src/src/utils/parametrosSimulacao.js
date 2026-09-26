@@ -13,6 +13,7 @@
 import { paraNumero } from './mathUtils'
 import { CUSTO_PADRAO_PERCENTUAL } from './backtest'
 import { StopMode, TradeDirection, TrendFilter } from './enums'
+import { ROTA_SIMULACAO } from './rotaSimulacao'
 
 // Quantos candles segurar. Três opções em vez de campo livre: o número aqui não
 // é ajuste fino, é a escala do que está sendo testado — intrabarra, algumas
@@ -163,6 +164,29 @@ export const escreverParametrosNaUrl = (atuais, parametros) => {
   })
 
   return saida
+}
+
+// ---------------------------------------------------------------------------
+// Endereço da tela
+// ---------------------------------------------------------------------------
+
+/**
+ * Endereço da tela da simulação para uma moeda, com parâmetros opcionais.
+ *
+ * A moeda vai no mesmo parâmetro `moeda` que o dashboard e o heatmap já leem.
+ *
+ * @param {string|null} sigla
+ * @param {object} [parametros] - Parâmetros da simulação a levar (ex.: o sinal
+ *   de entrada, quando o link sai de uma linha do laboratório de sinais).
+ * @returns {string}
+ */
+export const enderecoDaSimulacao = (sigla, parametros = null) => {
+  // A moeda primeiro: é o que se lê primeiro num link, e o que menos muda.
+  const busca = new URLSearchParams()
+  if (sigla) busca.set('moeda', sigla)
+  if (parametros) escreverParametrosNaUrl('', parametros).forEach((valor, chave) => busca.set(chave, valor))
+  const texto = busca.toString()
+  return texto ? `${ROTA_SIMULACAO}?${texto}` : ROTA_SIMULACAO
 }
 
 /**

@@ -1,6 +1,8 @@
 import React from 'react'
-import { MdScience, MdWarningAmber } from 'react-icons/md'
+import { Link } from 'react-router-dom'
+import { MdPlayCircleOutline, MdScience, MdWarningAmber } from 'react-icons/md'
 import * as mathUtils from '../../utils/mathUtils'
+import { enderecoDaSimulacao } from '../../utils/parametrosSimulacao'
 import RotuloComAjuda from './RotuloComAjuda'
 import { CandlePattern } from '../../utils/candlePatterns'
 import { SignalKey } from '../../utils/signalLab'
@@ -64,9 +66,11 @@ const taxaDaBase = (trecho) =>
  * @param {object} props.analise - Retorno de analisarSinais.
  * @param {number} props.horizonte - Candles à frente medidos.
  * @param {Function} props.setHorizonte - Troca o horizonte.
+ * @param {string|null} [props.sigla] - Moeda analisada; com ela, cada linha
+ *   ganha o atalho para simular o sinal.
  * @param {Function} props.t - Função de tradução.
  */
-export default function SignalLabPanel({ analise, horizonte, setHorizonte, t }) {
+export default function SignalLabPanel({ analise, horizonte, setHorizonte, sigla = null, t }) {
   if (!analise) return null
 
   const { base, sinais, corte } = analise
@@ -177,6 +181,19 @@ export default function SignalLabPanel({ analise, horizonte, setHorizonte, t }) 
                       className="signal-lab-alerta"
                       title={t('signalNotSignificant')}
                     />
+                  )}
+                  {/* A pergunta seguinte à desta tabela — "e se eu tivesse
+                      operado isso?" — é a da simulação, que tem tela própria.
+                      O mesmo vocabulário de sinais, então a chave vai direto. */}
+                  {sigla && (
+                    <Link
+                      className="signal-lab-simular"
+                      to={enderecoDaSimulacao(sigla, { sinalEntrada: s.chave })}
+                      title={t('signalSimulate')}
+                      aria-label={`${t('signalSimulate')}: ${t(`signal_${s.chave}`)}`}
+                    >
+                      <MdPlayCircleOutline aria-hidden="true" />
+                    </Link>
                   )}
                 </th>
                 <td>{s.ocorrencias}</td>

@@ -71,7 +71,8 @@
     "login": "Entra",
     "logout": "Esci",
     "heatmap": "Geopolitica",
-    "training": "Addestramento IA"
+    "training": "Addestramento IA",
+    "simulation": "Simulazione"
   },
   "dashboard": "Dashboard",
   "sequence": "Sequenza di rendimento",
@@ -256,6 +257,10 @@
   "chartModeLineHint": "Linea del prezzo di chiusura",
   "chartModeCandleHint": "Candele OHLC — apertura, massimo, minimo e chiusura",
   "simulation": "Simulazione di Strategia",
+  "simulationCoin": "Criptovaluta",
+  "simulationShortcutHint": "Prova una regola di ingresso su 180 giorni e vedi quanto avrebbe reso, con i costi, rispetto al buy & hold e al caso.",
+  "simulationShortcutOpen": "Simula {{moeda}}",
+  "signalSimulate": "Simula questo segnale",
   "simulationHint": "E se avessi operato questo segnale? L'ingresso avviene all'apertura della candela successiva al segnale, e il costo è addebitato su entrambe le gambe.",
   "simulationSignal": "Segnale di ingresso",
   "simulationDirection": "Direzione",
@@ -544,7 +549,7 @@
     "passo4Titulo": "Grafici",
     "passo4Descricao": "Confronta prezzo e variazione, cambia la normalizzazione ed espandi per vedere il dettaglio.",
     "passo5Titulo": "Simulazione di Strategia",
-    "passo5Descricao": "Prova una regola di ingresso su 180 giorni e vedi quanto avrebbe reso, con i costi e confrontata al semplice mantenere l'asset.",
+    "passo5Descricao": "La simulazione di strategia ha una schermata propria, e questa scorciatoia la apre con la criptovaluta selezionata. Lì provi una regola di ingresso su 180 giorni, con i costi e confrontata al semplice mantenere l'asset.",
     "passo6Titulo": "Storico",
     "passo6Descricao": "Consulta lo storico delle operazioni filtrato e naviga tra le pagine."
   },

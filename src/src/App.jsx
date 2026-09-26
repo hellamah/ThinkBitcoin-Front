@@ -7,6 +7,7 @@ import ErrorBoundary from './components/ErrorBoundary.jsx'
 import Home from './pages/Home.jsx'
 import Layout from './components/Layout.jsx'
 import { DashboardProvider } from './context/DashboardContext.jsx'
+import { ROTA_SIMULACAO, temParametrosDaSimulacao } from './utils/rotaSimulacao.js'
 
 // Páginas pesadas (chart.js, Google Charts) carregadas sob demanda
 // para não inflar o bundle inicial de quem entra em / ou /login.
@@ -19,6 +20,18 @@ const GeoHeatmapView = lazy(() => import('./pages/GeoHeatmapView.jsx'))
 const TreinamentoEpisodios = lazy(() => import('./pages/TreinamentoEpisodios.jsx'))
 const RedefinirSenha = lazy(() => import('./pages/RedefinirSenha.jsx'))
 const DocumentoLegal = lazy(() => import('./pages/DocumentoLegal.jsx'))
+const Simulacao = lazy(() => import('./pages/Simulacao.jsx'))
+
+// Link de antes da tela própria da simulação — `/dashboard?sim.sinal=…` —
+// continua abrindo a simulação, com a configuração inteira. Sem isto, quem
+// recebeu um link compartilhado cairia num dashboard que não a tem mais.
+function RotaDashboard() {
+  const { search } = useLocation()
+  if (temParametrosDaSimulacao(search)) {
+    return <Navigate to={`${ROTA_SIMULACAO}${search}`} replace />
+  }
+  return <Dashboard />
+}
 
 const PageLoader = () => (
   <Box
@@ -55,7 +68,15 @@ function App() {
                 path="/dashboard"
                 element={
                   <ProtectedRoute>
-                    <Dashboard />
+                    <RotaDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path={ROTA_SIMULACAO}
+                element={
+                  <ProtectedRoute>
+                    <Simulacao />
                   </ProtectedRoute>
                 }
               />

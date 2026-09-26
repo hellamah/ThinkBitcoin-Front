@@ -189,6 +189,51 @@ export const getInitialPreferences = () =>
   })
 
 // ---------------------------------------------------------------------------
+// Moeda preferida
+// ---------------------------------------------------------------------------
+
+// As grafias em que a moeda preferida já chegou do backend. Quatro nomes para o
+// mesmo campo, com e sem maiúscula: o front aceita todos em vez de apostar em
+// qual a resposta traz hoje.
+const CAMPOS_MOEDA_PREFERIDA = [
+  'siglaMoedaPreferida',
+  'SiglaMoedaPreferida',
+  'idMoedaPreferida',
+  'IdMoedaPreferida',
+  'moedaPreferida',
+  'MoedaPreferida',
+]
+
+/**
+ * A moeda com que uma tela deve abrir: a preferida, senão o BTC, senão a
+ * primeira da lista.
+ *
+ * Estava inline no Dashboard. Saiu quando a simulação ganhou tela própria e
+ * passou a precisar da mesma escolha — duas cópias desta busca discordariam no
+ * primeiro campo novo que o backend mandasse.
+ *
+ * @param {object|null} prefs - Preferências do usuário.
+ * @param {Array<{id?: *, simbolo?: string}>} moedas - Lista do carrossel.
+ * @returns {string|null} - O símbolo, ou null com a lista vazia.
+ */
+export const acharMoedaPreferida = (prefs, moedas) => {
+  if (!Array.isArray(moedas) || moedas.length === 0) return null
+
+  const valor = CAMPOS_MOEDA_PREFERIDA.map((campo) => prefs?.[campo]).find(Boolean)
+  if (valor) {
+    const alvo = String(valor).toUpperCase().trim()
+    const match = moedas.find(
+      (m) =>
+        (m.id && String(m.id) === String(valor)) ||
+        (m.simbolo && String(m.simbolo).toUpperCase() === alvo)
+    )
+    if (match) return match.simbolo
+  }
+
+  return (moedas.find((m) => m.simbolo === 'BTC') || moedas[0])?.simbolo ?? null
+}
+
+// ---------------------------------------------------------------------------
 // Tours de onboarding (react-joyride)
 // ---------------------------------------------------------------------------
 const chaveTour = (nome) => `tb_tour_${nome}_visto`

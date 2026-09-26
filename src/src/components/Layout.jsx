@@ -1,5 +1,5 @@
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { MdHome, MdLogin, MdDashboard, MdLogout, MdSettings, MdPublic, MdPsychology, MdWorkspacePremium, MdClose } from 'react-icons/md'
+import { MdHome, MdLogin, MdDashboard, MdLogout, MdSettings, MdPublic, MdPsychology, MdWorkspacePremium, MdClose, MdPlayCircleOutline } from 'react-icons/md'
 import AppBar from '@mui/material/AppBar'
 import Toolbar from '@mui/material/Toolbar'
 import IconButton from '@mui/material/IconButton'
@@ -20,6 +20,7 @@ import { useRef, useState, useEffect } from 'react'
 // Prefixo, e não igualdade: /treinamento-episodios/:id é a mesma página.
 const ROTULO_DA_ROTA = [
   ['/dashboard', 'nav.dashboard'],
+  ['/simulacao', 'nav.simulation'],
   ['/settings', 'nav.settings'],
   ['/heatmap', 'nav.heatmap'],
   ['/treinamento-episodios', 'nav.training'],
@@ -154,6 +155,16 @@ function Layout({ children }) {
       </IconButton>
       <IconButton
         component={NavLink}
+        to="/simulacao"
+        className="nav-item"
+        title={t('nav.simulation')}
+        aria-label={t('nav.simulation')}
+      >
+        <MdPlayCircleOutline />
+        <span className="nav-label">{t('nav.simulation')}</span>
+      </IconButton>
+      <IconButton
+        component={NavLink}
         to="/settings"
         className="nav-item"
         title={t('nav.settings')}
@@ -255,6 +266,15 @@ function Layout({ children }) {
                   >
                     <MdDashboard />
                     <span className="nav-label">{t('nav.dashboard')}</span>
+                  </IconButton>
+                  <IconButton
+                    component={NavLink}
+                    to="/simulacao"
+                    className="nav-item"
+                    title={t('nav.simulation')}
+                  >
+                    <MdPlayCircleOutline />
+                    <span className="nav-label">{t('nav.simulation')}</span>
                   </IconButton>
                   <IconButton
                     component={NavLink}

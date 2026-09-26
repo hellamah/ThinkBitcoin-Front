@@ -868,6 +868,7 @@ FROM TbMoedaBTCUSDTBinance;
 | 8 ✅ | `lang/{pt,en,es,fr,it}.json` | 41 chaves do painel + 7 de `ajuda`. [lang.test.js](../src/test/lang.test.js) confere paridade e marcadores `{{}}` | 5 |
 | 9 ✅ | [Dashboard.jsx](../src/src/pages/Dashboard.jsx) | Passo no `passosTour`, entre gráficos e histórico | 5 |
 | **10 ✅** | [simulationWindow.js](../src/src/utils/simulationWindow.js) + [useSimulationData.js](../src/src/hooks/useSimulationData.js) | **D-03**: janela própria de 180 dias, independente dos filtros. 6 testes | V17 |
+| **11 ✅** | [Simulacao.jsx](../src/src/pages/Simulacao.jsx) | **D-05**: a simulação sai do dashboard para a rota `/simulacao`. No dashboard fica um atalho, no lugar do painel | 10 |
 
 ### Como a tela foi verificada
 
@@ -1600,6 +1601,10 @@ entre front e .NET. O Python é referência de leitura (seção 3) e nada mais.
 
 ## 13. D-04 — Mais dado fora da amostra ⬜ **em desenho**
 
+> O D-04 foi desenhado com a simulação ainda no dashboard. Desde o D-05 ela tem
+> tela própria, e é lá que as opções B e C entram — o custo novo delas não cai
+> mais sobre quem só abre o dashboard.
+
 Nasceu como "a validação quase sempre tem poucas operações": 20% de 180 dias
 são 36 dias, e o card mostrava *"só 8 operação(ões): amostra curta"*. A saída
 óbvia era esticar a janela ou dividir a validação em vários trechos
@@ -1766,3 +1771,93 @@ comprime, B-06 não tem nada a fazer.
 Fica também anotado que o motor e os sinais leem 14 dos 25 campos de cada
 candle. Uma projeção enxuta cortaria os outros 11, mas mexe no contrato do
 endpoint; a compressão não mexe em nada.
+
+---
+
+## 14. D-05 — A simulação ganhou tela própria ✅
+
+A simulação morava no fim do dashboard, abaixo do laboratório de sinais. Saiu
+para a rota **`/simulacao`** ([Simulacao.jsx](../src/src/pages/Simulacao.jsx)),
+com item no menu. No dashboard ficou um atalho no lugar do painel.
+
+### Por quê
+
+**O custo dela caía sobre toda visita ao dashboard.** O dashboard abre com uma
+moeda selecionada — a preferida, ou o BTC —, e o hook da simulação rodava
+sempre que havia uma moeda só: buscava os 180 dias (3,7 MB, sem compressão —
+ver B-06), punha o worker a rodar a régua aleatória (300 simulações), o mapa de
+sensibilidade e a sorte do ranking, e o ranking na thread da tela. Para quem só
+queria olhar o mercado. Agora só paga quem abre a ferramenta.
+
+**São trabalhos diferentes**, e este documento já dizia isso no D-03: no
+dashboard se mexe no período para OLHAR; na simulação, nos parâmetros para
+TESTAR uma regra. A simulação nunca dependeu dos filtros de lá — tem série,
+janela e URL próprias —, e do dashboard só recebia a moeda. Mover foi mudar
+quem fornece a moeda.
+
+**O D-04 pesa mais.** Validação cega, walk-forward com 2 anos de série, talvez
+uma janela maior: no dashboard, cada um multiplicaria o custo de cima.
+
+### O que mudou
+
+| Onde | O quê |
+|---|---|
+| `/simulacao` | A moeda vem do parâmetro `moeda` da URL (o mesmo do dashboard e do heatmap); sem ele, a preferida. Volta para a URL ao ser escolhida, com `replace`, sem apagar os `sim.*`. O título do painel é o `h1` da página |
+| Seletor de moeda | Pílulas logo abaixo do título, em **todos** os estados do painel — trocar de moeda enquanto a série carrega é justamente quando se quer |
+| Dashboard | Atalho *"Simular BTC →"* no lugar do painel, só com uma moeda selecionada, como antes |
+| Laboratório de sinais | Cada linha ganha o atalho para simular aquele sinal, na moeda analisada — mesmo vocabulário, a chave vai direto para `sim.sinal` |
+| Links antigos | `/dashboard?sim.*` redireciona para `/simulacao` com a configuração inteira |
+| Tour do dashboard | O passo da simulação continua, apontando para o atalho, com o texto dizendo que ela tem tela própria. Nenhuma chave renumerada |
+| Moeda preferida | A busca pelos seis nomes do campo saiu do Dashboard para `acharMoedaPreferida` ([preferences.js](../src/src/utils/preferences.js)): duas telas precisam da mesma escolha, e duas cópias discordariam no primeiro campo novo |
+
+### Três coisas que só apareceram fazendo
+
+1. **Os gráficos funcionavam por carona.** Quem registrava escalas e elementos
+   do Chart.js era o import do `Dashboard.jsx`. Aberta direto — link
+   compartilhado, recarga —, a tela nova desenharia os gráficos sem escala
+   registrada. O painel passou a registrar o que usa
+   ([registroGraficos.js](../src/src/components/dashboard/simulacao/registroGraficos.js)),
+   no molde da tela de treinamento. Conferido abrindo `/simulacao` numa aba
+   limpa: curva desenhada, canvas de 903 px.
+2. **O motor ia para o pacote inicial.** O redirecionamento dos links antigos
+   mora no `App.jsx`, que é carregado por todo mundo, e reconhecer o link
+   importando o `parametrosSimulacao` levaria o `backtest` junto. A rota e o
+   reconhecimento saíram para um módulo sem dependência
+   ([rotaSimulacao.js](../src/src/utils/rotaSimulacao.js)). Conferido no build:
+   o marcador `'sem-tolerancia'`, que só existe no `backtest.js`, não aparece
+   no pacote inicial.
+3. **O menu do celular transbordou.** Com o sétimo item, a barra inferior pedia
+   424 px, e o último ícone saía da tela num celular de 375 px — antes cabia
+   no limite, 375 de 375. O `space-around` já distribui o espaço entre os
+   ícones, então o gap fixo de 16 px só servia de piso: abaixo de 480 px ele
+   sai e as bordas encolhem. Cabe em 296 px; conferido em 375 e em 320.
+
+### Medido
+
+Build de produção, antes (`8af68db`) e depois:
+
+| Chunk | Antes | Depois |
+|---|---|---|
+| Dashboard | 158 KB (47,3 KB gzip), com o motor dentro | 76 KB (22,8 KB gzip) |
+| Compartilhado (laboratório de sinais + motor) | — | 26 KB (9,4 KB gzip) |
+| Simulação | — | 59 KB (17,7 KB gzip), só quando a tela abre |
+
+O dashboard passa de 47 para 32 KB gzip de código, e deixa de buscar os
+3,7 MB da série da simulação e de ocupar o worker a cada visita.
+
+O motor ainda chega ao dashboard pelo chunk compartilhado: o atalho do
+laboratório monta o endereço com o `escreverParametrosNaUrl`, que importa o
+`backtest` por uma constante (o custo padrão). São ~9 KB gzip, contra os 3,7 MB
+que saíram; ficou anotado em vez de resolvido.
+
+### Verificado
+
+- **Testes:** `acharMoedaPreferida` (grafias, BTC como padrão, lista vazia),
+  `temParametrosDaSimulacao` e `enderecoDaSimulacao` (ida e volta com a leitura
+  da tela), seletor visível no carregamento e com resultado, título como `h1`
+  ou `h2`, atalho do dashboard e links do laboratório.
+- **Na tela (mock):** URL ganha a moeda; trocar parâmetro e depois moeda deixa
+  `?moeda=ETH&sim.segurar=24`; o dashboard não monta mais o painel e tem o
+  atalho dentro do alvo do tour; 14 links no laboratório, o clique abre a
+  simulação no sinal certo; `/dashboard?sim.sinal=martelo&sim.segurar=24` abre
+  a simulação com os dois; sem rolagem horizontal em 375 e 320 px.

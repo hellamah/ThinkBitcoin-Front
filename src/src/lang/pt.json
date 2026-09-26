@@ -71,7 +71,8 @@
     "login": "Entrar",
     "logout": "Sair",
     "heatmap": "Geopolítica",
-    "training": "Treinamento IA"
+    "training": "Treinamento IA",
+    "simulation": "Simulação"
   },
   "dashboard": "Dashboard",
   "sequence": "Sequência de Retorno",
@@ -256,6 +257,10 @@
   "chartModeLineHint": "Linha do preço de fechamento",
   "chartModeCandleHint": "Candles OHLC — abertura, máxima, mínima e fechamento",
   "simulation": "Simulação de Estratégia",
+  "simulationCoin": "Moeda",
+  "simulationShortcutHint": "Teste uma regra de entrada sobre 180 dias e veja o que ela teria rendido, com custo, contra o buy & hold e contra o acaso.",
+  "simulationShortcutOpen": "Simular {{moeda}}",
+  "signalSimulate": "Simular este sinal",
   "simulationHint": "E se você tivesse operado este sinal? A entrada acontece na abertura do candle seguinte ao sinal, e o custo é cobrado nas duas pernas.",
   "simulationSignal": "Sinal de entrada",
   "simulationDirection": "Direção",
@@ -544,7 +549,7 @@
     "passo4Titulo": "Gráficos",
     "passo4Descricao": "Compare preço e variação, troque a normalização e expanda para ver em detalhe.",
     "passo5Titulo": "Simulação de Estratégia",
-    "passo5Descricao": "Teste uma regra de entrada sobre 180 dias e veja o que ela teria rendido, com custo e comparada a simplesmente segurar o ativo.",
+    "passo5Descricao": "A simulação de estratégia tem tela própria, e este atalho a abre com a moeda selecionada. Lá você testa uma regra de entrada sobre 180 dias, com custo e comparada a simplesmente segurar o ativo.",
     "passo6Titulo": "Histórico",
     "passo6Descricao": "Veja o histórico de operações filtrado e navegue pelas páginas."
   },

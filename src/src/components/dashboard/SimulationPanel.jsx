@@ -4,6 +4,9 @@ import { useTheme } from '@mui/material/styles'
 import { MdPlayCircleOutline, MdWarningAmber } from 'react-icons/md'
 
 import RotuloComAjuda from './RotuloComAjuda'
+// Antes dos gráficos: a tela da simulação não passa pelo Dashboard.jsx, que era
+// quem registrava o Chart.js. Ver o arquivo.
+import './simulacao/registroGraficos'
 import { chartPalette } from '../../utils/themeTokens'
 import { DIAS_JANELA_SIMULACAO } from '../../utils/simulationWindow'
 import { StopMode } from '../../utils/enums'
@@ -63,6 +66,10 @@ const ABAS = [
  * título do veredito.
  *
  * Os cálculos moram no `useStrategySimulation`; este componente só desenha.
+ *
+ * Mora numa tela própria (`pages/Simulacao.jsx`), onde o título é o da página
+ * — `nivelTitulo` — e o seletor de moeda entra logo abaixo dele, em todos os
+ * estados: trocar de moeda enquanto a série carrega é justamente quando se quer.
  */
 export default function SimulationPanel({
   resultado,
@@ -83,6 +90,8 @@ export default function SimulationPanel({
   diario,
   t,
   locale,
+  seletor = null,
+  nivelTitulo: Titulo = 'h2',
 }) {
   const theme = useTheme()
   // `theme.palette.mode` nao aparece dentro do callback, e por isso a regra o
@@ -122,11 +131,17 @@ export default function SimulationPanel({
 
   // O cabeçalho aparece mesmo sem resultado: o painel sumir inteiro enquanto a
   // série de 180 dias carrega daria a impressão de que a ferramenta não existe.
-  const cabecalho = (
-    <h2>
+  const titulo = (
+    <Titulo className="simulation-titulo">
       <MdPlayCircleOutline style={{ verticalAlign: 'middle', marginRight: '10px' }} />
       {t('simulation')}
-    </h2>
+    </Titulo>
+  )
+  const cabecalho = (
+    <>
+      {titulo}
+      {seletor}
+    </>
   )
 
   if (carregando) {
@@ -200,7 +215,7 @@ export default function SimulationPanel({
   return (
     <section className="panel simulation-panel">
       <div className="simulation-cabecalho">
-        {cabecalho}
+        {titulo}
         {/* Quantos dias e candles a simulação analisou de fato. Sem isto, a
             diferença entre "a estratégia não funciona" e "a janela não tinha
             dado" fica invisível. É `candlesSimulados`, não o tamanho da série
@@ -216,6 +231,8 @@ export default function SimulationPanel({
           />
         )}
       </div>
+
+      {seletor}
 
       <p className="correlation-hint">{t('simulationHint')}</p>
 

@@ -9,6 +9,7 @@ import { IDIOMA_PADRAO } from '../src/lang'
 import {
   AlgorithmStyle,
   DEFAULT_PREFERENCES,
+  acharMoedaPreferida,
   Language,
   ReviewFrequency,
   RiskProfile,
@@ -207,6 +208,34 @@ describe('utils/preferences › Persistência (LocalStorage)', () => {
   it('deve cair no padrão quando o navegador pede um idioma não suportado', () => {
     comNavegador({ languages: ['ko-KR'], language: 'ko-KR' })
     expect(getInitialPreferences().idioma).toBe(IDIOMA_PADRAO)
+  })
+})
+
+describe('utils/preferences › acharMoedaPreferida', () => {
+  const MOEDAS = [
+    { id: 7, simbolo: 'ETH' },
+    { id: 1, simbolo: 'BTC' },
+    { id: 3, simbolo: 'SOL' },
+  ]
+
+  it('deve achar a preferida pela sigla ou pelo id, em qualquer das grafias', () => {
+    expect(acharMoedaPreferida({ siglaMoedaPreferida: 'sol ' }, MOEDAS)).toBe('SOL')
+    expect(acharMoedaPreferida({ IdMoedaPreferida: 7 }, MOEDAS)).toBe('ETH')
+    expect(acharMoedaPreferida({ MoedaPreferida: 'eth' }, MOEDAS)).toBe('ETH')
+  })
+
+  it('deve cair no BTC sem preferência ou com uma que não está na lista', () => {
+    expect(acharMoedaPreferida(null, MOEDAS)).toBe('BTC')
+    expect(acharMoedaPreferida({ siglaMoedaPreferida: 'XYZ' }, MOEDAS)).toBe('BTC')
+  })
+
+  it('deve cair na primeira da lista quando nem o BTC existe', () => {
+    expect(acharMoedaPreferida({}, [{ simbolo: 'ADA' }, { simbolo: 'XRP' }])).toBe('ADA')
+  })
+
+  it('deve devolver null sem lista', () => {
+    expect(acharMoedaPreferida({ siglaMoedaPreferida: 'BTC' }, [])).toBeNull()
+    expect(acharMoedaPreferida({}, null)).toBeNull()
   })
 })
 

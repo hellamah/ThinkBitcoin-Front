@@ -71,7 +71,8 @@
     "login": "Login",
     "logout": "Logout",
     "heatmap": "Geopolitics",
-    "training": "AI Training"
+    "training": "AI Training",
+    "simulation": "Simulation"
   },
   "dashboard": "Dashboard",
   "sequence": "Return Sequence",
@@ -256,6 +257,10 @@
   "chartModeLineHint": "Closing price line",
   "chartModeCandleHint": "OHLC candles — open, high, low and close",
   "simulation": "Strategy Simulation",
+  "simulationCoin": "Coin",
+  "simulationShortcutHint": "Test an entry rule over 180 days and see what it would have returned, with cost, against buy & hold and against chance.",
+  "simulationShortcutOpen": "Simulate {{moeda}}",
+  "signalSimulate": "Simulate this signal",
   "simulationHint": "What if you had traded this signal? Entry happens at the open of the candle after the signal, and costs are charged on both legs.",
   "simulationSignal": "Entry signal",
   "simulationDirection": "Direction",
@@ -544,7 +549,7 @@
     "passo4Titulo": "Charts",
     "passo4Descricao": "Compare price and variation, switch normalization and expand for detail.",
     "passo5Titulo": "Strategy Simulation",
-    "passo5Descricao": "Test an entry rule over 180 days and see what it would have returned, with cost and compared to simply holding the asset.",
+    "passo5Descricao": "Strategy simulation has its own screen, and this shortcut opens it with the selected coin. There you test an entry rule over 180 days, with cost and compared to simply holding the asset.",
     "passo6Titulo": "History",
     "passo6Descricao": "Browse the filtered operation history and page through results."
   },

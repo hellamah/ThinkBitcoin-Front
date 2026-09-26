@@ -605,8 +605,13 @@
 }
 
 @media (max-width: 480px) {
+  /* Sem gap fixo: o `space-around` já distribui o que sobra entre os ícones,
+     e o gap só servia de piso. Com 16px de gap e 24px nas bordas, os sete
+     itens (a simulação entrou no menu) pediam 424px e o último saía da tela
+     num celular de 375px; assim cabem em 296px. */
   .bottom-nav {
-    gap: 1rem;
+    gap: 0;
+    padding: 12px 8px;
   }
 
   .nav-item {
@@ -2452,8 +2457,80 @@
   margin-bottom: 16px;
 }
 
-.simulation-cabecalho h2 {
+/* Na tela própria o título do painel é o h1 da página. Fica com a cara do h2
+   dos painéis: o tamanho do título não é o que diz que ele é o principal. */
+.panel .simulation-titulo {
+  margin-top: 0;
+  margin-bottom: 16px;
+  color: var(--accent-ink);
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.simulation-cabecalho .simulation-titulo {
   margin-bottom: 0;
+}
+
+/* Seletor de moeda da tela da simulação. */
+.simulation-moedas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin-bottom: 14px;
+}
+
+/* Atalho do dashboard para a tela da simulação: título e dica à esquerda, o
+   botão à direita — e um embaixo do outro no celular. */
+.simulation-atalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+}
+
+.simulation-atalho h2 {
+  margin-bottom: 6px;
+}
+
+.simulation-atalho .correlation-hint {
+  margin: 0;
+}
+
+.simulation-atalho-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.simulation-atalho-link:hover,
+.simulation-atalho-link:focus-visible {
+  background: rgba(255, 215, 0, 0.12);
+}
+
+/* "Simular este sinal", ao lado do nome na tabela do laboratório. */
+.signal-lab-simular {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: 6px;
+  color: var(--text-muted);
+  font-size: 1rem;
+}
+
+.signal-lab-simular:hover,
+.signal-lab-simular:focus-visible {
+  color: var(--accent-ink);
 }
 
 .simulation-meta {
