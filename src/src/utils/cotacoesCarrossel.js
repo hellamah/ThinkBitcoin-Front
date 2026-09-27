@@ -77,7 +77,7 @@ export const aplicarCotacao = (moeda, resPreco, resFear, resTrend) => {
   }
 }
 
-const buscarCotacao = async (moeda, requisitar) => {
+const buscarCotacao = async (moeda, requisitar, opcoes) => {
   try {
     // Os três parâmetros vão EXPLÍCITOS. O carrossel só consome `registros[0]`,
     // então pedir uma página inteira de candles por moeda, a cada minuto, era
@@ -92,10 +92,11 @@ const buscarCotacao = async (moeda, requisitar) => {
           pagina: 1,
           quantidade: 1,
           ordemAsc: false,
-        })
+        }),
+        opcoes
       ),
-      requisitar(`${VariavelExternaEndpoint.FEAR_GREED}?idMoeda=${moeda.id}&quantidade=1&ordemAsc=false`).catch(() => null),
-      requisitar(`${VariavelExternaEndpoint.TREND}?idMoeda=${moeda.id}&quantidade=1&ordemAsc=false`).catch(() => null),
+      requisitar(`${VariavelExternaEndpoint.FEAR_GREED}?idMoeda=${moeda.id}&quantidade=1&ordemAsc=false`, opcoes).catch(() => null),
+      requisitar(`${VariavelExternaEndpoint.TREND}?idMoeda=${moeda.id}&quantidade=1&ordemAsc=false`, opcoes).catch(() => null),
     ])
     return aplicarCotacao(moeda, resPreco, resFear, resTrend)
   } catch (err) {
@@ -130,13 +131,19 @@ export const criarCotacoesCarrossel = ({
 
   // Uma rodada por vez. Duas telas chegando juntas — ou o duplo montar do
   // StrictMode — recebem a mesma promessa em vez de disparar duas.
-  const rodar = () => {
+  //
+  // A primeira rodada acende a barra de carregamento, porque há tela esperando
+  // por ela: o heatmap não busca nada antes de a lista de moedas chegar. As do
+  // timer não, porque a cada minuto numa tela parada a barra piscaria sem
+  // ninguém ter pedido nada.
+  const rodar = ({ emSegundoPlano = false } = {}) => {
     if (rodadaEmCurso) return rodadaEmCurso
+    const opcoes = { emSegundoPlano }
     rodadaEmCurso = (async () => {
       let moedas = estado.moedas
       if (moedas.length === 0) {
         try {
-          moedas = montarLista(await requisitar(MarketEndpoint.COIN_LIST))
+          moedas = montarLista(await requisitar(MarketEndpoint.COIN_LIST, opcoes))
         } catch (err) {
           console.error('Erro ao listar moedas:', err)
           // A lista é tentada de novo a cada rodada — antes, uma falha na
@@ -150,7 +157,7 @@ export const criarCotacoesCarrossel = ({
         listaFalhando = false
         publicar({ moedas, erro: '' })
       }
-      const atualizadas = await Promise.all(moedas.map((m) => buscarCotacao(m, requisitar)))
+      const atualizadas = await Promise.all(moedas.map((m) => buscarCotacao(m, requisitar, opcoes)))
       ultimaRodada = agora()
       publicar({ moedas: atualizadas })
     })().finally(() => {
@@ -162,7 +169,7 @@ export const criarCotacoesCarrossel = ({
   const programar = (espera, minhaGeracao) => {
     timer = setTimeout(async () => {
       // Aba em segundo plano não gasta requisição com carrossel que ninguém vê.
-      if (!abaOculta()) await rodar()
+      if (!abaOculta()) await rodar({ emSegundoPlano: true })
       if (minhaGeracao === geracao) programar(intervaloMs, minhaGeracao)
     }, espera)
   }
@@ -173,7 +180,9 @@ export const criarCotacoesCarrossel = ({
       const minhaGeracao = ++geracao
       const idade = agora() - ultimaRodada
       if (idade >= intervaloMs) {
-        rodar()
+        // Quem volta a uma tela já vê as cotações da rodada anterior; só a
+        // primeira de todas deixa o carrossel vazio esperando.
+        rodar({ emSegundoPlano: ultimaRodada > -Infinity })
         programar(intervaloMs, minhaGeracao)
       } else {
         programar(intervaloMs - idade, minhaGeracao)

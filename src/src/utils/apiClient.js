@@ -2,6 +2,7 @@ import { API_URL } from '../api'
 import { USE_MOCK_API } from './mockFlag'
 import { getCache, setCache } from './cache'
 import { getStoredToken } from './preferences'
+import { iniciarCarregamento } from './carregamentoGlobal'
 
 export const HttpMethod = Object.freeze({
   GET: 'GET',
@@ -272,6 +273,10 @@ export const apiRequest = async (
     cacheKey,
     forceRefresh = false,
     suppressAuthRedirect = false,
+    // Polling e atualização automática: a pessoa não pediu nada, então a barra
+    // de carregamento do topo não acende. Sem isto, ela piscaria a cada minuto
+    // numa tela parada, sugerindo que algo mudou quando nada mudou.
+    emSegundoPlano = false,
   } = {}
 ) => {
   const isGet = method === HttpMethod.GET
@@ -284,6 +289,22 @@ export const apiRequest = async (
     }
   }
 
+  // Depois do cache, de propósito: o que já está guardado volta na hora, e a
+  // barra só teria tempo de piscar.
+  const encerrarCarregamento = emSegundoPlano ? () => {} : iniciarCarregamento()
+  try {
+    return await requisitarSemCache(endpoint, {
+      method, headers, body, signal, useCache, ttl, key, isGet, suppressAuthRedirect,
+    })
+  } finally {
+    encerrarCarregamento()
+  }
+}
+
+const requisitarSemCache = async (
+  endpoint,
+  { method, headers, body, signal, useCache, ttl, key, isGet, suppressAuthRedirect }
+) => {
   if (USE_MOCK_API) {
     // Import dinâmico: em produção a flag é estaticamente falsa e o Rollup joga
     // o mockApi num chunk separado, que o navegador nunca chega a buscar.

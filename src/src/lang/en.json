@@ -119,6 +119,7 @@
   "weekly": "Weekly",
   "monthly": "Monthly",
   "loadingCoins": "Loading coins...",
+  "carregando": "Loading",
   "carrosselAnterior": "Previous coins",
   "carrosselProximo": "Next coins",
   "startDate": "Start Date",

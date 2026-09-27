@@ -441,6 +441,55 @@
   z-index: 1100;
 }
 
+/* Barra de carregamento do topo (BarraCarregamento.jsx). Fica na faixa acima
+   do cabeçalho flutuante, que começa 15px abaixo da borda.
+
+   O z-index passa o do Modal (9999) e o dos popups que sobem acima dele
+   (10000): salvar algo de dentro de um modal também é espera, e a barra
+   escondida atrás do véu não diria nada. `pointer-events: none` garante que
+   ficar por cima não rouba clique de ninguém. */
+.barra-carregamento {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: 10001;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.barra-carregamento[data-fase="correndo"] {
+  opacity: 1;
+}
+
+/* Enche até o fim primeiro e só então some: sumir antes de chegar a 100%
+   pareceria carga interrompida. Os tempos somados são o DURACAO_DA_SAIDA_MS
+   do componente. */
+.barra-carregamento[data-fase="saindo"] {
+  opacity: 0;
+  transition: opacity 300ms ease 250ms;
+}
+
+.barra-carregamento-preenchimento {
+  height: 100%;
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--accent), 0 0 4px var(--accent);
+  transform-origin: left center;
+  transition: transform 400ms ease-out;
+}
+
+.barra-carregamento[data-fase="saindo"] .barra-carregamento-preenchimento {
+  transition-duration: 200ms;
+}
+
+/* A volta ao zero acontece com a barra já invisível; animá-la seria trabalho
+   que ninguém vê. */
+.barra-carregamento[data-fase="oculta"] .barra-carregamento-preenchimento {
+  transition: none;
+}
+
 .header-toolbar {
   display: flex;
   justify-content: space-between;

@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import Box from '@mui/material/Box'
 import CircularProgress from '@mui/material/CircularProgress'
@@ -8,6 +8,7 @@ import Home from './pages/Home.jsx'
 import Layout from './components/Layout.jsx'
 import { DashboardProvider } from './context/DashboardContext.jsx'
 import { ROTA_SIMULACAO, temParametrosDaSimulacao } from './utils/rotaSimulacao.js'
+import { iniciarCarregamento } from './utils/carregamentoGlobal.js'
 
 // Páginas pesadas (chart.js, Google Charts) carregadas sob demanda
 // para não inflar o bundle inicial de quem entra em / ou /login.
@@ -33,18 +34,25 @@ function RotaDashboard() {
   return <Dashboard />
 }
 
-const PageLoader = () => (
-  <Box
-    sx={{
-      minHeight: '60vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-    }}
-  >
-    <CircularProgress sx={{ color: 'var(--accent-ink)' }} />
-  </Box>
-)
+const PageLoader = () => {
+  // O código da página ainda está chegando: é espera como qualquer requisição,
+  // e a barra do topo acende junto com o spinner. A função que inicia devolve
+  // a que encerra, que serve direto de cleanup.
+  useEffect(() => iniciarCarregamento(), [])
+
+  return (
+    <Box
+      sx={{
+        minHeight: '60vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <CircularProgress sx={{ color: 'var(--accent-ink)' }} />
+    </Box>
+  )
+}
 
 function App() {
   const location = useLocation()

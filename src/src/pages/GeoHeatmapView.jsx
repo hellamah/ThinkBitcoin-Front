@@ -539,7 +539,8 @@ export default function GeoHeatmapView() {
         useCache: true,
         cacheKey: chaveCache,
         ttl: 5 * 60 * 1000,
-        forceRefresh
+        forceRefresh,
+        emSegundoPlano: silencioso,
       })
 
       let rawData = []

@@ -12,6 +12,7 @@ import { useAuth } from '../context/AuthContext'
 import useConsentimento from '../hooks/useConsentimento'
 import ConsentimentoLGPD from './ConsentimentoLGPD'
 import CookieBanner from './CookieBanner'
+import BarraCarregamento from './BarraCarregamento'
 import useTranslation from '../hooks/useTranslation'
 import { useRef, useState, useEffect } from 'react'
 
@@ -248,6 +249,7 @@ function Layout({ children }) {
       </div>
       <div className="ambient-glow-aura"></div>
       <div className="grain-overlay-main"></div>
+      <BarraCarregamento />
 
       <AppBar position="fixed" className="app-header-floating" sx={{ width: '100%', left: 0 }}>
         <Container maxWidth="xl">

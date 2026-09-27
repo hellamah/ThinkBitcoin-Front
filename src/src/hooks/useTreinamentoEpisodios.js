@@ -20,7 +20,7 @@ import {
 // não tem como adivinhar que aquilo era hora local, e o carimbo que a API
 // devolve sem fuso É UTC (ver marcarUtcQuandoFaltarFuso no apiClient). A janela
 // pedida saía deslocada pelo fuso do usuário inteiro: em UTC-3, três horas.
-const buscarPeriodo = async (moeda, versaoModelo, inicioMs, fimMs) => {
+const buscarPeriodo = async (moeda, versaoModelo, inicioMs, fimMs, opcoes) => {
   const QTD = 1000
   const params = (pagina) => ({
     moeda: moeda || undefined,
@@ -31,13 +31,13 @@ const buscarPeriodo = async (moeda, versaoModelo, inicioMs, fimMs) => {
     pagina,
     ordenarAscendente: false,
   })
-  const primeira = await apiRequest(TreinamentoEpisodioEndpoint.LIST(params(1)))
+  const primeira = await apiRequest(TreinamentoEpisodioEndpoint.LIST(params(1)), opcoes)
   let todos = extrairLista(primeira)
   const totalPaginas = primeira?.resultado?.totalPaginas ?? 1
   if (totalPaginas > 1) {
     const demais = await Promise.all(
       Array.from({ length: totalPaginas - 1 }, (_, i) =>
-        apiRequest(TreinamentoEpisodioEndpoint.LIST(params(i + 2)))
+        apiRequest(TreinamentoEpisodioEndpoint.LIST(params(i + 2)), opcoes)
       )
     )
     for (const r of demais) todos = todos.concat(extrairLista(r))
@@ -185,8 +185,11 @@ export default function useTreinamentoEpisodios({ moeda, versao, alvoMs }) {
       const desde = Math.max(ultimaBuscaRef.current - 2 * UM_MINUTO_MS, agora - QUATRO_HORAS_MS)
       try {
         const [novos, resumoResp] = await Promise.all([
-          buscarPeriodo(moeda, versao, desde, agora + UM_MINUTO_MS),
-          apiRequest(TreinamentoEpisodioEndpoint.RESUMO({ versaoModelo: versao || undefined })).catch(() => null),
+          buscarPeriodo(moeda, versao, desde, agora + UM_MINUTO_MS, { emSegundoPlano: true }),
+          apiRequest(
+            TreinamentoEpisodioEndpoint.RESUMO({ versaoModelo: versao || undefined }),
+            { emSegundoPlano: true }
+          ).catch(() => null),
         ])
         if (geracaoRef.current !== geracao) return
         ultimaBuscaRef.current = agora

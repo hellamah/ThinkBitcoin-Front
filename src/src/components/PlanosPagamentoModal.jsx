@@ -168,7 +168,7 @@ export default function PlanosPagamentoModal({ visible, onClose, token, user, on
       try {
         const res = await apiRequest(
           PlanosPagamentoEndpoint.COBRANCA(cobranca.idCobranca),
-          { forceRefresh: true, suppressAuthRedirect: true }
+          { forceRefresh: true, suppressAuthRedirect: true, emSegundoPlano: true }
         )
         const atual = res?.resultado?.cobranca
         if (!atual) return
