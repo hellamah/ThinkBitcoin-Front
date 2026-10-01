@@ -7,123 +7,82 @@ import { Line } from 'react-chartjs-2'
 import useTranslation from '../../hooks/useTranslation'
 import { apiRequest, MarketEndpoint, VariavelExternaEndpoint } from '../../utils/apiClient'
 import { padraoDeDataCurta, toUTCISO } from '../../utils/dateUtils'
-import { readToken } from '../../utils/themeTokens'
-import { comAlfa, comBordaDeEixo, corDaGrade, corDoTique, eixoDeTempo, tooltipBase } from './graficos'
+import { comBordaDeEixo, corDaGrade, corDoTique, eixoDeTempo, tooltipBase } from './graficos'
 import { EstadoVazio, Painel } from './Painel'
-import { corDaMoeda, formatarNumero } from './formato'
+import { corDaMoeda, formatarDiaComAno, formatarNumero } from './formato'
 
-// O mercado em volta do episódio: preço da moeda, fluxo e sentimento. Janela
-// curta primeiro (±30min); se a base não tiver granularidade para isso, amplia
-// para ±12h para ainda dar contexto.
-const MARGEM_CURTA_MS = 30 * 60 * 1000
-const MARGEM_AMPLA_MS = 12 * 60 * 60 * 1000
+// O mercado que o episódio NEGOCIOU: as velas do lote de dados dele
+// (dataInicioDados → dataFimDados; 1000 velas horárias no treinador). O treino
+// percorre o histórico do dataset de trás para a frente, e o episódio que roda
+// hoje pode estar negociando um mês de 2023.
+//
+// Este painel mostrava o preço em volta da hora em que o episódio RODOU — um
+// mercado que o agente nunca viu. Episódio gravado antes de o treinador mandar
+// a janela não tem contexto a mostrar, e o painel diz isso em vez de inventar um.
+
 const TTL_DA_LISTA_DE_MOEDAS_MS = 30 * 60 * 1000
+// O lote tem 1000 velas horárias; a folga evita que a API corte a ponta da
+// janela. Vale também para o Fear & Greed, que tem uma linha por hora.
+const VELAS_A_PEDIR = 1200
 
 const instante = (r) => new Date(r.horaReferencia).getTime()
 
-// Faixa do período em que o episódio rodou. Mínimo de 3px: um episódio de
-// segundos num eixo de horas não teria largura nenhuma. Plugin fixo, com o
-// período e a cor nas opções do gráfico — o react-chartjs-2 só lê `plugins` na
-// criação (ver pluginFaixasDeCiclo), e a cor ficava a do tema da abertura.
-const pluginFaixaDoEpisodio = {
-  id: 'faixaDoEpisodio',
-  beforeDatasetsDraw: (chart, _args, { inicio, fim, cor } = {}) => {
-    const { ctx, chartArea, scales } = chart
-    if (!chartArea || !scales.x || !Number.isFinite(inicio) || !Number.isFinite(fim)) return
-    const x1 = scales.x.getPixelForValue(inicio)
-    const x2 = scales.x.getPixelForValue(fim)
-    const largura = Math.max(3, x2 - x1)
-    ctx.save()
-    ctx.fillStyle = comAlfa(cor, 0.14)
-    ctx.fillRect(x1, chartArea.top, largura, chartArea.bottom - chartArea.top)
-    ctx.strokeStyle = comAlfa(cor, 0.7)
-    ctx.setLineDash([4, 4])
-    ctx.strokeRect(x1, chartArea.top, largura, chartArea.bottom - chartArea.top)
-    ctx.restore()
-  },
-}
-const PLUGINS = [pluginFaixaDoEpisodio]
-
-// Registro de sentimento mais próximo do fim do episódio. Fear & Greed e trend
-// costumam ter granularidade maior que o preço.
-const maisProximo = (registros, alvoMs) => {
-  const lista = Array.isArray(registros) ? registros : []
-  const comHora = lista.filter((r) => r.horaReferencia)
-  if (comHora.length === 0) return lista[0] ?? null
-  return comHora.reduce((melhor, r) =>
-    (Math.abs(instante(r) - alvoMs) < Math.abs(instante(melhor) - alvoMs) ? r : melhor))
-}
-
-function useContextoDeMercado(moeda, inicioMs, fimMs, chave) {
+function useMercadoDaJanela(moeda, inicioMs, fimMs) {
   // null = carregando; { registros: [] } = carregou e não há dados.
   const [mercado, setMercado] = useState(null)
-  const [sentimento, setSentimento] = useState(null)
+  const [medoMedio, setMedoMedio] = useState(null)
+  const valida = Boolean(moeda) && Number.isFinite(inicioMs) && Number.isFinite(fimMs)
 
   useEffect(() => {
-    if (!moeda || Number.isNaN(fimMs)) {
-      setMercado({ registros: [], margemHoras: 0.5 })
-      setSentimento(null)
-      return undefined
-    }
+    if (!valida) return undefined
     let cancelado = false
     setMercado(null)
-    setSentimento(null)
+    setMedoMedio(null)
+    const dataInicio = toUTCISO(new Date(inicioMs))
+    const dataFim = toUTCISO(new Date(fimMs))
 
-    const buscarPrecos = (margemMs) =>
-      apiRequest(MarketEndpoint.COIN_VALUE(moeda.toLowerCase(), {
-        dataInicio: toUTCISO(new Date(inicioMs - margemMs)),
-        dataFim: toUTCISO(new Date(fimMs + margemMs)),
-        quantidade: 500,
-        ordemAsc: true,
-      })).then((resp) => {
+    apiRequest(MarketEndpoint.COIN_VALUE(moeda.toLowerCase(), {
+      dataInicio,
+      dataFim,
+      quantidade: VELAS_A_PEDIR,
+      ordemAsc: true,
+    }))
+      .then((resp) => {
         const regs = resp?.resultado?.registros
         // Ordena aqui em vez de confiar no `ordemAsc`: a variação do período
         // lê o primeiro e o último fechamento, e com a resposta vindo do mais
         // recente para o mais antigo (é o que o modo demo faz) o sinal saía
         // invertido — alta virava queda.
-        return Array.isArray(regs) ? [...regs].sort((a, b) => instante(a) - instante(b)) : []
+        const ordenados = Array.isArray(regs) ? [...regs].sort((a, b) => instante(a) - instante(b)) : []
+        if (!cancelado) setMercado({ registros: ordenados })
       })
+      .catch(() => { if (!cancelado) setMercado({ registros: [] }) })
 
-    buscarPrecos(MARGEM_CURTA_MS)
-      .then(async (regs) => (regs.length >= 2
-        ? { registros: regs, margemHoras: 0.5 }
-        : { registros: await buscarPrecos(MARGEM_AMPLA_MS), margemHoras: 12 }))
-      .then((res) => { if (!cancelado) setMercado(res) })
-      .catch(() => { if (!cancelado) setMercado({ registros: [], margemHoras: 0.5 }) })
-
-    // Fear & Greed e trend exigem idMoeda: a sigla é resolvida via /moedas.
-    // São complementares — qualquer falha só oculta os indicadores. A lista de
-    // moedas vai em cache: ela não muda numa sessão, e era pedida de novo a cada
-    // episódio — andar pelo detalhe com as setas disparava uma por tecla.
-    const dataInicio = toUTCISO(new Date(inicioMs - MARGEM_AMPLA_MS))
-    const dataFim = toUTCISO(new Date(fimMs + MARGEM_AMPLA_MS))
+    // Fear & Greed médio na janela. Exige idMoeda, resolvido via /moedas (em
+    // cache: a lista não muda numa sessão, e andar pelo detalhe com as setas
+    // pedia uma por tecla). Complementar: qualquer falha só oculta o
+    // indicador — e em boa parte do histórico (2020–2023) não há coleta. A
+    // fonte é diária, mas cada coleta horária grava uma linha: pedir menos que
+    // a janela inteira fazia a "média" ser só dos últimos dias dela.
     apiRequest(MarketEndpoint.COIN_LIST, { useCache: true, ttl: TTL_DA_LISTA_DE_MOEDAS_MS })
       .then((resp) => {
         const moedas = Array.isArray(resp?.resultado) ? resp.resultado : []
         const idMoeda = moedas.find((m) => (m.sigla || '').toUpperCase() === moeda.toUpperCase())?.id
         if (!idMoeda) return null
-        const qs = `idMoeda=${idMoeda}&dataInicio=${encodeURIComponent(dataInicio)}&dataFim=${encodeURIComponent(dataFim)}&quantidade=100&ordemAsc=false`
-        return Promise.all([
-          apiRequest(`${VariavelExternaEndpoint.FEAR_GREED}?${qs}`).catch(() => null),
-          apiRequest(`${VariavelExternaEndpoint.TREND}?${qs}`).catch(() => null),
-        ])
+        const qs = `idMoeda=${idMoeda}&dataInicio=${encodeURIComponent(dataInicio)}&dataFim=${encodeURIComponent(dataFim)}&quantidade=${VELAS_A_PEDIR}&ordemAsc=false`
+        return apiRequest(`${VariavelExternaEndpoint.FEAR_GREED}?${qs}`).catch(() => null)
       })
-      .then((resultados) => {
-        if (cancelado || !resultados) return
-        const [medo, trend] = resultados
-        setSentimento({
-          fear: maisProximo(medo?.resultado?.registros, fimMs),
-          trend: maisProximo(trend?.resultado?.registros, fimMs),
-        })
+      .then((resp) => {
+        if (cancelado || !resp) return
+        const valores = (resp?.resultado?.registros ?? []).map((r) => Number(r.valor)).filter(Number.isFinite)
+        setMedoMedio(valores.length > 0 ? valores.reduce((a, b) => a + b, 0) / valores.length : null)
       })
-      .catch(() => { if (!cancelado) setSentimento(null) })
+      .catch(() => {})
 
     return () => { cancelado = true }
-    // Só a troca de episódio refaz a busca; moeda e instantes vêm dele.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chave])
+  }, [moeda, inicioMs, fimMs, valida])
 
-  return { mercado, sentimento }
+  return { valida, mercado, medoMedio }
 }
 
 function Indicador({ rotulo, valor, cor }) {
@@ -139,10 +98,12 @@ function Indicador({ rotulo, valor, cor }) {
   )
 }
 
-export default function ContextoDeMercado({ item, inicioMs, fimMs }) {
+export default function ContextoDeMercado({ item }) {
   const { t, idioma } = useTranslation()
   const escuro = useTheme().palette.mode === 'dark'
-  const { mercado, sentimento } = useContextoDeMercado(item.moeda, inicioMs, fimMs, item.idTreinamentoEpisodio)
+  const inicioDados = item.dataInicioDados ? new Date(item.dataInicioDados).getTime() : NaN
+  const fimDados = item.dataFimDados ? new Date(item.dataFimDados).getTime() : NaN
+  const { valida, mercado, medoMedio } = useMercadoDaJanela(item.moeda, inicioDados, fimDados)
   const registros = useMemo(() => mercado?.registros ?? [], [mercado])
 
   const resumo = useMemo(() => {
@@ -155,6 +116,7 @@ export default function ContextoDeMercado({ item, inicioMs, fimMs }) {
       return v.length > 0 ? v.reduce((a, b) => a + b, 0) / v.length : null
     }
     return {
+      // Do primeiro ao último fechamento do lote: é o buy-and-hold do episódio.
       variacao: primeiro > 0 ? (ultimo - primeiro) / primeiro : 0,
       min: Math.min(...fechamentos),
       max: Math.max(...fechamentos),
@@ -164,17 +126,6 @@ export default function ContextoDeMercado({ item, inicioMs, fimMs }) {
       longShort: mediaDe('longShortRatio'),
     }
   }, [registros])
-
-  // O candle é horário: o último fecha na virada da hora, e um episódio que
-  // rodou depois dela ficava além do fim do eixo — a faixa do período do
-  // treinamento, que é o ponto do gráfico, simplesmente não aparecia. O eixo
-  // cobre os dados E o episódio, com folga dos dois lados.
-  const eixo = useMemo(() => {
-    const xs = registros.map(instante).filter((x) => Number.isFinite(x))
-    if (xs.length === 0 || Number.isNaN(fimMs)) return {}
-    const folga = Math.max(5 * 60 * 1000, (fimMs - inicioMs) * 0.5)
-    return { min: Math.min(xs[0], inicioMs - folga), max: Math.max(xs[xs.length - 1], fimMs + folga) }
-  }, [registros, inicioMs, fimMs])
 
   const dados = useMemo(() => ({
     datasets: [{
@@ -187,7 +138,7 @@ export default function ContextoDeMercado({ item, inicioMs, fimMs }) {
       fill: true,
       tension: 0.25,
       pointRadius: 0,
-      borderWidth: 2,
+      borderWidth: 1.5,
     }],
   }), [registros, item.moeda, t])
 
@@ -195,6 +146,7 @@ export default function ContextoDeMercado({ item, inicioMs, fimMs }) {
   const opcoes = useMemo(() => ({
     responsive: true,
     maintainAspectRatio: false,
+    animation: false,
     // O eixo de preço não tem formatador próprio: sem isto, o Chart.js
     // separava milhar pelo idioma do navegador, e não pelo do app.
     locale: idioma.intl,
@@ -205,14 +157,12 @@ export default function ContextoDeMercado({ item, inicioMs, fimMs }) {
         ...tooltipBase(escuro),
         callbacks: { label: (ctx) => ` ${ctx.dataset.label}: ${formatarNumero(ctx.parsed.y, resumo?.casas ?? 2)}` },
       },
-      // `escuro` está nas dependências para o token ser relido na troca de tema.
-      faixaDoEpisodio: { inicio: inicioMs, fim: fimMs, cor: readToken('--accent-ink') },
     },
     scales: comBordaDeEixo({
-      x: eixoDeTempo(escuro, idioma, dataCurta, eixo),
+      x: eixoDeTempo(escuro, idioma, dataCurta, { min: inicioDados, max: fimDados }),
       y: { ticks: { color: corDoTique(escuro), maxTicksLimit: 6 }, grid: { color: corDaGrade(escuro) } },
     }, escuro),
-  }), [escuro, idioma, dataCurta, eixo, resumo, inicioMs, fimMs])
+  }), [escuro, idioma, dataCurta, resumo, inicioDados, fimDados])
 
   const cheio = (d) => (d >= 0 ? `+${formatarNumero(d * 100, 2)}%` : `${formatarNumero(d * 100, 2)}%`)
   const corDoMedo = (v) => (v >= 55 ? 'var(--perf-up)' : v >= 45 ? 'var(--perf-warn)' : 'var(--perf-down)')
@@ -226,33 +176,25 @@ export default function ContextoDeMercado({ item, inicioMs, fimMs }) {
     ...(resumo.longShort !== null
       ? [{ rotulo: t('treinamento.longShortAvg'), valor: formatarNumero(resumo.longShort, 2) }]
       : []),
-    ...(sentimento?.fear?.valor !== null && sentimento?.fear?.valor !== undefined
-      ? [{
-          rotulo: t('treinamento.fearGreed'),
-          valor: `${sentimento.fear.valor}${sentimento.fear.classificacao ? ` · ${sentimento.fear.classificacao}` : ''}`,
-          cor: corDoMedo(sentimento.fear.valor),
-        }]
-      : []),
-    ...(sentimento?.trend?.valorAtual !== null && sentimento?.trend?.valorAtual !== undefined
-      ? [{
-          rotulo: t('treinamento.trendSearch'),
-          valor: `${sentimento.trend.valorAtual}${sentimento.trend.delta15 !== null && sentimento.trend.delta15 !== undefined
-            ? ` (${sentimento.trend.delta15 >= 0 ? '▲' : '▼'}${Math.abs(sentimento.trend.delta15)} /15min)`
-            : ''}`,
-        }]
-      : []),
-    ...(sentimento?.trend?.geoTop1Code
-      ? [{ rotulo: t('treinamento.topRegion'), valor: sentimento.trend.geoTop1Code }]
+    ...(medoMedio !== null
+      ? [{ rotulo: t('treinamento.fearGreedAvg'), valor: formatarNumero(medoMedio, 0), cor: corDoMedo(medoMedio) }]
       : []),
   ] : []
 
+  const subtitulo = valida
+    ? t('treinamento.marketSubtitle', {
+      coin: item.moeda,
+      inicio: formatarDiaComAno(inicioDados, idioma.intl),
+      fim: formatarDiaComAno(fimDados, idioma.intl),
+      velas: Math.round((fimDados - inicioDados) / 3_600_000) + 1,
+    })
+    : undefined
+
   return (
-    <Painel
-      titulo={t('treinamento.marketContext')}
-      subtitulo={t('treinamento.marketSubtitle', { coin: item.moeda, range: mercado?.margemHoras === 12 ? '12h' : '30min' })}
-      sx={{ height: '100%' }}
-    >
-      {mercado === null ? (
+    <Painel titulo={t('treinamento.marketContext')} subtitulo={subtitulo} sx={{ height: '100%' }}>
+      {!valida ? (
+        <EstadoVazio mensagem={t('treinamento.marketNoWindow')} />
+      ) : mercado === null ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }} role="status" aria-label={t('treinamento.loadingMarket')}>
           <CircularProgress size={24} sx={{ color: 'var(--accent-ink)' }} />
         </Box>
@@ -264,7 +206,7 @@ export default function ContextoDeMercado({ item, inicioMs, fimMs }) {
             {indicadores.map((i) => <Indicador key={i.rotulo} {...i} />)}
           </Box>
           <Box sx={{ height: { xs: 220, md: 260 }, position: 'relative' }}>
-            <Line data={dados} options={opcoes} plugins={PLUGINS} />
+            <Line data={dados} options={opcoes} />
           </Box>
         </>
       )}

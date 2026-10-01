@@ -547,6 +547,9 @@ const criarMockCobranca = (body) => {
 //   · totalSteps é a soma das ações, e rewardTotal = rewardMedio × steps;
 //   · a versão do modelo muda entre treinos, a cada 16h (a janela de 24h pega
 //     sempre ao menos uma troca);
+//   · cada episódio traz a janela de dados que negociou (dataInicioDados e
+//     dataFimDados): 1000 velas horárias por rodada, andando para trás no
+//     dataset — o mercado que o agente viu não é o da hora em que ele rodou;
 //   · três dias de histórico, para as janelas da análise terem o que mostrar;
 //   · o treino continua depois do load: um episódio a cada 20 s, o que deixa
 //     exercitar o polling, o status ao vivo e a virada de ciclo.
@@ -569,6 +572,27 @@ const TREINO_DURACAO_CICLO_MS = (TREINO_EPISODIOS_POR_CICLO - 1) * TREINO_PASSO_
 const TREINO_BLOCO_MS = TREINO_PAUSAS_MIN.reduce((soma, p) => soma + TREINO_DURACAO_CICLO_MS + p * 60 * 1000, 0)
 const TREINO_VERSOES = ['v3.1.0', 'v3.2.1', 'v3.3.0', 'v3.4.0']
 const TREINO_VERSAO_A_CADA_MS = 16 * 3600 * 1000
+
+// A janela de dados de cada rodada. O treinador percorre o dataset de trás para
+// a frente, um lote de 1000 velas horárias por rodada de moedas (as dez moedas
+// treinam no mesmo lote antes de o offset andar), e dá a volta ao chegar ao
+// começo. O dataset do mock são os 18 meses que terminam quatro meses antes do
+// mês corrente (os quatro meses seguintes fazem as vezes de holdout): contado
+// em mês, e não do load, para não mudar a cada recarga; e dentro dos dois anos
+// de velas do mock de mercado, para o contexto do episódio ter o que mostrar.
+const TREINO_VELAS_POR_LOTE = 1000
+const TREINO_HORA_MS = 3600 * 1000
+const treinoMesCorrente = new Date()
+const TREINO_DATASET_FIM = Date.UTC(treinoMesCorrente.getUTCFullYear(), treinoMesCorrente.getUTCMonth() - 4, 1)
+const TREINO_DATASET_INICIO = Date.UTC(treinoMesCorrente.getUTCFullYear(), treinoMesCorrente.getUTCMonth() - 22, 1)
+const TREINO_LOTES_NO_DATASET = Math.floor(
+  (TREINO_DATASET_FIM - TREINO_DATASET_INICIO) / (TREINO_VELAS_POR_LOTE * TREINO_HORA_MS)
+)
+const treinoJanelaDaRodada = (rodada) => {
+  const lote = rodada % TREINO_LOTES_NO_DATASET
+  const fim = TREINO_DATASET_FIM - (lote * TREINO_VELAS_POR_LOTE + 1) * TREINO_HORA_MS
+  return { inicio: fim - (TREINO_VELAS_POR_LOTE - 1) * TREINO_HORA_MS, fim }
+}
 // Quanto cada moeda soma ao reward. A PAXG, lastreada em ouro, quase não se
 // mexe e rende menos.
 const TREINO_VIES_DA_MOEDA = {
@@ -639,6 +663,7 @@ const buildTreinoEpisodios = () => {
       const ms = inicioDoCiclo + (emRajada ? i - k + 2 : i) * TREINO_PASSO_MS
       const rodada = Math.floor(seq / TREINO_COINS.length)
       const moeda = treinoRodada(rodada)[seq % TREINO_COINS.length]
+      const janela = treinoJanelaDaRodada(rodada)
       const epsilon = Math.max(0.05, 0.985 ** i)
       const mercado = 0.06 * treinoRuido(rodada * 7 + 3)
       const rewardMedio = -0.06 + (1 - epsilon) * habilidade + TREINO_VIES_DA_MOEDA[moeda]
@@ -667,6 +692,8 @@ const buildTreinoEpisodios = () => {
         acoesCompra,
         acoesVenda: TREINO_STEPS - acoesHold - acoesCompra,
         totalSteps: TREINO_STEPS,
+        dataInicioDados: treinoUtcNaive(janela.inicio),
+        dataFimDados: treinoUtcNaive(janela.fim),
       })
     }
   }

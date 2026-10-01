@@ -184,6 +184,17 @@ export const formatarDia = (valor, locale) => {
   return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString(locale, { day: '2-digit', month: '2-digit' })
 }
 
+/**
+ * Dia, mês e ano ("01/02/2023"). Para a janela de dados de um episódio, que
+ * pode ser de outro ano: o treino percorre o histórico do dataset.
+ */
+export const formatarDiaComAno = (valor, locale) => {
+  const d = new Date(valor)
+  return Number.isNaN(d.getTime())
+    ? ''
+    : d.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
 // Rótulo curto de um intervalo: só as horas quando cabe no mesmo dia,
 // data e hora quando atravessa a meia-noite.
 export const formatarIntervalo = (inicio, fim, locale) => {

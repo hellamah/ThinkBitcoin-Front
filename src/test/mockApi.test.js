@@ -588,6 +588,21 @@ describe('utils/mockApi › getMockResponse', () => {
       expect(noFim.map((r) => r.idTreinamentoEpisodio)).toContain(maisRecente.idTreinamentoEpisodio)
     })
 
+    // O treino percorre o histórico: as dez moedas de uma rodada negociam o
+    // mesmo lote de 1000 velas, e o lote anda para trás de rodada em rodada.
+    it('cada rodada traz a janela de dados que negociou, de 1000 velas', () => {
+      const eps = [...ultimas24h()].reverse().slice(0, 30)
+      const janela = (r) => `${r.dataInicioDados}|${r.dataFimDados}`
+      const horas = (r) => (ms({ dataHora: r.dataFimDados }) - ms({ dataHora: r.dataInicioDados })) / HORA
+      expect(eps.every((r) => horas(r) === 999)).toBe(true)
+      expect(ms({ dataHora: eps[0].dataFimDados })).toBeLessThan(Date.now() - 30 * 24 * HORA)
+      expect(new Set(eps.map(janela)).size).toBeGreaterThan(1)
+      // Os episódios da mesma janela são de moedas diferentes: é uma rodada.
+      const porJanela = new Map()
+      for (const r of eps) porJanela.set(janela(r), [...(porJanela.get(janela(r)) ?? []), r.moeda])
+      for (const moedas of porJanela.values()) expect(new Set(moedas).size).toBe(moedas.length)
+    })
+
     it('o resumo traz os campos de ResumoTreinamentoEpisodioModelo', () => {
       const [primeira] = getMockResponse({ endpoint: '/api/TreinamentoEpisodio/resumo', method: 'GET' }).resultado
       expect(Object.keys(primeira).sort()).toEqual([

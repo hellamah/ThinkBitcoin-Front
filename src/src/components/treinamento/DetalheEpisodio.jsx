@@ -25,7 +25,7 @@ import GraficoDeVizinhos from './GraficoDeVizinhos'
 import { METRICAS, corDaMetrica, formatarMetrica, rotuloDaMetrica, tamanhoDoCartao } from './graficos'
 import { BarraDeAcoes, FaixaEntreVizinhos } from './Miniaturas'
 import { EstadoVazio, MoedaChip, Painel, Variacao } from './Painel'
-import { formatarData, formatarDataCurta, formatarNumero, formatarPercentual } from './formato'
+import { formatarData, formatarDataCurta, formatarDiaComAno, formatarNumero, formatarPercentual } from './formato'
 
 // Detalhe de um episódio (/treinamento-episodios/:id). A pergunta é "este
 // episódio foi bom?", e a resposta depende de contra o quê. A base é a
@@ -223,6 +223,11 @@ function DadosDoEpisodio({ item, inicioMs, fimMs, ciclo }) {
     [t('treinamento.duration'), formatarMetrica('duracaoSegundos', item.duracaoSegundos)],
     [t('treinamento.totalSteps'), item.totalSteps ?? '–'],
     [t('treinamento.rewardTotal'), formatarNumero(item.rewardTotal, 2)],
+    // O trecho do histórico que o episódio negociou; "–" em episódio gravado
+    // antes de o treinador mandar a janela.
+    [t('treinamento.dataWindow'), item.dataInicioDados && item.dataFimDados
+      ? `${formatarDiaComAno(item.dataInicioDados, idioma.intl)} – ${formatarDiaComAno(item.dataFimDados, idioma.intl)}`
+      : '–'],
     ...(ciclo
       ? [[t('treinamento.cycle'), t('treinamento.cyclePosition', { pos: ciclo.posicao, total: ciclo.total, inicio: formatarDataCurta(ciclo.inicio, idioma.intl) })]]
       : []),
@@ -416,7 +421,7 @@ export default function DetalheEpisodio({ item, allItems, carregando, garantirPe
             <AcoesDoAgente item={item} vizinhos={vizinhos} />
           </Grid>
           <Grid size={{ xs: 12, md: 8 }}>
-            <ContextoDeMercado item={item} inicioMs={inicioMs} fimMs={fimMs} />
+            <ContextoDeMercado item={item} />
           </Grid>
           <Grid size={{ xs: 12, md: 4 }}>
             <DadosDoEpisodio item={item} inicioMs={inicioMs} fimMs={fimMs} ciclo={ciclo} />
