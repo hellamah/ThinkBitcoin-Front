@@ -12,6 +12,7 @@ import {
   enquadrarCiclo,
   episodiosParaCSV,
   estatisticas,
+  evolucaoPorMoeda,
   faixaDe,
   filtrarJanela,
   janelaDoPeriodo,
@@ -21,8 +22,10 @@ import {
   mesclarEpisodios,
   ordenarPorData,
   paramsDoPeriodo,
+  patamaresDosCiclos,
   periodoDaUrl,
   periodoDoCiclo,
+  pisoDoEpsilon,
   pontosBrutos,
   posicaoEntre,
   proporcaoDeAcoes,
@@ -328,6 +331,51 @@ describe('treinamento › statusDoTreino', () => {
 
   it('é null sem episódio', () => {
     expect(statusDoTreino(null, BASE, 1000)).toBeNull()
+  })
+})
+
+// Um treino de 10 episódios, um por minuto: o epsilon cai de 1 e chega ao
+// piso (0,05) nos quatro últimos, que é onde o reward vira o patamar.
+const treino = (inicioMin, rewardNoPiso, extra = {}) =>
+  Array.from({ length: 10 }, (_, i) => ep(i + 1, inicioMin + i, {
+    epsilon: i < 6 ? 1 - i * 0.15 : 0.05,
+    rewardMedio: i < 6 ? -0.1 : rewardNoPiso,
+    ...extra,
+  }))
+
+describe('treinamento › patamares entre treinos', () => {
+  const tresTreinos = [...treino(0, 0.3), ...treino(12, 0.35), ...treino(24, 0.45)]
+
+  it('o piso é o menor epsilon da série', () => {
+    expect(pisoDoEpsilon(tresTreinos)).toBe(0.05)
+    expect(pisoDoEpsilon([])).toBeNull()
+  })
+
+  it('o patamar de cada ciclo é o reward com o epsilon no piso, não o do começo', () => {
+    const p = patamaresDosCiclos(tresTreinos, detectarCiclos(tresTreinos), 0.05)
+    expect(p.map((x) => x.reward)).toEqual([0.3, 0.35, 0.45])
+  })
+
+  it('treino que ainda está explorando não tem patamar', () => {
+    const timeline = [...treino(0, 0.3), ...treino(12, 0.35).slice(0, 5)]
+    expect(patamaresDosCiclos(timeline, detectarCiclos(timeline), 0.05)).toHaveLength(1)
+  })
+
+  it('sem nenhum treino no fim do decaimento, não há piso para comparar', () => {
+    const soExplorando = treino(0, 0.3).slice(0, 5)
+    expect(patamaresDosCiclos(soExplorando, detectarCiclos(soExplorando), pisoDoEpsilon(soExplorando))).toEqual([])
+  })
+
+  it('por moeda: a mudança entre treinos pela reta, e o último patamar', () => {
+    const e = evolucaoPorMoeda(tresTreinos, detectarCiclos(tresTreinos), 0.05).get('BTC')
+    expect(e.patamares).toEqual([0.3, 0.35, 0.45])
+    expect(e.tendencia).toBeCloseTo(0.15)
+    expect(e.ultimo).toBe(0.45)
+  })
+
+  it('com dois treinos, a mudança é a diferença entre eles', () => {
+    const dois = [...treino(0, 0.3), ...treino(12, 0.35)]
+    expect(evolucaoPorMoeda(dois, detectarCiclos(dois), 0.05).get('BTC').tendencia).toBeCloseTo(0.05)
   })
 })
 

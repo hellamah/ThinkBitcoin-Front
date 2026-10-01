@@ -735,12 +735,12 @@
     "coinPerformance": "Rendimiento por moneda",
     "coinPerformanceSub": "En la ventana seleccionada · haga clic en la moneda para filtrar",
     "colTrend": "Tendencia",
-    "trendHint": "Cuánto varió el reward a lo largo de la ventana, según la recta de tendencia",
+    "trendHint": "Con varios entrenamientos en la ventana: cuánto cambió el nivel (reward con el epsilon en el piso) de un entrenamiento al siguiente. Con uno solo: cuánto varió el reward a lo largo de él.",
     "colCurve": "Curva",
     "colActions": "Acciones",
     "actionsSummary": "Hold {{hold}} · Compra {{compra}} · Venta {{venda}}",
     "colSinceStart": "Desde el inicio",
-    "sinceStartHint": "Reward del primer episodio registrado → actual, en todo el historial",
+    "sinceStartHint": "Del reward del primer episodio registrado al nivel del entrenamiento más reciente (reward con el epsilon en el piso)",
     "colBestEpisode": "Mejor episodio",
     "cyclesTitle": "Ciclos de entrenamiento",
     "cyclesSub": "Tramos separados por reinicio de la numeración o pausa larga · inicio vs fin de cada ciclo",
@@ -794,7 +794,8 @@
     "liveChartSummary": "{{metrica}} en {{intervalo}}: {{n}} episodios, media {{media}}; ventana anterior: {{anterior}}.",
     "learningChartSummary": "Curva de {{metrica}} en {{intervalo}} · monedas: {{moedas}} · ciclos: {{ciclos}}.",
     "framedCycle": "Ciclo de {{inicio}}",
-    "leaveCycle": "Volver a {{periodo}}"
+    "leaveCycle": "Volver a {{periodo}}",
+    "curveHint": "Con varios entrenamientos en la ventana: el nivel de cada uno. Con uno solo: la media móvil a lo largo de él."
   },
   "ajuda": {
     "atr": "Cuánto suele recorrer el precio dentro de una vela. Sirve para dimensionar distancias por volatilidad medida en vez de por corazonada; no indica dirección.",

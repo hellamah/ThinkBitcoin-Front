@@ -14,10 +14,12 @@ import {
   cortesEntreCiclos,
   detectarCiclos,
   enquadrarCiclo,
+  evolucaoPorMoeda,
   filtrarJanela,
   instanteDe,
   janelaDoPeriodo,
   janelaParaMistura,
+  pisoDoEpsilon,
   resumirCiclos,
   resumirPorMoeda,
   resumirVersoes,
@@ -104,8 +106,29 @@ export default function AbaAnalise({ timeline, resumo, periodo, onPeriodo, maisR
     () => resumirCiclos(itens, ciclos).map((c) => ({ ...c, inteiro: inteiro(c) })),
     [itens, ciclos, inteiro]
   )
-  const porMoeda = useMemo(() => resumirPorMoeda(itens, JANELA_POR_MOEDA), [itens])
   const versoes = useMemo(() => resumirVersoes(itens), [itens])
+
+  // Por moeda. Num treino só, a curva e a tendência da própria janela dizem
+  // como ele foi. Com vários, a mesma conta atravessava reinícios — uma reta
+  // por um serrote, que mudava conforme onde a janela cortava os ciclos —, e o
+  // que conta é o patamar de cada treino (ver patamaresDosCiclos): curva de um
+  // ponto por treino, tendência entre eles. O "atual" do desde-o-início é o
+  // último patamar entre tudo o que está carregado: o último episódio, que a
+  // API devolve, podia ser o primeiro de um treino novo, ainda sorteando ações.
+  const piso = useMemo(() => pisoDoEpsilon(timeline), [timeline])
+  const porMoeda = useMemo(() => {
+    const linhas = resumirPorMoeda(itens, JANELA_POR_MOEDA)
+    const entreTreinos = ciclos.length > 1 ? evolucaoPorMoeda(itens, ciclos, piso) : null
+    const atual = evolucaoPorMoeda(timeline, ciclosCarregados, piso)
+    return linhas.map((m) => {
+      const entre = entreTreinos?.get(m.moeda)
+      return {
+        ...m,
+        ...(entreTreinos && { tendencia: entre?.tendencia ?? null, curva: entre?.patamares ?? [] }),
+        patamarAtual: atual.get(m.moeda)?.ultimo ?? null,
+      }
+    })
+  }, [itens, ciclos, timeline, ciclosCarregados, piso])
 
   const itensPorMoeda = useMemo(() => {
     const grupos = new Map()

@@ -735,12 +735,12 @@
     "coinPerformance": "Performance par crypto",
     "coinPerformanceSub": "Dans la fenêtre sélectionnée · cliquez sur la crypto pour filtrer",
     "colTrend": "Tendance",
-    "trendHint": "Variation du reward sur la fenêtre, selon la droite de tendance",
+    "trendHint": "Avec plusieurs entraînements dans la fenêtre : variation du palier (reward avec l'epsilon au plancher) d'un entraînement à l'autre. Avec un seul : variation du reward au fil de celui-ci.",
     "colCurve": "Courbe",
     "colActions": "Actions",
     "actionsSummary": "Hold {{hold}} · Achat {{compra}} · Vente {{venda}}",
     "colSinceStart": "Depuis le début",
-    "sinceStartHint": "Reward du premier épisode enregistré → actuel, sur tout l'historique",
+    "sinceStartHint": "Du reward du premier épisode enregistré au palier de l'entraînement le plus récent (reward avec l'epsilon au plancher)",
     "colBestEpisode": "Meilleur épisode",
     "cyclesTitle": "Cycles d'entraînement",
     "cyclesSub": "Tronçons séparés par une remise à zéro de la numérotation ou une longue pause · début vs fin de chaque cycle",
@@ -794,7 +794,8 @@
     "liveChartSummary": "{{metrica}} sur {{intervalo}} : {{n}} épisodes, moyenne {{media}} ; fenêtre précédente : {{anterior}}.",
     "learningChartSummary": "Courbe de {{metrica}} sur {{intervalo}} · cryptos : {{moedas}} · cycles : {{ciclos}}.",
     "framedCycle": "Cycle du {{inicio}}",
-    "leaveCycle": "Revenir à {{periodo}}"
+    "leaveCycle": "Revenir à {{periodo}}",
+    "curveHint": "Avec plusieurs entraînements dans la fenêtre : le palier de chacun. Avec un seul : la moyenne mobile au fil de celui-ci."
   },
   "ajuda": {
     "atr": "La distance que le prix parcourt habituellement à l'intérieur d'une bougie. Sert à dimensionner les distances par volatilité mesurée plutôt qu'au jugé ; n'indique pas de direction.",

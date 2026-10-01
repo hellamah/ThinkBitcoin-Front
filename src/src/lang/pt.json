@@ -735,12 +735,12 @@
     "coinPerformance": "Desempenho por moeda",
     "coinPerformanceSub": "Na janela selecionada · clique na moeda para filtrar",
     "colTrend": "Tendência",
-    "trendHint": "Quanto o reward variou ao longo da janela, pela reta de tendência",
+    "trendHint": "Com vários treinos na janela: quanto o patamar (reward com o epsilon no piso) mudou de um treino para o outro. Num treino só: quanto o reward variou ao longo dele.",
     "colCurve": "Curva",
     "colActions": "Ações",
     "actionsSummary": "Hold {{hold}} · Compra {{compra}} · Venda {{venda}}",
     "colSinceStart": "Desde o início",
-    "sinceStartHint": "Reward do primeiro episódio registrado → atual, em todo o histórico",
+    "sinceStartHint": "Do reward do primeiro episódio registrado ao patamar do treino mais recente (reward com o epsilon no piso)",
     "colBestEpisode": "Melhor episódio",
     "cyclesTitle": "Ciclos de treinamento",
     "cyclesSub": "Trechos separados por reinício da numeração ou pausa longa · começo vs fim de cada ciclo",
@@ -794,7 +794,8 @@
     "liveChartSummary": "{{metrica}} em {{intervalo}}: {{n}} episódios, média {{media}}; janela anterior: {{anterior}}.",
     "learningChartSummary": "Curva de {{metrica}} em {{intervalo}} · moedas: {{moedas}} · ciclos: {{ciclos}}.",
     "framedCycle": "Ciclo de {{inicio}}",
-    "leaveCycle": "Voltar para {{periodo}}"
+    "leaveCycle": "Voltar para {{periodo}}",
+    "curveHint": "Com vários treinos na janela: o patamar de cada um. Num treino só: a média móvel ao longo dele."
   },
   "ajuda": {
     "atr": "Quanto o preço costuma percorrer dentro de um candle. Serve para dimensionar distâncias por volatilidade medida em vez de por palpite; não indica direção.",

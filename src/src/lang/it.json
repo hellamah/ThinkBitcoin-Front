@@ -735,12 +735,12 @@
     "coinPerformance": "Rendimento per criptovaluta",
     "coinPerformanceSub": "Nella finestra selezionata · clicca sulla criptovaluta per filtrare",
     "colTrend": "Tendenza",
-    "trendHint": "Quanto è variato il reward nella finestra, secondo la retta di tendenza",
+    "trendHint": "Con più addestramenti nella finestra: quanto è cambiato il livello (reward con l'epsilon al minimo) da un addestramento all'altro. Con uno solo: quanto è variato il reward lungo di esso.",
     "colCurve": "Curva",
     "colActions": "Azioni",
     "actionsSummary": "Hold {{hold}} · Acquisto {{compra}} · Vendita {{venda}}",
     "colSinceStart": "Dall'inizio",
-    "sinceStartHint": "Reward del primo episodio registrato → attuale, su tutto lo storico",
+    "sinceStartHint": "Dal reward del primo episodio registrato al livello dell'addestramento più recente (reward con l'epsilon al minimo)",
     "colBestEpisode": "Miglior episodio",
     "cyclesTitle": "Cicli di addestramento",
     "cyclesSub": "Tratti separati da un azzeramento della numerazione o da una lunga pausa · inizio vs fine di ogni ciclo",
@@ -794,7 +794,8 @@
     "liveChartSummary": "{{metrica}} in {{intervalo}}: {{n}} episodi, media {{media}}; finestra precedente: {{anterior}}.",
     "learningChartSummary": "Curva di {{metrica}} in {{intervalo}} · monete: {{moedas}} · cicli: {{ciclos}}.",
     "framedCycle": "Ciclo del {{inicio}}",
-    "leaveCycle": "Torna a {{periodo}}"
+    "leaveCycle": "Torna a {{periodo}}",
+    "curveHint": "Con più addestramenti nella finestra: il livello di ciascuno. Con uno solo: la media mobile lungo di esso."
   },
   "ajuda": {
     "atr": "Quanto il prezzo percorre di solito all'interno di una candela. Serve a dimensionare le distanze in base alla volatilità misurata anziché a intuito; non indica la direzione.",

@@ -735,12 +735,12 @@
     "coinPerformance": "Performance by coin",
     "coinPerformanceSub": "In the selected window · click a coin to filter",
     "colTrend": "Trend",
-    "trendHint": "How much the reward changed across the window, by the trend line",
+    "trendHint": "With several runs in the window: how much the plateau (reward with epsilon at its floor) changed from one run to the next. With a single run: how much the reward changed along it.",
     "colCurve": "Curve",
     "colActions": "Actions",
     "actionsSummary": "Hold {{hold}} · Buy {{compra}} · Sell {{venda}}",
     "colSinceStart": "Since start",
-    "sinceStartHint": "Reward of the first recorded episode → current, across the whole history",
+    "sinceStartHint": "From the reward of the first recorded episode to the latest run's plateau (reward with epsilon at its floor)",
     "colBestEpisode": "Best episode",
     "cyclesTitle": "Training cycles",
     "cyclesSub": "Stretches split by a numbering reset or a long pause · start vs end of each cycle",
@@ -794,7 +794,8 @@
     "liveChartSummary": "{{metrica}} over {{intervalo}}: {{n}} episodes, average {{media}}; previous window: {{anterior}}.",
     "learningChartSummary": "{{metrica}} curve over {{intervalo}} · coins: {{moedas}} · cycles: {{ciclos}}.",
     "framedCycle": "Cycle from {{inicio}}",
-    "leaveCycle": "Back to {{periodo}}"
+    "leaveCycle": "Back to {{periodo}}",
+    "curveHint": "With several runs in the window: each run's plateau. With a single run: the moving average along it."
   },
   "ajuda": {
     "atr": "How far the price typically travels within a candle. Useful to size distances by measured volatility instead of by guesswork; it indicates no direction.",

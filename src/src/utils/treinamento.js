@@ -372,6 +372,71 @@ export const resumirPorMoeda = (timeline, janela = 5) =>
       }
     })
 
+// ── Evolução entre treinos ──────────────────────────────────────────────────
+//
+// Dentro de um treino o reward sobe sobretudo porque o epsilon cai de 1 (ação
+// sorteada) até o piso: o começo contra o fim mede a exploração acabando, e não
+// o modelo aprendendo. O que diz se o modelo aprende é o PATAMAR de um treino —
+// o reward com o epsilon já no piso, a política jogando sem explorar — contra o
+// do treino anterior: o checkpoint passa de um para o outro, e os dois são
+// medidos no mesmo epsilon.
+
+// Folga sobre o piso para o episódio contar como "sem explorar".
+const FOLGA_DO_PISO = 0.01
+// Episódios no piso que um ciclo precisa para ter patamar. Com um ou dois — o
+// ciclo que a borda da janela corta no fim do decaimento —, o patamar é ruído.
+const MINIMO_NO_PISO = 3
+// Acima disto, o menor epsilon carregado não é piso: nenhum treino carregado
+// chegou ao fim do decaimento (0,05 no treinador).
+const PISO_MAXIMO = 0.2
+
+/** O menor epsilon da série: o piso do decaimento. Null sem epsilon nenhum. */
+export const pisoDoEpsilon = (timeline) => {
+  let piso = Infinity
+  for (const r of timeline) {
+    const v = valorDe(r, 'epsilon')
+    if (v !== null && v < piso) piso = v
+  }
+  return Number.isFinite(piso) ? piso : null
+}
+
+/**
+ * O patamar de cada ciclo: a média do reward dos episódios com o epsilon no
+ * piso. `ciclos` vêm de detectarCiclos sobre a mesma `timeline`; `filtro`
+ * restringe os episódios (uma moeda). Ciclo que não chegou ao piso — o que
+ * ainda está explorando — não tem patamar.
+ */
+export const patamaresDosCiclos = (timeline, ciclos, piso, filtro = () => true) => {
+  if (piso === null || piso === undefined || piso > PISO_MAXIMO) return []
+  const patamares = []
+  for (const c of ciclos) {
+    const noPiso = timeline
+      .slice(c.de, c.ate + 1)
+      .filter((r) => filtro(r) && (valorDe(r, 'epsilon') ?? Infinity) <= piso + FOLGA_DO_PISO)
+    const reward = mediaDaMetrica(noPiso, 'rewardMedio')
+    if (noPiso.length >= MINIMO_NO_PISO && reward !== null) {
+      patamares.push({ inicio: c.inicio, reward, total: noPiso.length })
+    }
+  }
+  return patamares
+}
+
+/**
+ * Por moeda, a evolução entre treinos: o patamar de cada ciclo, quanto eles
+ * mudaram (pela reta de tendência com três ou mais; a diferença, com dois) e o
+ * último. Map moeda → { patamares: number[], tendencia, ultimo }.
+ */
+export const evolucaoPorMoeda = (timeline, ciclos, piso) => {
+  const moedas = [...new Set(timeline.map((r) => r.moeda).filter(Boolean))]
+  return new Map(moedas.map((moeda) => {
+    const valores = patamaresDosCiclos(timeline, ciclos, piso, (r) => r.moeda === moeda).map((p) => p.reward)
+    const mudanca = valores.length >= 3
+      ? tendencia(valores)
+      : valores.length === 2 ? valores[1] - valores[0] : null
+    return [moeda, { patamares: valores, tendencia: mudanca, ultimo: valores.length > 0 ? valores[valores.length - 1] : null }]
+  }))
+}
+
 /**
  * Resumo de cada ciclo: começo e fim medidos pela média dos primeiros e dos
  * últimos episódios (um quinto do ciclo, entre 1 e 20), não pelo primeiro e o

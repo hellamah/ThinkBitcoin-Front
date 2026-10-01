@@ -22,6 +22,10 @@ import { compararPor, corDaMoeda, estiloDeTabela, formatarDia, formatarNumero, f
 // 0,081 nas dez linhas — um número que não distingue nada. O loss segue no
 // cartão da aba ao vivo, na tabela de episódios e na de versões, onde a
 // comparação faz sentido.
+//
+// Tendência e curva mudam de conta conforme a janela (quem decide é a aba de
+// análise): num treino só, a média móvel ao longo dele; com vários, o patamar
+// de cada treino — ver patamaresDosCiclos.
 
 export default function TabelaMoedas({ linhas, resumo, onSelecionarMoeda, onAbrir }) {
   const { t, idioma } = useTranslation()
@@ -36,7 +40,7 @@ export default function TabelaMoedas({ linhas, resumo, onSelecionarMoeda, onAbri
     { id: 'total', rotulo: t('treinamento.colEpisodes'), ordenavel: true, numerica: true },
     { id: 'rewardMedio', rotulo: t('treinamento.colRewardAvg'), ordenavel: true, numerica: true },
     { id: 'tendencia', rotulo: t('treinamento.colTrend'), ordenavel: true, numerica: true, dica: t('treinamento.trendHint') },
-    { id: 'curva', rotulo: t('treinamento.colCurve') },
+    { id: 'curva', rotulo: t('treinamento.colCurve'), dica: t('treinamento.curveHint') },
     { id: 'winRate', rotulo: t('treinamento.colWinRate'), ordenavel: true, numerica: true },
     { id: 'acoes', rotulo: t('treinamento.colActions'), dica: t('treinamento.colActionsHint') },
     { id: 'desdeInicio', rotulo: t('treinamento.colSinceStart'), numerica: true, dica: t('treinamento.sinceStartHint') },
@@ -78,8 +82,13 @@ export default function TabelaMoedas({ linhas, resumo, onSelecionarMoeda, onAbri
           <TableBody>
             {ordenadas.map((m) => {
               const inicio = desdeInicio.get(m.moeda)
-              const deltaInicio = inicio && inicio.rewardAtual != null && inicio.rewardInicial != null
-                ? inicio.rewardAtual - inicio.rewardInicial
+              // O "atual" é o último patamar (reward com o epsilon no piso), e
+              // não o último episódio: este podia ser o começo de um treino
+              // novo, ainda sorteando ações, e a coluna despencava a cada
+              // virada de ciclo sem o modelo ter piorado em nada.
+              const atual = m.patamarAtual ?? inicio?.rewardAtual ?? null
+              const deltaInicio = inicio && atual != null && inicio.rewardInicial != null
+                ? atual - inicio.rewardInicial
                 : null
               const curva = m.curva || []
               return (
@@ -122,7 +131,7 @@ export default function TabelaMoedas({ linhas, resumo, onSelecionarMoeda, onAbri
                       <>
                         <Variacao d={deltaInicio} />
                         <Box component="span" sx={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
-                          {formatarNumero(inicio.rewardInicial, 3)} → {formatarNumero(inicio.rewardAtual, 3)}
+                          {formatarNumero(inicio.rewardInicial, 3)} → {formatarNumero(atual, 3)}
                           {/* Sem a data, "desde o início" não dizia de quando: o
                               histórico da API real começa meses antes da janela. */}
                           {inicio.dataHoraInicial && ` · ${t('treinamento.sinceDate', { data: formatarDia(inicio.dataHoraInicial, idioma.intl) })}`}
