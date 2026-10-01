@@ -92,6 +92,15 @@ describe('treinamento › mesclarEpisodios', () => {
     expect(mesclarEpisodios([a], [a, b])).toEqual([a, b])
   })
 
+  // A API repete o episódio da virada entre dois blocos de 4h (fim inclusivo)
+  // e entre páginas; o lote novo junta os dois.
+  it('não duplica episódio repetido dentro do próprio lote novo', () => {
+    const a = ep(1, 0)
+    const b = ep(2, 1)
+    expect(mesclarEpisodios([], [a, b, b])).toEqual([a, b])
+    expect(mesclarEpisodios([a], [b, b, a])).toEqual([a, b])
+  })
+
   it('devolve a mesma lista quando não há novidade, para não re-renderizar', () => {
     const atuais = [ep(1, 0)]
     expect(mesclarEpisodios(atuais, [ep(1, 0)])).toBe(atuais)

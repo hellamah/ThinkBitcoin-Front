@@ -34,10 +34,21 @@ export const extrairLista = (resp) =>
 // Junta episódios novos aos já carregados, sem duplicar. Devolve a MESMA lista
 // quando não há novidade, para o setState não disparar render à toa a cada
 // consulta do polling.
+//
+// Sem duplicar também DENTRO do lote novo: ele junta vários blocos de 4h e
+// várias páginas, e a API repete registro entre eles — o fim do período é
+// inclusivo, e a paginação ordena só pela hora, sem desempate. Comparando só
+// com o que já estava carregado, o episódio da virada do bloco entrava duas
+// vezes: 301 episódios num ciclo de 300, linha repetida na tabela e no CSV.
 export const mesclarEpisodios = (atuais, novos) => {
   if (!novos || novos.length === 0) return atuais
   const ids = new Set(atuais.map((i) => i.idTreinamentoEpisodio))
-  const extras = novos.filter((i) => !ids.has(i.idTreinamentoEpisodio))
+  const extras = []
+  for (const r of novos) {
+    if (ids.has(r.idTreinamentoEpisodio)) continue
+    ids.add(r.idTreinamentoEpisodio)
+    extras.push(r)
+  }
   return extras.length > 0 ? [...atuais, ...extras] : atuais
 }
 

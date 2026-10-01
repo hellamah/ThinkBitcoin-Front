@@ -20,13 +20,16 @@ import {
 // não tem como adivinhar que aquilo era hora local, e o carimbo que a API
 // devolve sem fuso É UTC (ver marcarUtcQuandoFaltarFuso no apiClient). A janela
 // pedida saía deslocada pelo fuso do usuário inteiro: em UTC-3, três horas.
+//
+// O fim vai 1 ms antes de `fimMs`: a API filtra com DataHora <= dataFim, e o
+// episódio gravado exatamente na virada de um bloco de 4h vinha nos dois blocos.
 const buscarPeriodo = async (moeda, versaoModelo, inicioMs, fimMs, opcoes) => {
   const QTD = 1000
   const params = (pagina) => ({
     moeda: moeda || undefined,
     versaoModelo: versaoModelo || undefined,
     dataInicio: toUTCISO(inicioMs),
-    dataFim: toUTCISO(fimMs),
+    dataFim: toUTCISO(fimMs - 1),
     quantidade: QTD,
     pagina,
     ordenarAscendente: false,
@@ -133,7 +136,7 @@ export default function useTreinamentoEpisodios({ moeda, versao, alvoMs }) {
         if (cancelado) return
         grupos.forEach((g) => gruposRef.current.add(g))
         ultimaBuscaRef.current = Date.now()
-        setItens(mesclarEpisodios(lotes[0], lotes.slice(1).flat()))
+        setItens(mesclarEpisodios([], lotes.flat()))
         setAtualizadoEm(Date.now())
       } catch (e) {
         if (!cancelado) setErro(e instanceof Error ? e : new Error(String(e ?? '')))
