@@ -65,6 +65,10 @@ export default function useTreinamentoEpisodios({ moeda, versao, alvoMs }) {
   const [erro, setErro] = useState(null)
   const [atualizadoEm, setAtualizadoEm] = useState(null)
   const [recarga, setRecarga] = useState(0)
+  // Grupos de 4h cuja busca sob demanda falhou. A falha era engolida: a janela
+  // ficava pela metade, sem aviso e sem como tentar de novo a não ser trocando
+  // de período e voltando.
+  const [gruposComFalha, setGruposComFalha] = useState([])
 
   // Grupos de 4h já buscados, pelo timestamp de início.
   const gruposRef = useRef(new Set())
@@ -84,6 +88,7 @@ export default function useTreinamentoEpisodios({ moeda, versao, alvoMs }) {
     gruposRef.current.clear()
     emAndamentoRef.current = 0
     setCarregandoPeriodo(false)
+    setGruposComFalha([])
 
     const carregar = async () => {
       setCarregando(true)
@@ -156,6 +161,11 @@ export default function useTreinamentoEpisodios({ moeda, versao, alvoMs }) {
     const geracao = geracaoRef.current
     emAndamentoRef.current += faltantes.length
     setCarregandoPeriodo(true)
+    // Grupo que volta a ser buscado deixa de contar como falha enquanto isso.
+    setGruposComFalha((atuais) => {
+      const restantes = atuais.filter((g) => !faltantes.includes(g))
+      return restantes.length === atuais.length ? atuais : restantes
+    })
 
     Promise.all(faltantes.map((g) => buscarPeriodo(moeda, versao, g, g + QUATRO_HORAS_MS)))
       .then((lotes) => {
@@ -163,8 +173,10 @@ export default function useTreinamentoEpisodios({ moeda, versao, alvoMs }) {
         setItens((atuais) => mesclarEpisodios(atuais, lotes.flat()))
       })
       .catch(() => {
-        // Libera os grupos para uma nova tentativa.
-        if (geracaoRef.current === geracao) faltantes.forEach((g) => gruposRef.current.delete(g))
+        if (geracaoRef.current !== geracao) return
+        // Libera os grupos para uma nova tentativa, e avisa a tela.
+        faltantes.forEach((g) => gruposRef.current.delete(g))
+        setGruposComFalha((atuais) => [...new Set([...atuais, ...faltantes])])
       })
       .finally(() => {
         emAndamentoRef.current = Math.max(0, emAndamentoRef.current - faltantes.length)
@@ -204,6 +216,12 @@ export default function useTreinamentoEpisodios({ moeda, versao, alvoMs }) {
 
   const recarregar = useCallback(() => setRecarga((n) => n + 1), [])
 
+  /** Se algum grupo que cobre [inicioMs, fimMs] falhou ao carregar. */
+  const falhouEntre = useCallback(
+    (inicioMs, fimMs) => gruposComFalha.some((g) => g <= fimMs && g + QUATRO_HORAS_MS > inicioMs),
+    [gruposComFalha]
+  )
+
   return {
     itens,
     resumo,
@@ -213,5 +231,6 @@ export default function useTreinamentoEpisodios({ moeda, versao, alvoMs }) {
     atualizadoEm,
     recarregar,
     garantirPeriodo,
+    falhouEntre,
   }
 }

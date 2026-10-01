@@ -785,7 +785,9 @@
     "allCoins": "Tutte le criptovalute",
     "currentCycle": "Ciclo attuale: {{versao}} · dalle {{inicio}} · {{n}} episodi",
     "cycleBoundary": "Un nuovo addestramento è iniziato alle {{hora}}: il confronto con la finestra precedente attraversa esecuzioni diverse (l'epsilon riparte a ogni addestramento).",
-    "sinceDate": "dal {{data}}"
+    "sinceDate": "dal {{data}}",
+    "rangeFailed": "Una parte del periodo non è stata caricata.",
+    "retry": "Riprova"
   },
   "ajuda": {
     "atr": "Quanto il prezzo percorre di solito all'interno di una candela. Serve a dimensionare le distanze in base alla volatilità misurata anziché a intuito; non indica la direzione.",

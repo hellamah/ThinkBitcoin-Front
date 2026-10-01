@@ -178,11 +178,22 @@ const CORES_DAS_FAIXAS = {
 /**
  * Faixas de fundo marcando cada ciclo de treino. Recortadas à área de
  * plotagem, com rótulo preso à borda visível e omitido quando não cabe.
+ *
+ * Um plugin só, fixo, que lê os ciclos das opções do gráfico
+ * (`options.plugins.faixasDeCiclo`, montadas por opcoesDasFaixas). Era uma
+ * fábrica que fechava sobre os ciclos, e o react-chartjs-2 só lê `plugins` ao
+ * CRIAR o gráfico: as faixas ficavam as do primeiro render. Trocar o período
+ * mantinha os ciclos da janela antiga — enquadrado no ciclo 2, o rótulo seguia
+ * "Ciclo 2" —, um treino novo chegando pelo polling nunca ganhava faixa, e a
+ * contagem de episódios do rótulo parava no valor da abertura. As opções, ao
+ * contrário, são reaplicadas a cada mudança.
  */
-export const pluginFaixasDeCiclo = (ciclos, rotular, escuro = true) => ({
+export const pluginFaixasDeCiclo = Object.freeze({
   id: 'faixasDeCiclo',
-  beforeDatasetsDraw: (chart) => {
-    if (ciclos.length <= 1) return
+  beforeDatasetsDraw: (chart, _args, opcoes) => {
+    const intervalos = opcoes?.intervalos ?? []
+    const rotulos = opcoes?.rotulos ?? []
+    if (intervalos.length <= 1) return
     const { ctx, chartArea, scales } = chart
     if (!chartArea || !scales.x) return
     const { left, right, top, bottom } = chartArea
@@ -191,10 +202,10 @@ export const pluginFaixasDeCiclo = (ciclos, rotular, escuro = true) => ({
     ctx.rect(left, top, right - left, bottom - top)
     ctx.clip()
     ctx.font = 'bold 11px sans-serif'
-    ciclos.forEach((c, idx) => {
-      const cor = CORES_DAS_FAIXAS[escuro ? 'escuro' : 'claro'][idx % 2]
-      const x1 = scales.x.getPixelForValue(c.inicio)
-      const x2 = scales.x.getPixelForValue(c.fim)
+    intervalos.forEach(([inicio, fim], idx) => {
+      const cor = CORES_DAS_FAIXAS[opcoes.escuro === false ? 'claro' : 'escuro'][idx % 2]
+      const x1 = scales.x.getPixelForValue(inicio)
+      const x2 = scales.x.getPixelForValue(fim)
       if (x2 < left || x1 > right) return
       ctx.fillStyle = `rgba(${cor},0.06)`
       ctx.fillRect(x1, top, Math.max(2, x2 - x1), bottom - top)
@@ -208,13 +219,25 @@ export const pluginFaixasDeCiclo = (ciclos, rotular, escuro = true) => ({
       ctx.lineTo(x2, bottom)
       ctx.stroke()
       ctx.setLineDash([])
-      const rotulo = rotular(idx, c)
+      const rotulo = rotulos[idx] ?? ''
       const lx = Math.max(x1, left) + 6
-      if (lx + ctx.measureText(rotulo).width <= Math.min(x2, right) - 6) {
+      if (rotulo && lx + ctx.measureText(rotulo).width <= Math.min(x2, right) - 6) {
         ctx.fillStyle = `rgba(${cor},0.9)`
         ctx.fillText(rotulo, lx, top + 14)
       }
     })
     ctx.restore()
   },
+})
+
+/**
+ * Opções do plugin de faixas, para `options.plugins.faixasDeCiclo`. Só pares de
+ * números e textos já prontos: o Chart.js passa as opções de plugin por um
+ * resolvedor que troca cada objeto de uma lista por um proxy de opções, e o
+ * ciclo inteiro chegaria ao desenho embrulhado, resolvido a cada leitura.
+ */
+export const opcoesDasFaixas = (ciclos, rotular, escuro) => ({
+  intervalos: ciclos.map((c) => [c.inicio, c.fim]),
+  rotulos: ciclos.map((c, idx) => rotular(idx, c)),
+  escuro,
 })

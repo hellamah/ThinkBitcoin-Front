@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Box from '@mui/material/Box'
 import Grid from '@mui/material/Grid'
 import Typography from '@mui/material/Typography'
@@ -19,6 +19,7 @@ import {
   pontosBrutos,
   reduzirPontos,
   resumirPorMoeda,
+  ritmoPorHora,
   serieSuavizada,
   variacao,
 } from '../../utils/treinamento'
@@ -35,6 +36,7 @@ import {
   eixoDeTempo,
   formatarMetrica,
   formatarVariacaoDaMetrica,
+  opcoesDasFaixas,
   pluginFaixasDeCiclo,
   rotuloDaMetrica,
   setaDaVariacao,
@@ -214,7 +216,9 @@ function MoedasNaJanela({ linhas, anteriores, onSelecionarMoeda }) {
   )
 }
 
-export default function AbaAoVivo({ timeline, periodo, onPeriodo, maisRecenteMs, carregando, carregandoPeriodo, garantirPeriodo, onAbrir, onSelecionarMoeda }) {
+const PLUGINS = [pluginFaixasDeCiclo]
+
+export default function AbaAoVivo({ timeline, periodo, onPeriodo, maisRecenteMs, carregando, carregandoPeriodo, garantirPeriodo, falhouEntre, onAbrir, onSelecionarMoeda }) {
   const { t, idioma } = useTranslation()
   const escuro = useTheme().palette.mode === 'dark'
   const [metrica, setMetrica] = useState('rewardMedio')
@@ -224,9 +228,13 @@ export default function AbaAoVivo({ timeline, periodo, onPeriodo, maisRecenteMs,
   // A janela anterior também precisa estar carregada: é a base das variações.
   // Espera a carga inicial terminar: ela substitui a lista inteira ao chegar,
   // e um período buscado em paralelo seria descartado junto.
+  const garantir = useCallback(() => {
+    if (janela) garantirPeriodo(janela.anterior.inicio, janela.fim)
+  }, [janela, garantirPeriodo])
   useEffect(() => {
-    if (janela && !carregando) garantirPeriodo(janela.anterior.inicio, janela.fim)
-  }, [janela, carregando, garantirPeriodo])
+    if (!carregando) garantir()
+  }, [carregando, garantir])
+  const falhou = janela ? falhouEntre(janela.anterior.inicio, janela.fim) : false
 
   const itens = useMemo(() => (janela ? filtrarJanela(timeline, janela.inicio, janela.fim) : []), [timeline, janela])
   const anteriores = useMemo(
@@ -259,7 +267,7 @@ export default function AbaAoVivo({ timeline, periodo, onPeriodo, maisRecenteMs,
   // cerca de uma hora e meia, e a janela de 1h ou 4h costuma pegar a virada.
   const ciclosNaJanela = useMemo(() => detectarCiclos(itens), [itens])
   const faixas = useMemo(
-    () => pluginFaixasDeCiclo(ciclosNaJanela, (idx, c) => t('treinamento.cycleLabel', { num: idx + 1, count: c.total }), escuro),
+    () => opcoesDasFaixas(ciclosNaJanela, (idx, c) => t('treinamento.cycleLabel', { num: idx + 1, count: c.total }), escuro),
     [ciclosNaJanela, t, escuro]
   )
 
@@ -341,6 +349,7 @@ export default function AbaAoVivo({ timeline, periodo, onPeriodo, maisRecenteMs,
         ...tooltipBase(escuro),
         callbacks: { label: (ctx) => `${ctx.dataset.label}: ${formatarMetrica(metrica, ctx.parsed.y)}` },
       },
+      faixasDeCiclo: faixas,
     },
     scales: comBordaDeEixo({
       x: eixoDeTempo(escuro, idioma, dataCurta, { min: janela?.inicio, max: janela?.fim }),
@@ -349,10 +358,10 @@ export default function AbaAoVivo({ timeline, periodo, onPeriodo, maisRecenteMs,
         grid: { color: corDaGrade(escuro) },
       },
     }, escuro),
-  }), [escuro, idioma, dataCurta, janela, metrica])
+  }), [escuro, idioma, dataCurta, janela, metrica, faixas])
 
   const rotuloComparacao = t('treinamento.vsPrevious')
-  const porHora = stats.total > 0 ? stats.total / (periodo.duracaoMs / 3_600_000) : null
+  const porHora = useMemo(() => ritmoPorHora(itens), [itens])
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -364,6 +373,8 @@ export default function AbaAoVivo({ timeline, periodo, onPeriodo, maisRecenteMs,
           janela={janela}
           maisRecenteMs={maisRecenteMs}
           carregando={carregandoPeriodo}
+          falhou={falhou}
+          onTentarDeNovo={garantir}
         />
         {cicloAtual && (
           <Typography variant="caption" sx={{ color: 'var(--text-muted)' }}>
@@ -413,7 +424,7 @@ export default function AbaAoVivo({ timeline, periodo, onPeriodo, maisRecenteMs,
                 subtitulo={t('treinamento.liveChartSub', { n: janelaMM })}
                 sx={{ height: { xs: 340, md: 400 } }}
               >
-                <Line data={dadosGrafico} options={opcoesGrafico} plugins={[faixas]} />
+                <Line data={dadosGrafico} options={opcoesGrafico} plugins={PLUGINS} />
               </Painel>
             </Grid>
             <Grid size={{ xs: 12, md: 4 }} sx={{ height: { xs: 'auto', md: 400 }, maxHeight: { xs: 420, md: 'none' } }}>

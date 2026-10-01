@@ -19,6 +19,7 @@ import {
   resumirCiclos,
   resumirPorMoeda,
   resumirVersoes,
+  ritmoPorHora,
   serieSuavizada,
   statusDoTreino,
   tendencia,
@@ -317,6 +318,26 @@ describe('treinamento › posicaoEntre e vereditoDoEpisodio', () => {
   it('não dá veredito com base pequena demais', () => {
     expect(vereditoDoEpisodio(posicaoEntre(10, [1, 2]))).toBeNull()
     expect(posicaoEntre(null, [1, 2, 3])).toBeNull()
+  })
+})
+
+describe('treinamento › ritmoPorHora', () => {
+  // O caso que motivou a conta: ciclo de 45min, um episódio por minuto, dentro
+  // de uma janela de 1h. Total ÷ janela dava 45/h para um treino de 60/h.
+  it('mede o ritmo pelo tempo em que o treino rodava, não pela janela', () => {
+    const timeline = Array.from({ length: 46 }, (_, i) => ep(i + 1, i))
+    expect(ritmoPorHora(timeline)).toBeCloseTo(60)
+  })
+
+  it('não conta a pausa entre ciclos como tempo de treino', () => {
+    const ciclo1 = Array.from({ length: 11 }, (_, i) => ep(i + 1, i))
+    const ciclo2 = Array.from({ length: 11 }, (_, i) => ep(i + 1, 100 + i))
+    expect(ritmoPorHora([...ciclo1, ...ciclo2])).toBeCloseTo(60)
+  })
+
+  it('é null sem intervalo para medir', () => {
+    expect(ritmoPorHora([])).toBeNull()
+    expect(ritmoPorHora([ep(1, 0)])).toBeNull()
   })
 })
 

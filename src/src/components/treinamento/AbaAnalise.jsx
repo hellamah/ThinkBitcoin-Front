@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Box from '@mui/material/Box'
 import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
@@ -28,6 +28,7 @@ import {
   corDoTique,
   eixoDeTempo,
   formatarMetrica,
+  opcoesDasFaixas,
   pluginFaixasDeCiclo,
   rotuloDaMetrica,
   tooltipBase,
@@ -46,6 +47,7 @@ import { corDaMoeda, formaDaMoeda } from './formato'
 // Sem loss: é da rede, não da moeda, e as dez curvas saíam idênticas.
 const METRICAS_DA_CURVA = ['rewardMedio', 'winRate']
 const JANELA_POR_MOEDA = 5
+const PLUGINS = [pluginFaixasDeCiclo]
 
 const estiloDoGrupo = {
   '& .MuiToggleButton-root': {
@@ -60,16 +62,20 @@ const estiloDoGrupo = {
   },
 }
 
-export default function AbaAnalise({ timeline, resumo, periodo, onPeriodo, maisRecenteMs, carregando, carregandoPeriodo, garantirPeriodo, onAbrir, onSelecionarMoeda }) {
+export default function AbaAnalise({ timeline, resumo, periodo, onPeriodo, maisRecenteMs, carregando, carregandoPeriodo, garantirPeriodo, falhouEntre, onAbrir, onSelecionarMoeda }) {
   const { t, idioma } = useTranslation()
   const escuro = useTheme().palette.mode === 'dark'
   const [metrica, setMetrica] = useState('rewardMedio')
 
   const janela = useMemo(() => janelaDoPeriodo(periodo, maisRecenteMs), [periodo, maisRecenteMs])
   // Espera a carga inicial, pelo mesmo motivo da aba ao vivo.
+  const garantir = useCallback(() => {
+    if (janela) garantirPeriodo(janela.inicio, janela.fim)
+  }, [janela, garantirPeriodo])
   useEffect(() => {
-    if (janela && !carregando) garantirPeriodo(janela.inicio, janela.fim)
-  }, [janela, carregando, garantirPeriodo])
+    if (!carregando) garantir()
+  }, [carregando, garantir])
+  const falhou = janela ? falhouEntre(janela.inicio, janela.fim) : false
 
   const itens = useMemo(() => (janela ? filtrarJanela(timeline, janela.inicio, janela.fim) : []), [timeline, janela])
   const limiar = useMemo(() => limiarDeLacuna(itens), [itens])
@@ -131,7 +137,7 @@ export default function AbaAnalise({ timeline, resumo, periodo, onPeriodo, maisR
   }, [itensPorMoeda, itens, metrica, limiar, t, escuro])
 
   const faixas = useMemo(
-    () => pluginFaixasDeCiclo(ciclos, (idx, c) => t('treinamento.cycleLabel', { num: idx + 1, count: c.total }), escuro),
+    () => opcoesDasFaixas(ciclos, (idx, c) => t('treinamento.cycleLabel', { num: idx + 1, count: c.total }), escuro),
     [ciclos, t, escuro]
   )
 
@@ -157,6 +163,7 @@ export default function AbaAnalise({ timeline, resumo, periodo, onPeriodo, maisR
         ...tooltipBase(escuro),
         callbacks: { label: (ctx) => `${ctx.dataset.label}: ${formatarMetrica(metrica, ctx.parsed.y)}` },
       },
+      faixasDeCiclo: faixas,
     },
     scales: comBordaDeEixo({
       x: eixoDeTempo(escuro, idioma, dataCurta, { min: inicioDoEixo, max: janela?.fim }),
@@ -165,7 +172,7 @@ export default function AbaAnalise({ timeline, resumo, periodo, onPeriodo, maisR
         grid: { color: corDaGrade(escuro) },
       },
     }, escuro),
-  }), [escuro, idioma, dataCurta, inicioDoEixo, janela, metrica])
+  }), [escuro, idioma, dataCurta, inicioDoEixo, janela, metrica, faixas])
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -176,6 +183,8 @@ export default function AbaAnalise({ timeline, resumo, periodo, onPeriodo, maisR
         janela={janela}
         maisRecenteMs={maisRecenteMs}
         carregando={carregandoPeriodo}
+        falhou={falhou}
+        onTentarDeNovo={garantir}
       />
 
       {itens.length === 0 ? (
@@ -203,7 +212,7 @@ export default function AbaAnalise({ timeline, resumo, periodo, onPeriodo, maisR
             }
             sx={{ height: { xs: 380, md: 440 } }}
           >
-            <Line data={dadosCurva} options={opcoesCurva} plugins={[faixas]} />
+            <Line data={dadosCurva} options={opcoesCurva} plugins={PLUGINS} />
           </Painel>
 
           <TabelaMoedas linhas={porMoeda} resumo={resumo} onSelecionarMoeda={onSelecionarMoeda} onAbrir={onAbrir} />

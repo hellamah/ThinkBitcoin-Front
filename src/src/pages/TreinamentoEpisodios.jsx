@@ -149,7 +149,16 @@ export default function TreinamentoEpisodios() {
       navigate(`/treinamento-episodios${qs ? `?${qs}` : ''}`)
     }
     if (!item) return <EpisodioNaoEncontrado onBack={voltarParaLista} />
-    return <DetalheEpisodio item={item} allItems={dados.itens} onBack={voltarParaLista} onNavigate={andarEntreEpisodios} />
+    return (
+      <DetalheEpisodio
+        item={item}
+        allItems={dados.itens}
+        carregando={dados.carregando}
+        garantirPeriodo={dados.garantirPeriodo}
+        onBack={voltarParaLista}
+        onNavigate={andarEntreEpisodios}
+      />
+    )
   }
 
   const propsDaAba = {
@@ -158,6 +167,7 @@ export default function TreinamentoEpisodios() {
     carregando: dados.carregando,
     carregandoPeriodo: dados.carregandoPeriodo,
     garantirPeriodo: dados.garantirPeriodo,
+    falhouEntre: dados.falhouEntre,
     onAbrir: abrirEpisodio,
     onSelecionarMoeda: selecionarMoeda,
   }

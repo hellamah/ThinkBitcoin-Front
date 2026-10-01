@@ -9,6 +9,7 @@ import { MdArrowBack, MdArrowForward, MdCheck, MdContentCopy, MdPsychology } fro
 import useTranslation from '../../hooks/useTranslation'
 import {
   RAIO_DE_VIZINHOS,
+  UMA_HORA_MS,
   cicloDoEpisodio,
   faixaDe,
   instanteDe,
@@ -258,7 +259,11 @@ function DadosDoEpisodio({ item, inicioMs, fimMs, ciclo }) {
 // que já usam as setas (abas, listas, diálogos).
 const USA_SETAS = 'input, textarea, select, [contenteditable="true"], [role="tablist"], [role="slider"], [role="listbox"], [role="menu"], [role="dialog"]'
 
-export default function DetalheEpisodio({ item, allItems, onBack, onNavigate }) {
+// Quanto carregar de cada lado do episódio aberto. Cobre o ciclo inteiro (um
+// treino dura cerca de 1h30) e, com ele, os vizinhos e a posição no ciclo.
+const ENTORNO_MS = 2 * UMA_HORA_MS
+
+export default function DetalheEpisodio({ item, allItems, carregando, garantirPeriodo, onBack, onNavigate }) {
   const { t, idioma } = useTranslation()
 
   const timeline = useMemo(() => ordenarPorData(allItems || []), [allItems])
@@ -300,6 +305,16 @@ export default function DetalheEpisodio({ item, allItems, onBack, onNavigate }) 
   // dataHora marca o FIM do episódio; o início sai da duração.
   const fimMs = instanteDe(item)
   const inicioMs = fimMs - (item.duracaoSegundos ?? 0) * 1000
+
+  // O entorno do episódio precisa estar carregado. A carga inicial traz só o
+  // bloco de 4h do episódio e o anterior: aberto por link, um episódio das
+  // 11:58 ficava sem os vizinhos de depois do meio-dia — "Próximo" desabilitado
+  // e veredito com metade da base. E andando com "Anterior", o botão apagava
+  // na borda do que estava carregado, como se ali fosse o primeiro episódio.
+  // Pedir o entorno a cada episódio aberto empurra essa borda junto.
+  useEffect(() => {
+    if (!carregando && Number.isFinite(fimMs)) garantirPeriodo?.(fimMs - ENTORNO_MS, fimMs + ENTORNO_MS)
+  }, [fimMs, carregando, garantirPeriodo])
 
   useEffect(() => {
     const aoTeclar = (e) => {

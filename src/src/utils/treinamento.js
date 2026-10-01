@@ -374,6 +374,24 @@ export const statusDoTreino = (ultimoMs, agoraMs, cadenciaMs) => {
 }
 
 /**
+ * Episódios por hora enquanto o treino rodava. Era o total dividido pela
+ * duração da janela inteira, e a janela quase nunca está toda coberta: com o
+ * ciclo começando no meio da janela de 1h, um treino de 180 episódios/h
+ * aparecia como 135. Conta só o tempo dentro dos ciclos — de um episódio ao
+ * último do mesmo trecho —, que é o tempo em que o treino estava de fato
+ * produzindo episódios.
+ */
+export const ritmoPorHora = (timeline) => {
+  let intervalos = 0
+  let tempo = 0
+  for (const c of detectarCiclos(timeline)) {
+    intervalos += c.total - 1
+    tempo += c.fim - c.inicio
+  }
+  return tempo > 0 ? (intervalos / tempo) * UMA_HORA_MS : null
+}
+
+/**
  * Janela de um período: termina em `fimMs` quando a pessoa navegou para trás,
  * ou no episódio mais recente — não no relógio. Ancorar no relógio deixava a
  * tela vazia sempre que o treino tinha parado havia mais que a duração da

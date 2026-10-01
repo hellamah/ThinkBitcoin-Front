@@ -785,7 +785,9 @@
     "allCoins": "Toutes les cryptos",
     "currentCycle": "Cycle en cours : {{versao}} · depuis {{inicio}} · {{n}} épisodes",
     "cycleBoundary": "Un nouvel entraînement a commencé à {{hora}} : la comparaison avec la fenêtre précédente couvre des exécutions différentes (l'epsilon repart à chaque entraînement).",
-    "sinceDate": "depuis le {{data}}"
+    "sinceDate": "depuis le {{data}}",
+    "rangeFailed": "Une partie de la période n'a pas été chargée.",
+    "retry": "Réessayer"
   },
   "ajuda": {
     "atr": "La distance que le prix parcourt habituellement à l'intérieur d'une bougie. Sert à dimensionner les distances par volatilité mesurée plutôt qu'au jugé ; n'indique pas de direction.",

@@ -5,7 +5,7 @@ import IconButton from '@mui/material/IconButton'
 import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Typography from '@mui/material/Typography'
-import { MdChevronLeft, MdChevronRight, MdSkipNext } from 'react-icons/md'
+import { MdChevronLeft, MdChevronRight, MdSkipNext, MdWarningAmber } from 'react-icons/md'
 import useTranslation from '../../hooks/useTranslation'
 import { formatarDuracao, formatarIntervalo } from './formato'
 
@@ -31,7 +31,7 @@ const estiloDoGrupo = {
   },
 }
 
-export default function SeletorDePeriodo({ opcoes, periodo, onChange, janela, maisRecenteMs, carregando }) {
+export default function SeletorDePeriodo({ opcoes, periodo, onChange, janela, maisRecenteMs, carregando, falhou, onTentarDeNovo }) {
   const { t, idioma } = useTranslation()
   const podeAvancar = Boolean(janela) && !janela.ancorada
 
@@ -103,6 +103,18 @@ export default function SeletorDePeriodo({ opcoes, periodo, onChange, janela, ma
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }} role="status">
           <CircularProgress size={14} sx={{ color: 'var(--accent-ink)' }} />
           <Typography variant="caption" sx={{ color: 'var(--accent-ink)' }}>{t('treinamento.loadingRange')}</Typography>
+        </Box>
+      )}
+
+      {/* Sem isto a janela ficava pela metade em silêncio, e o gráfico com um
+          buraco parecia o treino parado naquele trecho. */}
+      {falhou && !carregando && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }} role="alert">
+          <MdWarningAmber size={16} style={{ color: 'var(--perf-warn)' }} aria-hidden="true" />
+          <Typography variant="caption" sx={{ color: 'var(--text-secondary)' }}>{t('treinamento.rangeFailed')}</Typography>
+          <Button size="small" onClick={onTentarDeNovo} sx={{ color: 'var(--accent-ink)', textTransform: 'none', fontWeight: 600, minWidth: 0 }}>
+            {t('treinamento.retry')}
+          </Button>
         </Box>
       )}
     </Box>

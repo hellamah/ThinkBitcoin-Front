@@ -20,6 +20,29 @@ const MARGEM_AMPLA_MS = 12 * 60 * 60 * 1000
 
 const instante = (r) => new Date(r.horaReferencia).getTime()
 
+// Faixa do período em que o episódio rodou. Mínimo de 3px: um episódio de
+// segundos num eixo de horas não teria largura nenhuma. Plugin fixo, com o
+// período e a cor nas opções do gráfico — o react-chartjs-2 só lê `plugins` na
+// criação (ver pluginFaixasDeCiclo), e a cor ficava a do tema da abertura.
+const pluginFaixaDoEpisodio = {
+  id: 'faixaDoEpisodio',
+  beforeDatasetsDraw: (chart, _args, { inicio, fim, cor } = {}) => {
+    const { ctx, chartArea, scales } = chart
+    if (!chartArea || !scales.x || !Number.isFinite(inicio) || !Number.isFinite(fim)) return
+    const x1 = scales.x.getPixelForValue(inicio)
+    const x2 = scales.x.getPixelForValue(fim)
+    const largura = Math.max(3, x2 - x1)
+    ctx.save()
+    ctx.fillStyle = comAlfa(cor, 0.14)
+    ctx.fillRect(x1, chartArea.top, largura, chartArea.bottom - chartArea.top)
+    ctx.strokeStyle = comAlfa(cor, 0.7)
+    ctx.setLineDash([4, 4])
+    ctx.strokeRect(x1, chartArea.top, largura, chartArea.bottom - chartArea.top)
+    ctx.restore()
+  },
+}
+const PLUGINS = [pluginFaixaDoEpisodio]
+
 // Registro de sentimento mais próximo do fim do episódio. Fear & Greed e trend
 // costumam ter granularidade maior que o preço.
 const maisProximo = (registros, alvoMs) => {
@@ -165,31 +188,6 @@ export default function ContextoDeMercado({ item, inicioMs, fimMs }) {
     }],
   }), [registros, item.moeda, t])
 
-  // Faixa do período em que o episódio rodou. Mínimo de 3px: um episódio de
-  // segundos num eixo de horas não teria largura nenhuma.
-  const faixaDoEpisodio = useMemo(() => {
-    const cor = readToken('--accent-ink')
-    return {
-      id: 'faixaDoEpisodio',
-      beforeDatasetsDraw: (chart) => {
-        const { ctx, chartArea, scales } = chart
-        if (!chartArea || !scales.x) return
-        const x1 = scales.x.getPixelForValue(inicioMs)
-        const x2 = scales.x.getPixelForValue(fimMs)
-        const largura = Math.max(3, x2 - x1)
-        ctx.save()
-        ctx.fillStyle = comAlfa(cor, 0.14)
-        ctx.fillRect(x1, chartArea.top, largura, chartArea.bottom - chartArea.top)
-        ctx.strokeStyle = comAlfa(cor, 0.7)
-        ctx.setLineDash([4, 4])
-        ctx.strokeRect(x1, chartArea.top, largura, chartArea.bottom - chartArea.top)
-        ctx.restore()
-      },
-    }
-  // `escuro` entra para reler o token quando o tema muda.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inicioMs, fimMs, escuro])
-
   const dataCurta = useMemo(() => padraoDeDataCurta(idioma.intl), [idioma.intl])
   const opcoes = useMemo(() => ({
     responsive: true,
@@ -204,12 +202,14 @@ export default function ContextoDeMercado({ item, inicioMs, fimMs }) {
         ...tooltipBase(escuro),
         callbacks: { label: (ctx) => ` ${ctx.dataset.label}: ${formatarNumero(ctx.parsed.y, resumo?.casas ?? 2)}` },
       },
+      // `escuro` está nas dependências para o token ser relido na troca de tema.
+      faixaDoEpisodio: { inicio: inicioMs, fim: fimMs, cor: readToken('--accent-ink') },
     },
     scales: comBordaDeEixo({
       x: eixoDeTempo(escuro, idioma, dataCurta, eixo),
       y: { ticks: { color: corDoTique(escuro), maxTicksLimit: 6 }, grid: { color: corDaGrade(escuro) } },
     }, escuro),
-  }), [escuro, idioma, dataCurta, eixo, resumo])
+  }), [escuro, idioma, dataCurta, eixo, resumo, inicioMs, fimMs])
 
   const cheio = (d) => (d >= 0 ? `+${formatarNumero(d * 100, 2)}%` : `${formatarNumero(d * 100, 2)}%`)
   const corDoMedo = (v) => (v >= 55 ? 'var(--perf-up)' : v >= 45 ? 'var(--perf-warn)' : 'var(--perf-down)')
@@ -261,7 +261,7 @@ export default function ContextoDeMercado({ item, inicioMs, fimMs }) {
             {indicadores.map((i) => <Indicador key={i.rotulo} {...i} />)}
           </Box>
           <Box sx={{ height: { xs: 220, md: 260 }, position: 'relative' }}>
-            <Line data={dados} options={opcoes} plugins={[faixaDoEpisodio]} />
+            <Line data={dados} options={opcoes} plugins={PLUGINS} />
           </Box>
         </>
       )}

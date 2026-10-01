@@ -785,7 +785,9 @@
     "allCoins": "All coins",
     "currentCycle": "Current cycle: {{versao}} · since {{inicio}} · {{n}} episodes",
     "cycleBoundary": "A new training run started at {{hora}}: the comparison with the previous window spans different runs (epsilon restarts on every run).",
-    "sinceDate": "since {{data}}"
+    "sinceDate": "since {{data}}",
+    "rangeFailed": "Part of the period failed to load.",
+    "retry": "Try again"
   },
   "ajuda": {
     "atr": "How far the price typically travels within a candle. Useful to size distances by measured volatility instead of by guesswork; it indicates no direction.",
