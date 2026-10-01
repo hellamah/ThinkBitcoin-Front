@@ -216,23 +216,41 @@ export const detectarCiclos = (timeline) => {
   return ciclos
 }
 
+/** Os instantes em que começa cada ciclo depois do primeiro: onde as séries cortam. */
+export const cortesEntreCiclos = (ciclos) => ciclos.slice(1).map((c) => c.inicio)
+
 /**
  * Série suavizada de uma métrica no tempo, pronta para um eixo temporal:
- * [{ x: ms, y }]. A média móvel recomeça a cada pausa maior que `limiar`, e um
- * ponto `y: null` entre os trechos quebra a linha — sem isso o gráfico ligava o
- * fim de um ciclo ao começo do seguinte, como se o modelo tivesse desaprendido
- * em linha reta durante a pausa.
+ * [{ x: ms, y }]. A média móvel recomeça a cada ciclo — `cortes` são os
+ * instantes em que um ciclo novo começa (cortesEntreCiclos) — e um ponto
+ * `y: null` entre os trechos quebra a linha. Sem isso o gráfico ligava o fim
+ * de um treino ao começo do seguinte, como se o modelo tivesse desaprendido em
+ * linha reta na virada.
+ *
+ * Cortava só em pausa maior que o limiar de lacuna (30 min). Nos dados reais
+ * um treino emenda no seguinte em 5 a 8 min, e a linha seguia inteira pela
+ * virada: a média do começo de um treino carregava o fim do anterior. Os
+ * cortes vêm de fora, e não de uma detecção aqui dentro, para a série de cada
+ * moeda cortar exatamente onde as faixas de ciclo do gráfico mudam.
  */
-export const serieSuavizada = (timeline, chave, janela = 5, limiar = Infinity) => {
+export const serieSuavizada = (timeline, chave, janela = 5, cortes = []) => {
   const pontos = []
   let fila = []
   let soma = 0
   let anterior = null
+  let proximoCorte = 0
   for (const r of timeline) {
     const v = valorDe(r, chave)
     const x = instanteDe(r)
     if (v === null || Number.isNaN(x)) continue
-    if (anterior !== null && x - anterior > limiar) {
+    // Algum corte entre o ponto anterior e este? Os de antes do primeiro
+    // ponto só são pulados.
+    let virou = false
+    while (proximoCorte < cortes.length && cortes[proximoCorte] <= x) {
+      if (anterior !== null && cortes[proximoCorte] > anterior) virou = true
+      proximoCorte += 1
+    }
+    if (virou) {
       pontos.push({ x: anterior + (x - anterior) / 2, y: null })
       fila = []
       soma = 0

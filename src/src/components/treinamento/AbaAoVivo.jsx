@@ -10,12 +10,12 @@ import { readToken } from '../../utils/themeTokens'
 import {
   PERIODOS_AO_VIVO,
   cicloDoEpisodio,
+  cortesEntreCiclos,
   detectarCiclos,
   estatisticas,
   filtrarJanela,
   janelaDoPeriodo,
   janelaParaMistura,
-  limiarDeLacuna,
   pontosBrutos,
   reduzirPontos,
   resumirPorMoeda,
@@ -268,14 +268,18 @@ export default function AbaAoVivo({ timeline, periodo, onPeriodo, maisRecenteMs,
   const statsAnterior = useMemo(() => estatisticas(anteriores), [anteriores])
 
   const janelaMM = useMemo(() => janelaParaMistura(new Set(itens.map((r) => r.moeda)).size), [itens])
-  const limiar = useMemo(() => limiarDeLacuna(itens), [itens])
+
+  // Ciclos na janela, para as faixas do gráfico e os cortes das séries: nos
+  // dados reais um treino dura cerca de uma hora e meia, e a janela de 1h ou 4h
+  // costuma pegar a virada.
+  const ciclosNaJanela = useMemo(() => detectarCiclos(itens), [itens])
 
   // Uma série suavizada por métrica: alimenta os minigráficos dos cartões e,
   // a da métrica escolhida, o gráfico principal.
-  const series = useMemo(
-    () => Object.fromEntries(METRICAS.map((id) => [id, serieSuavizada(itens, id, janelaMM, limiar)])),
-    [itens, janelaMM, limiar]
-  )
+  const series = useMemo(() => {
+    const cortes = cortesEntreCiclos(ciclosNaJanela)
+    return Object.fromEntries(METRICAS.map((id) => [id, serieSuavizada(itens, id, janelaMM, cortes)]))
+  }, [itens, janelaMM, ciclosNaJanela])
 
   const porMoeda = useMemo(() => resumirPorMoeda(itens), [itens])
   const porMoedaAnterior = useMemo(
@@ -285,9 +289,6 @@ export default function AbaAoVivo({ timeline, periodo, onPeriodo, maisRecenteMs,
 
   const ultimos = useMemo(() => itens.slice(-12).reverse(), [itens])
 
-  // Ciclos na janela, para as faixas do gráfico: nos dados reais um treino dura
-  // cerca de uma hora e meia, e a janela de 1h ou 4h costuma pegar a virada.
-  const ciclosNaJanela = useMemo(() => detectarCiclos(itens), [itens])
   const faixas = useMemo(
     () => opcoesDasFaixas(ciclosNaJanela, (idx, c) => t('treinamento.cycleLabel', { num: idx + 1, count: c.total }), escuro),
     [ciclosNaJanela, t, escuro]

@@ -3,6 +3,7 @@ import {
   UM_MINUTO_MS,
   UMA_HORA_MS,
   cicloDoEpisodio,
+  cortesEntreCiclos,
   detectarCiclos,
   episodiosParaCSV,
   estatisticas,
@@ -168,13 +169,49 @@ describe('treinamento › limiarDeLacuna', () => {
 
 describe('treinamento › serieSuavizada', () => {
   it('quebra a linha e recomeça a média numa pausa longa', () => {
+    // Um episódio por minuto, e uma pausa de 97 min sem reinício da numeração.
     const timeline = [
       ep(1, 0, { rewardMedio: 0 }),
       ep(2, 1, { rewardMedio: 1 }),
-      ep(3, 100, { rewardMedio: 10 }),
+      ep(3, 2, { rewardMedio: 2 }),
+      ep(4, 100, { rewardMedio: 10 }),
+      ep(5, 101, { rewardMedio: 20 }),
     ]
-    const pontos = serieSuavizada(timeline, 'rewardMedio', 5, 30 * UM_MINUTO_MS)
-    expect(pontos.map((p) => p.y)).toEqual([0, 0.5, null, 10])
+    const cortes = cortesEntreCiclos(detectarCiclos(timeline))
+    const pontos = serieSuavizada(timeline, 'rewardMedio', 5, cortes)
+    expect(pontos.map((p) => p.y)).toEqual([0, 0.5, 1, null, 10, 15])
+  })
+
+  // O caso dos dados reais: 300 → 1 com 7 min entre um treino e o outro,
+  // abaixo do limiar de lacuna. Cortando só em pausa longa, a média do começo
+  // do treino novo carregava o fim do anterior.
+  it('quebra a linha no reinício do treino mesmo sem pausa longa', () => {
+    const timeline = [
+      ep(299, 0, { rewardMedio: 0.5 }),
+      ep(300, 1, { rewardMedio: 0.5 }),
+      ep(1, 8, { rewardMedio: -0.1 }),
+      ep(2, 9, { rewardMedio: -0.1 }),
+    ]
+    const cortes = cortesEntreCiclos(detectarCiclos(timeline))
+    expect(cortes).toEqual([BASE + 8 * UM_MINUTO_MS])
+    expect(serieSuavizada(timeline, 'rewardMedio', 5, cortes).map((p) => p.y)).toEqual([0.5, 0.5, null, -0.1, -0.1])
+  })
+
+  it('corta a série de uma moeda nos ciclos da timeline inteira', () => {
+    const timeline = [
+      ep(299, 0, { moeda: 'BTC', rewardMedio: 1 }),
+      ep(300, 1, { moeda: 'ETH', rewardMedio: 1 }),
+      ep(1, 8, { moeda: 'ETH', rewardMedio: 0 }),
+      ep(2, 9, { moeda: 'BTC', rewardMedio: 0 }),
+    ]
+    const cortes = cortesEntreCiclos(detectarCiclos(timeline))
+    const doBtc = timeline.filter((r) => r.moeda === 'BTC')
+    expect(serieSuavizada(doBtc, 'rewardMedio', 5, cortes).map((p) => p.y)).toEqual([1, null, 0])
+  })
+
+  it('não corta antes do primeiro ponto', () => {
+    const timeline = [ep(1, 10, { rewardMedio: 1 }), ep(2, 11, { rewardMedio: 3 })]
+    expect(serieSuavizada(timeline, 'rewardMedio', 5, [BASE]).map((p) => p.y)).toEqual([1, 2])
   })
 
   it('ignora episódios sem a métrica em vez de contá-los como zero', () => {

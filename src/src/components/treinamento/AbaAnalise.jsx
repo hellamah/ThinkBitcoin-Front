@@ -10,12 +10,12 @@ import { comportamentoDeRolagem } from '../../utils/movimento'
 import { readToken } from '../../utils/themeTokens'
 import {
   PERIODOS_ANALISE,
+  cortesEntreCiclos,
   detectarCiclos,
   filtrarJanela,
   instanteDe,
   janelaDoPeriodo,
   janelaParaMistura,
-  limiarDeLacuna,
   periodoDoCiclo,
   resumirCiclos,
   resumirPorMoeda,
@@ -91,8 +91,8 @@ export default function AbaAnalise({ timeline, resumo, periodo, onPeriodo, maisR
   }, [onPeriodo])
 
   const itens = useMemo(() => (janela ? filtrarJanela(timeline, janela.inicio, janela.fim) : []), [timeline, janela])
-  const limiar = useMemo(() => limiarDeLacuna(itens), [itens])
   const ciclos = useMemo(() => detectarCiclos(itens), [itens])
+  const cortes = useMemo(() => cortesEntreCiclos(ciclos), [ciclos])
   const resumoCiclos = useMemo(() => resumirCiclos(itens, ciclos), [itens, ciclos])
   const porMoeda = useMemo(() => resumirPorMoeda(itens, JANELA_POR_MOEDA), [itens])
   const versoes = useMemo(() => resumirVersoes(itens), [itens])
@@ -114,7 +114,7 @@ export default function AbaAnalise({ timeline, resumo, periodo, onPeriodo, maisR
   const dadosCurva = useMemo(() => {
     const porMoeda = itensPorMoeda.map(([moeda, eps]) => ({
       label: moeda,
-      data: serieSuavizada(eps, metrica, JANELA_POR_MOEDA, limiar),
+      data: serieSuavizada(eps, metrica, JANELA_POR_MOEDA, cortes),
       borderColor: comAlfa(corDaMoeda(moeda), 0.6),
       backgroundColor: corDaMoeda(moeda),
       pointStyle: formaDaMoeda(moeda),
@@ -131,7 +131,7 @@ export default function AbaAnalise({ timeline, resumo, periodo, onPeriodo, maisR
       datasets: [
         {
           label: t('treinamento.allCoins'),
-          data: serieSuavizada(itens, metrica, janelaParaMistura(itensPorMoeda.length), limiar),
+          data: serieSuavizada(itens, metrica, janelaParaMistura(itensPorMoeda.length), cortes),
           borderColor: cor,
           backgroundColor: cor,
           pointStyle: 'line',
@@ -147,7 +147,7 @@ export default function AbaAnalise({ timeline, resumo, periodo, onPeriodo, maisR
     }
   // `escuro` entra para reler o token do destaque quando o tema muda.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [itensPorMoeda, itens, metrica, limiar, t, escuro])
+  }, [itensPorMoeda, itens, metrica, cortes, t, escuro])
 
   const faixas = useMemo(
     () => opcoesDasFaixas(ciclos, (idx, c) => t('treinamento.cycleLabel', { num: idx + 1, count: c.total }), escuro),
