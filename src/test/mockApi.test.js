@@ -8,7 +8,7 @@
  * - Endpoint não mapeado deve retornar null
  * - Normalização de método (case-insensitive)
  */
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { getMockResponse } from '../src/utils/mockApi'
 
 describe('utils/mockApi › getMockResponse', () => {
@@ -503,6 +503,97 @@ describe('utils/mockApi › getMockResponse', () => {
         }
       })
       expect(resp.resultado.registros.length).toBeGreaterThan(0)
+    })
+  })
+
+  // O mock do treino imita o FORMATO dos dados reais. Antes, três treinos
+  // separados por pausas de 40 min e numeração corrida escondiam tudo o que a
+  // tela já errou com dados reais; estes testes seguram o mock no formato real.
+  describe('Treinamento de IA', () => {
+    const HORA = 3600 * 1000
+    const listar = (params) =>
+      getMockResponse({ endpoint: `/api/TreinamentoEpisodio?${new URLSearchParams(params)}`, method: 'GET' }).resultado
+    const ultimas24h = () => {
+      const agora = Date.now()
+      return listar({
+        dataInicio: new Date(agora - 24 * HORA).toISOString(),
+        dataFim: new Date(agora).toISOString(),
+        quantidade: 100000,
+        ordenarAscendente: false,
+      }).lista
+    }
+    // O front carimba o Z que a API não manda (marcarUtcQuandoFaltarFuso).
+    const ms = (r) => new Date(`${r.dataHora}Z`).getTime()
+
+    it('cada treino tem 300 episódios e a numeração recomeça em 1, com 5 a 8 min entre eles', () => {
+      const eps = [...ultimas24h()].reverse()
+      const reinicios = eps
+        .map((r, i) => ({ r, anterior: eps[i - 1] }))
+        .filter(({ r, anterior }) => anterior && r.episodio === 1)
+      expect(reinicios.length).toBeGreaterThan(10)
+      for (const { r, anterior } of reinicios) {
+        expect(anterior.episodio).toBe(300)
+        const pausaMin = (ms(r) - ms(anterior)) / 60000
+        expect(pausaMin).toBeGreaterThanOrEqual(5)
+        expect(pausaMin).toBeLessThanOrEqual(8)
+        // Treino novo começa explorando: epsilon de volta a 1.
+        expect(r.epsilon).toBe(1)
+      }
+    })
+
+    it('devolve os episódios do mesmo segundo em ordem decrescente, como a API', () => {
+      const eps = ultimas24h()
+      const empate = eps.findIndex((r, i) => eps[i + 1] && r.dataHora === eps[i + 1].dataHora)
+      expect(empate).toBeGreaterThanOrEqual(0)
+      expect(eps[empate].episodio).toBeGreaterThan(eps[empate + 1].episodio)
+    })
+
+    it('rodadas de dez moedas, totalSteps igual à soma das ações e rewardTotal = rewardMedio × steps', () => {
+      const eps = ultimas24h()
+      expect(new Set(eps.map((r) => r.moeda)).size).toBe(10)
+      for (const r of eps.slice(0, 50)) {
+        expect(r.acoesHold + r.acoesCompra + r.acoesVenda).toBe(r.totalSteps)
+        expect(r.rewardTotal).toBeCloseTo(r.rewardMedio * r.totalSteps)
+      }
+    })
+
+    it('a janela de 24h pega ao menos uma troca de versão do modelo', () => {
+      expect(new Set(ultimas24h().map((r) => r.versaoModelo)).size).toBeGreaterThanOrEqual(2)
+    })
+
+    // Ancorado no load, o calendário andava a cada recarga, e o link de um
+    // episódio ou de um ciclo enquadrado deixava de bater com os dados.
+    it('o mesmo episódio sai igual numa recarga minutos depois', async () => {
+      const [antes] = listar({ quantidade: 1, ordenarAscendente: false }).lista
+      vi.useFakeTimers({ toFake: ['Date'] })
+      try {
+        vi.setSystemTime(Date.now() + 7 * 60 * 1000)
+        vi.resetModules()
+        const { getMockResponse: depoisDaRecarga } = await import('../src/utils/mockApi')
+        const { lista } = depoisDaRecarga({
+          endpoint: `/api/TreinamentoEpisodio?${new URLSearchParams({ quantidade: 100, ordenarAscendente: false })}`,
+          method: 'GET',
+        }).resultado
+        expect(lista.find((r) => r.idTreinamentoEpisodio === antes.idTreinamentoEpisodio)).toEqual(antes)
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('não devolve episódio do futuro, e dataFim é inclusivo', () => {
+      const [maisRecente] = listar({ quantidade: 1, ordenarAscendente: false }).lista
+      expect(ms(maisRecente)).toBeLessThanOrEqual(Date.now())
+      const exato = new Date(ms(maisRecente)).toISOString()
+      const noFim = listar({ dataInicio: exato, dataFim: exato, quantidade: 10 }).lista
+      expect(noFim.map((r) => r.idTreinamentoEpisodio)).toContain(maisRecente.idTreinamentoEpisodio)
+    })
+
+    it('o resumo traz os campos de ResumoTreinamentoEpisodioModelo', () => {
+      const [primeira] = getMockResponse({ endpoint: '/api/TreinamentoEpisodio/resumo', method: 'GET' }).resultado
+      expect(Object.keys(primeira).sort()).toEqual([
+        'dataHoraAtual', 'dataHoraInicial', 'episodios', 'epsilonAtual', 'lossMedio',
+        'moeda', 'rewardAtual', 'rewardInicial', 'winRateAtual', 'winRateInicial',
+      ])
     })
   })
 
