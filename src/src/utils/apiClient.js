@@ -123,6 +123,16 @@ export const ApiEndpoint = Object.freeze({
       const qs = params.toString()
       return qs ? `/api/TreinamentoEpisodio/serie?${qs}` : '/api/TreinamentoEpisodio/serie'
     },
+    // Avaliação out-of-sample de cada sessão de treino, da mais recente para a mais antiga.
+    AVALIACOES: ({ versaoModelo, dataInicio, dataFim, quantidade } = {}) => {
+      const params = new URLSearchParams()
+      if (versaoModelo) params.set('versaoModelo', versaoModelo)
+      if (dataInicio) params.set('dataInicio', dataInicio)
+      if (dataFim) params.set('dataFim', dataFim)
+      if (quantidade != null) params.set('quantidade', String(quantidade))
+      const qs = params.toString()
+      return qs ? `/api/TreinamentoEpisodio/avaliacoes?${qs}` : '/api/TreinamentoEpisodio/avaliacoes'
+    },
   }),
 })
 

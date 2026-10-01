@@ -5,10 +5,11 @@ import CircularProgress from '@mui/material/CircularProgress'
 import LinearProgress from '@mui/material/LinearProgress'
 import Tab from '@mui/material/Tab'
 import Tabs from '@mui/material/Tabs'
-import { MdQueryStats, MdSensors } from 'react-icons/md'
+import { MdFactCheck, MdQueryStats, MdSensors } from 'react-icons/md'
 import ErrorMessage from '../components/ErrorMessage'
 import AbaAnalise from '../components/treinamento/AbaAnalise'
 import AbaAoVivo from '../components/treinamento/AbaAoVivo'
+import AbaValidacao from '../components/treinamento/AbaValidacao'
 import Cabecalho from '../components/treinamento/Cabecalho'
 import DetalheEpisodio, { EpisodioNaoEncontrado } from '../components/treinamento/DetalheEpisodio'
 import Filtros from '../components/treinamento/Filtros'
@@ -28,11 +29,15 @@ import {
   treinoTerminou,
 } from '../utils/treinamento'
 
-// Treinamento de IA. Duas abas com perguntas diferentes:
+// Treinamento de IA. Três abas com perguntas diferentes:
 //   · Ao vivo — o treino está rodando, e melhorando agora?
 //   · Análise — o modelo está aprendendo, em quais moedas, ciclos e versões?
+//   · Validação — o modelo presta fora dos dados de treino? É a avaliação de
+//     cada sessão no holdout, que decide o modelo que opera ao vivo.
 // A página só orquestra: filtros na URL, carga (useTreinamentoEpisodios) e
 // qual aba ou detalhe mostrar. Cada parte vive em components/treinamento.
+
+const ABAS = ['ao-vivo', 'analise', 'validacao']
 
 // Como cada aba lê o período da URL: o padrão, o teto (a maior opção da aba) e
 // se aceita ciclo enquadrado — só a análise enquadra.
@@ -70,7 +75,7 @@ export default function TreinamentoEpisodios() {
   const [moedasSelecionadas, setMoedasSelecionadas] = useState(() =>
     (searchParams.get('moedas') || '').split(',').map((s) => s.trim().toUpperCase()).filter(Boolean))
   const [versao, setVersao] = useState(() => searchParams.get('versao') || null)
-  const abaDaUrl = searchParams.get('aba') === 'analise' ? 'analise' : 'ao-vivo'
+  const abaDaUrl = ABAS.includes(searchParams.get('aba')) ? searchParams.get('aba') : 'ao-vivo'
   const [aba, setAba] = useState(abaDaUrl)
 
   // Um período por aba, guardado aqui e não dentro dela: trocar de aba e
@@ -100,8 +105,9 @@ export default function TreinamentoEpisodios() {
     if (moedasSelecionadas.length > 0) p.set('moedas', moedasSelecionadas.join(','))
     if (versao) p.set('versao', versao)
     if (aba !== 'ao-vivo') p.set('aba', aba)
-    const periodo = aba === 'analise' ? periodoAnalise : periodoAoVivo
-    const params = { ...paramsDoPeriodo(periodo, PERIODO_PADRAO[aba]), ...extra }
+    // A validação lista sessões, e não uma janela de episódios: não tem período.
+    const periodo = aba === 'analise' ? periodoAnalise : aba === 'ao-vivo' ? periodoAoVivo : null
+    const params = { ...(periodo ? paramsDoPeriodo(periodo, PERIODO_PADRAO[aba]) : {}), ...extra }
     Object.entries(params).forEach(([k, v]) => { if (v) p.set(k, v) })
     return p.toString()
   }, [moedasSelecionadas, versao, aba, periodoAoVivo, periodoAnalise])
@@ -231,6 +237,7 @@ export default function TreinamentoEpisodios() {
         <Tabs value={aba} onChange={(_, v) => setAba(v)} aria-label={t('treinamento.tabsLabel')} sx={estiloDasAbas}>
           <Tab value="ao-vivo" id="aba-ao-vivo" aria-controls="painel-treinamento" icon={<MdSensors size={18} />} iconPosition="start" label={t('treinamento.tabLive')} />
           <Tab value="analise" id="aba-analise" aria-controls="painel-treinamento" icon={<MdQueryStats size={18} />} iconPosition="start" label={t('treinamento.tabAnalysis')} />
+          <Tab value="validacao" id="aba-validacao" aria-controls="painel-treinamento" icon={<MdFactCheck size={18} />} iconPosition="start" label={t('treinamento.tabValidation')} />
         </Tabs>
         <Box sx={{ height: 2 }}>
           {dados.carregando && !semDados && (
@@ -239,7 +246,11 @@ export default function TreinamentoEpisodios() {
         </Box>
 
         <Box role="tabpanel" id="painel-treinamento" aria-labelledby={`aba-${aba}`} sx={{ pt: 2 }}>
-          {semDados ? (
+          {/* A validação tem dados próprios (uma avaliação por sessão), e não
+              depende dos episódios carregados. */}
+          {aba === 'validacao' ? (
+            <AbaValidacao versao={versao} moedasFiltradas={moedasSelecionadas.length > 0} />
+          ) : semDados ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
               <CircularProgress sx={{ color: 'var(--accent-ink)' }} />
             </Box>

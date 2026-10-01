@@ -735,3 +735,69 @@ export const cicloDoEpisodio = (timeline, id) => {
   const ciclo = detectarCiclos(timeline).find((c) => idx >= c.de && idx <= c.ate)
   return ciclo ? { ...ciclo, posicao: idx - ciclo.de + 1 } : null
 }
+
+// ── Validação das sessões ───────────────────────────────────────────────────
+//
+// A avaliação out-of-sample de cada sessão (/api/TreinamentoEpisodio/avaliacoes):
+// a política gulosa no holdout, contra ficar parado e contra o buy-and-hold. O
+// `score` é a mediana, entre as moedas, do retorno acima do passivo na VALIDAÇÃO —
+// o que decide se a sessão vira o modelo ao vivo. O teste é registrado e nunca
+// entra na escolha.
+
+/**
+ * As avaliações em ordem cronológica, cada uma com `ms` e o `campeaoVigente`:
+ * o score da última sessão promovida até ela (inclusive), ou null se nenhuma
+ * das carregadas foi promovida até ali.
+ */
+export const serieDasAvaliacoes = (avaliacoes) => {
+  let campeao = null
+  return [...(avaliacoes || [])]
+    .sort((a, b) => instanteDe(a) - instanteDe(b))
+    .map((a) => {
+      if (a.promovido) campeao = a.score
+      return { ...a, ms: instanteDe(a), campeaoVigente: campeao }
+    })
+}
+
+/**
+ * Para os cartões: a última sessão, o modelo ao vivo (a última promovida entre
+ * as carregadas; null se a promoção foi antes delas) e quantas batem o passivo.
+ */
+export const resumoDasAvaliacoes = (avaliacoes) => {
+  const serie = serieDasAvaliacoes(avaliacoes)
+  if (serie.length === 0) return null
+  return {
+    ultima: serie[serie.length - 1],
+    aoVivo: [...serie].reverse().find((a) => a.promovido) ?? null,
+    batendoPassivo: serie.filter((a) => a.score > 0).length,
+    total: serie.length,
+  }
+}
+
+// O treinador grava o motivo em português (training_service._record_evaluation).
+// Os textos fixos viram chave de tradução; um motivo que ele passe a escrever
+// e que não esteja aqui aparece como veio.
+const MOTIVOS_CONHECIDOS = {
+  'não bate o passivo na moeda mediana': 'treinamento.decisionBelowPassive',
+  'TB_GUARDAR_MELHOR desligado': 'treinamento.decisionPromotionOff',
+  'falha ao medir o campeão atual': 'treinamento.decisionChampionFailed',
+  'falha ao guardar a cópia do melhor modelo': 'treinamento.decisionSaveFailed',
+}
+
+/**
+ * A decisão sobre a sessão, para a tela: `{ chave }` de tradução, com
+ * `campeao` quando perdeu para o modelo ao vivo, ou `{ texto }` para um motivo
+ * desconhecido; null sem motivo. Perder para o campeão sai dos números (o
+ * texto do treinador traz o score com ponto decimal, em português).
+ */
+export const decisaoDaAvaliacao = (avaliacao) => {
+  if (!avaliacao) return null
+  if (avaliacao.promovido) return { chave: 'treinamento.decisionPromoted' }
+  const { score, scoreCampeao, motivo } = avaliacao
+  if (scoreCampeao !== null && scoreCampeao !== undefined && score <= scoreCampeao) {
+    return { chave: 'treinamento.decisionBelowChampion', campeao: scoreCampeao }
+  }
+  const chave = MOTIVOS_CONHECIDOS[(motivo || '').trim()]
+  if (chave) return { chave }
+  return motivo ? { texto: motivo } : null
+}

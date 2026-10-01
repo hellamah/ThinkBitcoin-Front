@@ -6,6 +6,7 @@ import {
   cicloDoEpisodio,
   cicloQueContem,
   cortesEntreCiclos,
+  decisaoDaAvaliacao,
   detectarCiclos,
   duracaoDoParam,
   duracaoParaParam,
@@ -33,7 +34,9 @@ import {
   resumirCiclos,
   resumirPorMoeda,
   resumirVersoes,
+  resumoDasAvaliacoes,
   ritmoPorHora,
+  serieDasAvaliacoes,
   serieSuavizada,
   statusDoTreino,
   tendencia,
@@ -599,6 +602,60 @@ describe('treinamento › episodiosParaCSV', () => {
     expect(linha.split(',')[9]).toBe('')
     expect(linha).not.toContain('null')
     expect(linha).not.toContain('undefined')
+  })
+})
+
+describe('treinamento › validação das sessões', () => {
+  const sessao = (horas, score, promovido) => ({
+    idAvaliacaoSessaoTreino: `s-${horas}`,
+    dataHora: iso(BASE + horas * UMA_HORA_MS),
+    score,
+    promovido,
+  })
+  // Chegam da API da mais recente para a mais antiga.
+  const avaliacoes = [sessao(6, 0.01, false), sessao(4, 0.04, true), sessao(2, -0.02, false), sessao(0, 0.03, true)]
+
+  it('ordena no tempo e acompanha o modelo ao vivo de cada momento', () => {
+    const serie = serieDasAvaliacoes(avaliacoes)
+    expect(serie.map((a) => a.ms)).toEqual([0, 2, 4, 6].map((h) => BASE + h * UMA_HORA_MS))
+    expect(serie.map((a) => a.campeaoVigente)).toEqual([0.03, 0.03, 0.04, 0.04])
+  })
+
+  it('sem promoção entre as carregadas, não há modelo ao vivo conhecido', () => {
+    expect(serieDasAvaliacoes([sessao(0, -0.01, false)])[0].campeaoVigente).toBeNull()
+    expect(resumoDasAvaliacoes([sessao(0, -0.01, false)]).aoVivo).toBeNull()
+  })
+
+  it('resume a última sessão, o modelo ao vivo e quantas batem o passivo', () => {
+    const r = resumoDasAvaliacoes(avaliacoes)
+    expect(r.ultima.idAvaliacaoSessaoTreino).toBe('s-6')
+    expect(r.aoVivo.idAvaliacaoSessaoTreino).toBe('s-4')
+    expect(r).toMatchObject({ batendoPassivo: 3, total: 4 })
+    expect(resumoDasAvaliacoes([])).toBeNull()
+  })
+
+  it('traduz a decisão: perder para o campeão sai dos números, não do texto', () => {
+    const naoPromovida = { score: 0.012, promovido: false }
+    expect(decisaoDaAvaliacao({ ...naoPromovida, promovido: true, scoreCampeao: 0.01 }))
+      .toEqual({ chave: 'treinamento.decisionPromoted' })
+    expect(decisaoDaAvaliacao({
+      ...naoPromovida, scoreCampeao: 0.0182, motivo: 'o campeão atual rende +1.82% na mesma validação',
+    })).toEqual({ chave: 'treinamento.decisionBelowChampion', campeao: 0.0182 })
+    expect(decisaoDaAvaliacao({ score: -0.004, promovido: false, scoreCampeao: null, motivo: 'não bate o passivo na moeda mediana' }))
+      .toEqual({ chave: 'treinamento.decisionBelowPassive' })
+    // Bateu o campeão, mas a cópia falhou: o motivo é a falha, não o campeão.
+    expect(decisaoDaAvaliacao({ ...naoPromovida, scoreCampeao: 0.01, motivo: 'falha ao guardar a cópia do melhor modelo' }))
+      .toEqual({ chave: 'treinamento.decisionSaveFailed' })
+    expect(decisaoDaAvaliacao({ ...naoPromovida, scoreCampeao: null, motivo: 'falha ao medir o campeão atual' }))
+      .toEqual({ chave: 'treinamento.decisionChampionFailed' })
+    expect(decisaoDaAvaliacao({ ...naoPromovida, motivo: 'TB_GUARDAR_MELHOR desligado' }))
+      .toEqual({ chave: 'treinamento.decisionPromotionOff' })
+  })
+
+  it('um motivo que a tela não conhece aparece como veio', () => {
+    expect(decisaoDaAvaliacao({ score: 0.01, promovido: false, motivo: 'motivo novo' })).toEqual({ texto: 'motivo novo' })
+    expect(decisaoDaAvaliacao({ score: 0.01, promovido: false, motivo: null })).toBeNull()
+    expect(decisaoDaAvaliacao(null)).toBeNull()
   })
 })
 

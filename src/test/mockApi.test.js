@@ -603,6 +603,22 @@ describe('utils/mockApi › getMockResponse', () => {
       for (const moedas of porJanela.values()) expect(new Set(moedas).size).toBe(moedas.length)
     })
 
+    it('as avaliações das sessões vêm da mais recente para a mais antiga, com a decisão', () => {
+      const { resultado } = getMockResponse({ endpoint: '/api/TreinamentoEpisodio/avaliacoes', method: 'GET' })
+      expect(resultado.length).toBeGreaterThan(30)
+      expect(ms(resultado[0])).toBeLessThanOrEqual(Date.now())
+      expect(ms(resultado[0])).toBeGreaterThan(ms(resultado[1]))
+      for (const a of resultado) {
+        expect(a.validacao.moedasAvaliadas).toBe(10)
+        if (a.promovido) expect(a.motivo).toBeNull()
+        else expect(a.motivo).toEqual(expect.any(String))
+        // Quem nem bate o passivo não chega a medir o campeão.
+        if (a.score <= 0) expect(a.scoreCampeao).toBeNull()
+      }
+      expect(resultado.some((a) => a.promovido)).toBe(true)
+      expect(resultado.some((a) => a.score <= 0)).toBe(true)
+    })
+
     it('o resumo traz os campos de ResumoTreinamentoEpisodioModelo', () => {
       const [primeira] = getMockResponse({ endpoint: '/api/TreinamentoEpisodio/resumo', method: 'GET' }).resultado
       expect(Object.keys(primeira).sort()).toEqual([

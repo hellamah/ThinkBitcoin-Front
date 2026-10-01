@@ -550,6 +550,8 @@ const criarMockCobranca = (body) => {
 //   · cada episódio traz a janela de dados que negociou (dataInicioDados e
 //     dataFimDados): 1000 velas horárias por rodada, andando para trás no
 //     dataset — o mercado que o agente viu não é o da hora em que ele rodou;
+//   · cada treino termina com a avaliação out-of-sample da sessão (validação,
+//     teste, campeão, promoção), em /api/TreinamentoEpisodio/avaliacoes;
 //   · três dias de histórico, para as janelas da análise terem o que mostrar;
 //   · o treino continua depois do load: um episódio a cada 20 s, o que deixa
 //     exercitar o polling, o status ao vivo e a virada de ciclo.
@@ -815,6 +817,99 @@ const mockTreinoSerie = (endpoint) => {
   return { mensagem: 'Série de treinamento (mock)', resultado }
 }
 
+// Avaliação out-of-sample de cada sessão (/api/TreinamentoEpisodio/avaliacoes),
+// como AvaliacaoSessaoTreinoModelo: uma por treino, 2 min depois do último
+// episódio, dentro da pausa até o seguinte. Versões mais novas rendem mais; uma
+// sessão vira o campeão quando bate o passivo e o melhor das 12 anteriores.
+// Tudo calculado pelo índice do treino no calendário fixo, e não em cadeia a
+// partir do primeiro carregado: a mesma sessão dá o mesmo resultado em qualquer
+// recarga.
+const TREINO_AVALIACAO_APOS_MS = 2 * 60 * 1000
+const treinoScoreDaSessao = (c) => {
+  const nVersao = Math.floor((treinoInicioDoCiclo(c) - TREINO_EPOCA) / TREINO_VERSAO_A_CADA_MS) % TREINO_VERSOES.length
+  return -0.012 + 0.009 * nVersao + 0.018 * treinoRuido(c * 41 + 1)
+}
+const treinoParteDaAvaliacao = (mediana, semente, linhas) => ({
+  medianaSobrePassivo: mediana,
+  alfa: mediana + 0.09 + 0.02 * treinoRuido(semente + 1),
+  retornoAgente: mediana - 0.015 + 0.01 * treinoRuido(semente + 2),
+  retornoBuyHold: -0.11 + 0.03 * treinoRuido(semente + 3),
+  moedasBatendoPassivo: Math.max(0, Math.min(10, Math.round(5 + mediana * 120))),
+  moedasBatendoBuyHold: Math.max(0, Math.min(10, Math.round(8 + mediana * 40))),
+  moedasAvaliadas: 10,
+  trades: Math.round(280 + 60 * treinoRuido(semente + 4)),
+  linhas,
+})
+
+let treinoAvaliacoesCache = null
+const buildTreinoAvaliacoes = () => {
+  if (treinoAvaliacoesCache) return treinoAvaliacoesCache
+  const agora = Date.now()
+  const ate = agora + TREINO_FUTURO_MS
+  let c = Math.floor((agora - TREINO_HISTORICO_MS - TREINO_EPOCA) / TREINO_BLOCO_MS) * TREINO_PAUSAS_MIN.length
+  const avaliacoes = []
+  for (; treinoInicioDoCiclo(c) <= ate; c++) {
+    const ms = Math.floor((treinoInicioDoCiclo(c) + TREINO_DURACAO_CICLO_MS + TREINO_AVALIACAO_APOS_MS) / 1000) * 1000
+    const nVersao = Math.floor((treinoInicioDoCiclo(c) - TREINO_EPOCA) / TREINO_VERSAO_A_CADA_MS) % TREINO_VERSOES.length
+    const versao = TREINO_VERSOES[nVersao]
+    const score = treinoScoreDaSessao(c)
+    let campeao = 0.004
+    for (let j = c - 12; j < c; j++) campeao = Math.max(campeao, treinoScoreDaSessao(j))
+    let promovido = false
+    let motivo = null
+    let scoreCampeao = null
+    if (score <= 0) {
+      motivo = 'não bate o passivo na moeda mediana'
+    } else {
+      // O campeão é medido de novo na validação desta sessão. O número dele anda
+      // pouco: entre uma sessão e outra a validação só ganha as velas novas.
+      scoreCampeao = campeao + 0.001 * treinoRuido(c * 47 + 3)
+      if (score <= scoreCampeao) {
+        const pct = scoreCampeao * 100
+        motivo = `o campeão atual rende ${pct >= 0 ? '+' : ''}${pct.toFixed(2)}% na mesma validação`
+      } else {
+        promovido = true
+      }
+    }
+    avaliacoes.push({
+      idAvaliacaoSessaoTreino: `mock-avaliacao-${c}`,
+      dataHora: treinoUtcNaive(ms),
+      _ms: ms,
+      modelo: `DQNAgent_${versao}`,
+      versaoModelo: versao,
+      episodios: TREINO_EPISODIOS_POR_CICLO,
+      criterio: 'mediana-vs-passivo-validacao',
+      score,
+      scoreCampeao,
+      promovido,
+      motivo,
+      fracaoHoldout: 0.2,
+      fracaoTeste: 0.5,
+      taxaTreino: 0.004,
+      taxaAvaliacao: 0.001,
+      validacao: treinoParteDaAvaliacao(score, c * 53, 4380),
+      // O teste é o número honesto: fica abaixo da validação, que escolheu.
+      teste: treinoParteDaAvaliacao(score - 0.008 + 0.015 * treinoRuido(c * 43 + 2), c * 59, 4381),
+    })
+  }
+  treinoAvaliacoesCache = avaliacoes
+  return avaliacoes
+}
+
+const mockTreinoAvaliacoes = (endpoint) => {
+  const q = treinoQuery(endpoint)
+  const inicio = treinoInstante(q.get('dataInicio'), -Infinity)
+  const fim = Math.min(treinoInstante(q.get('dataFim'), Infinity), Date.now())
+  const versao = q.get('versaoModelo')?.toUpperCase()
+  const quantidade = Math.min(1000, Math.max(1, parseInt(q.get('quantidade'), 10) || 200))
+  const resultado = buildTreinoAvaliacoes()
+    .filter((a) => a._ms >= inicio && a._ms <= fim && (!versao || a.versaoModelo.toUpperCase() === versao))
+    .reverse()
+    .slice(0, quantidade)
+    .map(treinoStrip)
+  return { mensagem: resultado.length > 0 ? 'Avaliações de treinamento (mock)' : 'Dados não encontrados', resultado }
+}
+
 // Alertas de preço do modo demo. Em memória de propósito: o valor do exercício
 // é ver a lista mudar ao criar e excluir, não sobreviver ao reload.
 let mockAlertas = []
@@ -968,6 +1063,11 @@ const mockHandlers = [
     method: 'GET',
     match: (endpoint) => endpoint.split('?')[0] === '/api/TreinamentoEpisodio/serie',
     response: (endpoint) => mockTreinoSerie(endpoint),
+  },
+  {
+    method: 'GET',
+    match: (endpoint) => endpoint.split('?')[0] === '/api/TreinamentoEpisodio/avaliacoes',
+    response: (endpoint) => mockTreinoAvaliacoes(endpoint),
   },
   {
     method: 'GET',
