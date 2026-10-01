@@ -46,7 +46,7 @@ export default function TabelaEpisodios({ itens, janela, onAbrir }) {
     { id: 'rewardTotal', rotulo: t('treinamento.colRewardTotal'), numerica: true },
     { id: 'lossMedia', rotulo: t('treinamento.colLossAvg'), numerica: true },
     { id: 'epsilon', rotulo: t('treinamento.colEpsilon'), numerica: true },
-    { id: 'winRate', rotulo: t('treinamento.colWinRate'), numerica: true },
+    { id: 'winRate', rotulo: t('treinamento.colWinRate'), numerica: true, dica: t('treinamento.winRateHint') },
     { id: 'duracaoSegundos', rotulo: t('treinamento.colDuration'), numerica: true },
   ], [t])
 
@@ -91,7 +91,7 @@ export default function TabelaEpisodios({ itens, janela, onAbrir }) {
           <TableHead>
             <TableRow>
               {colunas.map((c) => (
-                <TableCell key={c.id} align={c.numerica ? 'right' : 'left'} sortDirection={ordenarPor === c.id ? ordem : false}>
+                <TableCell key={c.id} align={c.numerica ? 'right' : 'left'} title={c.dica} sortDirection={ordenarPor === c.id ? ordem : false}>
                   <TableSortLabel
                     active={ordenarPor === c.id}
                     direction={ordenarPor === c.id ? ordem : 'asc'}
@@ -131,12 +131,15 @@ export default function TabelaEpisodios({ itens, janela, onAbrir }) {
                 <TableCell>
                   <Typography variant="caption" sx={{ color: 'var(--text-secondary)' }}>{r.versaoModelo ?? '–'}</Typography>
                 </TableCell>
-                <TableCell align="right">{formatarNumero(r.rewardMedio)}</TableCell>
+                {/* As casas dos cartões e das outras tabelas: "0,6820" aqui
+                    ao lado de "0,682" no cartão parecia outro número. Quem
+                    precisa de todas as casas tem o CSV. */}
+                <TableCell align="right">{formatarNumero(r.rewardMedio, 3)}</TableCell>
                 <TableCell align="right">{formatarNumero(r.rewardTotal, 2)}</TableCell>
-                <TableCell align="right">{formatarNumero(r.lossMedia)}</TableCell>
-                <TableCell align="right">{formatarNumero(r.epsilon)}</TableCell>
-                <TableCell align="right">{formatarPercentual(r.winRate)}</TableCell>
-                <TableCell align="right">{formatarNumero(r.duracaoSegundos, 2)}</TableCell>
+                <TableCell align="right">{formatarNumero(r.lossMedia, 3)}</TableCell>
+                <TableCell align="right">{formatarNumero(r.epsilon, 3)}</TableCell>
+                <TableCell align="right">{formatarPercentual(r.winRate, 1)}</TableCell>
+                <TableCell align="right">{formatarNumero(r.duracaoSegundos, 1)}</TableCell>
               </TableRow>
             ))}
             {visiveis.length === 0 && (

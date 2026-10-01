@@ -37,6 +37,7 @@ import {
   serieSuavizada,
   statusDoTreino,
   tendencia,
+  treinoTerminou,
   variacao,
   vereditoDoEpisodio,
   vizinhosDe,
@@ -332,6 +333,16 @@ describe('treinamento › statusDoTreino', () => {
   it('é null sem episódio', () => {
     expect(statusDoTreino(null, BASE, 1000)).toBeNull()
   })
+
+  // Nos dados reais, 5 a 8 min sem episódio entre um treino e o seguinte:
+  // passava do piso de 5 min, e a tela dizia "Parado" a cada virada.
+  it('fica entre treinos quando o último terminou um treino, até 15 min', () => {
+    const agora = BASE + UMA_HORA_MS
+    expect(statusDoTreino(agora - 7 * UM_MINUTO_MS, agora, 20_000, true)).toMatchObject({ ativo: false, entreTreinos: true })
+    expect(statusDoTreino(agora - 20 * UM_MINUTO_MS, agora, 20_000, true).entreTreinos).toBe(false)
+    expect(statusDoTreino(agora - 7 * UM_MINUTO_MS, agora, 20_000, false).entreTreinos).toBe(false)
+    expect(statusDoTreino(agora - 60_000, agora, 20_000, true)).toMatchObject({ ativo: true, entreTreinos: false })
+  })
 })
 
 // Um treino de 10 episódios, um por minuto: o epsilon cai de 1 e chega ao
@@ -376,6 +387,17 @@ describe('treinamento › patamares entre treinos', () => {
   it('com dois treinos, a mudança é a diferença entre eles', () => {
     const dois = [...treino(0, 0.3), ...treino(12, 0.35)]
     expect(evolucaoPorMoeda(dois, detectarCiclos(dois), 0.05).get('BTC').tendencia).toBeCloseTo(0.05)
+  })
+})
+
+describe('treinamento › treinoTerminou', () => {
+  it('é verdade quando o último episódio fecha um treino como os anteriores', () => {
+    expect(treinoTerminou([...treino(0, 0.3), ...treino(12, 0.35)])).toBe(true)
+  })
+
+  it('é falso no meio de um treino e sem treino completo para comparar', () => {
+    expect(treinoTerminou([...treino(0, 0.3), ...treino(12, 0.35).slice(0, 5)])).toBe(false)
+    expect(treinoTerminou(treino(0, 0.3))).toBe(false)
   })
 })
 

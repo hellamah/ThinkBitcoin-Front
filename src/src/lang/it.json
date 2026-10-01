@@ -673,7 +673,7 @@
     "notFound": "Episodio non trovato.",
     "loadError": "Caricamento degli episodi non riuscito",
     "duration": "Durata",
-    "actionDistTotal": "Totale: {{acoes}} azioni in {{steps}} step",
+    "actionDistTotal": "{{acoes}} azioni, una per step",
     "episode": "Episodio",
     "modelVersionLabel": "Versione del modello",
     "abrirEpisodio": "Apri l'episodio {{episodio}}",
@@ -795,7 +795,10 @@
     "learningChartSummary": "Curva di {{metrica}} in {{intervalo}} · monete: {{moedas}} · cicli: {{ciclos}}.",
     "framedCycle": "Ciclo del {{inicio}}",
     "leaveCycle": "Torna a {{periodo}}",
-    "curveHint": "Con più addestramenti nella finestra: il livello di ciascuno. Con uno solo: la media mobile lungo di esso."
+    "curveHint": "Con più addestramenti nella finestra: il livello di ciascuno. Con uno solo: la media mobile lungo di esso.",
+    "winRateHint": "Frazione degli step dell'episodio con reward positivo — non è la percentuale di operazioni vincenti",
+    "statusBetweenRuns": "Tra un addestramento e l'altro",
+    "statusVersionIdle": "{{versao}} non è in addestramento"
   },
   "ajuda": {
     "atr": "Quanto il prezzo percorre di solito all'interno di una candela. Serve a dimensionare le distanze in base alla volatilità misurata anziché a intuito; non indica la direzione.",

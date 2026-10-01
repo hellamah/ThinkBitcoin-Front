@@ -673,7 +673,7 @@
     "notFound": "Episode not found.",
     "loadError": "Failed to load episodes",
     "duration": "Duration",
-    "actionDistTotal": "Total: {{acoes}} actions in {{steps}} steps",
+    "actionDistTotal": "{{acoes}} actions, one per step",
     "episode": "Episode",
     "modelVersionLabel": "Model Version",
     "abrirEpisodio": "Open episode {{episodio}}",
@@ -795,7 +795,10 @@
     "learningChartSummary": "{{metrica}} curve over {{intervalo}} · coins: {{moedas}} · cycles: {{ciclos}}.",
     "framedCycle": "Cycle from {{inicio}}",
     "leaveCycle": "Back to {{periodo}}",
-    "curveHint": "With several runs in the window: each run's plateau. With a single run: the moving average along it."
+    "curveHint": "With several runs in the window: each run's plateau. With a single run: the moving average along it.",
+    "winRateHint": "Share of the episode's steps with positive reward — not the share of winning trades",
+    "statusBetweenRuns": "Between runs",
+    "statusVersionIdle": "{{versao}} is not training"
   },
   "ajuda": {
     "atr": "How far the price typically travels within a candle. Useful to size distances by measured volatility instead of by guesswork; it indicates no direction.",

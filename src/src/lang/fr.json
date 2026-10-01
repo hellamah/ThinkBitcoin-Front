@@ -673,7 +673,7 @@
     "notFound": "Épisode introuvable.",
     "loadError": "Échec du chargement des épisodes",
     "duration": "Durée",
-    "actionDistTotal": "Total : {{acoes}} actions sur {{steps}} steps",
+    "actionDistTotal": "{{acoes}} actions, une par step",
     "episode": "Épisode",
     "modelVersionLabel": "Version du modèle",
     "abrirEpisodio": "Ouvrir l'épisode {{episodio}}",
@@ -795,7 +795,10 @@
     "learningChartSummary": "Courbe de {{metrica}} sur {{intervalo}} · cryptos : {{moedas}} · cycles : {{ciclos}}.",
     "framedCycle": "Cycle du {{inicio}}",
     "leaveCycle": "Revenir à {{periodo}}",
-    "curveHint": "Avec plusieurs entraînements dans la fenêtre : le palier de chacun. Avec un seul : la moyenne mobile au fil de celui-ci."
+    "curveHint": "Avec plusieurs entraînements dans la fenêtre : le palier de chacun. Avec un seul : la moyenne mobile au fil de celui-ci.",
+    "winRateHint": "Part des steps de l'épisode avec un reward positif — ce n'est pas le taux de trades gagnants",
+    "statusBetweenRuns": "Entre deux entraînements",
+    "statusVersionIdle": "{{versao}} n'est pas en entraînement"
   },
   "ajuda": {
     "atr": "La distance que le prix parcourt habituellement à l'intérieur d'une bougie. Sert à dimensionner les distances par volatilité mesurée plutôt qu'au jugé ; n'indique pas de direction.",

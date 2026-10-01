@@ -25,6 +25,7 @@ import {
   ordenarPorData,
   paramsDoPeriodo,
   periodoDaUrl,
+  treinoTerminou,
 } from '../utils/treinamento'
 
 // Treinamento de IA. Duas abas com perguntas diferentes:
@@ -124,6 +125,7 @@ export default function TreinamentoEpisodios() {
   const timeline = useMemo(() => ordenarPorData(filtrados), [filtrados])
   const maisRecenteMs = timeline.length > 0 ? instanteDe(timeline[timeline.length - 1]) : null
   const cadenciaMs = useMemo(() => cadenciaMediana(timeline.slice(-200)), [timeline])
+  const terminouTreino = useMemo(() => treinoTerminou(timeline), [timeline])
 
   // Moedas do filtro vêm do resumo (visão global, independente do filtro do
   // servidor); sem resumo, dos episódios carregados.
@@ -207,6 +209,8 @@ export default function TreinamentoEpisodios() {
         <Cabecalho
           ultimoMs={maisRecenteMs}
           cadenciaMs={cadenciaMs}
+          terminouTreino={terminouTreino}
+          versaoFiltrada={versao}
           atualizadoEm={dados.atualizadoEm}
           carregando={dados.carregando}
           onAtualizar={dados.recarregar}

@@ -22,7 +22,7 @@ import {
 } from '../../utils/treinamento'
 import ContextoDeMercado from './ContextoDeMercado'
 import GraficoDeVizinhos from './GraficoDeVizinhos'
-import { METRICAS, corDaMetrica, formatarMetrica, rotuloDaMetrica } from './graficos'
+import { METRICAS, corDaMetrica, formatarMetrica, rotuloDaMetrica, tamanhoDoCartao } from './graficos'
 import { BarraDeAcoes, FaixaEntreVizinhos } from './Miniaturas'
 import { EstadoVazio, MoedaChip, Painel, Variacao } from './Painel'
 import { formatarData, formatarDataCurta, formatarNumero, formatarPercentual } from './formato'
@@ -171,7 +171,9 @@ function AcoesDoAgente({ item, vizinhos }) {
   return (
     <Painel
       titulo={t('treinamento.agentActions')}
-      subtitulo={t('treinamento.actionDistTotal', { acoes: doEpisodio?.total ?? 0, steps: item.totalSteps ?? '–' })}
+      // Uma ação por step: o treinador grava totalSteps como a soma das ações
+      // (training_service.py), e "103 ações em 75 steps" só existia no mock.
+      subtitulo={t('treinamento.actionDistTotal', { acoes: doEpisodio?.total ?? 0 })}
       sx={{ height: '100%' }}
     >
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.25, pt: 0.5 }}>
@@ -392,8 +394,8 @@ export default function DetalheEpisodio({ item, allItems, carregando, garantirPe
               : t('treinamento.noNeighborsLoaded', { moeda: item.moeda })}
           </Typography>
           <Grid container spacing={1.5}>
-            {METRICAS.map((id) => (
-              <Grid key={id} size={{ xs: 6, sm: 4, md: 2.4 }}>
+            {METRICAS.map((id, i) => (
+              <Grid key={id} size={tamanhoDoCartao(i)}>
                 <MetricaDoEpisodio id={id} valor={item[id]} faixa={faixas[id]} />
               </Grid>
             ))}

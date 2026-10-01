@@ -40,6 +40,7 @@ import {
   pluginFaixasDeCiclo,
   rotuloDaMetrica,
   setaDaVariacao,
+  tamanhoDoCartao,
   tooltipBase,
 } from './graficos'
 import { Sparkline } from './Miniaturas'
@@ -64,6 +65,7 @@ function CartaoMetrica({ id, valor, delta, serie, selecionado, onSelecionar, rot
       type="button"
       className="botao-nu"
       aria-pressed={selecionado}
+      title={id === 'winRate' ? t('treinamento.winRateHint') : undefined}
       onClick={onSelecionar}
       sx={{
         width: '100%',
@@ -454,8 +456,8 @@ export default function AbaAoVivo({ timeline, periodo, onPeriodo, maisRecenteMs,
       ) : (
         <>
           <Grid container spacing={1.5}>
-            {METRICAS.map((id) => (
-              <Grid key={id} size={{ xs: 6, sm: 4, md: 2.4 }}>
+            {METRICAS.map((id, i) => (
+              <Grid key={id} size={tamanhoDoCartao(i)}>
                 <CartaoMetrica
                   id={id}
                   valor={stats[id]}

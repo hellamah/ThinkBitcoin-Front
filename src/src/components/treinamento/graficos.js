@@ -89,6 +89,15 @@ export const eixoDeTempo = (escuro, idioma, dataCurta, { min, max } = {}) => ({
 
 export const METRICAS = ['rewardMedio', 'winRate', 'lossMedia', 'epsilon', 'duracaoSegundos']
 
+// Tamanho de cada cartão de métrica na grade. Cinco cartões em 2 + 2 + 1 no
+// celular e 3 + 2 no tablet deixavam o último sozinho numa linha meio vazia:
+// no celular ele ocupa a linha toda, no tablet os dois de baixo dividem a linha.
+export const tamanhoDoCartao = (indice) => ({
+  xs: indice === METRICAS.length - 1 ? 12 : 6,
+  sm: indice < 3 ? 4 : 6,
+  md: 2.4,
+})
+
 // 1 = maior é melhor; −1 = menor é melhor; 0 = sem juízo. Epsilon cai por
 // projeto (é o decaimento da exploração) e a duração não diz nada sobre a
 // qualidade do modelo, então nenhum dos dois ganha verde ou vermelho.

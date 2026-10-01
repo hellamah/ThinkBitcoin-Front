@@ -673,7 +673,7 @@
     "notFound": "Episodio no encontrado.",
     "loadError": "Error al cargar los episodios",
     "duration": "Duración",
-    "actionDistTotal": "Total: {{acoes}} acciones en {{steps}} steps",
+    "actionDistTotal": "{{acoes}} acciones, una por step",
     "episode": "Episodio",
     "modelVersionLabel": "Versión del modelo",
     "abrirEpisodio": "Abrir el episodio {{episodio}}",
@@ -795,7 +795,10 @@
     "learningChartSummary": "Curva de {{metrica}} en {{intervalo}} · monedas: {{moedas}} · ciclos: {{ciclos}}.",
     "framedCycle": "Ciclo de {{inicio}}",
     "leaveCycle": "Volver a {{periodo}}",
-    "curveHint": "Con varios entrenamientos en la ventana: el nivel de cada uno. Con uno solo: la media móvil a lo largo de él."
+    "curveHint": "Con varios entrenamientos en la ventana: el nivel de cada uno. Con uno solo: la media móvil a lo largo de él.",
+    "winRateHint": "Fracción de los steps del episodio con reward positivo — no es la tasa de operaciones ganadoras",
+    "statusBetweenRuns": "Entre entrenamientos",
+    "statusVersionIdle": "{{versao}} no está entrenando"
   },
   "ajuda": {
     "atr": "Cuánto suele recorrer el precio dentro de una vela. Sirve para dimensionar distancias por volatilidad medida en vez de por corazonada; no indica dirección.",

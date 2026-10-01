@@ -20,12 +20,21 @@ function useAgora(intervaloMs) {
 
 // O treino está rodando agora? A tela dizia "atualiza a cada 60s" e nada sobre
 // o estado do treino: um treino parado havia horas parecia igual a um vivo.
-function StatusDoTreino({ ultimoMs, cadenciaMs }) {
+//
+// Com uma versão filtrada, o último episódio é o DAQUELA versão: uma versão
+// antiga aparecia "Parado" com o treino rodando em outra. Aí o rótulo fala da
+// versão, e não do treino.
+function StatusDoTreino({ ultimoMs, cadenciaMs, terminouTreino, versaoFiltrada }) {
   const { t, idioma } = useTranslation()
   const agora = useAgora(5000)
-  const status = statusDoTreino(ultimoMs, agora, cadenciaMs)
+  const status = statusDoTreino(ultimoMs, agora, cadenciaMs, terminouTreino)
   if (!status) return null
-  const cor = status.ativo ? 'var(--perf-up)' : 'var(--text-faint)'
+  const cor = status.ativo ? 'var(--perf-up)' : status.entreTreinos ? 'var(--perf-warn)' : 'var(--text-faint)'
+  const rotulo = status.ativo
+    ? t('treinamento.statusRunning')
+    : status.entreTreinos
+      ? t('treinamento.statusBetweenRuns')
+      : versaoFiltrada ? t('treinamento.statusVersionIdle', { versao: versaoFiltrada }) : t('treinamento.statusStopped')
   return (
     <Box
       sx={{
@@ -59,7 +68,7 @@ function StatusDoTreino({ ultimoMs, cadenciaMs }) {
         }}
       />
       <Typography component="span" variant="caption" sx={{ fontWeight: 700, color: 'var(--text-primary)' }}>
-        {status.ativo ? t('treinamento.statusRunning') : t('treinamento.statusStopped')}
+        {rotulo}
       </Typography>
       <Typography component="span" variant="caption" sx={{ color: 'var(--text-muted)' }}>
         {t('treinamento.lastEpisodeAgo', { tempo: formatarHaQuanto(status.desdeMs, idioma.intl) })}
@@ -68,7 +77,7 @@ function StatusDoTreino({ ultimoMs, cadenciaMs }) {
   )
 }
 
-export default function Cabecalho({ ultimoMs, cadenciaMs, atualizadoEm, carregando, onAtualizar }) {
+export default function Cabecalho({ ultimoMs, cadenciaMs, terminouTreino, versaoFiltrada, atualizadoEm, carregando, onAtualizar }) {
   const { t, idioma } = useTranslation()
   return (
     <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 2.5, flexWrap: 'wrap', gap: 2 }}>
@@ -80,7 +89,7 @@ export default function Cabecalho({ ultimoMs, cadenciaMs, atualizadoEm, carregan
         </Box>
       </Box>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
-        <StatusDoTreino ultimoMs={ultimoMs} cadenciaMs={cadenciaMs} />
+        <StatusDoTreino ultimoMs={ultimoMs} cadenciaMs={cadenciaMs} terminouTreino={terminouTreino} versaoFiltrada={versaoFiltrada} />
         {atualizadoEm && (
           <Typography variant="caption" sx={{ color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>
             {t('treinamento.updatedAt', { hora: formatarHora(atualizadoEm, idioma.intl, true) })}

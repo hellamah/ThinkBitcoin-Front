@@ -438,6 +438,19 @@ export const evolucaoPorMoeda = (timeline, ciclos, piso) => {
 }
 
 /**
+ * O último episódio carregado fecha um treino? Compara a numeração dele com a
+ * do fim dos treinos anteriores — a mediana, com 5% de folga: filtrada uma
+ * moeda só, o último episódio dela num treino de 300 é o 291, o 296...
+ */
+export const treinoTerminou = (timeline) => {
+  const ultimo = timeline[timeline.length - 1]
+  const completos = detectarCiclos(timeline).slice(0, -1)
+  if (!ultimo || completos.length === 0) return false
+  const fimTipico = mediana(completos.map((c) => c.epFim).filter(Number.isFinite))
+  return fimTipico !== null && (ultimo.episodio ?? 0) >= fimTipico * 0.95
+}
+
+/**
  * Resumo de cada ciclo: começo e fim medidos pela média dos primeiros e dos
  * últimos episódios (um quinto do ciclo, entre 1 e 20), não pelo primeiro e o
  * último isolados — um episódio sozinho é ruído demais para dizer se o ciclo
@@ -479,16 +492,26 @@ export const resumirVersoes = (timeline) =>
       fim: instanteDe(eps[eps.length - 1]),
     }))
 
+// Quanto tempo sem episódio, depois do fim de um treino, ainda é a troca para o
+// seguinte: nos dados reais, 5 a 8 min. O dobro do maior.
+const LIMITE_ENTRE_TREINOS_MS = 15 * UM_MINUTO_MS
+
 /**
  * O treino está rodando? Parado quando o último episódio ficou para trás mais
  * que dez intervalos típicos — com piso de 5min, para um treino lento não
  * aparecer como parado entre um episódio e o seguinte.
+ *
+ * `entreTreinos`: o último treino terminou (`terminouTreino`, ver
+ * treinoTerminou) e o seguinte ainda não começou. Sem isso, os 5 a 8 min de
+ * troca entre um treino e outro passavam do piso de 5 min, e a tela marcava
+ * "Parado" por até 3 min a cada hora e meia, sem nada parado.
  */
-export const statusDoTreino = (ultimoMs, agoraMs, cadenciaMs) => {
+export const statusDoTreino = (ultimoMs, agoraMs, cadenciaMs, terminouTreino = false) => {
   if (ultimoMs === null || ultimoMs === undefined || Number.isNaN(ultimoMs)) return null
   const limite = Math.max(5 * UM_MINUTO_MS, (cadenciaMs ?? 0) * 10)
   const desdeMs = Math.max(0, agoraMs - ultimoMs)
-  return { ativo: desdeMs <= limite, desdeMs }
+  const ativo = desdeMs <= limite
+  return { ativo, entreTreinos: !ativo && terminouTreino && desdeMs <= LIMITE_ENTRE_TREINOS_MS, desdeMs }
 }
 
 /**
