@@ -791,7 +791,9 @@
     "rangeFailed": "Part of the period failed to load.",
     "retry": "Try again",
     "exportCsv": "Export CSV",
-    "exportCsvHint": "Downloads the {{n}} episodes in the window, with every column"
+    "exportCsvHint": "Downloads the {{n}} episodes in the window, with every column",
+    "liveChartSummary": "{{metrica}} over {{intervalo}}: {{n}} episodes, average {{media}}; previous window: {{anterior}}.",
+    "learningChartSummary": "{{metrica}} curve over {{intervalo}} · coins: {{moedas}} · cycles: {{ciclos}}."
   },
   "ajuda": {
     "atr": "How far the price typically travels within a candle. Useful to size distances by measured volatility instead of by guesswork; it indicates no direction.",

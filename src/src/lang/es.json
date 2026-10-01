@@ -791,7 +791,9 @@
     "rangeFailed": "Parte del período no se cargó.",
     "retry": "Reintentar",
     "exportCsv": "Exportar CSV",
-    "exportCsvHint": "Descarga los {{n}} episodios de la ventana, con todas las columnas"
+    "exportCsvHint": "Descarga los {{n}} episodios de la ventana, con todas las columnas",
+    "liveChartSummary": "{{metrica}} en {{intervalo}}: {{n}} episodios, media {{media}}; ventana anterior: {{anterior}}.",
+    "learningChartSummary": "Curva de {{metrica}} en {{intervalo}} · monedas: {{moedas}} · ciclos: {{ciclos}}."
   },
   "ajuda": {
     "atr": "Cuánto suele recorrer el precio dentro de una vela. Sirve para dimensionar distancias por volatilidad medida en vez de por corazonada; no indica dirección.",

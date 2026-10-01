@@ -95,8 +95,8 @@ export function AuthProvider({ children }) {
   // O cache de respostas do apiClient é chaveado por endpoint, não por usuário
   // (`api_cache_${endpoint}`). Enquanto ele sobreviver à troca de sessão, os
   // dados de uma conta podem ser servidos à seguinte no mesmo navegador,
-  // dentro do TTL. Hoje só o heatmap de trend usa cache — dado público de
-  // mercado —, mas basta alguém marcar `useCache: true` num endpoint de
+  // dentro do TTL. Hoje só dado público de mercado usa cache — o trend do
+  // heatmap e a lista de moedas —, mas basta alguém marcar `useCache: true` num endpoint de
   // patrimônio para isso virar vazamento. Limpar aqui é o que torna a regra
   // "cache é por sessão" verdadeira em vez de sorte.
   const logout = useCallback(() => {

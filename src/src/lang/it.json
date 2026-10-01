@@ -791,7 +791,9 @@
     "rangeFailed": "Una parte del periodo non è stata caricata.",
     "retry": "Riprova",
     "exportCsv": "Esporta CSV",
-    "exportCsvHint": "Scarica i {{n}} episodi della finestra, con tutte le colonne"
+    "exportCsvHint": "Scarica i {{n}} episodi della finestra, con tutte le colonne",
+    "liveChartSummary": "{{metrica}} in {{intervalo}}: {{n}} episodi, media {{media}}; finestra precedente: {{anterior}}.",
+    "learningChartSummary": "Curva di {{metrica}} in {{intervalo}} · monete: {{moedas}} · cicli: {{ciclos}}."
   },
   "ajuda": {
     "atr": "Quanto il prezzo percorre di solito all'interno di una candela. Serve a dimensionare le distanze in base alla volatilità misurata anziché a intuito; non indica la direzione.",

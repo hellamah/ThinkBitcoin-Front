@@ -17,6 +17,7 @@ import { corDaMoeda, formatarNumero } from './formato'
 // para ±12h para ainda dar contexto.
 const MARGEM_CURTA_MS = 30 * 60 * 1000
 const MARGEM_AMPLA_MS = 12 * 60 * 60 * 1000
+const TTL_DA_LISTA_DE_MOEDAS_MS = 30 * 60 * 1000
 
 const instante = (r) => new Date(r.horaReferencia).getTime()
 
@@ -91,10 +92,12 @@ function useContextoDeMercado(moeda, inicioMs, fimMs, chave) {
       .catch(() => { if (!cancelado) setMercado({ registros: [], margemHoras: 0.5 }) })
 
     // Fear & Greed e trend exigem idMoeda: a sigla é resolvida via /moedas.
-    // São complementares — qualquer falha só oculta os indicadores.
+    // São complementares — qualquer falha só oculta os indicadores. A lista de
+    // moedas vai em cache: ela não muda numa sessão, e era pedida de novo a cada
+    // episódio — andar pelo detalhe com as setas disparava uma por tecla.
     const dataInicio = toUTCISO(new Date(inicioMs - MARGEM_AMPLA_MS))
     const dataFim = toUTCISO(new Date(fimMs + MARGEM_AMPLA_MS))
-    apiRequest(MarketEndpoint.COIN_LIST)
+    apiRequest(MarketEndpoint.COIN_LIST, { useCache: true, ttl: TTL_DA_LISTA_DE_MOEDAS_MS })
       .then((resp) => {
         const moedas = Array.isArray(resp?.resultado) ? resp.resultado : []
         const idMoeda = moedas.find((m) => (m.sigla || '').toUpperCase() === moeda.toUpperCase())?.id

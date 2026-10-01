@@ -791,7 +791,9 @@
     "rangeFailed": "Une partie de la période n'a pas été chargée.",
     "retry": "Réessayer",
     "exportCsv": "Exporter en CSV",
-    "exportCsvHint": "Télécharge les {{n}} épisodes de la fenêtre, avec toutes les colonnes"
+    "exportCsvHint": "Télécharge les {{n}} épisodes de la fenêtre, avec toutes les colonnes",
+    "liveChartSummary": "{{metrica}} sur {{intervalo}} : {{n}} épisodes, moyenne {{media}} ; fenêtre précédente : {{anterior}}.",
+    "learningChartSummary": "Courbe de {{metrica}} sur {{intervalo}} · cryptos : {{moedas}} · cycles : {{ciclos}}."
   },
   "ajuda": {
     "atr": "La distance que le prix parcourt habituellement à l'intérieur d'une bougie. Sert à dimensionner les distances par volatilité mesurée plutôt qu'au jugé ; n'indique pas de direction.",

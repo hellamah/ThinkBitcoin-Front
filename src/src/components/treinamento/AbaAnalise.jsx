@@ -40,7 +40,7 @@ import SeletorDePeriodo from './SeletorDePeriodo'
 import TabelaEpisodios from './TabelaEpisodios'
 import TabelaMoedas from './TabelaMoedas'
 import { TabelaCiclos, TabelaVersoes } from './TabelasDeCiclos'
-import { corDaMoeda, formaDaMoeda } from './formato'
+import { corDaMoeda, formaDaMoeda, formatarIntervalo } from './formato'
 
 // Aba "Análise": o modelo está aprendendo? Em quais moedas, em quais ciclos,
 // em qual versão? Horizonte maior que o da aba ao vivo, e tudo separado por
@@ -187,6 +187,15 @@ export default function AbaAnalise({ timeline, resumo, periodo, onPeriodo, maisR
     }, escuro),
   }), [escuro, idioma, dataCurta, inicioDoEixo, janela, metrica, faixas])
 
+  const resumoDaCurva = janela
+    ? t('treinamento.learningChartSummary', {
+      metrica: rotuloDaMetrica(t, metrica),
+      intervalo: formatarIntervalo(janela.inicio, janela.fim, idioma.intl),
+      moedas: itensPorMoeda.length,
+      ciclos: ciclos.length,
+    })
+    : undefined
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       <SeletorDePeriodo
@@ -226,7 +235,7 @@ export default function AbaAnalise({ timeline, resumo, periodo, onPeriodo, maisR
             }
             sx={{ height: { xs: 380, md: 440 } }}
           >
-            <Line data={dadosCurva} options={opcoesCurva} plugins={PLUGINS} />
+            <Line data={dadosCurva} options={opcoesCurva} plugins={PLUGINS} aria-label={resumoDaCurva} />
           </Painel>
 
           <TabelaMoedas linhas={porMoeda} resumo={resumo} onSelecionarMoeda={onSelecionarMoeda} onAbrir={onAbrir} />

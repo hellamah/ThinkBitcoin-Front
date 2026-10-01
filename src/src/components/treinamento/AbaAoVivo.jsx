@@ -45,7 +45,7 @@ import {
 import { Sparkline } from './Miniaturas'
 import { EstadoVazio, MoedaChip, Painel, Variacao } from './Painel'
 import SeletorDePeriodo from './SeletorDePeriodo'
-import { corDaMoeda, formatarHora, formatarNumero, formatarPercentual, tintaDaMoeda } from './formato'
+import { corDaMoeda, formatarHora, formatarIntervalo, formatarNumero, formatarPercentual, tintaDaMoeda } from './formato'
 
 // Aba "Ao vivo": o treino está andando, e está melhorando AGORA? Tudo aqui
 // compara a janela recente com a janela imediatamente anterior, do mesmo
@@ -398,6 +398,18 @@ export default function AbaAoVivo({ timeline, periodo, onPeriodo, maisRecenteMs,
   const rotuloComparacao = t('treinamento.vsPrevious')
   const porHora = useMemo(() => ritmoPorHora(itens), [itens])
 
+  // O canvas não tem texto nenhum para o leitor de tela; o resumo diz o que o
+  // gráfico mostra, com os mesmos números do cartão.
+  const resumoDoGrafico = janela
+    ? t('treinamento.liveChartSummary', {
+      metrica: rotuloDaMetrica(t, metrica),
+      intervalo: formatarIntervalo(janela.inicio, janela.fim, idioma.intl),
+      n: stats.total,
+      media: formatarMetrica(metrica, stats[metrica]),
+      anterior: formatarMetrica(metrica, mediaAnterior),
+    })
+    : undefined
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
@@ -459,7 +471,7 @@ export default function AbaAoVivo({ timeline, periodo, onPeriodo, maisRecenteMs,
                 subtitulo={t('treinamento.liveChartSub', { n: janelaMM })}
                 sx={{ height: { xs: 340, md: 400 } }}
               >
-                <Line data={dadosGrafico} options={opcoesGrafico} plugins={PLUGINS} />
+                <Line data={dadosGrafico} options={opcoesGrafico} plugins={PLUGINS} aria-label={resumoDoGrafico} />
               </Painel>
             </Grid>
             <Grid size={{ xs: 12, md: 4 }} sx={{ height: { xs: 'auto', md: 400 }, maxHeight: { xs: 420, md: 'none' } }}>
