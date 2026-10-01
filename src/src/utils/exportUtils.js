@@ -17,7 +17,7 @@ const BOM_UTF8 = '\uFEFF'
  * @param {*} valor - Conteúdo da célula
  * @returns {string} Célula pronta para concatenar
  */
-const celulaCSV = (valor) => {
+export const celulaCSV = (valor) => {
   const texto = valor === null || valor === undefined ? '' : String(valor)
   return /[",\r\n]/.test(texto) ? `"${texto.replace(/"/g, '""')}"` : texto
 }
@@ -83,6 +83,10 @@ const dispararDownload = (conteudo, nomeArquivo, tipoMime) => {
   URL.revokeObjectURL(url)
 }
 
+/** Baixa um CSV já montado, com o BOM que o Excel no Windows precisa. */
+export const baixarCSV = (conteudo, nomeArquivo) =>
+  dispararDownload(BOM_UTF8 + conteudo, nomeArquivo, 'text/csv;charset=utf-8;')
+
 /**
  * Exporta os dados do Heatmap no formato especificado e dispara o download.
  * @param {Array} chartData - Dados no formato Google Charts
@@ -108,8 +112,7 @@ export const exportarHeatmapDados = (
     const conteudo = paraJSON(chartData, simboloMoeda, nomePais)
     dispararDownload(conteudo, `${nomeBase}.json`, 'application/json')
   } else {
-    const conteudo = paraCSV(chartData, simboloMoeda, nomePais)
-    dispararDownload(BOM_UTF8 + conteudo, `${nomeBase}.csv`, 'text/csv;charset=utf-8;')
+    baixarCSV(paraCSV(chartData, simboloMoeda, nomePais), `${nomeBase}.csv`)
   }
 }
 

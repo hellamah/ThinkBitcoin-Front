@@ -720,7 +720,7 @@
     "vsPrevious": "vs ventana anterior",
     "perHour": "{{n}} episodios/h",
     "liveChartTitle": "{{metrica}} en la ventana",
-    "liveChartSub": "Puntos: cada episodio · línea: media móvil de {{n}} episodios · discontinua: media de la ventana anterior",
+    "liveChartSub": "Puntos: cada episodio, clic para abrirlo · línea: media móvil de {{n}} episodios · discontinua: media de la ventana anterior",
     "movingAvgN": "Media móvil ({{n}})",
     "previousAvg": "Media de la ventana anterior",
     "latestEpisodes": "Últimos episodios",
@@ -786,8 +786,12 @@
     "currentCycle": "Ciclo actual: {{versao}} · desde {{inicio}} · {{n}} episodios",
     "cycleBoundary": "Un entrenamiento nuevo empezó a las {{hora}}: la comparación con la ventana anterior abarca ejecuciones distintas (el epsilon se reinicia en cada entrenamiento).",
     "sinceDate": "desde {{data}}",
+    "cyclesSubFocus": "Tramos separados por reinicio de la numeración o pausa larga · inicio vs fin de cada ciclo · haz clic en un ciclo para encuadrarlo",
+    "focusCycle": "Encuadrar el período en el ciclo C{{num}}",
     "rangeFailed": "Parte del período no se cargó.",
-    "retry": "Reintentar"
+    "retry": "Reintentar",
+    "exportCsv": "Exportar CSV",
+    "exportCsvHint": "Descarga los {{n}} episodios de la ventana, con todas las columnas"
   },
   "ajuda": {
     "atr": "Cuánto suele recorrer el precio dentro de una vela. Sirve para dimensionar distancias por volatilidad medida en vez de por corazonada; no indica dirección.",

@@ -6,6 +6,8 @@
 // acumulou (curva em serrote, eixo com três unidades) nasciam exatamente em
 // contas que ninguém conseguia exercitar isoladamente.
 
+import { celulaCSV } from './exportUtils'
+
 export const UM_MINUTO_MS = 60 * 1000
 export const UMA_HORA_MS = 60 * UM_MINUTO_MS
 export const QUATRO_HORAS_MS = 4 * UMA_HORA_MS
@@ -233,13 +235,17 @@ export const serieSuavizada = (timeline, chave, janela = 5, limiar = Infinity) =
   return pontos
 }
 
-/** Um ponto por episódio, sem suavização: [{ x: ms, y }]. */
+/**
+ * Um ponto por episódio, sem suavização: [{ x: ms, y, id }]. O `id` viaja no
+ * ponto para o clique no gráfico abrir o episódio: a série pula episódios sem a
+ * métrica, e o índice do ponto não é o índice na timeline.
+ */
 export const pontosBrutos = (timeline, chave) => {
   const pontos = []
   for (const r of timeline) {
     const v = valorDe(r, chave)
     const x = instanteDe(r)
-    if (v !== null && !Number.isNaN(x)) pontos.push({ x, y: v })
+    if (v !== null && !Number.isNaN(x)) pontos.push({ x, y: v, id: r.idTreinamentoEpisodio })
   }
   return pontos
 }
@@ -392,6 +398,20 @@ export const ritmoPorHora = (timeline) => {
 }
 
 /**
+ * Período que enquadra um ciclo, com uma folga curta de cada lado. Folga
+ * pequena de propósito: nos dados reais os ciclos ficam a 5–8 min um do outro,
+ * e uma folga maior puxava a ponta do ciclo vizinho para dentro do quadro.
+ *
+ * O fim fica sempre fixo, mesmo no ciclo que ainda está rodando. Ancorado no
+ * mais recente, o quadro andaria com o polling e iria cortando o começo do
+ * ciclo minuto a minuto — o contrário do que se pediu ao enquadrá-lo.
+ */
+export const periodoDoCiclo = (ciclo) => {
+  const folga = Math.max(UM_MINUTO_MS, (ciclo.fim - ciclo.inicio) * 0.02)
+  return { duracaoMs: ciclo.fim - ciclo.inicio + 2 * folga, fimMs: ciclo.fim + folga }
+}
+
+/**
  * Janela de um período: termina em `fimMs` quando a pessoa navegou para trás,
  * ou no episódio mais recente — não no relógio. Ancorar no relógio deixava a
  * tela vazia sempre que o treino tinha parado havia mais que a duração da
@@ -407,6 +427,33 @@ export const janelaDoPeriodo = ({ duracaoMs, fimMs }, maisRecenteMs) => {
     anterior: { inicio: inicio - duracaoMs, fim: inicio - 1 },
     ancorada: fimMs === null || fimMs === undefined,
   }
+}
+
+// ── Exportação ──────────────────────────────────────────────────────────────
+
+// Cabeçalho com o nome do campo da API, e não o rótulo traduzido da tela: quem
+// abre o arquivo num notebook cruza com a API sem tabela de tradução, e o mesmo
+// script lê o CSV exportado em qualquer idioma.
+const COLUNAS_DO_CSV = Object.freeze([
+  'idTreinamentoEpisodio', 'episodio', 'dataHora', 'moeda', 'versaoModelo',
+  'rewardMedio', 'rewardTotal', 'lossMedia', 'epsilon', 'winRate',
+  'duracaoSegundos', 'totalSteps', 'acoesHold', 'acoesCompra', 'acoesVenda',
+])
+
+/**
+ * Episódios em CSV (RFC 4180), em ordem cronológica. Números crus, com ponto:
+ * formatados no idioma da tela, "0,612" partiria a célula na vírgula. A data
+ * vai em ISO UTC, com o Z, pelo mesmo motivo que a consulta vai assim — sem
+ * fuso, quem lê do outro lado não sabe de que hora se trata.
+ */
+export const episodiosParaCSV = (itens) => {
+  const data = (r) => {
+    const ms = instanteDe(r)
+    return Number.isNaN(ms) ? r.dataHora : new Date(ms).toISOString()
+  }
+  const linhas = ordenarPorData(itens).map((r) =>
+    COLUNAS_DO_CSV.map((c) => celulaCSV(c === 'dataHora' ? data(r) : r[c])).join(','))
+  return [COLUNAS_DO_CSV.join(','), ...linhas].join('\r\n')
 }
 
 // ── Detalhe de um episódio ──────────────────────────────────────────────────

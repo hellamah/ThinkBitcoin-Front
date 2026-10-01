@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
 import TableCell from '@mui/material/TableCell'
@@ -9,12 +10,26 @@ import TablePagination from '@mui/material/TablePagination'
 import TableRow from '@mui/material/TableRow'
 import TableSortLabel from '@mui/material/TableSortLabel'
 import Typography from '@mui/material/Typography'
+import { MdFileDownload } from 'react-icons/md'
 import useTranslation from '../../hooks/useTranslation'
+import { baixarCSV } from '../../utils/exportUtils'
+import { episodiosParaCSV } from '../../utils/treinamento'
 import { MoedaChip, Painel } from './Painel'
 import { compararPor, estiloDeTabela, formatarData, formatarNumero, formatarPercentual } from './formato'
 
-export default function TabelaEpisodios({ itens, onAbrir }) {
+// Nome do arquivo com o intervalo em UTC, sem dois-pontos (proibidos em nome
+// de arquivo no Windows): treinamento_2026-09-30T19-38Z_2026-10-01T02-38Z.csv.
+const carimbo = (ms) => new Date(ms).toISOString().slice(0, 16).replace(':', '-') + 'Z'
+
+export default function TabelaEpisodios({ itens, janela, onAbrir }) {
   const { t, idioma } = useTranslation()
+
+  // A tabela mostra 25 por página e quatro casas; quem quer olhar o treino num
+  // notebook precisava copiar página por página. Exporta a janela inteira.
+  const exportar = () => {
+    const nome = janela ? `treinamento_${carimbo(janela.inicio)}_${carimbo(janela.fim)}.csv` : 'treinamento.csv'
+    baixarCSV(episodiosParaCSV(itens), nome)
+  }
   // Padrão por data, e não pelo número do episódio: a numeração recomeça a
   // cada ciclo, e ordenar por ela intercalava ciclos diferentes.
   const [ordenarPor, setOrdenarPor] = useState('dataHora')
@@ -53,7 +68,24 @@ export default function TabelaEpisodios({ itens, onAbrir }) {
   }
 
   return (
-    <Painel titulo={t('treinamento.tableTitle')} subtitulo={t('treinamento.tableSubtitle')} corpoSx={{ mx: { xs: -2, md: -2.5 }, mb: { xs: -2, md: -2.5 } }}>
+    <Painel
+      titulo={t('treinamento.tableTitle')}
+      subtitulo={t('treinamento.tableSubtitle')}
+      acao={
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<MdFileDownload size={16} />}
+          onClick={exportar}
+          disabled={itens.length === 0}
+          title={t('treinamento.exportCsvHint', { n: itens.length })}
+          sx={{ color: 'var(--text-primary)', borderColor: 'var(--border-strong)', textTransform: 'none' }}
+        >
+          {t('treinamento.exportCsv')}
+        </Button>
+      }
+      corpoSx={{ mx: { xs: -2, md: -2.5 }, mb: { xs: -2, md: -2.5 } }}
+    >
       <TableContainer>
         <Table size="small" sx={estiloDeTabela}>
           <TableHead>

@@ -720,7 +720,7 @@
     "vsPrevious": "vs previous window",
     "perHour": "{{n}} episodes/h",
     "liveChartTitle": "{{metrica}} in the window",
-    "liveChartSub": "Dots: each episode · line: {{n}}-episode moving average · dashed: previous window average",
+    "liveChartSub": "Dots: each episode, click to open · line: {{n}}-episode moving average · dashed: previous window average",
     "movingAvgN": "Moving average ({{n}})",
     "previousAvg": "Previous window average",
     "latestEpisodes": "Latest episodes",
@@ -786,8 +786,12 @@
     "currentCycle": "Current cycle: {{versao}} · since {{inicio}} · {{n}} episodes",
     "cycleBoundary": "A new training run started at {{hora}}: the comparison with the previous window spans different runs (epsilon restarts on every run).",
     "sinceDate": "since {{data}}",
+    "cyclesSubFocus": "Stretches split by a numbering reset or a long pause · start vs end of each cycle · click a cycle to frame it",
+    "focusCycle": "Frame the period on cycle C{{num}}",
     "rangeFailed": "Part of the period failed to load.",
-    "retry": "Try again"
+    "retry": "Try again",
+    "exportCsv": "Export CSV",
+    "exportCsvHint": "Downloads the {{n}} episodes in the window, with every column"
   },
   "ajuda": {
     "atr": "How far the price typically travels within a candle. Useful to size distances by measured volatility instead of by guesswork; it indicates no direction.",

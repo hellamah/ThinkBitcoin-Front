@@ -5,6 +5,7 @@ import TableCell from '@mui/material/TableCell'
 import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
+import { MdZoomIn } from 'react-icons/md'
 import useTranslation from '../../hooks/useTranslation'
 import { formatarMetrica } from './graficos'
 import { Painel, Variacao } from './Painel'
@@ -26,10 +27,17 @@ function InicioFim({ id, inicio, fim }) {
 const estilo = { ...estiloDeTabela, '& td': { ...estiloDeTabela['& td, & th'], fontVariantNumeric: 'tabular-nums' } }
 const quebraDaBorda = { mx: { xs: -2, md: -2.5 }, mb: { xs: -1, md: -1.5 } }
 
-export function TabelaCiclos({ ciclos }) {
+// O número do ciclo é o botão que enquadra o período nele. Quando a janela já
+// é o próprio ciclo, não há o que enquadrar e ele volta a ser só texto.
+export function TabelaCiclos({ ciclos, onFocar }) {
   const { t, idioma } = useTranslation()
+  const focavel = Boolean(onFocar) && ciclos.length > 1
   return (
-    <Painel titulo={t('treinamento.cyclesTitle')} subtitulo={t('treinamento.cyclesSub')} corpoSx={quebraDaBorda}>
+    <Painel
+      titulo={t('treinamento.cyclesTitle')}
+      subtitulo={focavel ? t('treinamento.cyclesSubFocus') : t('treinamento.cyclesSub')}
+      corpoSx={quebraDaBorda}
+    >
       <TableContainer>
         <Table size="small" sx={estilo}>
           <TableHead>
@@ -46,7 +54,22 @@ export function TabelaCiclos({ ciclos }) {
           <TableBody>
             {ciclos.map((c) => (
               <TableRow key={c.numero}>
-                <TableCell sx={{ fontWeight: 700 }}>C{c.numero}</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>
+                  {focavel ? (
+                    <Box
+                      component="button"
+                      type="button"
+                      className="botao-nu"
+                      onClick={() => onFocar(c)}
+                      aria-label={t('treinamento.focusCycle', { num: c.numero })}
+                      title={t('treinamento.focusCycle', { num: c.numero })}
+                      sx={{ color: 'var(--accent-ink)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 0.5, '&:hover': { textDecoration: 'underline' } }}
+                    >
+                      C{c.numero}
+                      <MdZoomIn size={14} aria-hidden="true" />
+                    </Box>
+                  ) : `C${c.numero}`}
+                </TableCell>
                 <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatarDataCurta(c.inicio, idioma.intl)}</TableCell>
                 <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>{formatarDuracao(c.duracaoMs, idioma.intl)}</TableCell>
                 <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>

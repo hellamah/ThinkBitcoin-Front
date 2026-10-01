@@ -720,7 +720,7 @@
     "vsPrevious": "vs fenêtre précédente",
     "perHour": "{{n}} épisodes/h",
     "liveChartTitle": "{{metrica}} dans la fenêtre",
-    "liveChartSub": "Points : chaque épisode · ligne : moyenne mobile sur {{n}} épisodes · pointillés : moyenne de la fenêtre précédente",
+    "liveChartSub": "Points : chaque épisode, cliquez pour l'ouvrir · ligne : moyenne mobile sur {{n}} épisodes · pointillés : moyenne de la fenêtre précédente",
     "movingAvgN": "Moyenne mobile ({{n}})",
     "previousAvg": "Moyenne de la fenêtre précédente",
     "latestEpisodes": "Derniers épisodes",
@@ -786,8 +786,12 @@
     "currentCycle": "Cycle en cours : {{versao}} · depuis {{inicio}} · {{n}} épisodes",
     "cycleBoundary": "Un nouvel entraînement a commencé à {{hora}} : la comparaison avec la fenêtre précédente couvre des exécutions différentes (l'epsilon repart à chaque entraînement).",
     "sinceDate": "depuis le {{data}}",
+    "cyclesSubFocus": "Tronçons séparés par une remise à zéro de la numérotation ou une longue pause · début vs fin de chaque cycle · cliquez sur un cycle pour le cadrer",
+    "focusCycle": "Cadrer la période sur le cycle C{{num}}",
     "rangeFailed": "Une partie de la période n'a pas été chargée.",
-    "retry": "Réessayer"
+    "retry": "Réessayer",
+    "exportCsv": "Exporter en CSV",
+    "exportCsvHint": "Télécharge les {{n}} épisodes de la fenêtre, avec toutes les colonnes"
   },
   "ajuda": {
     "atr": "La distance que le prix parcourt habituellement à l'intérieur d'une bougie. Sert à dimensionner les distances par volatilité mesurée plutôt qu'au jugé ; n'indique pas de direction.",

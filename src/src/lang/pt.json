@@ -720,7 +720,7 @@
     "vsPrevious": "vs janela anterior",
     "perHour": "{{n}} episódios/h",
     "liveChartTitle": "{{metrica}} na janela",
-    "liveChartSub": "Pontos: cada episódio · linha: média móvel de {{n}} episódios · tracejado: média da janela anterior",
+    "liveChartSub": "Pontos: cada episódio, clique para abrir · linha: média móvel de {{n}} episódios · tracejado: média da janela anterior",
     "movingAvgN": "Média móvel ({{n}})",
     "previousAvg": "Média da janela anterior",
     "latestEpisodes": "Últimos episódios",
@@ -786,8 +786,12 @@
     "currentCycle": "Ciclo atual: {{versao}} · desde {{inicio}} · {{n}} episódios",
     "cycleBoundary": "Um treino novo começou às {{hora}}: a comparação com a janela anterior atravessa execuções diferentes (o epsilon recomeça a cada treino).",
     "sinceDate": "desde {{data}}",
+    "cyclesSubFocus": "Trechos separados por reinício da numeração ou pausa longa · começo vs fim de cada ciclo · clique no ciclo para enquadrá-lo",
+    "focusCycle": "Enquadrar o período no ciclo C{{num}}",
     "rangeFailed": "Parte do período não carregou.",
-    "retry": "Tentar de novo"
+    "retry": "Tentar de novo",
+    "exportCsv": "Exportar CSV",
+    "exportCsvHint": "Baixa os {{n}} episódios da janela, com todas as colunas"
   },
   "ajuda": {
     "atr": "Quanto o preço costuma percorrer dentro de um candle. Serve para dimensionar distâncias por volatilidade medida em vez de por palpite; não indica direção.",

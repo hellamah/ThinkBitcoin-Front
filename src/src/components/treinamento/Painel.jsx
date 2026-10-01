@@ -7,10 +7,12 @@ import { corDaVariacao, formatarVariacaoDaMetrica, setaDaVariacao } from './graf
 import { corDaMoeda, tintaDaMoeda } from './formato'
 
 // Moldura comum dos blocos da tela. As cores vêm dos tokens de tema, então o
-// painel acompanha claro/escuro sem receber o modo por prop.
-export function Painel({ titulo, subtitulo, acao, children, sx, corpoSx }) {
+// painel acompanha claro/escuro sem receber o modo por prop. `ref` chega como
+// prop comum (React 19) e vai para a <section>.
+export function Painel({ titulo, subtitulo, acao, children, sx, corpoSx, ref }) {
   return (
     <Paper
+      ref={ref}
       component="section"
       sx={{
         p: { xs: 2, md: 2.5 },

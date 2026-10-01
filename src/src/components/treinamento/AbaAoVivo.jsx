@@ -218,6 +218,28 @@ function MoedasNaJanela({ linhas, anteriores, onSelecionarMoeda }) {
 
 const PLUGINS = [pluginFaixasDeCiclo]
 
+// Distância máxima, em px, entre o clique e o ponto do episódio que ele abre.
+const RAIO_DO_CLIQUE_PX = 12
+
+/**
+ * Índice do ponto do dataset 0 (um por episódio) mais perto do evento, ou -1.
+ * Nada quando a série foi escondida pela legenda: o ponto invisível não pode
+ * ser clicável.
+ */
+const pontoMaisProximo = (chart, evento) => {
+  if (!chart.isDatasetVisible(0)) return -1
+  let melhor = -1
+  let menor = RAIO_DO_CLIQUE_PX ** 2
+  chart.getDatasetMeta(0).data.forEach((p, i) => {
+    const d = (p.x - evento.x) ** 2 + (p.y - evento.y) ** 2
+    if (d <= menor) {
+      menor = d
+      melhor = i
+    }
+  })
+  return melhor
+}
+
 export default function AbaAoVivo({ timeline, periodo, onPeriodo, maisRecenteMs, carregando, carregandoPeriodo, garantirPeriodo, falhouEntre, onAbrir, onSelecionarMoeda }) {
   const { t, idioma } = useTranslation()
   const escuro = useTheme().palette.mode === 'dark'
@@ -341,6 +363,19 @@ export default function AbaAoVivo({ timeline, periodo, onPeriodo, maisRecenteMs,
     // animado fazia a linha "respirar" sem que nada tivesse mudado.
     animation: false,
     interaction: { mode: 'nearest', axis: 'x', intersect: false },
+    // Cada ponto é um episódio, e clicar nele o abre — como no gráfico de
+    // vizinhos do detalhe. Só o ponto: a média móvel não é episódio nenhum, e
+    // a interação por eixo X entregaria o ponto da média junto. (Pelo teclado,
+    // a lista de últimos episódios ao lado faz o mesmo.)
+    onClick: (evento, _, chart) => {
+      const i = pontoMaisProximo(chart, evento)
+      const id = i >= 0 ? chart.data.datasets[0].data[i]?.id : null
+      if (id) onAbrir(id)
+    },
+    onHover: (evento, _, chart) => {
+      const alvo = evento?.native?.target
+      if (alvo) alvo.style.cursor = pontoMaisProximo(chart, evento) >= 0 ? 'pointer' : 'default'
+    },
     plugins: {
       // A legenda segue a ordem dos datasets, e não o `order` (que só decide
       // quem é desenhado por cima): episódio, média móvel, janela anterior.
@@ -358,7 +393,7 @@ export default function AbaAoVivo({ timeline, periodo, onPeriodo, maisRecenteMs,
         grid: { color: corDaGrade(escuro) },
       },
     }, escuro),
-  }), [escuro, idioma, dataCurta, janela, metrica, faixas])
+  }), [escuro, idioma, dataCurta, janela, metrica, onAbrir, faixas])
 
   const rotuloComparacao = t('treinamento.vsPrevious')
   const porHora = useMemo(() => ritmoPorHora(itens), [itens])

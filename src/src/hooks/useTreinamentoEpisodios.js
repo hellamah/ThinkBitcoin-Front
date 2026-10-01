@@ -49,6 +49,7 @@ const listaDoResumo = (resp) =>
   Array.isArray(resp?.resultado) ? resp.resultado : (Array.isArray(resp) ? resp : [])
 
 const INTERVALO_POLLING_MS = 60_000
+const INTERVALO_MINIMO_NA_VOLTA_MS = 15_000
 
 /**
  * @param {object} opcoes
@@ -188,13 +189,24 @@ export default function useTreinamentoEpisodios({ moeda, versao, alvoMs }) {
   // de 2min. Buscava só o grupo de 4h do relógio, e na virada do grupo os
   // episódios dos últimos segundos do anterior ficavam de fora até o próximo
   // refresh. Pausa com a aba em segundo plano; na volta, a folga pela última
-  // busca cobre o intervalo parado (até 4h).
+  // busca cobre o intervalo parado.
   useEffect(() => {
     const geracao = geracaoRef.current
+    let emVoo = false
     const tick = async () => {
-      if (document.hidden) return
+      if (document.hidden || emVoo) return
       const agora = Date.now()
-      const desde = Math.max(ultimaBuscaRef.current - 2 * UM_MINUTO_MS, agora - QUATRO_HORAS_MS)
+      const ultima = ultimaBuscaRef.current
+      // Mais de 4h parada: a busca incremental era cortada em 4h, e o trecho
+      // anterior a isso sumia — o grupo daquela hora já constava como
+      // carregado, então nenhuma janela o pedia de novo. Recarregar é o que a
+      // pessoa faria à mão.
+      if (ultima > 0 && agora - ultima > QUATRO_HORAS_MS) {
+        setRecarga((n) => n + 1)
+        return
+      }
+      const desde = ultima > 0 ? ultima - 2 * UM_MINUTO_MS : agora - QUATRO_HORAS_MS
+      emVoo = true
       try {
         const [novos, resumoResp] = await Promise.all([
           buscarPeriodo(moeda, versao, desde, agora + UM_MINUTO_MS, { emSegundoPlano: true }),
@@ -208,10 +220,22 @@ export default function useTreinamentoEpisodios({ moeda, versao, alvoMs }) {
         setItens((atuais) => mesclarEpisodios(atuais, novos))
         if (resumoResp) setResumo(listaDoResumo(resumoResp))
         setAtualizadoEm(agora)
-      } catch { /* silencioso: a próxima rodada tenta de novo */ }
+      } catch { /* silencioso: a próxima rodada tenta de novo */ } finally {
+        emVoo = false
+      }
+    }
+    // Na volta à aba, atualiza na hora: esperar o próximo tique deixava a tela
+    // até um minuto mostrando "Parado, último episódio há 40 min" de um treino
+    // que nunca parou. Volta rápida (menos que 15 s fora) não refaz a busca.
+    const aoVoltar = () => {
+      if (!document.hidden && Date.now() - ultimaBuscaRef.current >= INTERVALO_MINIMO_NA_VOLTA_MS) tick()
     }
     const id = setInterval(tick, INTERVALO_POLLING_MS)
-    return () => clearInterval(id)
+    document.addEventListener('visibilitychange', aoVoltar)
+    return () => {
+      clearInterval(id)
+      document.removeEventListener('visibilitychange', aoVoltar)
+    }
   }, [moeda, versao, recarga])
 
   const recarregar = useCallback(() => setRecarga((n) => n + 1), [])

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Box from '@mui/material/Box'
 import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
@@ -6,6 +6,7 @@ import { useTheme } from '@mui/material/styles'
 import { Line } from 'react-chartjs-2'
 import useTranslation from '../../hooks/useTranslation'
 import { padraoDeDataCurta } from '../../utils/dateUtils'
+import { comportamentoDeRolagem } from '../../utils/movimento'
 import { readToken } from '../../utils/themeTokens'
 import {
   PERIODOS_ANALISE,
@@ -15,6 +16,7 @@ import {
   janelaDoPeriodo,
   janelaParaMistura,
   limiarDeLacuna,
+  periodoDoCiclo,
   resumirCiclos,
   resumirPorMoeda,
   resumirVersoes,
@@ -66,6 +68,7 @@ export default function AbaAnalise({ timeline, resumo, periodo, onPeriodo, maisR
   const { t, idioma } = useTranslation()
   const escuro = useTheme().palette.mode === 'dark'
   const [metrica, setMetrica] = useState('rewardMedio')
+  const graficoRef = useRef(null)
 
   const janela = useMemo(() => janelaDoPeriodo(periodo, maisRecenteMs), [periodo, maisRecenteMs])
   // Espera a carga inicial, pelo mesmo motivo da aba ao vivo.
@@ -76,6 +79,16 @@ export default function AbaAnalise({ timeline, resumo, periodo, onPeriodo, maisR
     if (!carregando) garantir()
   }, [carregando, garantir])
   const falhou = janela ? falhouEntre(janela.inicio, janela.fim) : false
+
+  // Enquadrar um ciclo: o período passa a ser o ciclo, e tudo na aba — curva,
+  // tabela de moedas, episódios — responde só por ele. Numa janela de 24h com
+  // vários treinos, a tendência por moeda atravessava reinícios; dentro de um
+  // ciclo ela volta a dizer se aquele treino aprendeu. A tabela de ciclos fica
+  // embaixo da curva, então a tela sobe até a curva, que é o que mudou.
+  const focarCiclo = useCallback((ciclo) => {
+    onPeriodo(periodoDoCiclo(ciclo))
+    graficoRef.current?.scrollIntoView?.({ behavior: comportamentoDeRolagem(), block: 'center' })
+  }, [onPeriodo])
 
   const itens = useMemo(() => (janela ? filtrarJanela(timeline, janela.inicio, janela.fim) : []), [timeline, janela])
   const limiar = useMemo(() => limiarDeLacuna(itens), [itens])
@@ -194,6 +207,7 @@ export default function AbaAnalise({ timeline, resumo, periodo, onPeriodo, maisR
       ) : (
         <>
           <Painel
+            ref={graficoRef}
             titulo={t('treinamento.learningByCoin')}
             subtitulo={t('treinamento.learningByCoinSub', { n: JANELA_POR_MOEDA })}
             acao={
@@ -217,10 +231,10 @@ export default function AbaAnalise({ timeline, resumo, periodo, onPeriodo, maisR
 
           <TabelaMoedas linhas={porMoeda} resumo={resumo} onSelecionarMoeda={onSelecionarMoeda} onAbrir={onAbrir} />
 
-          {resumoCiclos.length > 0 && <TabelaCiclos ciclos={resumoCiclos} />}
+          {resumoCiclos.length > 0 && <TabelaCiclos ciclos={resumoCiclos} onFocar={focarCiclo} />}
           {versoes.length > 1 && <TabelaVersoes versoes={versoes} />}
 
-          <TabelaEpisodios itens={itens} onAbrir={onAbrir} />
+          <TabelaEpisodios itens={itens} janela={janela} onAbrir={onAbrir} />
         </>
       )}
     </Box>

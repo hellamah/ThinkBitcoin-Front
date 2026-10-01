@@ -4,6 +4,7 @@ import {
   UMA_HORA_MS,
   cicloDoEpisodio,
   detectarCiclos,
+  episodiosParaCSV,
   estatisticas,
   faixaDe,
   filtrarJanela,
@@ -13,6 +14,8 @@ import {
   mediaMovel,
   mesclarEpisodios,
   ordenarPorData,
+  periodoDoCiclo,
+  pontosBrutos,
   posicaoEntre,
   proporcaoDeAcoes,
   reduzirPontos,
@@ -338,6 +341,58 @@ describe('treinamento › ritmoPorHora', () => {
   it('é null sem intervalo para medir', () => {
     expect(ritmoPorHora([])).toBeNull()
     expect(ritmoPorHora([ep(1, 0)])).toBeNull()
+  })
+})
+
+describe('treinamento › periodoDoCiclo', () => {
+  it('enquadra o ciclo com folga curta e fim fixo', () => {
+    const ciclo = { inicio: BASE, fim: BASE + 100 * UM_MINUTO_MS }
+    // 2% de 100min = 2min de cada lado.
+    expect(periodoDoCiclo(ciclo)).toEqual({ duracaoMs: 104 * UM_MINUTO_MS, fimMs: BASE + 102 * UM_MINUTO_MS })
+  })
+
+  it('não deixa a folga passar de um minuto para baixo', () => {
+    const ciclo = { inicio: BASE, fim: BASE + 10 * UM_MINUTO_MS }
+    expect(periodoDoCiclo(ciclo)).toEqual({ duracaoMs: 12 * UM_MINUTO_MS, fimMs: BASE + 11 * UM_MINUTO_MS })
+  })
+
+  it('cobre o ciclo inteiro na janela que gera', () => {
+    const ciclo = { inicio: BASE, fim: BASE + 90 * UM_MINUTO_MS }
+    const j = janelaDoPeriodo(periodoDoCiclo(ciclo), BASE + 10 * UMA_HORA_MS)
+    expect(j.inicio).toBeLessThan(ciclo.inicio)
+    expect(j.fim).toBeGreaterThan(ciclo.fim)
+  })
+})
+
+describe('treinamento › pontosBrutos', () => {
+  it('leva o id do episódio no ponto e pula quem não tem a métrica', () => {
+    const timeline = [ep(1, 0, { winRate: 0.4 }), ep(2, 1, { winRate: null }), ep(3, 2, { winRate: 0.6 })]
+    expect(pontosBrutos(timeline, 'winRate').map((p) => p.id)).toEqual([timeline[0].idTreinamentoEpisodio, timeline[2].idTreinamentoEpisodio])
+  })
+})
+
+describe('treinamento › episodiosParaCSV', () => {
+  it('sai em ordem cronológica, com cabeçalho pelos campos da API', () => {
+    const csv = episodiosParaCSV([ep(2, 1), ep(1, 0)])
+    const [cabecalho, primeira, segunda] = csv.split('\r\n')
+    expect(cabecalho.split(',').slice(0, 4)).toEqual(['idTreinamentoEpisodio', 'episodio', 'dataHora', 'moeda'])
+    expect(primeira.split(',')[1]).toBe('1')
+    expect(segunda.split(',')[1]).toBe('2')
+  })
+
+  // Formatado no idioma da tela, "0,612" partiria a célula ao meio.
+  it('grava números crus, com ponto, e a data em ISO UTC', () => {
+    const [, linha] = episodiosParaCSV([ep(1, 0, { rewardMedio: 0.612 })]).split('\r\n')
+    const celulas = linha.split(',')
+    expect(celulas[2]).toBe('2026-09-22T12:00:00.000Z')
+    expect(celulas[5]).toBe('0.612')
+  })
+
+  it('deixa vazio o que falta, em vez de escrever "null"', () => {
+    const [, linha] = episodiosParaCSV([ep(1, 0, { winRate: null })]).split('\r\n')
+    expect(linha.split(',')[9]).toBe('')
+    expect(linha).not.toContain('null')
+    expect(linha).not.toContain('undefined')
   })
 })
 
