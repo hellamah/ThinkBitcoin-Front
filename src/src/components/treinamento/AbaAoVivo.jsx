@@ -9,7 +9,7 @@ import { padraoDeDataCurta } from '../../utils/dateUtils'
 import { readToken } from '../../utils/themeTokens'
 import {
   PERIODOS_AO_VIVO,
-  cicloDoEpisodio,
+  cicloQueContem,
   cortesEntreCiclos,
   detectarCiclos,
   estatisticas,
@@ -289,18 +289,30 @@ export default function AbaAoVivo({ timeline, periodo, onPeriodo, maisRecenteMs,
 
   const ultimos = useMemo(() => itens.slice(-12).reverse(), [itens])
 
+  // Os ciclos em tudo o que está carregado, e não só na janela: o ciclo que
+  // atravessa a borda da janela é rotulado pelo início e tamanho de verdade —
+  // o mesmo nome em qualquer janela.
+  const ciclosCarregados = useMemo(() => detectarCiclos(timeline), [timeline])
+
   const faixas = useMemo(
-    () => opcoesDasFaixas(ciclosNaJanela, (idx, c) => t('treinamento.cycleLabel', { num: idx + 1, count: c.total }), escuro),
-    [ciclosNaJanela, t, escuro]
+    () => opcoesDasFaixas(
+      ciclosNaJanela,
+      (_, c) => {
+        const inteiro = cicloQueContem(ciclosCarregados, c.inicio) ?? c
+        return t('treinamento.cycleLabel', { inicio: formatarHora(inteiro.inicio, idioma.intl), count: inteiro.total })
+      },
+      escuro
+    ),
+    [ciclosNaJanela, ciclosCarregados, t, idioma.intl, escuro]
   )
 
-  // O treino em andamento: a versão e desde quando. Calculado sobre tudo o que
-  // está carregado, não só a janela, para o início do ciclo não ficar cortado.
+  // O treino em andamento: a versão e desde quando. É o último dos ciclos
+  // carregados, para o início dele não ficar cortado pela janela.
   const cicloAtual = useMemo(() => {
     const ultimo = timeline[timeline.length - 1]
-    const ciclo = ultimo ? cicloDoEpisodio(timeline, ultimo.idTreinamentoEpisodio) : null
-    return ciclo ? { ...ciclo, versao: ultimo.versaoModelo } : null
-  }, [timeline])
+    const ciclo = ciclosCarregados[ciclosCarregados.length - 1]
+    return ultimo && ciclo ? { ...ciclo, versao: ultimo.versaoModelo } : null
+  }, [timeline, ciclosCarregados])
 
   // Quando um treino novo começa entre a janela anterior e a atual, as setas
   // dos cartões comparam execuções diferentes: epsilon volta a 1 no começo de

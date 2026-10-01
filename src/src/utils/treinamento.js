@@ -17,6 +17,12 @@ export const QUATRO_HORAS_MS = 4 * UMA_HORA_MS
 export const PERIODOS_AO_VIVO = Object.freeze([15 * UM_MINUTO_MS, UMA_HORA_MS, QUATRO_HORAS_MS])
 export const PERIODOS_ANALISE = Object.freeze([QUATRO_HORAS_MS, 24 * UMA_HORA_MS, 72 * UMA_HORA_MS])
 
+// Período de cada aba quando a URL não diz outro: ancorado no mais recente.
+export const PERIODO_PADRAO = Object.freeze({
+  'ao-vivo': Object.freeze({ duracaoMs: UMA_HORA_MS, fimMs: null }),
+  analise: Object.freeze({ duracaoMs: 24 * UMA_HORA_MS, fimMs: null }),
+})
+
 // As consultas trabalham em grupos de 4 horas, alinhados à hora local. O
 // alinhamento é escolha de tela; o instante que vai na requisição continua em
 // UTC (ver buscarPeriodo em hooks/useTreinamentoEpisodios).
@@ -216,6 +222,15 @@ export const detectarCiclos = (timeline) => {
   return ciclos
 }
 
+/**
+ * O ciclo inteiro, entre os detectados em tudo o que está carregado, que
+ * contém `instante` — ou null. A janela corta o ciclo que atravessa a borda
+ * dela: dentro da janela ele "começa" na borda, e o ciclo, que se identifica
+ * pelo início, ganharia um nome diferente em cada janela.
+ */
+export const cicloQueContem = (ciclos, instante) =>
+  ciclos.find((c) => instante >= c.inicio && instante <= c.fim) ?? null
+
 /** Os instantes em que começa cada ciclo depois do primeiro: onde as séries cortam. */
 export const cortesEntreCiclos = (ciclos) => ciclos.slice(1).map((c) => c.inicio)
 
@@ -362,15 +377,18 @@ export const resumirPorMoeda = (timeline, janela = 5) =>
  * últimos episódios (um quinto do ciclo, entre 1 e 20), não pelo primeiro e o
  * último isolados — um episódio sozinho é ruído demais para dizer se o ciclo
  * melhorou.
+ *
+ * Sem número de ordem: "C2" era o segundo ciclo DA JANELA, e mudava com ela —
+ * enquadrado, o C2 virava C1. O ciclo se identifica pelo início, como no
+ * "Ciclo atual … desde 22:53" do ao vivo e na posição do episódio no detalhe.
  */
 export const resumirCiclos = (timeline, ciclos) =>
-  ciclos.map((c, idx) => {
+  ciclos.map((c) => {
     const eps = timeline.slice(c.de, c.ate + 1)
     const k = Math.max(1, Math.min(20, Math.ceil(eps.length / 5)))
     const inicio = eps.slice(0, k)
     const fim = eps.slice(-k)
     return {
-      numero: idx + 1,
       inicio: c.inicio,
       fim: c.fim,
       duracaoMs: c.fim - c.inicio,
@@ -441,6 +459,22 @@ export const periodoDoCiclo = (ciclo) => {
 }
 
 /**
+ * Enquadra um ciclo: o período passa a ser o dele, marcado com `foco` — o
+ * início do ciclo, que o identifica, e o período de antes, para onde "voltar"
+ * leva. Sem isso, sair do enquadramento era "Ir para o mais recente", que
+ * mantinha a duração quebrada do ciclo (62 min) sem nenhum botão de período
+ * aceso. Enquadrar outro ciclo a partir de um enquadramento guarda o período
+ * original, e não o do ciclo anterior.
+ */
+export const enquadrarCiclo = (periodo, ciclo) => ({
+  ...periodoDoCiclo(ciclo),
+  foco: {
+    inicio: ciclo.inicio,
+    anterior: periodo.foco?.anterior ?? { duracaoMs: periodo.duracaoMs, fimMs: periodo.fimMs ?? null },
+  },
+})
+
+/**
  * Janela de um período: termina em `fimMs` quando a pessoa navegou para trás,
  * ou no episódio mais recente — não no relógio. Ancorar no relógio deixava a
  * tela vazia sempre que o treino tinha parado havia mais que a duração da
@@ -456,6 +490,71 @@ export const janelaDoPeriodo = ({ duracaoMs, fimMs }, maisRecenteMs) => {
     anterior: { inicio: inicio - duracaoMs, fim: inicio - 1 },
     ancorada: fimMs === null || fimMs === undefined,
   }
+}
+
+// ── Período na URL ──────────────────────────────────────────────────────────
+//
+//   ?periodo=4h&ate=2026-09-30T22:27:00Z&ciclo=2026-09-30T21:26:12Z
+//
+//   periodo  duração da janela, em horas ("4h") ou minutos ("63m");
+//   ate      fim da janela, quando a pessoa navegou para trás — sem ele, a
+//            janela acompanha o episódio mais recente;
+//   ciclo    início do ciclo enquadrado (só na análise).
+//
+// O período ficava só no estado da página: um refresh voltava a 1h/24h, e um
+// link mandado para alguém abria outra janela — inclusive o ciclo enquadrado.
+// O padrão da aba não escreve nada, para a URL de quem não mexeu seguir limpa.
+
+/** "15m", "1h", "24h", "63m": horas quando fecha a hora, senão minutos, para cima. */
+export const duracaoParaParam = (ms) =>
+  (ms % UMA_HORA_MS === 0 ? `${ms / UMA_HORA_MS}h` : `${Math.ceil(ms / UM_MINUTO_MS)}m`)
+
+/** O inverso de duracaoParaParam; null fora do formato ou de [1 min, maximoMs]. */
+export const duracaoDoParam = (texto, maximoMs) => {
+  const m = /^(\d{1,5})(m|h)$/.exec(texto ?? '')
+  if (!m) return null
+  const ms = Number(m[1]) * (m[2] === 'h' ? UMA_HORA_MS : UM_MINUTO_MS)
+  return ms >= UM_MINUTO_MS && ms <= maximoMs ? ms : null
+}
+
+// Instante em ISO UTC, ao segundo, arredondado para cima: o fim de um
+// enquadramento não pode encolher e deixar de fora o último episódio do ciclo.
+const instanteParaParam = (ms) =>
+  new Date(Math.ceil(ms / 1000) * 1000).toISOString().replace('.000Z', 'Z')
+
+// Só ISO com o Z. Sem fuso, "2026-09-30T22:27" seria lido na hora local de
+// quem abre o link — o deslize que já deslocou a janela de consulta em 3h.
+const ISO_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?Z$/
+const instanteDoParam = (texto) => {
+  if (!ISO_UTC.test(texto ?? '')) return null
+  const ms = Date.parse(texto)
+  return Number.isFinite(ms) ? ms : null
+}
+
+/**
+ * Período de uma aba lido da URL. Duração fora do formato, ou acima de
+ * `maximoMs` (a maior opção da aba: um link com periodo=9999h faria a tela
+ * pedir milhares de blocos de 4h), fica no padrão. `ciclo` só vale onde
+ * `aceitaCiclo` e com `ate`; o período de antes do enquadramento não viaja na
+ * URL, então sair dele leva ao padrão da aba.
+ */
+export const periodoDaUrl = (params, { padrao, maximoMs, aceitaCiclo = false }) => {
+  const periodo = {
+    duracaoMs: duracaoDoParam(params.get('periodo'), maximoMs) ?? padrao.duracaoMs,
+    fimMs: instanteDoParam(params.get('ate')),
+  }
+  const inicioDoCiclo = aceitaCiclo ? instanteDoParam(params.get('ciclo')) : null
+  if (inicioDoCiclo === null || periodo.fimMs === null) return periodo
+  return { ...periodo, foco: { inicio: inicioDoCiclo, anterior: { duracaoMs: padrao.duracaoMs, fimMs: padrao.fimMs } } }
+}
+
+/** Parâmetros de URL de um período; {} quando ele é o padrão da aba. */
+export const paramsDoPeriodo = (periodo, padrao) => {
+  const params = {}
+  if (periodo.duracaoMs !== padrao.duracaoMs) params.periodo = duracaoParaParam(periodo.duracaoMs)
+  if (periodo.fimMs !== null && periodo.fimMs !== undefined) params.ate = instanteParaParam(periodo.fimMs)
+  if (periodo.foco) params.ciclo = instanteParaParam(periodo.foco.inicio)
+  return params
 }
 
 // ── Exportação ──────────────────────────────────────────────────────────────

@@ -16,13 +16,29 @@ import { EstadoVazio, Painel } from '../components/treinamento/Painel'
 import { definirIdiomaDosNumeros } from '../components/treinamento/formato'
 import useTreinamentoEpisodios from '../hooks/useTreinamentoEpisodios'
 import useTranslation from '../hooks/useTranslation'
-import { UMA_HORA_MS, cadenciaMediana, instanteDe, ordenarPorData } from '../utils/treinamento'
+import {
+  PERIODO_PADRAO,
+  PERIODOS_ANALISE,
+  PERIODOS_AO_VIVO,
+  cadenciaMediana,
+  instanteDe,
+  ordenarPorData,
+  paramsDoPeriodo,
+  periodoDaUrl,
+} from '../utils/treinamento'
 
 // Treinamento de IA. Duas abas com perguntas diferentes:
 //   · Ao vivo — o treino está rodando, e melhorando agora?
 //   · Análise — o modelo está aprendendo, em quais moedas, ciclos e versões?
 // A página só orquestra: filtros na URL, carga (useTreinamentoEpisodios) e
 // qual aba ou detalhe mostrar. Cada parte vive em components/treinamento.
+
+// Como cada aba lê o período da URL: o padrão, o teto (a maior opção da aba) e
+// se aceita ciclo enquadrado — só a análise enquadra.
+const LEITURA_DO_PERIODO = {
+  'ao-vivo': { padrao: PERIODO_PADRAO['ao-vivo'], maximoMs: Math.max(...PERIODOS_AO_VIVO) },
+  analise: { padrao: PERIODO_PADRAO.analise, maximoMs: Math.max(...PERIODOS_ANALISE), aceitaCiclo: true },
+}
 
 const estiloDasAbas = {
   minHeight: 44,
@@ -46,18 +62,23 @@ export default function TreinamentoEpisodios() {
   const { id } = useParams()
   const navigate = useNavigate()
 
-  // Filtros e aba na URL (?moedas=BTC,ETH&versao=x&aba=analise): sobrevivem a
-  // refresh, geram link compartilhável e atravessam a navegação lista ⇄ detalhe.
+  // Filtros, aba e período na URL (?moedas=BTC,ETH&versao=x&aba=analise&
+  // periodo=4h): sobrevivem a refresh, geram link compartilhável e atravessam
+  // a navegação lista ⇄ detalhe.
   const [searchParams, setSearchParams] = useSearchParams()
   const [moedasSelecionadas, setMoedasSelecionadas] = useState(() =>
     (searchParams.get('moedas') || '').split(',').map((s) => s.trim().toUpperCase()).filter(Boolean))
   const [versao, setVersao] = useState(() => searchParams.get('versao') || null)
-  const [aba, setAba] = useState(() => (searchParams.get('aba') === 'analise' ? 'analise' : 'ao-vivo'))
+  const abaDaUrl = searchParams.get('aba') === 'analise' ? 'analise' : 'ao-vivo'
+  const [aba, setAba] = useState(abaDaUrl)
 
   // Um período por aba, guardado aqui e não dentro dela: trocar de aba e
-  // voltar mantém o que a pessoa tinha escolhido.
-  const [periodoAoVivo, setPeriodoAoVivo] = useState({ duracaoMs: UMA_HORA_MS, fimMs: null })
-  const [periodoAnalise, setPeriodoAnalise] = useState({ duracaoMs: 24 * UMA_HORA_MS, fimMs: null })
+  // voltar mantém o que a pessoa tinha escolhido. A URL leva o da aba aberta;
+  // a outra começa no padrão.
+  const periodoInicial = (qual) =>
+    (qual === abaDaUrl ? periodoDaUrl(searchParams, LEITURA_DO_PERIODO[qual]) : PERIODO_PADRAO[qual])
+  const [periodoAoVivo, setPeriodoAoVivo] = useState(() => periodoInicial('ao-vivo'))
+  const [periodoAnalise, setPeriodoAnalise] = useState(() => periodoInicial('analise'))
 
   // Com exatamente uma moeda o servidor já filtra; com duas ou mais, ele
   // devolve todas e o filtro é feito aqui.
@@ -78,11 +99,13 @@ export default function TreinamentoEpisodios() {
     if (moedasSelecionadas.length > 0) p.set('moedas', moedasSelecionadas.join(','))
     if (versao) p.set('versao', versao)
     if (aba !== 'ao-vivo') p.set('aba', aba)
-    Object.entries(extra).forEach(([k, v]) => { if (v) p.set(k, v) })
+    const periodo = aba === 'analise' ? periodoAnalise : periodoAoVivo
+    const params = { ...paramsDoPeriodo(periodo, PERIODO_PADRAO[aba]), ...extra }
+    Object.entries(params).forEach(([k, v]) => { if (v) p.set(k, v) })
     return p.toString()
-  }, [moedasSelecionadas, versao, aba])
+  }, [moedasSelecionadas, versao, aba, periodoAoVivo, periodoAnalise])
 
-  // A URL da lista espelha os filtros (replace, para não poluir o histórico).
+  // A URL da lista espelha filtros e período (replace, para não poluir o histórico).
   useEffect(() => {
     if (id) return
     const qs = consulta()

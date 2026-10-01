@@ -10,13 +10,14 @@ import { comportamentoDeRolagem } from '../../utils/movimento'
 import { readToken } from '../../utils/themeTokens'
 import {
   PERIODOS_ANALISE,
+  cicloQueContem,
   cortesEntreCiclos,
   detectarCiclos,
+  enquadrarCiclo,
   filtrarJanela,
   instanteDe,
   janelaDoPeriodo,
   janelaParaMistura,
-  periodoDoCiclo,
   resumirCiclos,
   resumirPorMoeda,
   resumirVersoes,
@@ -40,7 +41,7 @@ import SeletorDePeriodo from './SeletorDePeriodo'
 import TabelaEpisodios from './TabelaEpisodios'
 import TabelaMoedas from './TabelaMoedas'
 import { TabelaCiclos, TabelaVersoes } from './TabelasDeCiclos'
-import { corDaMoeda, formaDaMoeda, formatarIntervalo } from './formato'
+import { corDaMoeda, formaDaMoeda, formatarHora, formatarIntervalo } from './formato'
 
 // Aba "Análise": o modelo está aprendendo? Em quais moedas, em quais ciclos,
 // em qual versão? Horizonte maior que o da aba ao vivo, e tudo separado por
@@ -86,14 +87,23 @@ export default function AbaAnalise({ timeline, resumo, periodo, onPeriodo, maisR
   // ciclo ela volta a dizer se aquele treino aprendeu. A tabela de ciclos fica
   // embaixo da curva, então a tela sobe até a curva, que é o que mudou.
   const focarCiclo = useCallback((ciclo) => {
-    onPeriodo(periodoDoCiclo(ciclo))
+    onPeriodo(enquadrarCiclo(periodo, ciclo))
     graficoRef.current?.scrollIntoView?.({ behavior: comportamentoDeRolagem(), block: 'center' })
-  }, [onPeriodo])
+  }, [onPeriodo, periodo])
 
   const itens = useMemo(() => (janela ? filtrarJanela(timeline, janela.inicio, janela.fim) : []), [timeline, janela])
   const ciclos = useMemo(() => detectarCiclos(itens), [itens])
   const cortes = useMemo(() => cortesEntreCiclos(ciclos), [ciclos])
-  const resumoCiclos = useMemo(() => resumirCiclos(itens, ciclos), [itens, ciclos])
+
+  // Cada ciclo da janela ao lado do ciclo inteiro, entre tudo o que está
+  // carregado: a janela corta o ciclo da borda, e é pelo início do inteiro que
+  // ele se identifica — e é o inteiro que o enquadramento mostra.
+  const ciclosCarregados = useMemo(() => detectarCiclos(timeline), [timeline])
+  const inteiro = useCallback((c) => cicloQueContem(ciclosCarregados, c.inicio) ?? c, [ciclosCarregados])
+  const resumoCiclos = useMemo(
+    () => resumirCiclos(itens, ciclos).map((c) => ({ ...c, inteiro: inteiro(c) })),
+    [itens, ciclos, inteiro]
+  )
   const porMoeda = useMemo(() => resumirPorMoeda(itens, JANELA_POR_MOEDA), [itens])
   const versoes = useMemo(() => resumirVersoes(itens), [itens])
 
@@ -150,8 +160,12 @@ export default function AbaAnalise({ timeline, resumo, periodo, onPeriodo, maisR
   }, [itensPorMoeda, itens, metrica, cortes, t, escuro])
 
   const faixas = useMemo(
-    () => opcoesDasFaixas(ciclos, (idx, c) => t('treinamento.cycleLabel', { num: idx + 1, count: c.total }), escuro),
-    [ciclos, t, escuro]
+    () => opcoesDasFaixas(
+      ciclos,
+      (_, c) => t('treinamento.cycleLabel', { inicio: formatarHora(inteiro(c).inicio, idioma.intl), count: inteiro(c).total }),
+      escuro
+    ),
+    [ciclos, inteiro, t, idioma.intl, escuro]
   )
 
   const dataCurta = useMemo(() => padraoDeDataCurta(idioma.intl), [idioma.intl])

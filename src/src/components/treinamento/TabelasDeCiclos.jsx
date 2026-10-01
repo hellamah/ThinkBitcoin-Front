@@ -27,8 +27,12 @@ function InicioFim({ id, inicio, fim }) {
 const estilo = { ...estiloDeTabela, '& td': { ...estiloDeTabela['& td, & th'], fontVariantNumeric: 'tabular-nums' } }
 const quebraDaBorda = { mx: { xs: -2, md: -2.5 }, mb: { xs: -1, md: -1.5 } }
 
-// O número do ciclo é o botão que enquadra o período nele. Quando a janela já
-// é o próprio ciclo, não há o que enquadrar e ele volta a ser só texto.
+// O ciclo se identifica pelo início, e não por "C1, C2": o número de ordem era
+// o da janela e mudava com ela (enquadrado, o C2 virava C1). É o início do
+// ciclo INTEIRO (`inteiro`, quando a janela corta o ciclo da borda); os números
+// da linha seguem sendo os da janela. O início é o botão que enquadra o período
+// no ciclo; quando a janela já é o próprio ciclo, não há o que enquadrar e ele
+// volta a ser só texto.
 export function TabelaCiclos({ ciclos, onFocar }) {
   const { t, idioma } = useTranslation()
   const focavel = Boolean(onFocar) && ciclos.length > 1
@@ -43,7 +47,6 @@ export function TabelaCiclos({ ciclos, onFocar }) {
           <TableHead>
             <TableRow>
               <TableCell>{t('treinamento.colCycle')}</TableCell>
-              <TableCell>{t('treinamento.colStart')}</TableCell>
               <TableCell align="right">{t('treinamento.duration')}</TableCell>
               <TableCell align="right">{t('treinamento.colEpisodes')}</TableCell>
               <TableCell align="right">{t('treinamento.colRewardStartEnd')}</TableCell>
@@ -52,35 +55,38 @@ export function TabelaCiclos({ ciclos, onFocar }) {
             </TableRow>
           </TableHead>
           <TableBody>
-            {ciclos.map((c) => (
-              <TableRow key={c.numero}>
-                <TableCell sx={{ fontWeight: 700 }}>
-                  {focavel ? (
-                    <Box
-                      component="button"
-                      type="button"
-                      className="botao-nu"
-                      onClick={() => onFocar(c)}
-                      aria-label={t('treinamento.focusCycle', { num: c.numero })}
-                      title={t('treinamento.focusCycle', { num: c.numero })}
-                      sx={{ color: 'var(--accent-ink)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 0.5, '&:hover': { textDecoration: 'underline' } }}
-                    >
-                      C{c.numero}
-                      <MdZoomIn size={14} aria-hidden="true" />
-                    </Box>
-                  ) : `C${c.numero}`}
-                </TableCell>
-                <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatarDataCurta(c.inicio, idioma.intl)}</TableCell>
-                <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>{formatarDuracao(c.duracaoMs, idioma.intl)}</TableCell>
-                <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
-                  {c.total}{' '}
-                  <Box component="span" sx={{ color: 'var(--text-muted)' }}>(#{c.epInicio}–#{c.epFim})</Box>
-                </TableCell>
-                <TableCell align="right"><InicioFim id="rewardMedio" inicio={c.rewardInicio} fim={c.rewardFim} /></TableCell>
-                <TableCell align="right"><InicioFim id="winRate" inicio={c.winRateInicio} fim={c.winRateFim} /></TableCell>
-                <TableCell sx={{ color: 'var(--text-secondary) !important' }}>{c.versoes.join(', ') || '–'}</TableCell>
-              </TableRow>
-            ))}
+            {ciclos.map((c) => {
+              const ciclo = c.inteiro ?? c
+              const inicio = formatarDataCurta(ciclo.inicio, idioma.intl)
+              return (
+                <TableRow key={ciclo.inicio}>
+                  <TableCell sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
+                    {focavel ? (
+                      <Box
+                        component="button"
+                        type="button"
+                        className="botao-nu"
+                        onClick={() => onFocar(ciclo)}
+                        aria-label={t('treinamento.focusCycle', { inicio })}
+                        title={t('treinamento.focusCycle', { inicio })}
+                        sx={{ color: 'var(--accent-ink)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 0.5, '&:hover': { textDecoration: 'underline' } }}
+                      >
+                        {inicio}
+                        <MdZoomIn size={14} aria-hidden="true" />
+                      </Box>
+                    ) : inicio}
+                  </TableCell>
+                  <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>{formatarDuracao(c.duracaoMs, idioma.intl)}</TableCell>
+                  <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
+                    {c.total}{' '}
+                    <Box component="span" sx={{ color: 'var(--text-muted)' }}>(#{c.epInicio}–#{c.epFim})</Box>
+                  </TableCell>
+                  <TableCell align="right"><InicioFim id="rewardMedio" inicio={c.rewardInicio} fim={c.rewardFim} /></TableCell>
+                  <TableCell align="right"><InicioFim id="winRate" inicio={c.winRateInicio} fim={c.winRateFim} /></TableCell>
+                  <TableCell sx={{ color: 'var(--text-secondary) !important' }}>{c.versoes.join(', ') || '–'}</TableCell>
+                </TableRow>
+              )
+            })}
           </TableBody>
         </Table>
       </TableContainer>

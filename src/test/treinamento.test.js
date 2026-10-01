@@ -1,10 +1,15 @@
 import { describe, it, expect } from 'vitest'
 import {
+  PERIODO_PADRAO,
   UM_MINUTO_MS,
   UMA_HORA_MS,
   cicloDoEpisodio,
+  cicloQueContem,
   cortesEntreCiclos,
   detectarCiclos,
+  duracaoDoParam,
+  duracaoParaParam,
+  enquadrarCiclo,
   episodiosParaCSV,
   estatisticas,
   faixaDe,
@@ -15,6 +20,8 @@ import {
   mediaMovel,
   mesclarEpisodios,
   ordenarPorData,
+  paramsDoPeriodo,
+  periodoDaUrl,
   periodoDoCiclo,
   pontosBrutos,
   posicaoEntre,
@@ -158,6 +165,21 @@ describe('treinamento › detectarCiclos', () => {
   it('segue abrindo ciclo no reinício de verdade, como 300 → 1', () => {
     const timeline = [ep(299, 0), ep(300, 1), ep(1, 7), ep(2, 8)]
     expect(detectarCiclos(timeline).map((c) => [c.epInicio, c.epFim])).toEqual([[299, 300], [1, 2]])
+  })
+})
+
+describe('treinamento › cicloQueContem', () => {
+  // A janela corta o ciclo da borda: dentro dela, ele "começa" no meio.
+  it('acha o ciclo inteiro de um trecho cortado pela janela', () => {
+    const timeline = [ep(1, 0), ep(2, 1), ep(3, 2), ep(1, 9), ep(2, 10)]
+    const inteiros = detectarCiclos(timeline)
+    const naJanela = detectarCiclos(filtrarJanela(timeline, BASE + UM_MINUTO_MS, BASE + 10 * UM_MINUTO_MS))
+    expect(naJanela[0].inicio).toBe(BASE + UM_MINUTO_MS)
+    expect(cicloQueContem(inteiros, naJanela[0].inicio)).toMatchObject({ inicio: BASE, total: 3 })
+  })
+
+  it('é null fora de qualquer ciclo', () => {
+    expect(cicloQueContem(detectarCiclos([ep(1, 0), ep(2, 1)]), BASE + UMA_HORA_MS)).toBeNull()
   })
 })
 
@@ -407,6 +429,74 @@ describe('treinamento › periodoDoCiclo', () => {
     const j = janelaDoPeriodo(periodoDoCiclo(ciclo), BASE + 10 * UMA_HORA_MS)
     expect(j.inicio).toBeLessThan(ciclo.inicio)
     expect(j.fim).toBeGreaterThan(ciclo.fim)
+  })
+})
+
+describe('treinamento › enquadrarCiclo', () => {
+  const ciclo = (min) => ({ inicio: BASE + min * UM_MINUTO_MS, fim: BASE + (min + 90) * UM_MINUTO_MS })
+
+  it('guarda o ciclo e o período de antes, para a volta', () => {
+    const p = enquadrarCiclo(PERIODO_PADRAO.analise, ciclo(0))
+    expect(p).toMatchObject(periodoDoCiclo(ciclo(0)))
+    expect(p.foco).toEqual({ inicio: BASE, anterior: { duracaoMs: 24 * UMA_HORA_MS, fimMs: null } })
+  })
+
+  it('enquadrar outro ciclo a partir de um enquadramento mantém o período original', () => {
+    const original = { duracaoMs: 72 * UMA_HORA_MS, fimMs: BASE }
+    const segundo = enquadrarCiclo(enquadrarCiclo(original, ciclo(0)), ciclo(200))
+    expect(segundo.foco).toEqual({ inicio: BASE + 200 * UM_MINUTO_MS, anterior: original })
+  })
+})
+
+describe('treinamento › período na URL', () => {
+  const analise = { padrao: PERIODO_PADRAO.analise, maximoMs: 72 * UMA_HORA_MS, aceitaCiclo: true }
+  const url = (texto) => new URLSearchParams(texto)
+
+  it('escreve horas quando fecha a hora e minutos, para cima, quando não', () => {
+    expect(duracaoParaParam(4 * UMA_HORA_MS)).toBe('4h')
+    expect(duracaoParaParam(15 * UM_MINUTO_MS)).toBe('15m')
+    expect(duracaoParaParam(62.4 * UM_MINUTO_MS)).toBe('63m')
+  })
+
+  it('lê a duração dentro de [1 min, teto] e recusa o resto', () => {
+    expect(duracaoDoParam('24h', 72 * UMA_HORA_MS)).toBe(24 * UMA_HORA_MS)
+    expect(duracaoDoParam('63m', 72 * UMA_HORA_MS)).toBe(63 * UM_MINUTO_MS)
+    expect(duracaoDoParam('9999h', 72 * UMA_HORA_MS)).toBeNull()
+    expect(duracaoDoParam('0m', 72 * UMA_HORA_MS)).toBeNull()
+    expect(duracaoDoParam('4 h', 72 * UMA_HORA_MS)).toBeNull()
+    expect(duracaoDoParam(null, 72 * UMA_HORA_MS)).toBeNull()
+  })
+
+  it('o padrão da aba não escreve nada na URL', () => {
+    expect(paramsDoPeriodo(PERIODO_PADRAO.analise, PERIODO_PADRAO.analise)).toEqual({})
+    expect(periodoDaUrl(url(''), analise)).toEqual(PERIODO_PADRAO.analise)
+  })
+
+  it('ida e volta de uma janela navegada para trás', () => {
+    const periodo = { duracaoMs: 4 * UMA_HORA_MS, fimMs: BASE }
+    const params = paramsDoPeriodo(periodo, PERIODO_PADRAO.analise)
+    expect(params).toEqual({ periodo: '4h', ate: '2026-09-22T12:00:00Z' })
+    expect(periodoDaUrl(url(params), analise)).toEqual(periodo)
+  })
+
+  it('ida e volta de um ciclo enquadrado, sem encolher a janela', () => {
+    const ciclo = { inicio: BASE + 12_345, fim: BASE + 90 * UM_MINUTO_MS + 678 }
+    const periodo = enquadrarCiclo(PERIODO_PADRAO.analise, ciclo)
+    const lido = periodoDaUrl(url(paramsDoPeriodo(periodo, PERIODO_PADRAO.analise)), analise)
+    expect(lido.fimMs).toBeGreaterThanOrEqual(periodo.fimMs)
+    expect(lido.fimMs - lido.duracaoMs).toBeLessThanOrEqual(periodo.fimMs - periodo.duracaoMs)
+    expect(lido.foco).toEqual({ inicio: BASE + 13_000, anterior: PERIODO_PADRAO.analise })
+  })
+
+  it('recusa instante sem fuso, que seria lido na hora local de quem abre', () => {
+    expect(periodoDaUrl(url('periodo=4h&ate=2026-09-22T12:00:00'), analise)).toEqual({ duracaoMs: 4 * UMA_HORA_MS, fimMs: null })
+  })
+
+  it('ciclo só vale com fim e onde a aba aceita', () => {
+    const comCiclo = 'periodo=93m&ate=2026-09-22T13:31:00Z&ciclo=2026-09-22T12:00:00Z'
+    expect(periodoDaUrl(url(comCiclo), analise).foco).toBeDefined()
+    expect(periodoDaUrl(url(comCiclo), { ...analise, aceitaCiclo: false }).foco).toBeUndefined()
+    expect(periodoDaUrl(url('ciclo=2026-09-22T12:00:00Z'), analise).foco).toBeUndefined()
   })
 })
 
