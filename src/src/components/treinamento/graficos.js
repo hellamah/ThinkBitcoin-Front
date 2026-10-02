@@ -87,7 +87,12 @@ export const eixoDeTempo = (escuro, idioma, dataCurta, { min, max } = {}) => ({
 
 // ── Métricas ────────────────────────────────────────────────────────────────
 
-export const METRICAS = ['rewardMedio', 'winRate', 'lossMedia', 'epsilon', 'duracaoSegundos']
+// `acertoTrades` é o acerto por OPERAÇÃO (trades vencedores / fechados). Ocupa
+// o lugar do `winRate`, que é a fração de steps com reward positivo e não diz
+// quantos trades deram lucro — ele segue no CSV e nos dados do episódio.
+// Episódio gravado antes de o treinador contar trades vem sem o campo, e as
+// médias e séries pulam o que falta.
+export const METRICAS = ['rewardMedio', 'acertoTrades', 'lossMedia', 'epsilon', 'duracaoSegundos']
 
 // Tamanho de cada cartão de métrica na grade. Cinco cartões em 2 + 2 + 1 no
 // celular e 3 + 2 no tablet deixavam o último sozinho numa linha meio vazia:
@@ -103,7 +108,7 @@ export const tamanhoDoCartao = (indice) => ({
 // qualidade do modelo, então nenhum dos dois ganha verde ou vermelho.
 export const SENTIDO_DA_METRICA = Object.freeze({
   rewardMedio: 1,
-  winRate: 1,
+  acertoTrades: 1,
   lossMedia: -1,
   epsilon: 0,
   duracaoSegundos: 0,
@@ -114,7 +119,7 @@ export const SENTIDO_DA_METRICA = Object.freeze({
 export const rotuloDaMetrica = (t, id) => {
   switch (id) {
     case 'rewardMedio': return t('treinamento.avgReward')
-    case 'winRate': return t('treinamento.winRate')
+    case 'acertoTrades': return t('treinamento.tradeWinRate')
     case 'lossMedia': return t('treinamento.lossLabel')
     case 'epsilon': return t('treinamento.epsilon')
     case 'duracaoSegundos': return t('treinamento.duration')
@@ -124,7 +129,7 @@ export const rotuloDaMetrica = (t, id) => {
 
 export const formatarMetrica = (id, valor) => {
   switch (id) {
-    case 'winRate': return formatarPercentual(valor, 1)
+    case 'acertoTrades': return formatarPercentual(valor, 1)
     case 'duracaoSegundos': return valor === null || valor === undefined ? '–' : `${formatarNumero(valor, 1)} s`
     default: return formatarNumero(valor, 3)
   }
@@ -133,7 +138,7 @@ export const formatarMetrica = (id, valor) => {
 export const formatarVariacaoDaMetrica = (id, d) => {
   if (d === null || d === undefined) return '–'
   switch (id) {
-    case 'winRate': return `${comSinal(formatarNumero(d * 100, 1), d)} pp`
+    case 'acertoTrades': return `${comSinal(formatarNumero(d * 100, 1), d)} pp`
     case 'duracaoSegundos': return `${comSinal(formatarNumero(d, 1), d)} s`
     default: return comSinal(formatarNumero(d, 3), d)
   }
@@ -143,7 +148,7 @@ export const formatarVariacaoDaMetrica = (id, d) => {
 export const corDaMetrica = (id, escuro) => {
   switch (id) {
     case 'rewardMedio': return 'var(--accent-ink)'
-    case 'winRate': return 'var(--perf-up)'
+    case 'acertoTrades': return 'var(--perf-up)'
     case 'lossMedia': return 'var(--perf-down)'
     case 'epsilon': return azulEpsilon(escuro)
     default: return 'var(--perf-warn)'
@@ -154,7 +159,7 @@ export const corDaMetrica = (id, escuro) => {
 export const corDaMetricaNoCanvas = (id, escuro) => {
   switch (id) {
     case 'rewardMedio': return readToken('--accent-ink')
-    case 'winRate': return readToken('--perf-up', '#14f195')
+    case 'acertoTrades': return readToken('--perf-up', '#14f195')
     case 'lossMedia': return readToken('--perf-down', '#ff5c7c')
     case 'epsilon': return azulEpsilon(escuro)
     default: return readToken('--perf-warn', '#ffb547')

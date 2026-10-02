@@ -46,7 +46,7 @@ export default function TabelaEpisodios({ itens, janela, onAbrir }) {
     { id: 'rewardTotal', rotulo: t('treinamento.colRewardTotal'), numerica: true },
     { id: 'lossMedia', rotulo: t('treinamento.colLossAvg'), numerica: true },
     { id: 'epsilon', rotulo: t('treinamento.colEpsilon'), numerica: true },
-    { id: 'winRate', rotulo: t('treinamento.colWinRate'), numerica: true, dica: t('treinamento.winRateHint') },
+    { id: 'acertoTrades', rotulo: t('treinamento.colTradeWinRate'), numerica: true, dica: t('treinamento.tradeWinRateHint') },
     { id: 'duracaoSegundos', rotulo: t('treinamento.colDuration'), numerica: true },
   ], [t])
 
@@ -138,7 +138,7 @@ export default function TabelaEpisodios({ itens, janela, onAbrir }) {
                 <TableCell align="right">{formatarNumero(r.rewardTotal, 2)}</TableCell>
                 <TableCell align="right">{formatarNumero(r.lossMedia, 3)}</TableCell>
                 <TableCell align="right">{formatarNumero(r.epsilon, 3)}</TableCell>
-                <TableCell align="right">{formatarPercentual(r.winRate, 1)}</TableCell>
+                <TableCell align="right">{formatarPercentual(r.acertoTrades, 1)}</TableCell>
                 <TableCell align="right">{formatarNumero(r.duracaoSegundos, 1)}</TableCell>
               </TableRow>
             ))}

@@ -547,6 +547,9 @@ const criarMockCobranca = (body) => {
 //   · totalSteps é a soma das ações, e rewardTotal = rewardMedio × steps;
 //   · a versão do modelo muda entre treinos, a cada 16h (a janela de 24h pega
 //     sempre ao menos uma troca);
+//   · cada episódio traz o acerto por trade (trades fechados, vencedores,
+//     retorno médio e acertoTrades, que a API calcula): explorando, muito giro
+//     e pouco acerto; no piso do epsilon, o contrário;
 //   · cada episódio traz a janela de dados que negociou (dataInicioDados e
 //     dataFimDados): 1000 velas horárias por rodada, andando para trás no
 //     dataset — o mercado que o agente viu não é o da hora em que ele rodou;
@@ -675,6 +678,14 @@ const buildTreinoEpisodios = () => {
       const pCompra = epsilon / 3 + (1 - epsilon) * (0.23 + 0.03 * treinoRuido(seq * 19 + 8))
       const acoesHold = Math.round(pHold * TREINO_STEPS)
       const acoesCompra = Math.round(pCompra * TREINO_STEPS)
+      // Acerto por trade, como o treinador conta (trades fechados, líquidos da
+      // taxa): explorando, o agente gira muito e acerta pouco; no piso do
+      // epsilon, gira menos e acerta mais.
+      const trades = Math.max(0, Math.round(TREINO_STEPS * (1 - pHold) * (0.08 + 0.22 * epsilon)
+        + 3 * treinoRuido(seq * 29 + 5)))
+      const acerto = Math.min(0.9, Math.max(0.05, 0.36 + 0.6 * (1 - epsilon) * (habilidade - 0.25)
+        + 2 * TREINO_VIES_DA_MOEDA[moeda] + 0.05 * treinoRuido(seq * 31 + 6)))
+      const tradesVencedores = Math.round(trades * acerto)
       eps.push({
         idTreinamentoEpisodio: `mock-treino-${seq}`,
         episodio: i + 1,
@@ -696,6 +707,11 @@ const buildTreinoEpisodios = () => {
         totalSteps: TREINO_STEPS,
         dataInicioDados: treinoUtcNaive(janela.inicio),
         dataFimDados: treinoUtcNaive(janela.fim),
+        trades,
+        tradesVencedores,
+        retornoMedioTrade: trades > 0 ? -0.002 + 0.03 * (acerto - 0.4) + 0.0015 * treinoRuido(seq * 37 + 7) : null,
+        // Calculado pela API (TreinamentoEpisodioRespostaModelo.AcertoTrades).
+        acertoTrades: trades > 0 ? tradesVencedores / trades : null,
       })
     }
   }

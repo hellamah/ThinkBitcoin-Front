@@ -19,7 +19,7 @@ import {
 import { Painel } from './Painel'
 import { corDaMoeda, formatarHora } from './formato'
 
-const METRICAS = ['rewardMedio', 'winRate', 'lossMedia']
+const METRICAS = ['rewardMedio', 'acertoTrades', 'lossMedia']
 
 const estiloDoGrupo = {
   '& .MuiToggleButton-root': {

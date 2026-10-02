@@ -41,7 +41,7 @@ export default function TabelaMoedas({ linhas, resumo, onSelecionarMoeda, onAbri
     { id: 'rewardMedio', rotulo: t('treinamento.colRewardAvg'), ordenavel: true, numerica: true },
     { id: 'tendencia', rotulo: t('treinamento.colTrend'), ordenavel: true, numerica: true, dica: t('treinamento.trendHint') },
     { id: 'curva', rotulo: t('treinamento.colCurve'), dica: t('treinamento.curveHint') },
-    { id: 'winRate', rotulo: t('treinamento.colWinRate'), ordenavel: true, numerica: true, dica: t('treinamento.winRateHint') },
+    { id: 'acertoTrades', rotulo: t('treinamento.colTradeWinRate'), ordenavel: true, numerica: true, dica: t('treinamento.tradeWinRateHint') },
     { id: 'acoes', rotulo: t('treinamento.colActions'), dica: t('treinamento.colActionsHint') },
     { id: 'desdeInicio', rotulo: t('treinamento.colSinceStart'), numerica: true, dica: t('treinamento.sinceStartHint') },
     { id: 'melhor', rotulo: t('treinamento.colBestEpisode'), numerica: true },
@@ -113,7 +113,7 @@ export default function TabelaMoedas({ linhas, resumo, onSelecionarMoeda, onAbri
                         : undefined}
                     />
                   </TableCell>
-                  <TableCell align="right">{formatarPercentual(m.winRate, 1)}</TableCell>
+                  <TableCell align="right">{formatarPercentual(m.acertoTrades, 1)}</TableCell>
                   <TableCell>
                     <BarraDeAcoes
                       acoes={m.acoes}

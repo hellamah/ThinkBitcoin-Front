@@ -26,7 +26,7 @@ import { METRICAS, corDaMetrica, formatarMetrica, rotuloDaMetrica, tamanhoDoCart
 import { BarraDeAcoes, FaixaEntreVizinhos } from './Miniaturas'
 import { EstadoVazio, MoedaChip, Painel, Variacao } from './Painel'
 import RodadaDaJanela from './RodadaDaJanela'
-import { formatarData, formatarDataCurta, formatarDiaComAno, formatarNumero, formatarPercentual } from './formato'
+import { comSinal, formatarData, formatarDataCurta, formatarDiaComAno, formatarNumero, formatarPercentual } from './formato'
 
 // Detalhe de um episódio (/treinamento-episodios/:id). A pergunta é "este
 // episódio foi bom?", e a resposta depende de contra o quê. A base é a
@@ -226,6 +226,16 @@ function DadosDoEpisodio({ item, inicioMs, fimMs, ciclo }) {
     [t('treinamento.duration'), formatarMetrica('duracaoSegundos', item.duracaoSegundos)],
     [t('treinamento.totalSteps'), item.totalSteps ?? '–'],
     [t('treinamento.rewardTotal'), formatarNumero(item.rewardTotal, 2)],
+    // O acerto por trade dos cartões sai daqui; "–" em episódio gravado antes
+    // de o treinador contar trades.
+    [t('treinamento.closedTrades'), Number.isFinite(item.trades)
+      ? t('treinamento.closedTradesValue', { trades: item.trades, vencedores: item.tradesVencedores ?? 0 })
+      : '–'],
+    [t('treinamento.avgTradeReturn'), Number.isFinite(item.retornoMedioTrade)
+      ? comSinal(formatarPercentual(item.retornoMedioTrade, 2), item.retornoMedioTrade)
+      : '–'],
+    // O "win rate" de antes: fração dos steps com reward positivo.
+    [t('treinamento.stepWinRate'), formatarPercentual(item.winRate, 1)],
     // O trecho do histórico que o episódio negociou; "–" em episódio gravado
     // antes de o treinador mandar a janela.
     [t('treinamento.dataWindow'), item.dataInicioDados && item.dataFimDados

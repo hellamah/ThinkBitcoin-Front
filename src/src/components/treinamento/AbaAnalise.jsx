@@ -50,7 +50,7 @@ import { corDaMoeda, formaDaMoeda, formatarHora, formatarIntervalo } from './for
 // moeda — misturar as moedas numa série só era o que produzia o serrote.
 
 // Sem loss: é da rede, não da moeda, e as dez curvas saíam idênticas.
-const METRICAS_DA_CURVA = ['rewardMedio', 'winRate']
+const METRICAS_DA_CURVA = ['rewardMedio', 'acertoTrades']
 const JANELA_POR_MOEDA = 5
 const PLUGINS = [pluginFaixasDeCiclo]
 

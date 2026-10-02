@@ -263,9 +263,15 @@ describe('treinamento › janelaParaMistura', () => {
 
 describe('treinamento › estatisticas e variacao', () => {
   it('faz a média ignorando valores ausentes', () => {
-    const s = estatisticas([ep(1, 0, { winRate: 0.2 }), ep(2, 1, { winRate: undefined })])
+    const s = estatisticas([ep(1, 0, { acertoTrades: 0.2 }), ep(2, 1, { acertoTrades: undefined })])
     expect(s.total).toBe(2)
-    expect(s.winRate).toBeCloseTo(0.2)
+    expect(s.acertoTrades).toBeCloseTo(0.2)
+  })
+
+  it('o acerto é por trade: episódio sem contagem de trades não entra como zero', () => {
+    const s = estatisticas([ep(1, 0, { acertoTrades: 0.6, winRate: 0.3 }), ep(2, 1, { acertoTrades: null, winRate: 0.5 })])
+    expect(s.acertoTrades).toBeCloseTo(0.6)
+    expect(s).not.toHaveProperty('winRate')
   })
 
   it('não inventa variação quando falta a janela anterior', () => {
@@ -604,6 +610,17 @@ describe('treinamento › episodiosParaCSV', () => {
     expect(linha.split(',')[9]).toBe('')
     expect(linha).not.toContain('null')
     expect(linha).not.toContain('undefined')
+  })
+
+  // O win rate por step continua no arquivo, ao lado do acerto por trade.
+  it('leva o acerto por trade no fim, com o win rate por step mantido', () => {
+    const [cabecalho, linha] = episodiosParaCSV([
+      ep(1, 0, { trades: 12, tradesVencedores: 5, acertoTrades: 5 / 12, retornoMedioTrade: 0.0042 }),
+    ]).split('\r\n')
+    const colunas = cabecalho.split(',')
+    expect(colunas).toContain('winRate')
+    expect(colunas.slice(-4)).toEqual(['trades', 'tradesVencedores', 'acertoTrades', 'retornoMedioTrade'])
+    expect(linha.split(',').slice(-4)).toEqual(['12', '5', String(5 / 12), '0.0042'])
   })
 })
 

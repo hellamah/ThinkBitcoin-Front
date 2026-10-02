@@ -588,6 +588,21 @@ describe('utils/mockApi › getMockResponse', () => {
       expect(noFim.map((r) => r.idTreinamentoEpisodio)).toContain(maisRecente.idTreinamentoEpisodio)
     })
 
+    // Como o treinador conta: trades fechados no episódio e os que deram lucro.
+    it('cada episódio traz o acerto por trade, maior e com menos giro no piso do epsilon', () => {
+      const eps = ultimas24h()
+      for (const r of eps) {
+        expect(r.tradesVencedores).toBeLessThanOrEqual(r.trades)
+        if (r.trades > 0) expect(r.acertoTrades).toBeCloseTo(r.tradesVencedores / r.trades)
+        else expect(r.acertoTrades).toBeNull()
+      }
+      const media = (lista, campo) => lista.reduce((s, r) => s + r[campo], 0) / lista.length
+      const explorando = eps.filter((r) => r.epsilon > 0.8 && r.trades > 0)
+      const noPiso = eps.filter((r) => r.epsilon <= 0.06 && r.trades > 0)
+      expect(media(noPiso, 'acertoTrades')).toBeGreaterThan(media(explorando, 'acertoTrades'))
+      expect(media(noPiso, 'trades')).toBeLessThan(media(explorando, 'trades'))
+    })
+
     // O treino percorre o histórico: as dez moedas de uma rodada negociam o
     // mesmo lote de 1000 velas, e o lote anda para trás de rodada em rodada.
     it('cada rodada traz a janela de dados que negociou, de 1000 velas', () => {

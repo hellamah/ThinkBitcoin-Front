@@ -308,7 +308,9 @@ export const janelaParaMistura = (qtdMoedas) =>
 export const estatisticas = (itens) => ({
   total: itens.length,
   rewardMedio: mediaDaMetrica(itens, 'rewardMedio'),
-  winRate: mediaDaMetrica(itens, 'winRate'),
+  // Média do acerto de cada episódio: os que não têm (antigos, ou sem trade
+  // fechado) ficam de fora, em vez de entrar como zero.
+  acertoTrades: mediaDaMetrica(itens, 'acertoTrades'),
   lossMedia: mediaDaMetrica(itens, 'lossMedia'),
   epsilon: mediaDaMetrica(itens, 'epsilon'),
   duracaoSegundos: mediaDaMetrica(itens, 'duracaoSegundos'),
@@ -475,8 +477,8 @@ export const resumirCiclos = (timeline, ciclos) =>
       epFim: c.epFim,
       rewardInicio: mediaDaMetrica(inicio, 'rewardMedio'),
       rewardFim: mediaDaMetrica(fim, 'rewardMedio'),
-      winRateInicio: mediaDaMetrica(inicio, 'winRate'),
-      winRateFim: mediaDaMetrica(fim, 'winRate'),
+      acertoInicio: mediaDaMetrica(inicio, 'acertoTrades'),
+      acertoFim: mediaDaMetrica(fim, 'acertoTrades'),
       versoes: [...new Set(eps.map((r) => r.versaoModelo).filter(Boolean))].sort(),
     }
   })
@@ -654,6 +656,8 @@ const COLUNAS_DO_CSV = Object.freeze([
   'idTreinamentoEpisodio', 'episodio', 'dataHora', 'moeda', 'versaoModelo',
   'rewardMedio', 'rewardTotal', 'lossMedia', 'epsilon', 'winRate',
   'duracaoSegundos', 'totalSteps', 'acoesHold', 'acoesCompra', 'acoesVenda',
+  // Acerto por operação. Vazio em episódio de worker que ainda não contava trades.
+  'trades', 'tradesVencedores', 'acertoTrades', 'retornoMedioTrade',
 ])
 
 /**

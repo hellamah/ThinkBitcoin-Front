@@ -50,7 +50,7 @@ export function TabelaCiclos({ ciclos, onFocar }) {
               <TableCell align="right">{t('treinamento.duration')}</TableCell>
               <TableCell align="right">{t('treinamento.colEpisodes')}</TableCell>
               <TableCell align="right">{t('treinamento.colRewardStartEnd')}</TableCell>
-              <TableCell align="right">{t('treinamento.colWinRateStartEnd')}</TableCell>
+              <TableCell align="right">{t('treinamento.colTradeWinRateStartEnd')}</TableCell>
               <TableCell>{t('treinamento.colVersion')}</TableCell>
             </TableRow>
           </TableHead>
@@ -82,7 +82,7 @@ export function TabelaCiclos({ ciclos, onFocar }) {
                     <Box component="span" sx={{ color: 'var(--text-muted)' }}>(#{c.epInicio}–#{c.epFim})</Box>
                   </TableCell>
                   <TableCell align="right"><InicioFim id="rewardMedio" inicio={c.rewardInicio} fim={c.rewardFim} /></TableCell>
-                  <TableCell align="right"><InicioFim id="winRate" inicio={c.winRateInicio} fim={c.winRateFim} /></TableCell>
+                  <TableCell align="right"><InicioFim id="acertoTrades" inicio={c.acertoInicio} fim={c.acertoFim} /></TableCell>
                   <TableCell sx={{ color: 'var(--text-secondary) !important' }}>{c.versoes.join(', ') || '–'}</TableCell>
                 </TableRow>
               )
@@ -105,7 +105,7 @@ export function TabelaVersoes({ versoes }) {
               <TableCell>{t('treinamento.colVersion')}</TableCell>
               <TableCell align="right">{t('treinamento.colEpisodes')}</TableCell>
               <TableCell align="right">{t('treinamento.colRewardAvg')}</TableCell>
-              <TableCell align="right">{t('treinamento.colWinRate')}</TableCell>
+              <TableCell align="right">{t('treinamento.colTradeWinRate')}</TableCell>
               <TableCell align="right">{t('treinamento.colLossAvg')}</TableCell>
               <TableCell>{t('treinamento.colPeriod')}</TableCell>
             </TableRow>
@@ -116,7 +116,7 @@ export function TabelaVersoes({ versoes }) {
                 <TableCell sx={{ fontWeight: 700 }}>{v.versao}</TableCell>
                 <TableCell align="right">{v.total}</TableCell>
                 <TableCell align="right">{formatarMetrica('rewardMedio', v.rewardMedio)}</TableCell>
-                <TableCell align="right">{formatarMetrica('winRate', v.winRate)}</TableCell>
+                <TableCell align="right">{formatarMetrica('acertoTrades', v.acertoTrades)}</TableCell>
                 <TableCell align="right">{formatarMetrica('lossMedia', v.lossMedia)}</TableCell>
                 <TableCell sx={{ whiteSpace: 'nowrap', color: 'var(--text-secondary) !important' }}>
                   {formatarDataCurta(v.inicio, idioma.intl)} – {formatarDataCurta(v.fim, idioma.intl)}

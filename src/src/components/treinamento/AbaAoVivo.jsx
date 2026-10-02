@@ -65,7 +65,7 @@ function CartaoMetrica({ id, valor, delta, serie, selecionado, onSelecionar, rot
       type="button"
       className="botao-nu"
       aria-pressed={selecionado}
-      title={id === 'winRate' ? t('treinamento.winRateHint') : undefined}
+      title={id === 'acertoTrades' ? t('treinamento.tradeWinRateHint') : undefined}
       onClick={onSelecionar}
       sx={{
         width: '100%',
@@ -145,7 +145,7 @@ function UltimosEpisodios({ itens, onAbrir }) {
                 <Box component="span" sx={{ color: 'var(--text-muted)', ml: 0.75, fontSize: 12 }}>{formatarHora(r.dataHora, idioma.intl, true)}</Box>
               </Box>
               <Box component="span" sx={{ fontWeight: 600, color: 'var(--accent-ink)' }}>{formatarNumero(r.rewardMedio, 3)}</Box>
-              <Box component="span" sx={{ color: 'var(--text-secondary)', minWidth: 48, textAlign: 'right' }}>{formatarPercentual(r.winRate, 1)}</Box>
+              <Box component="span" sx={{ color: 'var(--text-secondary)', minWidth: 48, textAlign: 'right' }}>{formatarPercentual(r.acertoTrades, 1)}</Box>
             </Box>
           </li>
         ))}
@@ -208,7 +208,7 @@ function MoedasNaJanela({ linhas, anteriores, onSelecionarMoeda }) {
               </Box>
               <Box component="span" sx={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
                 <Variacao d={d} />
-                <Box component="span" sx={{ color: 'var(--text-secondary)' }}>{formatarPercentual(m.winRate, 1)}</Box>
+                <Box component="span" sx={{ color: 'var(--text-secondary)' }}>{formatarPercentual(m.acertoTrades, 1)}</Box>
               </Box>
             </Box>
           )

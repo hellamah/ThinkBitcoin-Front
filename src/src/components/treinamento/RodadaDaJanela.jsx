@@ -70,7 +70,7 @@ export default function RodadaDaJanela({ item, onNavegar }) {
     { id: 'moeda', rotulo: t('treinamento.colCoin') },
     { id: 'reward', rotulo: rotuloDaMetrica(t, 'rewardMedio'), numerica: true },
     { id: 'mercado', rotulo: t('treinamento.roundMarket'), numerica: true, dica: t('treinamento.roundMarketHint') },
-    { id: 'winRate', rotulo: rotuloDaMetrica(t, 'winRate'), numerica: true },
+    { id: 'acertoTrades', rotulo: rotuloDaMetrica(t, 'acertoTrades'), numerica: true, dica: t('treinamento.tradeWinRateHint') },
     { id: 'acoes', rotulo: t('treinamento.agentActions') },
     { id: 'epsilon', rotulo: rotuloDaMetrica(t, 'epsilon'), numerica: true },
     { id: 'episodio', rotulo: t('treinamento.episode'), numerica: true },
@@ -153,7 +153,7 @@ export default function RodadaDaJanela({ item, onNavegar }) {
                       <TableCell align="right" sx={{ color: `${corDoSinal(mercado)} !important` }}>
                         {mercado === undefined ? <CircularProgress size={12} sx={{ color: 'var(--text-muted)' }} /> : pct(mercado)}
                       </TableCell>
-                      <TableCell align="right">{formatarMetrica('winRate', r.winRate)}</TableCell>
+                      <TableCell align="right">{formatarMetrica('acertoTrades', r.acertoTrades)}</TableCell>
                       <TableCell>
                         <BarraDeAcoes
                           acoes={acoes}
