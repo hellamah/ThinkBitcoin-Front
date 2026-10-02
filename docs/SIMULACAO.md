@@ -1576,6 +1576,17 @@ Descartada também a ideia de comparar com as métricas de treino: o `WinRate` d
 acerto de operação. Cruzar os dois numa mesma tabela seria exatamente a
 comparação enganosa que o resto desta plataforma se recusa a fazer.
 
+> **Atualização, 02/10/2026.** Robô operando ou não, as tabelas ficariam vazias:
+> a decisão ao vivo está implantada (`helm_deploy.ps1`), mas nada do que ela
+> publica chegava ao banco — a decisão ia para uma fila sem consumidor e fora do contrato do .NET,
+> a posição dependia de um evento que nenhum agente preenchia, e o consumidor
+> de decisões não salvava. Corrigido nos três repositórios (ver "Decisão e
+> posição ao vivo" no `ScriptComum-README.md` do Python). Depois do deploy, as
+> três tabelas passam a receber uma decisão por hora e as posições da
+> simulação ao vivo, e a comparação com o robô deixa de estar bloqueada por
+> falta de dado. Desde a mesma época o treino conta também o acerto por trade
+> (`Trades`/`TradesVencedores` em `TbTreinamentoEpisodio`).
+
 ---
 
 ## 12. Fora de escopo, anotado
@@ -1588,6 +1599,9 @@ entre front e .NET. O Python é referência de leitura (seção 3) e nada mais.
   (ver 11b). O esquema existe e o endpoint também
   (`MarketEndpoint.RETURN_SEQUENCE`, com `[Authorize(Roles = AcessoIA)]`);
   faltam as linhas. Destravar depende de o robô operar, não de front.
+  *(02/10/2026: mesmo operando, a publicação estava quebrada. Corrigida — ver
+  a atualização em 11b. As linhas começam a chegar depois do deploy, se o
+  consumidor ao vivo estiver de pé.)*
 - **Janela longa com busca própria.** Ver D-03 (b). Depende de B-01 e da V17.
 - **Portfólio multi-ativo.** Depende de B-04.
 - **Taxa efetiva da corretora.** Ver B-05.
