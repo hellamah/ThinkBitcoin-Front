@@ -736,6 +736,79 @@ export const cicloDoEpisodio = (timeline, id) => {
   return ciclo ? { ...ciclo, posicao: idx - ciclo.de + 1 } : null
 }
 
+// ── Mesmo lote, outras moedas ───────────────────────────────────────────────
+//
+// O treinador treina várias moedas no mesmo lote de dados antes de andar o
+// offset (a linha do banco traz todas as moedas): é a rodada. Os episódios
+// dela têm a mesma janela (dataInicioDados/dataFimDados), rodam em sequência e
+// com o mesmo modelo. Compará-los separa "a moeda era difícil naquele trecho"
+// de "o modelo estava ruim naquele ponto do treino".
+
+const msDaData = (valor) => (valor ? new Date(valor).getTime() : NaN)
+
+// Do maior reward médio para o menor; sem reward vai para o fim.
+const porRewardDecrescente = (a, b) => {
+  const semA = !Number.isFinite(a.rewardMedio)
+  const semB = !Number.isFinite(b.rewardMedio)
+  if (semA || semB) return semA === semB ? 0 : semA ? 1 : -1
+  return b.rewardMedio - a.rewardMedio
+}
+
+/**
+ * A rodada de `item`: os episódios em sequência no tempo que negociaram o
+ * mesmo lote que ele (ele incluído), do maior reward médio para o menor, com a
+ * posição dele, a média da rodada e o instante do último. `episodios` é o
+ * entorno de TODAS as moedas e lotes. null quando o episódio não tem janela:
+ * foi gravado antes de o treinador mandá-la, e não há como achar a rodada.
+ *
+ * O trecho contínuo, e não todo episódio com a mesma janela: quando o
+ * treinador dá a volta no dataset, o mesmo lote volta mais tarde, com o
+ * modelo em outro ponto do treino (no mock, a cada 130 episódios). Misturar
+ * as duas passagens poria no mesmo ranking um modelo explorando e um pronto.
+ * A pausa entre treinos não tem episódio nenhum, então a rodada que atravessa
+ * a troca de sessão continua contínua.
+ */
+export const rodadaDoEpisodio = (item, episodios) => {
+  const inicio = msDaData(item?.dataInicioDados)
+  const fim = msDaData(item?.dataFimDados)
+  if (!Number.isFinite(inicio) || !Number.isFinite(fim)) return null
+  const doLote = (r) => msDaData(r?.dataInicioDados) === inicio && msDaData(r?.dataFimDados) === fim
+  const porId = new Map()
+  for (const r of [...(episodios || []), item]) porId.set(r.idTreinamentoEpisodio, r)
+  const timeline = [...porId.values()]
+    .filter((r) => r === item || Number.isFinite(instanteDe(r)))
+    .sort((a, b) => instanteDe(a) - instanteDe(b))
+  const idx = timeline.indexOf(porId.get(item.idTreinamentoEpisodio))
+  let de = idx
+  let ate = idx
+  while (de > 0 && doLote(timeline[de - 1])) de--
+  while (ate < timeline.length - 1 && doLote(timeline[ate + 1])) ate++
+  const ordenados = timeline.slice(de, ate + 1).sort(porRewardDecrescente)
+  const recompensas = ordenados.map((r) => r.rewardMedio).filter(Number.isFinite)
+  const instantes = ordenados.map(instanteDe).filter(Number.isFinite)
+  return {
+    episodios: ordenados,
+    posicao: ordenados.findIndex((r) => r.idTreinamentoEpisodio === item.idTreinamentoEpisodio) + 1,
+    total: ordenados.length,
+    media: recompensas.length > 0 ? recompensas.reduce((s, v) => s + v, 0) / recompensas.length : null,
+    ultimoMs: instantes.length > 0 ? Math.max(...instantes) : NaN,
+  }
+}
+
+/**
+ * Variação do preço do primeiro ao último fechamento de uma janela, a partir
+ * das velas pedidas perto de cada ponta. Aceita qualquer ordem (o modo demo
+ * devolve do mais recente para o mais antigo). null sem preço numa das pontas.
+ */
+export const variacaoEntreVelas = (doInicio, doFim) => {
+  const comPreco = (lista) => (Array.isArray(lista) ? lista : [])
+    .filter((r) => Number.isFinite(msDaData(r?.horaReferencia)) && r.precoFechamento > 0)
+  const primeira = comPreco(doInicio).sort((a, b) => msDaData(a.horaReferencia) - msDaData(b.horaReferencia))[0]
+  const ultima = comPreco(doFim).sort((a, b) => msDaData(b.horaReferencia) - msDaData(a.horaReferencia))[0]
+  if (!primeira || !ultima) return null
+  return (ultima.precoFechamento - primeira.precoFechamento) / primeira.precoFechamento
+}
+
 // ── Validação das sessões ───────────────────────────────────────────────────
 //
 // A avaliação out-of-sample de cada sessão (/api/TreinamentoEpisodio/avaliacoes):

@@ -836,7 +836,19 @@
     "colTestHint": "Le même chiffre sur la partie de test : enregistré et jamais utilisé pour le choix",
     "colChampion": "Champion",
     "colChampionHint": "Le modèle en production mesuré sur la même validation ; vide quand la session n'a même pas battu le passif",
-    "colDecision": "Décision"
+    "colDecision": "Décision",
+    "roundTitle": "Le même lot sur les autres cryptos",
+    "roundSubtitle": "Les cryptos qui ont négocié le même extrait de l'historique ({{inicio}} – {{fim}}), l'une après l'autre et avec le même modèle. Si tout le tour s'est mal passé, la crypto n'était pas le problème.",
+    "roundPosition": "{{moeda}} : position {{pos}} sur {{total}} en reward moyen du tour",
+    "roundAverage": "moyenne du tour {{media}}",
+    "roundMarket": "Marché sur le lot",
+    "roundMarketHint": "Variation du prix de la crypto entre la première et la dernière bougie du lot : le buy-and-hold de l'épisode",
+    "roundNoWindow": "Cet épisode a été enregistré avant que l'entraîneur n'enregistre la fenêtre de données : impossible de retrouver les cryptos qui ont négocié le même lot.",
+    "roundLoading": "Chargement des autres cryptos du lot",
+    "roundLoadError": "Impossible de charger les autres cryptos du lot.",
+    "roundAlone": "Aucune autre crypto n'a négocié ce lot près de cet épisode.",
+    "roundEpsilonNote": "Les cryptos passent l'une après l'autre et l'epsilon baisse à chaque épisode : celles passées plus tard ont un peu moins exploré. L'ordre est dans le numéro de l'épisode.",
+    "roundInProgress": "Ce tour est récent et peut être encore en cours : les cryptos manquantes apparaissent en actualisant."
   },
   "ajuda": {
     "atr": "La distance que le prix parcourt habituellement à l'intérieur d'une bougie. Sert à dimensionner les distances par volatilité mesurée plutôt qu'au jugé ; n'indique pas de direction.",

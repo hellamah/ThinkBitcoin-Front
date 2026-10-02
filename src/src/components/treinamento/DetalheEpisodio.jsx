@@ -25,6 +25,7 @@ import GraficoDeVizinhos from './GraficoDeVizinhos'
 import { METRICAS, corDaMetrica, formatarMetrica, rotuloDaMetrica, tamanhoDoCartao } from './graficos'
 import { BarraDeAcoes, FaixaEntreVizinhos } from './Miniaturas'
 import { EstadoVazio, MoedaChip, Painel, Variacao } from './Painel'
+import RodadaDaJanela from './RodadaDaJanela'
 import { formatarData, formatarDataCurta, formatarDiaComAno, formatarNumero, formatarPercentual } from './formato'
 
 // Detalhe de um episódio (/treinamento-episodios/:id). A pergunta é "este
@@ -33,6 +34,8 @@ import { formatarData, formatarDataCurta, formatarDiaComAno, formatarNumero, for
 // média de tudo o que estava carregado, rotulada "média da janela" — e como o
 // modelo melhora ao longo do treino, todo episódio antigo parecia ruim e todo
 // recente parecia bom, com a conta mudando conforme o histórico buscado.
+// A outra base é a rodada (RodadaDaJanela): as outras moedas no mesmo lote de
+// dados, com o mesmo modelo — separa a moeda difícil do modelo ruim.
 
 // O episódio pedido pela URL não existe na lista carregada. Componente à parte
 // de propósito: dentro do detalhe, a mensagem ficaria atrás de um `return`
@@ -425,6 +428,9 @@ export default function DetalheEpisodio({ item, allItems, carregando, garantirPe
           </Grid>
           <Grid size={{ xs: 12, md: 4 }}>
             <DadosDoEpisodio item={item} inicioMs={inicioMs} fimMs={fimMs} ciclo={ciclo} />
+          </Grid>
+          <Grid size={12}>
+            <RodadaDaJanela item={item} onNavegar={onNavigate} />
           </Grid>
         </Grid>
       </Box>

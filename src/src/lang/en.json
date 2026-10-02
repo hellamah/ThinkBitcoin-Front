@@ -836,7 +836,19 @@
     "colTestHint": "The same figure on the test stretch: recorded and never used for the choice",
     "colChampion": "Champion",
     "colChampionHint": "The live model measured on the same validation; empty when the session did not even beat passive",
-    "colDecision": "Decision"
+    "colDecision": "Decision",
+    "roundTitle": "The same batch on the other coins",
+    "roundSubtitle": "The coins that traded the same stretch of history ({{inicio}} – {{fim}}), one after another and with the same model. If the whole round did badly, the coin was not the problem.",
+    "roundPosition": "{{moeda}}: {{pos}} of {{total}} by average reward in the round",
+    "roundAverage": "round average {{media}}",
+    "roundMarket": "Market in the batch",
+    "roundMarketHint": "Change in the coin's price from the first to the last candle of the batch: the episode's buy-and-hold",
+    "roundNoWindow": "This episode was recorded before the trainer started recording the data window: there is no way to find the coins that traded the same batch.",
+    "roundLoading": "Loading the other coins in the batch",
+    "roundLoadError": "Could not load the other coins in the batch.",
+    "roundAlone": "No other coin traded this batch near this episode.",
+    "roundEpsilonNote": "The coins run one after another and epsilon drops with every episode: the ones that ran later explored a little less. The order is in the episode number.",
+    "roundInProgress": "This round is recent and may still be running: the remaining coins show up when you refresh."
   },
   "ajuda": {
     "atr": "How far the price typically travels within a candle. Useful to size distances by measured volatility instead of by guesswork; it indicates no direction.",

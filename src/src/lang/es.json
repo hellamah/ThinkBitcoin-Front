@@ -836,7 +836,19 @@
     "colTestHint": "El mismo número en el tramo de test: registrado y nunca usado en la elección",
     "colChampion": "Campeón",
     "colChampionHint": "El modelo en vivo medido en la misma validación; vacío cuando la sesión ni siquiera superó al pasivo",
-    "colDecision": "Decisión"
+    "colDecision": "Decisión",
+    "roundTitle": "El mismo lote en las otras monedas",
+    "roundSubtitle": "Las monedas que negociaron el mismo tramo del histórico ({{inicio}} – {{fim}}), una tras otra y con el mismo modelo. Si toda la ronda fue mal, el problema no era la moneda.",
+    "roundPosition": "{{moeda}}: posición {{pos}} de {{total}} en reward medio de la ronda",
+    "roundAverage": "media de la ronda {{media}}",
+    "roundMarket": "Mercado en el lote",
+    "roundMarketHint": "Variación del precio de la moneda de la primera a la última vela del lote: el buy-and-hold del episodio",
+    "roundNoWindow": "Este episodio se grabó antes de que el entrenador registrara la ventana de datos: no hay forma de encontrar las monedas que negociaron el mismo lote.",
+    "roundLoading": "Cargando las otras monedas del lote",
+    "roundLoadError": "No se pudieron cargar las otras monedas del lote.",
+    "roundAlone": "Ninguna otra moneda negoció este lote cerca de este episodio.",
+    "roundEpsilonNote": "Las monedas corren una tras otra y el epsilon baja en cada episodio: las que corrieron después exploraron un poco menos. El orden está en el número del episodio.",
+    "roundInProgress": "La ronda es reciente y puede seguir en curso: las monedas que faltan aparecen al actualizar."
   },
   "ajuda": {
     "atr": "Cuánto suele recorrer el precio dentro de una vela. Sirve para dimensionar distancias por volatilidad medida en vez de por corazonada; no indica dirección.",

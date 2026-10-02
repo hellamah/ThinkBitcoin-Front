@@ -836,7 +836,19 @@
     "colTestHint": "Lo stesso numero nel tratto di test: registrato e mai usato nella scelta",
     "colChampion": "Campione",
     "colChampionHint": "Il modello in produzione misurato sulla stessa validazione; vuoto quando la sessione non ha nemmeno battuto il passivo",
-    "colDecision": "Decisione"
+    "colDecision": "Decisione",
+    "roundTitle": "Lo stesso lotto sulle altre monete",
+    "roundSubtitle": "Le monete che hanno negoziato lo stesso tratto dello storico ({{inicio}} – {{fim}}), una dopo l'altra e con lo stesso modello. Se tutto il turno è andato male, il problema non era la moneta.",
+    "roundPosition": "{{moeda}}: posizione {{pos}} su {{total}} per reward medio del turno",
+    "roundAverage": "media del turno {{media}}",
+    "roundMarket": "Mercato nel lotto",
+    "roundMarketHint": "Variazione del prezzo della moneta dalla prima all'ultima candela del lotto: il buy-and-hold dell'episodio",
+    "roundNoWindow": "Questo episodio è stato registrato prima che l'addestratore registrasse la finestra di dati: non c'è modo di trovare le monete che hanno negoziato lo stesso lotto.",
+    "roundLoading": "Caricamento delle altre monete del lotto",
+    "roundLoadError": "Impossibile caricare le altre monete del lotto.",
+    "roundAlone": "Nessun'altra moneta ha negoziato questo lotto vicino a questo episodio.",
+    "roundEpsilonNote": "Le monete girano una dopo l'altra e l'epsilon scende a ogni episodio: quelle eseguite dopo hanno esplorato un po' meno. L'ordine è nel numero dell'episodio.",
+    "roundInProgress": "Il turno è recente e potrebbe essere ancora in corso: le monete mancanti compaiono aggiornando."
   },
   "ajuda": {
     "atr": "Quanto il prezzo percorre di solito all'interno di una candela. Serve a dimensionare le distanze in base alla volatilità misurata anziché a intuito; non indica la direzione.",

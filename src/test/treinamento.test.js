@@ -36,12 +36,14 @@ import {
   resumirVersoes,
   resumoDasAvaliacoes,
   ritmoPorHora,
+  rodadaDoEpisodio,
   serieDasAvaliacoes,
   serieSuavizada,
   statusDoTreino,
   tendencia,
   treinoTerminou,
   variacao,
+  variacaoEntreVelas,
   vereditoDoEpisodio,
   vizinhosDe,
 } from '../src/utils/treinamento'
@@ -656,6 +658,70 @@ describe('treinamento › validação das sessões', () => {
     expect(decisaoDaAvaliacao({ score: 0.01, promovido: false, motivo: 'motivo novo' })).toEqual({ texto: 'motivo novo' })
     expect(decisaoDaAvaliacao({ score: 0.01, promovido: false, motivo: null })).toBeNull()
     expect(decisaoDaAvaliacao(null)).toBeNull()
+  })
+})
+
+describe('treinamento › rodada do mesmo lote', () => {
+  // Lote como a API devolve: com o "Z" que o apiClient acrescenta.
+  const LOTE = { dataInicioDados: '2024-12-06T00:00:00Z', dataFimDados: '2025-01-16T15:00:00Z' }
+  const OUTRO = { dataInicioDados: '2024-10-25T09:00:00Z', dataFimDados: '2024-12-05T23:00:00Z' }
+  const doLote = (n, minuto, moeda, rewardMedio, lote = LOTE) => ep(n, minuto, { moeda, rewardMedio, ...lote })
+
+  it('junta os episódios da mesma janela e ordena pelo reward', () => {
+    const item = doLote(3, 2, 'ETH', 0.2)
+    const episodios = [
+      doLote(1, 0, 'BTC', 0.1),
+      doLote(2, 1, 'SOL', 0.4),
+      item,
+      doLote(4, 3, 'ADA', null),
+      doLote(5, 4, 'BTC', 0.9, OUTRO), // a rodada seguinte, em outro lote
+    ]
+    const rodada = rodadaDoEpisodio(item, episodios)
+    expect(rodada.episodios.map((r) => r.moeda)).toEqual(['SOL', 'ETH', 'BTC', 'ADA'])
+    expect(rodada).toMatchObject({ posicao: 2, total: 4 })
+    expect(rodada.media).toBeCloseTo((0.1 + 0.4 + 0.2) / 3)
+    expect(rodada.ultimoMs).toBe(BASE + 3 * UM_MINUTO_MS)
+  })
+
+  it('o mesmo lote numa passagem seguinte pelo dataset é outra rodada', () => {
+    const item = doLote(21, 0, 'SOL', 0.05)
+    const episodios = [
+      item,
+      doLote(22, 1, 'BTC', 0.14),
+      doLote(23, 2, 'ETH', 0.1, OUTRO), // o lote andou
+      doLote(151, 30, 'BTC', 0.35), // o dataset deu a volta: modelo em outro ponto
+    ]
+    expect(rodadaDoEpisodio(item, episodios).episodios.map((r) => r.episodio)).toEqual([22, 21])
+  })
+
+  it('a rodada atravessa a pausa entre treinos, que não tem episódio', () => {
+    const item = doLote(299, 0, 'SOL', 0.2)
+    const episodios = [doLote(298, -1, 'BTC', 0.1), item, doLote(300, 1, 'ETH', 0.3), doLote(1, 9, 'ADA', 0.05)]
+    expect(rodadaDoEpisodio(item, episodios).total).toBe(4)
+  })
+
+  it('compara a janela pelo instante, e não pelo texto', () => {
+    const item = doLote(1, 0, 'BTC', 0.1)
+    const semZ = ep(2, 1, { moeda: 'ETH', dataInicioDados: '2024-12-06T00:00:00.000Z', dataFimDados: '2025-01-16T15:00:00.000Z' })
+    expect(rodadaDoEpisodio(item, [semZ]).total).toBe(2)
+  })
+
+  it('o episódio entra mesmo fora da lista, e sem repetir', () => {
+    const item = doLote(1, 0, 'BTC', 0.1)
+    expect(rodadaDoEpisodio(item, []).total).toBe(1)
+    expect(rodadaDoEpisodio(item, [item, { ...item }]).total).toBe(1)
+  })
+
+  it('episódio sem janela não tem rodada', () => {
+    expect(rodadaDoEpisodio(ep(1, 0), [doLote(2, 1, 'ETH', 0.3)])).toBeNull()
+  })
+
+  it('a variação vai do primeiro ao último fechamento, em qualquer ordem', () => {
+    const vela = (hora, preco) => ({ horaReferencia: `2024-12-06T0${hora}:00:00Z`, precoFechamento: preco })
+    // Do mais recente para o mais antigo, como o modo demo devolve.
+    expect(variacaoEntreVelas([vela(1, 110), vela(0, 100)], [vela(8, 120), vela(9, 125)])).toBeCloseTo(0.25)
+    expect(variacaoEntreVelas([], [vela(9, 125)])).toBeNull()
+    expect(variacaoEntreVelas([vela(0, 0)], [vela(9, 125)])).toBeNull()
   })
 })
 
