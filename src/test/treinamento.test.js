@@ -709,6 +709,25 @@ describe('treinamento › validação das sessões', () => {
       .toEqual({ chave: 'treinamento.decisionPromotionOff' })
   })
 
+  // A tela traduzia o texto em português: uma vírgula mudada no treinador e o
+  // motivo aparecia cru nos cinco idiomas.
+  it('traduz pelo código do motivo, mesmo com o texto mudado', () => {
+    const naoPromovida = { score: 0.012, promovido: false }
+    expect(decisaoDaAvaliacao({ ...naoPromovida, motivo: 'texto reescrito', motivoCodigo: 'abaixo-do-passivo' }))
+      .toEqual({ chave: 'treinamento.decisionBelowPassive' })
+    expect(decisaoDaAvaliacao({ ...naoPromovida, scoreCampeao: 0.0182, motivo: 'outro texto', motivoCodigo: 'abaixo-do-campeao' }))
+      .toEqual({ chave: 'treinamento.decisionBelowChampion', campeao: 0.0182 })
+    expect(decisaoDaAvaliacao({ ...naoPromovida, scoreCampeao: 0.01, motivoCodigo: 'falha-ao-guardar-copia' }))
+      .toEqual({ chave: 'treinamento.decisionSaveFailed' })
+    expect(decisaoDaAvaliacao({ ...naoPromovida, motivoCodigo: 'falha-ao-medir-campeao' }))
+      .toEqual({ chave: 'treinamento.decisionChampionFailed' })
+    expect(decisaoDaAvaliacao({ ...naoPromovida, motivoCodigo: 'promocao-desligada' }))
+      .toEqual({ chave: 'treinamento.decisionPromotionOff' })
+    // Código que a tela ainda não conhece: segue pelo texto, como antes.
+    expect(decisaoDaAvaliacao({ ...naoPromovida, motivo: 'TB_GUARDAR_MELHOR desligado', motivoCodigo: 'codigo-novo' }))
+      .toEqual({ chave: 'treinamento.decisionPromotionOff' })
+  })
+
   it('um motivo que a tela não conhece aparece como veio', () => {
     expect(decisaoDaAvaliacao({ score: 0.01, promovido: false, motivo: 'motivo novo' })).toEqual({ texto: 'motivo novo' })
     expect(decisaoDaAvaliacao({ score: 0.01, promovido: false, motivo: null })).toBeNull()

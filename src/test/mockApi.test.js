@@ -627,6 +627,9 @@ describe('utils/mockApi › getMockResponse', () => {
         expect(a.validacao.moedasAvaliadas).toBe(10)
         if (a.promovido) expect(a.motivo).toBeNull()
         else expect(a.motivo).toEqual(expect.any(String))
+        // O código do motivo, como a API devolve (MotivoCodigo).
+        if (a.promovido) expect(a.motivoCodigo).toBeNull()
+        else expect(a.motivoCodigo).toBe(a.score <= 0 ? 'abaixo-do-passivo' : 'abaixo-do-campeao')
         // Quem nem bate o passivo não chega a medir o campeão.
         if (a.score <= 0) expect(a.scoreCampeao).toBeNull()
       }

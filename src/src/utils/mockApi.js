@@ -873,9 +873,11 @@ const buildTreinoAvaliacoes = () => {
     for (let j = c - 12; j < c; j++) campeao = Math.max(campeao, treinoScoreDaSessao(j))
     let promovido = false
     let motivo = null
+    let motivoCodigo = null
     let scoreCampeao = null
     if (score <= 0) {
       motivo = 'não bate o passivo na moeda mediana'
+      motivoCodigo = 'abaixo-do-passivo'
     } else {
       // O campeão é medido de novo na validação desta sessão. O número dele anda
       // pouco: entre uma sessão e outra a validação só ganha as velas novas.
@@ -883,6 +885,7 @@ const buildTreinoAvaliacoes = () => {
       if (score <= scoreCampeao) {
         const pct = scoreCampeao * 100
         motivo = `o campeão atual rende ${pct >= 0 ? '+' : ''}${pct.toFixed(2)}% na mesma validação`
+        motivoCodigo = 'abaixo-do-campeao'
       } else {
         promovido = true
       }
@@ -899,6 +902,7 @@ const buildTreinoAvaliacoes = () => {
       scoreCampeao,
       promovido,
       motivo,
+      motivoCodigo,
       fracaoHoldout: 0.2,
       fracaoTeste: 0.5,
       taxaTreino: 0.004,

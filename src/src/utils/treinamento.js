@@ -897,9 +897,19 @@ export const resumoDasAvaliacoes = (avaliacoes) => {
   }
 }
 
-// O treinador grava o motivo em português (training_service._record_evaluation).
-// Os textos fixos viram chave de tradução; um motivo que ele passe a escrever
-// e que não esteja aqui aparece como veio.
+// O motivo em código (`motivoCodigo`; MotivoAvaliacao no worker), que é o que a
+// tela traduz. Até 03/10/2026 ela traduzia o texto em português que o treinador
+// escreve, e qualquer mudança nele aparecia crua nos cinco idiomas.
+const CHAVE_DO_MOTIVO = {
+  'abaixo-do-passivo': 'treinamento.decisionBelowPassive',
+  'promocao-desligada': 'treinamento.decisionPromotionOff',
+  'abaixo-do-campeao': 'treinamento.decisionBelowChampion',
+  'falha-ao-medir-campeao': 'treinamento.decisionChampionFailed',
+  'falha-ao-guardar-copia': 'treinamento.decisionSaveFailed',
+}
+
+// Avaliação sem código: gravada por um worker anterior a ele depois da migration
+// que preencheu as antigas. Os textos fixos que ele escrevia.
 const MOTIVOS_CONHECIDOS = {
   'não bate o passivo na moeda mediana': 'treinamento.decisionBelowPassive',
   'TB_GUARDAR_MELHOR desligado': 'treinamento.decisionPromotionOff',
@@ -907,18 +917,23 @@ const MOTIVOS_CONHECIDOS = {
   'falha ao guardar a cópia do melhor modelo': 'treinamento.decisionSaveFailed',
 }
 
+const comCampeao = (chave, scoreCampeao) =>
+  chave === 'treinamento.decisionBelowChampion' ? { chave, campeao: scoreCampeao ?? null } : { chave }
+
 /**
  * A decisão sobre a sessão, para a tela: `{ chave }` de tradução, com
  * `campeao` quando perdeu para o modelo ao vivo, ou `{ texto }` para um motivo
- * desconhecido; null sem motivo. Perder para o campeão sai dos números (o
- * texto do treinador traz o score com ponto decimal, em português).
+ * desconhecido; null sem motivo. Pelo código do motivo; sem ele, pelos números
+ * (perder para o campeão) e pelo texto.
  */
 export const decisaoDaAvaliacao = (avaliacao) => {
   if (!avaliacao) return null
   if (avaliacao.promovido) return { chave: 'treinamento.decisionPromoted' }
-  const { score, scoreCampeao, motivo } = avaliacao
+  const { score, scoreCampeao, motivo, motivoCodigo } = avaliacao
+  const doCodigo = CHAVE_DO_MOTIVO[motivoCodigo]
+  if (doCodigo) return comCampeao(doCodigo, scoreCampeao)
   if (scoreCampeao !== null && scoreCampeao !== undefined && score <= scoreCampeao) {
-    return { chave: 'treinamento.decisionBelowChampion', campeao: scoreCampeao }
+    return comCampeao('treinamento.decisionBelowChampion', scoreCampeao)
   }
   const chave = MOTIVOS_CONHECIDOS[(motivo || '').trim()]
   if (chave) return { chave }
