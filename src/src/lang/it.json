@@ -793,7 +793,7 @@
     "framedCycle": "Ciclo del {{inicio}}",
     "leaveCycle": "Torna a {{periodo}}",
     "curveHint": "Con più addestramenti nella finestra: il livello di ciascuno. Con uno solo: la media mobile lungo di esso.",
-    "tradeWinRateHint": "Trade chiusi in guadagno (al netto delle commissioni) sui trade chiusi nell'episodio. Gli episodi registrati prima che l'addestratore contasse i trade non hanno valore.",
+    "tradeWinRateHint": "Trade chiusi in guadagno (al netto delle commissioni) sui trade chiusi. Su più episodi si sommano i trade di tutti: l'episodio con più trade pesa di più. Gli episodi registrati prima che l'addestratore contasse i trade non hanno valore e restano fuori dalle medie.",
     "statusBetweenRuns": "Tra un addestramento e l'altro",
     "statusVersionIdle": "{{versao}} non è in addestramento",
     "marketNoWindow": "Questo episodio è stato registrato prima che l'addestratore annotasse la finestra di dati negoziata: non c'è modo di sapere quale mercato abbia visto.",

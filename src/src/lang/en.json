@@ -793,7 +793,7 @@
     "framedCycle": "Cycle from {{inicio}}",
     "leaveCycle": "Back to {{periodo}}",
     "curveHint": "With several runs in the window: each run's plateau. With a single run: the moving average along it.",
-    "tradeWinRateHint": "Closed trades with a profit (net of fees) over the trades closed in the episode. Episodes recorded before the trainer counted trades have no value.",
+    "tradeWinRateHint": "Closed trades with a profit (net of fees) over the closed trades. Across several episodes, the trades of all of them are added up: an episode with more trades weighs more. Episodes recorded before the trainer counted trades have no value and are left out of the averages.",
     "statusBetweenRuns": "Between runs",
     "statusVersionIdle": "{{versao}} is not training",
     "marketNoWindow": "This episode was recorded before the trainer logged the data window it traded: there is no way to know which market it saw.",

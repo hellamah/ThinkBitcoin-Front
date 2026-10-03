@@ -251,6 +251,17 @@ describe('treinamento › serieSuavizada', () => {
     expect(pontos).toHaveLength(2)
     expect(pontos[1].y).toBeCloseTo(0.5)
   })
+
+  it('suaviza o acerto por trade pela soma dos trades da janela, como o cartão', () => {
+    const timeline = [
+      ep(1, 0, comTrades(1, 1)),
+      ep(2, 1, comTrades(0, 0)),     // sem trade fechado: fica fora da série
+      ep(3, 2, comTrades(50, 10)),
+      ep(4, 3, comTrades(9, 9)),     // empurra o primeiro para fora da janela de 2
+    ]
+    const pontos = serieSuavizada(timeline, 'acertoTrades', 2)
+    expect(pontos.map((p) => p.y)).toEqual([1, 11 / 51, 19 / 59])
+  })
 })
 
 describe('treinamento › janelaParaMistura', () => {
@@ -261,17 +272,35 @@ describe('treinamento › janelaParaMistura', () => {
   })
 })
 
+// Como a API devolve: as contagens e o acerto calculado delas.
+const comTrades = (trades, vencedores) => ({
+  trades,
+  tradesVencedores: vencedores,
+  acertoTrades: trades > 0 ? vencedores / trades : null,
+})
+
 describe('treinamento › estatisticas e variacao', () => {
   it('faz a média ignorando valores ausentes', () => {
-    const s = estatisticas([ep(1, 0, { acertoTrades: 0.2 }), ep(2, 1, { acertoTrades: undefined })])
+    const s = estatisticas([ep(1, 0, { lossMedia: 0.2 }), ep(2, 1, { lossMedia: undefined })])
     expect(s.total).toBe(2)
-    expect(s.acertoTrades).toBeCloseTo(0.2)
+    expect(s.lossMedia).toBeCloseTo(0.2)
   })
 
   it('o acerto é por trade: episódio sem contagem de trades não entra como zero', () => {
-    const s = estatisticas([ep(1, 0, { acertoTrades: 0.6, winRate: 0.3 }), ep(2, 1, { acertoTrades: null, winRate: 0.5 })])
+    const s = estatisticas([
+      ep(1, 0, { ...comTrades(5, 3), winRate: 0.3 }),
+      ep(2, 1, { trades: null, tradesVencedores: null, acertoTrades: null, winRate: 0.5 }),
+      ep(3, 2, comTrades(0, 0)),
+    ])
     expect(s.acertoTrades).toBeCloseTo(0.6)
     expect(s).not.toHaveProperty('winRate')
+  })
+
+  // Pela média dos acertos daria (1 + 0,2) / 2 = 60%: o episódio de 1 trade
+  // pesava o mesmo que o de 50.
+  it('soma os trades dos episódios em vez de tirar a média dos acertos', () => {
+    const s = estatisticas([ep(1, 0, comTrades(1, 1)), ep(2, 1, comTrades(50, 10))])
+    expect(s.acertoTrades).toBeCloseTo(11 / 51)
   })
 
   it('não inventa variação quando falta a janela anterior', () => {
@@ -316,6 +345,15 @@ describe('treinamento › resumirCiclos', () => {
     expect(ciclo.rewardFim).toBeCloseTo(0.85)
     expect(ciclo.duracaoMs).toBe(9 * UM_MINUTO_MS)
     expect(ciclo.versoes).toEqual(['v1'])
+  })
+
+  it('o acerto do começo e do fim soma os trades de cada ponta', () => {
+    const trades = [[1, 1], [9, 1], [4, 2], [4, 2], [4, 2], [4, 2], [4, 2], [4, 2], [10, 9], [30, 3]]
+    const timeline = trades.map(([n, v], i) => ep(i + 1, i, comTrades(n, v)))
+    const [ciclo] = resumirCiclos(timeline, detectarCiclos(timeline))
+    // k = 2: começo (1 + 1) / (1 + 9); fim (9 + 3) / (10 + 30).
+    expect(ciclo.acertoInicio).toBeCloseTo(2 / 10)
+    expect(ciclo.acertoFim).toBeCloseTo(12 / 40)
   })
 })
 

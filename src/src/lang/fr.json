@@ -793,7 +793,7 @@
     "framedCycle": "Cycle du {{inicio}}",
     "leaveCycle": "Revenir à {{periodo}}",
     "curveHint": "Avec plusieurs entraînements dans la fenêtre : le palier de chacun. Avec un seul : la moyenne mobile au fil de celui-ci.",
-    "tradeWinRateHint": "Trades clôturés avec un gain (net des frais) sur les trades clôturés dans l'épisode. Les épisodes enregistrés avant que l'entraîneur ne compte les trades n'ont pas de valeur.",
+    "tradeWinRateHint": "Trades clôturés avec un gain (net des frais) sur les trades clôturés. Sur plusieurs épisodes, les trades de tous sont additionnés : l'épisode qui compte le plus de trades pèse davantage. Les épisodes enregistrés avant que l'entraîneur ne compte les trades n'ont pas de valeur et sont exclus des moyennes.",
     "statusBetweenRuns": "Entre deux entraînements",
     "statusVersionIdle": "{{versao}} n'est pas en entraînement",
     "marketNoWindow": "Cet épisode a été enregistré avant que l'entraîneur ne consigne la fenêtre de données négociée : impossible de savoir quel marché il a vu.",

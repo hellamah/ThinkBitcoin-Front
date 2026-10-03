@@ -104,7 +104,42 @@ export const mediana = (valores) => {
     : (ordenados[meio - 1] + ordenados[meio]) / 2
 }
 
-export const mediaDaMetrica = (itens, chave) => media(itens.map((r) => valorDe(r, chave)))
+// Métricas que são uma razão entre contagens do episódio. A média de um grupo
+// soma os numeradores e os denominadores, em vez de tirar a média das razões:
+// até 03/10/2026, no acerto por trade, um episódio com 1 trade pesava o mesmo
+// que um com 50, e um único trade de sorte movia os cartões.
+const RAZOES = {
+  acertoTrades: { numerador: 'tradesVencedores', denominador: 'trades' },
+}
+
+/**
+ * Com que peso o episódio entra na média da métrica: `{ num, den }`, ou null se
+ * ele não tem a métrica. Métrica comum entra com peso 1; razão, com as contagens
+ * (episódio sem trade fechado, ou de antes de o treinador contar, fica de fora).
+ */
+const parcelaDe = (r, chave) => {
+  const razao = RAZOES[chave]
+  if (!razao) {
+    const v = valorDe(r, chave)
+    return v === null ? null : { num: v, den: 1 }
+  }
+  const num = valorDe(r, razao.numerador)
+  const den = valorDe(r, razao.denominador)
+  return num !== null && den > 0 ? { num, den } : null
+}
+
+/** Média da métrica num conjunto de episódios; razões, pela soma (ver RAZOES). */
+export const mediaDaMetrica = (itens, chave) => {
+  let num = 0
+  let den = 0
+  for (const r of itens) {
+    const p = parcelaDe(r, chave)
+    if (p === null) continue
+    num += p.num
+    den += p.den
+  }
+  return den > 0 ? num / den : null
+}
 
 /**
  * Média móvel simples. Soma corrente em vez de fatiar a cada posição: com
@@ -247,17 +282,21 @@ export const cortesEntreCiclos = (ciclos) => ciclos.slice(1).map((c) => c.inicio
  * virada: a média do começo de um treino carregava o fim do anterior. Os
  * cortes vêm de fora, e não de uma detecção aqui dentro, para a série de cada
  * moeda cortar exatamente onde as faixas de ciclo do gráfico mudam.
+ *
+ * Razão (acerto por trade) suaviza pela soma das contagens na janela, como
+ * mediaDaMetrica: a linha do gráfico e o cartão dizem a mesma coisa.
  */
 export const serieSuavizada = (timeline, chave, janela = 5, cortes = []) => {
   const pontos = []
   let fila = []
-  let soma = 0
+  let num = 0
+  let den = 0
   let anterior = null
   let proximoCorte = 0
   for (const r of timeline) {
-    const v = valorDe(r, chave)
+    const p = parcelaDe(r, chave)
     const x = instanteDe(r)
-    if (v === null || Number.isNaN(x)) continue
+    if (p === null || Number.isNaN(x)) continue
     // Algum corte entre o ponto anterior e este? Os de antes do primeiro
     // ponto só são pulados.
     let virou = false
@@ -268,12 +307,18 @@ export const serieSuavizada = (timeline, chave, janela = 5, cortes = []) => {
     if (virou) {
       pontos.push({ x: anterior + (x - anterior) / 2, y: null })
       fila = []
-      soma = 0
+      num = 0
+      den = 0
     }
-    fila.push(v)
-    soma += v
-    if (fila.length > janela) soma -= fila.shift()
-    pontos.push({ x, y: soma / fila.length })
+    fila.push(p)
+    num += p.num
+    den += p.den
+    if (fila.length > janela) {
+      const saiu = fila.shift()
+      num -= saiu.num
+      den -= saiu.den
+    }
+    pontos.push({ x, y: num / den })
     anterior = x
   }
   return pontos
@@ -308,8 +353,9 @@ export const janelaParaMistura = (qtdMoedas) =>
 export const estatisticas = (itens) => ({
   total: itens.length,
   rewardMedio: mediaDaMetrica(itens, 'rewardMedio'),
-  // Média do acerto de cada episódio: os que não têm (antigos, ou sem trade
-  // fechado) ficam de fora, em vez de entrar como zero.
+  // Trades vencedores somados sobre trades somados (ver RAZOES): o episódio com
+  // mais trades pesa mais. Os sem contagem (antigos, ou sem trade fechado) ficam
+  // de fora, em vez de entrar como zero.
   acertoTrades: mediaDaMetrica(itens, 'acertoTrades'),
   lossMedia: mediaDaMetrica(itens, 'lossMedia'),
   epsilon: mediaDaMetrica(itens, 'epsilon'),

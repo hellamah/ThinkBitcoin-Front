@@ -793,7 +793,7 @@
     "framedCycle": "Ciclo de {{inicio}}",
     "leaveCycle": "Voltar para {{periodo}}",
     "curveHint": "Com vários treinos na janela: o patamar de cada um. Num treino só: a média móvel ao longo dele.",
-    "tradeWinRateHint": "Trades fechados com lucro (líquido das taxas) sobre os trades fechados no episódio. Episódios gravados antes de o treinador contar trades ficam sem valor.",
+    "tradeWinRateHint": "Trades fechados com lucro (líquido das taxas) sobre os trades fechados. Em vários episódios, soma os trades de todos: o episódio com mais trades pesa mais. Episódios gravados antes de o treinador contar trades ficam sem valor e fora das médias.",
     "statusBetweenRuns": "Entre treinos",
     "statusVersionIdle": "{{versao}} não está treinando",
     "marketNoWindow": "Este episódio foi gravado antes de o treinador registrar a janela de dados que ele negociou: não há como saber que mercado ele viu.",

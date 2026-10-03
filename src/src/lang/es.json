@@ -793,7 +793,7 @@
     "framedCycle": "Ciclo de {{inicio}}",
     "leaveCycle": "Volver a {{periodo}}",
     "curveHint": "Con varios entrenamientos en la ventana: el nivel de cada uno. Con uno solo: la media móvil a lo largo de él.",
-    "tradeWinRateHint": "Trades cerrados con ganancia (neta de comisiones) sobre los trades cerrados en el episodio. Los episodios grabados antes de que el entrenador contara trades no tienen valor.",
+    "tradeWinRateHint": "Trades cerrados con ganancia (neta de comisiones) sobre los trades cerrados. En varios episodios se suman los trades de todos: el episodio con más trades pesa más. Los episodios grabados antes de que el entrenador contara trades no tienen valor y quedan fuera de los promedios.",
     "statusBetweenRuns": "Entre entrenamientos",
     "statusVersionIdle": "{{versao}} no está entrenando",
     "marketNoWindow": "Este episodio se grabó antes de que el entrenador registrara la ventana de datos que negoció: no hay forma de saber qué mercado vio.",
