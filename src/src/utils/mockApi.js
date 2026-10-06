@@ -664,9 +664,12 @@ const buildTreinoEpisodios = () => {
     const habilidade = 0.4 + 0.03 * nVersao + 0.02 * treinoRuido(c * 29 + 11)
     for (let i = 0; i < N; i++) {
       const seq = c * N + i
-      // Rajada: o 1º e o 2º episódios saem com o carimbo do 3º.
+      // Rajada: o 1º e o 2º episódios saem com o carimbo do 3º. Nunca a partir
+      // do 1º episódio do treino: ele levaria o carimbo do 3º, 40 s depois do
+      // início, e a pausa antes do treino passaria das de TREINO_PAUSAS_MIN
+      // (8 min viravam 8 min 40 s no treino múltiplo de 92).
       const k = seq % TREINO_RAJADA_A_CADA
-      const emRajada = k <= 2 && i - k >= 0 && i - k + 2 < N
+      const emRajada = k <= 2 && i - k >= 1 && i - k + 2 < N
       const ms = inicioDoCiclo + (emRajada ? i - k + 2 : i) * TREINO_PASSO_MS
       const rodada = Math.floor(seq / TREINO_COINS.length)
       const moeda = treinoRodada(rodada)[seq % TREINO_COINS.length]

@@ -511,33 +511,47 @@ describe('utils/mockApi › getMockResponse', () => {
   // tela já errou com dados reais; estes testes seguram o mock no formato real.
   describe('Treinamento de IA', () => {
     const HORA = 3600 * 1000
-    const listar = (params) =>
-      getMockResponse({ endpoint: `/api/TreinamentoEpisodio?${new URLSearchParams(params)}`, method: 'GET' }).resultado
-    const ultimas24h = () => {
+    const listar = (params, mock = getMockResponse) =>
+      mock({ endpoint: `/api/TreinamentoEpisodio?${new URLSearchParams(params)}`, method: 'GET' }).resultado
+    const ultimas24h = (mock) => {
       const agora = Date.now()
       return listar({
         dataInicio: new Date(agora - 24 * HORA).toISOString(),
         dataFim: new Date(agora).toISOString(),
         quantidade: 100000,
         ordenarAscendente: false,
-      }).lista
+      }, mock).lista
     }
     // O front carimba o Z que a API não manda (marcarUtcQuandoFaltarFuso).
     const ms = (r) => new Date(`${r.dataHora}Z`).getTime()
 
-    it('cada treino tem 300 episódios e a numeração recomeça em 1, com 5 a 8 min entre eles', () => {
-      const eps = [...ultimas24h()].reverse()
-      const reinicios = eps
-        .map((r, i) => ({ r, anterior: eps[i - 1] }))
-        .filter(({ r, anterior }) => anterior && r.episodio === 1)
-      expect(reinicios.length).toBeGreaterThan(10)
-      for (const { r, anterior } of reinicios) {
-        expect(anterior.episodio).toBe(300)
-        const pausaMin = (ms(r) - ms(anterior)) / 60000
-        expect(pausaMin).toBeGreaterThanOrEqual(5)
-        expect(pausaMin).toBeLessThanOrEqual(8)
-        // Treino novo começa explorando: epsilon de volta a 1.
-        expect(r.epsilon).toBe(1)
+    // Com o relógio de verdade, este teste falhava 24h seguidas a cada ~6,8
+    // dias: o treino de número múltiplo de 92 (a pausa de 8 min é a 4ª do bloco
+    // e a rajada vem a cada 23 episódios) começava por uma rajada, o 1º episódio
+    // saía com o carimbo do 3º e a pausa medida dava 8 min 40 s. O relógio fica
+    // então parado num instante cuja janela de 24h pega esse treino (o 3772,
+    // às 02:21 UTC de 06/10/2026).
+    it('cada treino tem 300 episódios e a numeração recomeça em 1, com 5 a 8 min entre eles', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] })
+      try {
+        vi.setSystemTime(new Date('2026-10-06T12:00:00Z'))
+        vi.resetModules()
+        const { getMockResponse: mockNoInstante } = await import('../src/utils/mockApi')
+        const eps = [...ultimas24h(mockNoInstante)].reverse()
+        const reinicios = eps
+          .map((r, i) => ({ r, anterior: eps[i - 1] }))
+          .filter(({ r, anterior }) => anterior && r.episodio === 1)
+        expect(reinicios.length).toBeGreaterThan(10)
+        for (const { r, anterior } of reinicios) {
+          expect(anterior.episodio).toBe(300)
+          const pausaMin = (ms(r) - ms(anterior)) / 60000
+          expect(pausaMin).toBeGreaterThanOrEqual(5)
+          expect(pausaMin).toBeLessThanOrEqual(8)
+          // Treino novo começa explorando: epsilon de volta a 1.
+          expect(r.epsilon).toBe(1)
+        }
+      } finally {
+        vi.useRealTimers()
       }
     })
 
