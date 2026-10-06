@@ -133,6 +133,8 @@ export const ApiEndpoint = Object.freeze({
       const qs = params.toString()
       return qs ? `/api/TreinamentoEpisodio/avaliacoes?${qs}` : '/api/TreinamentoEpisodio/avaliacoes'
     },
+    // Opções dos filtros de todo o histórico: moedas e versões, com o período de cada uma.
+    FILTROS: '/api/TreinamentoEpisodio/filtros',
   }),
   // Zoo de estratégias: regras simples medidas pela régua de risco (recurso pago).
   ZOO_ESTRATEGIA: Object.freeze({

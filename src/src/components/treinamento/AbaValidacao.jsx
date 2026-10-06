@@ -160,7 +160,7 @@ function TabelaAvaliacoes({ serie }) {
   )
 }
 
-export default function AbaValidacao({ versao, moedasFiltradas }) {
+export default function AbaValidacao({ versao }) {
   const { t, idioma } = useTranslation()
   const escuro = useTheme().palette.mode === 'dark'
   const { avaliacoes, carregando, erro, recarregar } = useAvaliacoesSessao({ versao, ativo: true })
@@ -269,11 +269,8 @@ export default function AbaValidacao({ versao, moedasFiltradas }) {
       <Typography variant="body2" sx={{ color: 'var(--text-secondary)', maxWidth: 900 }}>
         {t('treinamento.validationIntro')}
       </Typography>
-      {moedasFiltradas && (
-        <Typography variant="caption" role="note" sx={{ color: 'var(--text-muted)' }}>
-          {t('treinamento.validationCoinNote')}
-        </Typography>
-      )}
+      {/* O filtro de moeda não vale aqui: a página desliga os chips e diz por
+          quê ao lado deles (validationCoinNote). */}
 
       {avaliacoes === null && carregando ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>

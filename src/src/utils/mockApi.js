@@ -935,6 +935,42 @@ const mockTreinoAvaliacoes = (endpoint) => {
   return { mensagem: resultado.length > 0 ? 'Avaliações de treinamento (mock)' : 'Dados não encontrados', resultado }
 }
 
+// Como FiltrosTreinamentoEpisodioModelo: moedas e versões de todo o histórico
+// até agora, da versão que treinou por último para a mais antiga. As versões do
+// mock voltam em rodízio, e o período de uma vai do primeiro ao último episódio
+// dela, como o MIN/MAX da API.
+const mockTreinoFiltros = () => {
+  const eps = treinoFiltrar(new URLSearchParams())
+  const porVersao = new Map()
+  for (const e of eps) {
+    const v = porVersao.get(e.versaoModelo)
+    if (!v) porVersao.set(e.versaoModelo, { primeiro: e, ultimo: e, episodios: 1, moedas: new Set([e.moeda]) })
+    else {
+      v.ultimo = e
+      v.episodios += 1
+      v.moedas.add(e.moeda)
+    }
+  }
+  const atual = eps[eps.length - 1]?.versaoModelo ?? null
+  const agora = Date.now()
+  const aoVivo = buildTreinoAvaliacoes().filter((a) => a._ms <= agora && a.promovido).pop()?.versaoModelo ?? null
+  const versoes = [...porVersao.entries()]
+    .sort(([, a], [, b]) => b.ultimo._ms - a.ultimo._ms)
+    .map(([versao, v]) => ({
+      versao,
+      primeiroEpisodio: v.primeiro.dataHora,
+      ultimoEpisodio: v.ultimo.dataHora,
+      episodios: v.episodios,
+      moedas: [...v.moedas].sort(),
+      atual: versao === atual,
+      aoVivo: versao === aoVivo,
+    }))
+  return {
+    mensagem: versoes.length > 0 ? 'Filtros de treinamento (mock)' : 'Dados não encontrados',
+    resultado: { moedas: [...new Set(eps.map((e) => e.moeda))].sort(), versoes },
+  }
+}
+
 // Alertas de preço do modo demo. Em memória de propósito: o valor do exercício
 // é ver a lista mudar ao criar e excluir, não sobreviver ao reload.
 let mockAlertas = []
@@ -1130,6 +1166,11 @@ const mockHandlers = [
     method: 'GET',
     match: (endpoint) => endpoint.split('?')[0] === '/api/TreinamentoEpisodio/avaliacoes',
     response: (endpoint) => mockTreinoAvaliacoes(endpoint),
+  },
+  {
+    method: 'GET',
+    match: (endpoint) => endpoint.split('?')[0] === '/api/TreinamentoEpisodio/filtros',
+    response: () => mockTreinoFiltros(),
   },
   {
     method: 'GET',

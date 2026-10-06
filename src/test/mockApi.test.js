@@ -651,6 +651,25 @@ describe('utils/mockApi › getMockResponse', () => {
       expect(resultado.some((a) => a.score <= 0)).toBe(true)
     })
 
+    it('os filtros trazem as versões do histórico, da mais recente para a mais antiga', () => {
+      const { resultado } = getMockResponse({ endpoint: '/api/TreinamentoEpisodio/filtros', method: 'GET' })
+      expect(resultado.moedas).toHaveLength(10)
+      expect(resultado.versoes.length).toBeGreaterThanOrEqual(2)
+      const [maisRecente] = listar({ quantidade: 1, ordenarAscendente: false }).lista
+      expect(resultado.versoes[0]).toMatchObject({ versao: maisRecente.versaoModelo, atual: true })
+      expect(resultado.versoes.filter((v) => v.atual)).toHaveLength(1)
+      expect(resultado.versoes.filter((v) => v.aoVivo).length).toBeLessThanOrEqual(1)
+      for (let i = 1; i < resultado.versoes.length; i++) {
+        expect(ms({ dataHora: resultado.versoes[i - 1].ultimoEpisodio }))
+          .toBeGreaterThan(ms({ dataHora: resultado.versoes[i].ultimoEpisodio }))
+      }
+      for (const v of resultado.versoes) {
+        expect(ms({ dataHora: v.primeiroEpisodio })).toBeLessThanOrEqual(ms({ dataHora: v.ultimoEpisodio }))
+        expect(v.episodios).toBeGreaterThan(0)
+        expect(v.moedas.length).toBeGreaterThan(0)
+      }
+    })
+
     it('o resumo traz os campos de ResumoTreinamentoEpisodioModelo', () => {
       const [primeira] = getMockResponse({ endpoint: '/api/TreinamentoEpisodio/resumo', method: 'GET' }).resultado
       expect(Object.keys(primeira).sort()).toEqual([

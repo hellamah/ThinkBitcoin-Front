@@ -16,6 +16,8 @@ import {
   evolucaoPorMoeda,
   faixaDe,
   filtrarJanela,
+  moedasDoFiltro,
+  versoesDoFiltro,
   janelaDoPeriodo,
   janelaParaMistura,
   limiarDeLacuna,
@@ -363,6 +365,71 @@ describe('treinamento › resumirVersoes', () => {
     const r = resumirVersoes(timeline)
     expect(r.map((v) => [v.versao, v.total])).toEqual([['v1', 1], ['v2', 2]])
     expect(r[1].inicio).toBe(BASE + UM_MINUTO_MS)
+  })
+})
+
+describe('treinamento › filtros de versão e moeda', () => {
+  // Como /api/TreinamentoEpisodio/filtros devolve, com o Z do apiClient.
+  const versaoDaApi = (versao, deHoras, ateHoras, extra = {}) => ({
+    versao,
+    primeiroEpisodio: iso(BASE + deHoras * UMA_HORA_MS),
+    ultimoEpisodio: iso(BASE + ateHoras * UMA_HORA_MS),
+    episodios: 1000,
+    moedas: ['BTC', 'ETH'],
+    atual: false,
+    aoVivo: false,
+    ...extra,
+  })
+  const filtros = {
+    moedas: ['ADA', 'BTC', 'ETH'],
+    versoes: [
+      versaoDaApi('v8', 48, 72, { atual: true }),
+      versaoDaApi('v7', 24, 47, { aoVivo: true, moedas: ['ADA', 'BTC'] }),
+      versaoDaApi('v2', 0, 23),
+    ],
+  }
+
+  it('lista as versões do histórico, e não só as dos episódios carregados', () => {
+    const carregados = [ep(1, 72 * 60, { versaoModelo: 'v8' })]
+    const versoes = versoesDoFiltro(filtros, carregados, null)
+    expect(versoes.map((v) => v.versao)).toEqual(['v8', 'v7', 'v2'])
+    expect(versoes[0]).toMatchObject({ atual: true, aoVivo: false, episodios: 1000, fim: BASE + 72 * UMA_HORA_MS })
+    expect(versoes[1]).toMatchObject({ atual: false, aoVivo: true })
+  })
+
+  it('ordena pela data, e não pelo nome: a v10 não vai para antes da v2', () => {
+    const versoes = versoesDoFiltro({ moedas: [], versoes: [versaoDaApi('v2', 0, 1), versaoDaApi('v10', 2, 3)] }, [], null)
+    expect(versoes.map((v) => v.versao)).toEqual(['v10', 'v2'])
+  })
+
+  it('uma versão que começou depois da consulta entra pelos episódios e vira a atual', () => {
+    const carregados = [ep(1, 73 * 60, { versaoModelo: 'v9', moeda: 'SOL' }), ep(2, 74 * 60, { versaoModelo: 'v9', moeda: 'BTC' })]
+    const versoes = versoesDoFiltro(filtros, carregados, null)
+    expect(versoes[0]).toMatchObject({ versao: 'v9', atual: true, episodios: null, moedas: ['BTC', 'SOL'] })
+    expect(versoes[0].inicio).toBe(BASE + 73 * UMA_HORA_MS)
+    expect(versoes.filter((v) => v.atual)).toHaveLength(1)
+  })
+
+  it('sem a consulta aos filtros, cai nos episódios carregados', () => {
+    const carregados = [ep(1, 0, { versaoModelo: 'v7' }), ep(2, 60, { versaoModelo: 'v8' })]
+    const versoes = versoesDoFiltro(null, carregados, null)
+    expect(versoes.map((v) => [v.versao, v.atual])).toEqual([['v8', true], ['v7', false]])
+  })
+
+  it('a versão filtrada fica na lista mesmo desconhecida, no fim', () => {
+    const versoes = versoesDoFiltro(filtros, [], 'v1-base')
+    expect(versoes.map((v) => v.versao)).toEqual(['v8', 'v7', 'v2', 'v1-base'])
+    // Já conhecida, com outra caixa: não duplica.
+    expect(versoesDoFiltro(filtros, [], 'V7')).toHaveLength(3)
+  })
+
+  it('moedas da versão filtrada, ou do histórico, mais as carregadas e as selecionadas', () => {
+    const versoes = versoesDoFiltro(filtros, [], null)
+    expect(moedasDoFiltro(versoes, filtros, [], null)).toEqual(['ADA', 'BTC', 'ETH'])
+    expect(moedasDoFiltro(versoes, filtros, [], 'v7')).toEqual(['ADA', 'BTC'])
+    // Um chip aceso nunca some, nem a moeda que só os episódios carregados conhecem.
+    expect(moedasDoFiltro(versoes, filtros, [ep(1, 0, { moeda: 'SOL' })], 'v7', ['ETH'])).toEqual(['ADA', 'BTC', 'ETH', 'SOL'])
+    expect(moedasDoFiltro([], null, [ep(1, 0, { moeda: 'XRP' })], null)).toEqual(['XRP'])
   })
 })
 

@@ -48,9 +48,6 @@ const buscarPeriodo = async (moeda, versaoModelo, inicioMs, fimMs, opcoes) => {
   return todos
 }
 
-const listaDoResumo = (resp) =>
-  Array.isArray(resp?.resultado) ? resp.resultado : (Array.isArray(resp) ? resp : [])
-
 const INTERVALO_POLLING_MS = 60_000
 const INTERVALO_MINIMO_NA_VOLTA_MS = 15_000
 
@@ -63,7 +60,6 @@ const INTERVALO_MINIMO_NA_VOLTA_MS = 15_000
  */
 export default function useTreinamentoEpisodios({ moeda, versao, alvoMs }) {
   const [itens, setItens] = useState([])
-  const [resumo, setResumo] = useState([])
   const [carregando, setCarregando] = useState(true)
   const [carregandoPeriodo, setCarregandoPeriodo] = useState(false)
   const [erro, setErro] = useState(null)
@@ -98,17 +94,13 @@ export default function useTreinamentoEpisodios({ moeda, versao, alvoMs }) {
       setCarregando(true)
       setErro(null)
       try {
-        const [sondagem, resumoResp] = await Promise.all([
-          apiRequest(TreinamentoEpisodioEndpoint.LIST({
-            moeda: moeda || undefined,
-            versaoModelo: versao || undefined,
-            quantidade: 1,
-            ordenarAscendente: false,
-          })),
-          apiRequest(TreinamentoEpisodioEndpoint.RESUMO({ versaoModelo: versao || undefined })),
-        ])
+        const sondagem = await apiRequest(TreinamentoEpisodioEndpoint.LIST({
+          moeda: moeda || undefined,
+          versaoModelo: versao || undefined,
+          quantidade: 1,
+          ordenarAscendente: false,
+        }))
         if (cancelado) return
-        setResumo(listaDoResumo(resumoResp))
 
         const maisRecente = extrairLista(sondagem)[0]
         if (!maisRecente) {
@@ -211,17 +203,10 @@ export default function useTreinamentoEpisodios({ moeda, versao, alvoMs }) {
       const desde = ultima > 0 ? ultima - 2 * UM_MINUTO_MS : agora - QUATRO_HORAS_MS
       emVoo = true
       try {
-        const [novos, resumoResp] = await Promise.all([
-          buscarPeriodo(moeda, versao, desde, agora + UM_MINUTO_MS, { emSegundoPlano: true }),
-          apiRequest(
-            TreinamentoEpisodioEndpoint.RESUMO({ versaoModelo: versao || undefined }),
-            { emSegundoPlano: true }
-          ).catch(() => null),
-        ])
+        const novos = await buscarPeriodo(moeda, versao, desde, agora + UM_MINUTO_MS, { emSegundoPlano: true })
         if (geracaoRef.current !== geracao) return
         ultimaBuscaRef.current = agora
         setItens((atuais) => mesclarEpisodios(atuais, novos))
-        if (resumoResp) setResumo(listaDoResumo(resumoResp))
         setAtualizadoEm(agora)
       } catch { /* silencioso: a próxima rodada tenta de novo */ } finally {
         emVoo = false
@@ -251,7 +236,6 @@ export default function useTreinamentoEpisodios({ moeda, versao, alvoMs }) {
 
   return {
     itens,
-    resumo,
     carregando,
     carregandoPeriodo,
     erro,

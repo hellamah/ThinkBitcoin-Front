@@ -15,6 +15,8 @@ import DetalheEpisodio, { EpisodioNaoEncontrado } from '../components/treinament
 import Filtros from '../components/treinamento/Filtros'
 import { EstadoVazio, Painel } from '../components/treinamento/Painel'
 import { definirIdiomaDosNumeros } from '../components/treinamento/formato'
+import useFiltrosTreino from '../hooks/useFiltrosTreino'
+import useResumoTreino from '../hooks/useResumoTreino'
 import useTreinamentoEpisodios from '../hooks/useTreinamentoEpisodios'
 import useTranslation from '../hooks/useTranslation'
 import {
@@ -23,10 +25,12 @@ import {
   PERIODOS_AO_VIVO,
   cadenciaMediana,
   instanteDe,
+  moedasDoFiltro,
   ordenarPorData,
   paramsDoPeriodo,
   periodoDaUrl,
   treinoTerminou,
+  versoesDoFiltro,
 } from '../utils/treinamento'
 
 // Treinamento de IA. Três abas com perguntas diferentes:
@@ -99,6 +103,17 @@ export default function TreinamentoEpisodios() {
   }, [dt])
 
   const dados = useTreinamentoEpisodios({ moeda: moedaServidor, versao, alvoMs })
+  const { filtros, recarregar: recarregarFiltros } = useFiltrosTreino()
+  const [recargaResumo, setRecargaResumo] = useState(0)
+  const resumo = useResumoTreino({ versao, ativo: aba === 'analise', recarga: recargaResumo })
+
+  // O botão de atualizar refaz tudo o que a tela mostra, não só os episódios.
+  const { recarregar: recarregarEpisodios } = dados
+  const atualizar = useCallback(() => {
+    recarregarEpisodios()
+    recarregarFiltros()
+    setRecargaResumo((n) => n + 1)
+  }, [recarregarEpisodios, recarregarFiltros])
 
   const consulta = useCallback((extra = {}) => {
     const p = new URLSearchParams()
@@ -133,20 +148,16 @@ export default function TreinamentoEpisodios() {
   const cadenciaMs = useMemo(() => cadenciaMediana(timeline.slice(-200)), [timeline])
   const terminouTreino = useMemo(() => treinoTerminou(timeline), [timeline])
 
-  // Moedas do filtro vêm do resumo (visão global, independente do filtro do
-  // servidor); sem resumo, dos episódios carregados.
-  const moedasDisponiveis = useMemo(() => {
-    if (dados.resumo.length > 0) return dados.resumo.map((r) => r.moeda).filter(Boolean).sort()
-    return [...new Set(dados.itens.map((i) => i.moeda).filter(Boolean))].sort()
-  }, [dados.resumo, dados.itens])
-
-  // Com filtro de versão ativo o servidor só devolve aquela versão, então ela
-  // fica sempre na lista — senão o chip ativo sumiria.
-  const versoesDisponiveis = useMemo(() => {
-    const set = new Set(dados.itens.map((i) => i.versaoModelo).filter(Boolean))
-    if (versao) set.add(versao)
-    return [...set].sort()
-  }, [dados.itens, versao])
+  // Versões e moedas do histórico inteiro (/filtros), completadas pelos
+  // episódios carregados — ver versoesDoFiltro e moedasDoFiltro.
+  const versoesDisponiveis = useMemo(
+    () => versoesDoFiltro(filtros, dados.itens, versao),
+    [filtros, dados.itens, versao]
+  )
+  const moedasDisponiveis = useMemo(
+    () => moedasDoFiltro(versoesDisponiveis, filtros, dados.itens, versao, moedasSelecionadas),
+    [versoesDisponiveis, filtros, dados.itens, versao, moedasSelecionadas]
+  )
 
   const alternarMoeda = (moeda) =>
     setMoedasSelecionadas((atuais) => (atuais.includes(moeda) ? atuais.filter((m) => m !== moeda) : [...atuais, moeda]))
@@ -219,7 +230,7 @@ export default function TreinamentoEpisodios() {
           versaoFiltrada={versao}
           atualizadoEm={dados.atualizadoEm}
           carregando={dados.carregando}
-          onAtualizar={dados.recarregar}
+          onAtualizar={atualizar}
         />
 
         {dados.erro && <ErrorMessage message={dados.erro.message || t('treinamento.loadError')} />}
@@ -229,6 +240,7 @@ export default function TreinamentoEpisodios() {
           moedasSelecionadas={moedasSelecionadas}
           onAlternarMoeda={alternarMoeda}
           onLimparMoedas={() => setMoedasSelecionadas([])}
+          moedasInativas={aba === 'validacao' ? t('treinamento.validationCoinNote') : null}
           versoes={versoesDisponiveis}
           versao={versao}
           onVersao={setVersao}
@@ -249,7 +261,7 @@ export default function TreinamentoEpisodios() {
           {/* A validação tem dados próprios (uma avaliação por sessão), e não
               depende dos episódios carregados. */}
           {aba === 'validacao' ? (
-            <AbaValidacao versao={versao} moedasFiltradas={moedasSelecionadas.length > 0} />
+            <AbaValidacao versao={versao} />
           ) : semDados ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
               <CircularProgress sx={{ color: 'var(--accent-ink)' }} />
@@ -259,7 +271,7 @@ export default function TreinamentoEpisodios() {
           ) : aba === 'ao-vivo' ? (
             <AbaAoVivo {...propsDaAba} periodo={periodoAoVivo} onPeriodo={setPeriodoAoVivo} />
           ) : (
-            <AbaAnalise {...propsDaAba} resumo={dados.resumo} periodo={periodoAnalise} onPeriodo={setPeriodoAnalise} />
+            <AbaAnalise {...propsDaAba} resumo={resumo} periodo={periodoAnalise} onPeriodo={setPeriodoAnalise} />
           )}
         </Box>
       </Box>

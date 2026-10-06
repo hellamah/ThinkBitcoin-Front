@@ -540,6 +540,85 @@ export const resumirVersoes = (timeline) =>
       fim: instanteDe(eps[eps.length - 1]),
     }))
 
+const mesmaVersao = (a, b) => Boolean(a && b) && a.toUpperCase() === b.toUpperCase()
+
+/**
+ * Versões para o filtro, da que treinou por último para a mais antiga.
+ *
+ * A lista vem do histórico inteiro (/filtros). Vinha só dos episódios
+ * carregados — as últimas horas —, e a tela mostrava a versão em treino e
+ * nenhuma das anteriores. Os episódios carregados agora só completam a lista:
+ * uma versão que começou a treinar depois da última consulta aos filtros, ou
+ * todas, se a consulta falhou. Uma versão assim, mais nova que todas as da
+ * lista, passa a ser a atual. A versão filtrada fica sempre na lista, mesmo
+ * desconhecida (link antigo): sem ela, o chip ativo sumiria.
+ *
+ * Cada versão sai com `inicio` e `fim` em ms, `episodios` (null quando só os
+ * carregados a conhecem: contá-los diria menos do que houve), `moedas`, `atual`
+ * e `aoVivo`.
+ */
+export const versoesDoFiltro = (filtros, itens, versaoFiltrada) => {
+  const lista = (filtros?.versoes ?? [])
+    .filter((v) => v?.versao)
+    .map((v) => ({
+      versao: v.versao,
+      inicio: new Date(v.primeiroEpisodio).getTime(),
+      fim: new Date(v.ultimoEpisodio).getTime(),
+      episodios: v.episodios ?? null,
+      moedas: v.moedas ?? [],
+      atual: Boolean(v.atual),
+      aoVivo: Boolean(v.aoVivo),
+    }))
+  const conhecida = (versao) => lista.some((v) => mesmaVersao(v.versao, versao))
+  const fimDosFiltros = Math.max(-Infinity, ...lista.map((v) => v.fim).filter(Number.isFinite))
+
+  const novas = []
+  for (const [versao, eps] of agruparPor(itens, 'versaoModelo')) {
+    if (conhecida(versao)) continue
+    let inicio = Infinity
+    let fim = -Infinity
+    for (const e of eps) {
+      const ms = instanteDe(e)
+      if (ms < inicio) inicio = ms
+      if (ms > fim) fim = ms
+    }
+    novas.push({
+      versao,
+      inicio,
+      fim,
+      episodios: null,
+      moedas: [...new Set(eps.map((e) => e.moeda).filter(Boolean))].sort(),
+      atual: false,
+      aoVivo: false,
+    })
+  }
+  const maisNova = novas.reduce((a, v) => (!a || v.fim > a.fim ? v : a), null)
+  if (maisNova && maisNova.fim > fimDosFiltros) {
+    for (const v of lista) v.atual = false
+    maisNova.atual = true
+  }
+  lista.push(...novas)
+
+  if (versaoFiltrada && !conhecida(versaoFiltrada)) {
+    lista.push({ versao: versaoFiltrada, inicio: NaN, fim: NaN, episodios: null, moedas: [], atual: false, aoVivo: false })
+  }
+
+  // Sem data (a filtrada desconhecida) vai para o fim.
+  const fimOrdenavel = (v) => (Number.isFinite(v.fim) ? v.fim : -Infinity)
+  return lista.sort((a, b) => fimOrdenavel(b) - fimOrdenavel(a) || a.versao.localeCompare(b.versao))
+}
+
+/**
+ * Moedas para o filtro, em ordem alfabética: as da versão filtrada, ou as do
+ * histórico inteiro, mais as dos episódios carregados (o que a consulta aos
+ * filtros ainda não viu) e as já selecionadas — um chip aceso nunca some.
+ */
+export const moedasDoFiltro = (versoes, filtros, itens, versaoFiltrada, selecionadas = []) => {
+  const daVersao = versaoFiltrada ? versoes.find((v) => mesmaVersao(v.versao, versaoFiltrada))?.moedas : null
+  const base = daVersao?.length ? daVersao : (filtros?.moedas ?? [])
+  return [...new Set([...base, ...itens.map((i) => i.moeda), ...selecionadas].filter(Boolean))].sort()
+}
+
 // Quanto tempo sem episódio, depois do fim de um treino, ainda é a troca para o
 // seguinte: nos dados reais, 5 a 8 min. O dobro do maior.
 const LIMITE_ENTRE_TREINOS_MS = 15 * UM_MINUTO_MS
