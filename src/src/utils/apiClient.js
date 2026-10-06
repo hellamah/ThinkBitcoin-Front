@@ -134,6 +134,26 @@ export const ApiEndpoint = Object.freeze({
       return qs ? `/api/TreinamentoEpisodio/avaliacoes?${qs}` : '/api/TreinamentoEpisodio/avaliacoes'
     },
   }),
+  // Zoo de estratégias: regras simples medidas pela régua de risco (recurso pago).
+  ZOO_ESTRATEGIA: Object.freeze({
+    RODADA: ({ versaoZoo, dataHora } = {}) => {
+      const params = new URLSearchParams()
+      if (versaoZoo) params.set('versaoZoo', versaoZoo)
+      if (dataHora) params.set('dataHora', dataHora)
+      const qs = params.toString()
+      return qs ? `/api/ZooEstrategia/rodada?${qs}` : '/api/ZooEstrategia/rodada'
+    },
+    CURVA: ({ moeda, estrategias, versaoZoo, dataInicio, dataFim } = {}) => {
+      const params = new URLSearchParams()
+      if (moeda) params.set('moeda', moeda)
+      if (estrategias?.length) params.set('estrategias', estrategias.join(','))
+      if (versaoZoo) params.set('versaoZoo', versaoZoo)
+      if (dataInicio) params.set('dataInicio', dataInicio)
+      if (dataFim) params.set('dataFim', dataFim)
+      const qs = params.toString()
+      return qs ? `/api/ZooEstrategia/curva?${qs}` : '/api/ZooEstrategia/curva'
+    },
+  }),
 })
 
 /**
@@ -372,5 +392,6 @@ export const PatrimonioEndpoint = ApiEndpoint.PATRIMONIO
 export const AlertaPrecoEndpoint = ApiEndpoint.ALERTA_PRECO
 export const PlanosPagamentoEndpoint = ApiEndpoint.PLANOS_PAGAMENTO
 export const TreinamentoEpisodioEndpoint = ApiEndpoint.TREINAMENTO_EPISODIO
+export const ZooEstrategiaEndpoint = ApiEndpoint.ZOO_ESTRATEGIA
 export const DocumentoLegalEndpoint = ApiEndpoint.DOCUMENTO_LEGAL
 export const ConsentimentoEndpoint = ApiEndpoint.CONSENTIMENTO

@@ -1,5 +1,5 @@
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { MdHome, MdLogin, MdDashboard, MdLogout, MdSettings, MdPublic, MdPsychology, MdWorkspacePremium, MdClose, MdPlayCircleOutline } from 'react-icons/md'
+import { MdHome, MdLogin, MdDashboard, MdLogout, MdSettings, MdPublic, MdPsychology, MdWorkspacePremium, MdClose, MdPlayCircleOutline, MdScience } from 'react-icons/md'
 import AppBar from '@mui/material/AppBar'
 import Toolbar from '@mui/material/Toolbar'
 import IconButton from '@mui/material/IconButton'
@@ -25,6 +25,7 @@ const ROTULO_DA_ROTA = [
   ['/settings', 'nav.settings'],
   ['/heatmap', 'nav.heatmap'],
   ['/treinamento-episodios', 'nav.training'],
+  ['/estrategias', 'nav.strategies'],
   ['/login', 'nav.login'],
   ['/redefinir-senha', 'senha.redefinirTitulo'],
   ['/privacidade', 'consentimento.tipos.privacidade'],
@@ -194,6 +195,16 @@ function Layout({ children }) {
         <MdPsychology />
         <span className="nav-label">{t('nav.training')}</span>
       </IconButton>
+      <IconButton
+        component={NavLink}
+        to="/estrategias"
+        className="nav-item"
+        title={t('nav.strategies')}
+        aria-label={t('nav.strategies')}
+      >
+        <MdScience />
+        <span className="nav-label">{t('nav.strategies')}</span>
+      </IconButton>
     </>
   )
 
@@ -295,6 +306,15 @@ function Layout({ children }) {
                   >
                     <MdPsychology />
                     <span className="nav-label">{t('nav.training')}</span>
+                  </IconButton>
+                  <IconButton
+                    component={NavLink}
+                    to="/estrategias"
+                    className="nav-item"
+                    title={t('nav.strategies')}
+                  >
+                    <MdScience />
+                    <span className="nav-label">{t('nav.strategies')}</span>
                   </IconButton>
                 </Box>
               )}

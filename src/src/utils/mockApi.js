@@ -1,6 +1,8 @@
 // A flag vive em mockFlag.js, para que este arquivo possa ficar atrás de um
 // import dinâmico e não viajar no bundle de produção.
 
+import { CURVAS_ZOO, RODADA_ZOO } from './mockZooEstrategia'
+
 // As preferências do modo demo vivem no localStorage: sem isso o GET devolve
 // sempre o mesmo objeto fixo e qualquer alteração do usuário (tema, idioma…)
 // é descartada no primeiro reload.
@@ -1073,6 +1075,43 @@ const mockCriarAlerta = (body) => {
   return { mensagem: 'Alerta mock criado com sucesso' }
 }
 
+// Zoo de estratégias (/api/ZooEstrategia/*): a rodada real guardada em
+// mockZooEstrategia.js. A curva vem como a API a devolve — uma por estratégia,
+// em ordem de nome —, só que com um ponto a cada quatro semanas.
+const DIA_MS = 24 * 60 * 60 * 1000
+
+const mockZooRodada = () => ({ mensagem: 'Rodada do zoo (mock)', resultado: RODADA_ZOO })
+
+const mockZooCurva = (endpoint) => {
+  const q = treinoQuery(endpoint)
+  const moeda = (q.get('moeda') || '').trim().toUpperCase()
+  if (!moeda) {
+    const erro = new Error('Informe a moeda da curva.')
+    erro.status = 400
+    throw erro
+  }
+  const pedidas = (q.get('estrategias') || '').split(',').map((e) => e.trim()).filter(Boolean)
+  const nomes = pedidas.length > 0 ? pedidas : RODADA_ZOO.estrategias.map((e) => e.estrategia)
+  const resultado = [...new Set(nomes)]
+    .sort()
+    .map((estrategia) => ({ estrategia, curva: CURVAS_ZOO[`${estrategia}|${moeda}`] }))
+    .filter(({ curva }) => curva)
+    .map(({ estrategia, curva }) => {
+      const inicio = Date.parse(`${curva.inicio}T00:00:00Z`)
+      return {
+        versaoZoo: RODADA_ZOO.versaoZoo,
+        estrategia,
+        moeda,
+        pontos: curva.pontos.map(([dias, patrimonio, exposicao]) => ({
+          data: new Date(inicio + dias * DIA_MS).toISOString(),
+          patrimonio,
+          exposicao,
+        })),
+      }
+    })
+  return { mensagem: resultado.length ? 'Curva do zoo (mock)' : 'Dados não encontrados', resultado }
+}
+
 const mockHandlers = [
   {
     method: 'GET',
@@ -1088,6 +1127,16 @@ const mockHandlers = [
     method: 'GET',
     match: (endpoint) => endpoint.split('?')[0] === '/api/TreinamentoEpisodio/avaliacoes',
     response: (endpoint) => mockTreinoAvaliacoes(endpoint),
+  },
+  {
+    method: 'GET',
+    match: (endpoint) => endpoint.split('?')[0] === '/api/ZooEstrategia/rodada',
+    response: () => mockZooRodada(),
+  },
+  {
+    method: 'GET',
+    match: (endpoint) => endpoint.split('?')[0] === '/api/ZooEstrategia/curva',
+    response: (endpoint) => mockZooCurva(endpoint),
   },
   {
     method: 'GET',

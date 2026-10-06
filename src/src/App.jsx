@@ -22,6 +22,7 @@ const TreinamentoEpisodios = lazy(() => import('./pages/TreinamentoEpisodios.jsx
 const RedefinirSenha = lazy(() => import('./pages/RedefinirSenha.jsx'))
 const DocumentoLegal = lazy(() => import('./pages/DocumentoLegal.jsx'))
 const Simulacao = lazy(() => import('./pages/Simulacao.jsx'))
+const ZooEstrategias = lazy(() => import('./pages/ZooEstrategias.jsx'))
 
 // Link de antes da tela própria da simulação — `/dashboard?sim.sinal=…` —
 // continua abrindo a simulação, com a configuração inteira. Sem isto, quem
@@ -109,6 +110,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <TreinamentoEpisodios />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/estrategias"
+                element={
+                  <ProtectedRoute>
+                    <ZooEstrategias />
                   </ProtectedRoute>
                 }
               />
