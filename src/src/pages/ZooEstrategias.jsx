@@ -1,7 +1,10 @@
 import { useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import CircularProgress from '@mui/material/CircularProgress'
+import Tab from '@mui/material/Tab'
+import Tabs from '@mui/material/Tabs'
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
 import TableCell from '@mui/material/TableCell'
@@ -12,7 +15,7 @@ import Typography from '@mui/material/Typography'
 import { useTheme } from '@mui/material/styles'
 import { Chart as ChartJS, LogarithmicScale } from 'chart.js'
 import { Line } from 'react-chartjs-2'
-import { MdCheckCircle, MdWarning } from 'react-icons/md'
+import { MdCheckCircle, MdHistory, MdSmartToy, MdWarning } from 'react-icons/md'
 import ErrorMessage from '../components/ErrorMessage'
 import { comBordaDeEixo, corDaGrade, corDaLegenda, corDoTique, comAlfa, eixoDeTempo, tooltipBase } from '../components/treinamento/graficos'
 import { EstadoVazio, MoedaChip, Painel } from '../components/treinamento/Painel'
@@ -29,11 +32,15 @@ import useTranslation from '../hooks/useTranslation'
 import { padraoDeDataCurta } from '../utils/dateUtils'
 import { readToken } from '../utils/themeTokens'
 import {
+  AGENTE,
   BUY_HOLD,
-  estrategiaPadrao,
+  JANELAS,
+  estrategiaDaRodada,
   formatarDiaUtc,
   horasDesdeARodada,
+  janelaDaUrl,
   linhaDaMoeda,
+  mesesDaJanela,
   moedaPadrao,
   moedasDaRodada,
   noDiaLocal,
@@ -86,7 +93,26 @@ const propsDeLinhaEscolhivel = (selecionada, onEscolher) => ({
   },
 })
 
-function TabelaRanking({ estrategias, selecionada, onSelecionar }) {
+// As abas como as da tela de treino.
+const estiloDasAbas = {
+  minHeight: 44,
+  borderBottom: '1px solid var(--border)',
+  '& .MuiTabs-indicator': { backgroundColor: 'var(--accent)', height: 2 },
+  '& .MuiTab-root': {
+    color: 'var(--text-muted)',
+    minHeight: 44,
+    textTransform: 'none',
+    fontWeight: 600,
+    fontSize: 14,
+    '&.Mui-selected': { color: 'var(--accent-ink)' },
+  },
+}
+
+// A linha do agente se distingue das regras mesmo sem estar escolhida: é ela
+// que a aba da janela existe para mostrar.
+const fundoDoAgente = { background: 'var(--accent-a05)' }
+
+function TabelaRanking({ estrategias, selecionada, onSelecionar, janela }) {
   const { t } = useTranslation()
   const colunas = [
     { id: 'estrategia', rotulo: t('zoo.colStrategy') },
@@ -99,7 +125,12 @@ function TabelaRanking({ estrategias, selecionada, onSelecionar }) {
     { id: 'calmar', rotulo: t('zoo.colCalmar'), dica: t('zoo.colCalmarHint'), numerica: true },
     { id: 'alta', rotulo: t('zoo.colUpCapture'), dica: t('zoo.colUpCaptureHint'), numerica: true },
     { id: 'quedaCap', rotulo: t('zoo.colDownCapture'), dica: t('zoo.colDownCaptureHint'), numerica: true },
-    { id: 'exposicao', rotulo: t('zoo.colExposure'), dica: t('zoo.colExposureHint'), numerica: true },
+    {
+      id: 'exposicao',
+      rotulo: t('zoo.colExposure'),
+      dica: t(janela === JANELAS.TESTE_AGENTE ? 'zoo.colExposureHintWindow' : 'zoo.colExposureHint'),
+      numerica: true,
+    },
     { id: 'taxa', rotulo: t('zoo.colFees'), dica: t('zoo.colFeesHint'), numerica: true },
   ]
 
@@ -115,29 +146,36 @@ function TabelaRanking({ estrategias, selecionada, onSelecionar }) {
             </TableRow>
           </TableHead>
           <TableBody>
-            {estrategias.map((e) => (
-              <TableRow key={e.estrategia} {...propsDeLinhaEscolhivel(e.estrategia === selecionada, () => onSelecionar(e.estrategia))}>
-                <TableCell sx={{ minWidth: 220 }}>
-                  <Box sx={{ fontWeight: 600 }}>{nomeDaEstrategia(t, e.estrategia, e.descricao)}</Box>
-                </TableCell>
-                <TableCell align="right">
-                  <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, color: e.aprovada ? 'var(--perf-up)' : 'inherit', fontWeight: e.aprovada ? 700 : 400 }}>
-                    {e.aprovada && <MdCheckCircle aria-label={t('zoo.approved')} />}
-                    {`${e.moedasAprovadas}/${e.moedas}`}
-                  </Box>
-                </TableCell>
-                <TableCell align="right">{`${e.moedasPeriodoOk}/${e.moedas}`}</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 700, color: `${corDoSinal(e.medianaCagr)} !important` }}>{pct(e.medianaCagr)}</TableCell>
-                <TableCell align="right" sx={{ color: 'var(--text-secondary) !important' }}>{pct(e.medianaCagrBuyHold)}</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 700 }}>{pct(e.medianaQuedaMaxima)}</TableCell>
-                <TableCell align="right" sx={{ color: 'var(--text-secondary) !important' }}>{pct(e.medianaQuedaMaximaBuyHold)}</TableCell>
-                <TableCell align="right">{num(e.medianaCalmar)}</TableCell>
-                <TableCell align="right">{pctSemSinal(e.medianaCapturaAlta)}</TableCell>
-                <TableCell align="right">{pctSemSinal(e.medianaCapturaQueda)}</TableCell>
-                <TableCell align="right">{pctSemSinal(e.medianaExposicao)}</TableCell>
-                <TableCell align="right">{pctSemSinal(e.medianaTaxaPaga, 1)}</TableCell>
-              </TableRow>
-            ))}
+            {estrategias.map((e) => {
+              const linha = propsDeLinhaEscolhivel(e.estrategia === selecionada, () => onSelecionar(e.estrategia))
+              const agente = e.estrategia === AGENTE
+              return (
+                <TableRow key={e.estrategia} {...linha} sx={agente ? { ...linha.sx, ...fundoDoAgente } : linha.sx}>
+                  <TableCell sx={{ minWidth: 220 }}>
+                    <Box sx={{ fontWeight: agente ? 700 : 600, display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                      {agente && <MdSmartToy aria-hidden="true" style={{ color: 'var(--accent-ink)', flexShrink: 0 }} />}
+                      {nomeDaEstrategia(t, e.estrategia, e.descricao)}
+                    </Box>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, color: e.aprovada ? 'var(--perf-up)' : 'inherit', fontWeight: e.aprovada ? 700 : 400 }}>
+                      {e.aprovada && <MdCheckCircle aria-label={t('zoo.approved')} />}
+                      {`${e.moedasAprovadas}/${e.moedas}`}
+                    </Box>
+                  </TableCell>
+                  <TableCell align="right">{`${e.moedasPeriodoOk}/${e.moedas}`}</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 700, color: `${corDoSinal(e.medianaCagr)} !important` }}>{pct(e.medianaCagr)}</TableCell>
+                  <TableCell align="right" sx={{ color: 'var(--text-secondary) !important' }}>{pct(e.medianaCagrBuyHold)}</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 700 }}>{pct(e.medianaQuedaMaxima)}</TableCell>
+                  <TableCell align="right" sx={{ color: 'var(--text-secondary) !important' }}>{pct(e.medianaQuedaMaximaBuyHold)}</TableCell>
+                  <TableCell align="right">{num(e.medianaCalmar)}</TableCell>
+                  <TableCell align="right">{pctSemSinal(e.medianaCapturaAlta)}</TableCell>
+                  <TableCell align="right">{pctSemSinal(e.medianaCapturaQueda)}</TableCell>
+                  <TableCell align="right">{pctSemSinal(e.medianaExposicao)}</TableCell>
+                  <TableCell align="right">{pctSemSinal(e.medianaTaxaPaga, 1)}</TableCell>
+                </TableRow>
+              )
+            })}
           </TableBody>
         </Table>
       </TableContainer>
@@ -145,12 +183,14 @@ function TabelaRanking({ estrategias, selecionada, onSelecionar }) {
   )
 }
 
-function GraficosDaCurva({ moeda, estrategia, nome, linha, versaoZoo }) {
+function GraficosDaCurva({ moeda, estrategia, nome, linha, versaoZoo, janela }) {
   const { t, idioma } = useTranslation()
   const escuro = useTheme().palette.mode === 'dark'
   const dataCurta = useMemo(() => padraoDeDataCurta(idioma.intl), [idioma.intl])
   const pedidas = useMemo(() => (estrategia === BUY_HOLD ? [BUY_HOLD] : [estrategia, BUY_HOLD]), [estrategia])
-  const { curvas, carregando, erro } = useCurvaZoo({ moeda, estrategias: pedidas, versaoZoo })
+  const { curvas, carregando, erro } = useCurvaZoo({ moeda, estrategias: pedidas, versaoZoo, janela })
+  // O histórico guarda um ponto por semana; a janela do agente, um por dia.
+  const subtituloDaQueda = janela === JANELAS.TESTE_AGENTE ? 'zoo.drawdownSubDaily' : 'zoo.drawdownSub'
 
   const series = useMemo(() => {
     const da = (nomeDaCurva) => pontosDaCurva((curvas ?? []).find((c) => c.estrategia === nomeDaCurva))
@@ -250,7 +290,7 @@ function GraficosDaCurva({ moeda, estrategia, nome, linha, versaoZoo }) {
       {series.propria.length > 0 && (
         <Painel
           titulo={t('zoo.drawdownTitle')}
-          subtitulo={t('zoo.drawdownSub', { pior: pct(piorQueda(series.quedaPropria)), piorBh: pct(piorQueda(series.quedaBh)) })}
+          subtitulo={t(subtituloDaQueda, { pior: pct(piorQueda(series.quedaPropria)), piorBh: pct(piorQueda(series.quedaBh)) })}
           sx={{ height: { xs: 260, md: 280 } }}
         >
           <Line data={dados.queda} options={opcoes.queda} aria-label={t('zoo.drawdownTitle')} />
@@ -353,12 +393,25 @@ export default function ZooEstrategias() {
   // No render, e não num efeito: os filhos formatam números neste mesmo render
   // (ver treinamento/formato.js).
   definirIdiomaDosNumeros(idioma.intl)
-  const { rodada, carregando, erro, recarregar } = useZooEstrategia()
+  // A aba na URL (?janela=teste-agente): sobrevive a refresh e gera link.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const janela = janelaDaUrl(searchParams.get('janela'))
+  const naJanela = janela === JANELAS.TESTE_AGENTE
+  const { rodada, carregando, erro, recarregar } = useZooEstrategia(janela)
   const [escolhida, setEscolhida] = useState(null)
   const [moedaEscolhida, setMoedaEscolhida] = useState(null)
 
+  const trocarJanela = (nova) => {
+    // Cada aba começa na escolha padrão dela: o agente na janela, a candidata no histórico.
+    setEscolhida(null)
+    const proximos = new URLSearchParams(searchParams)
+    if (nova === JANELAS.TESTE_AGENTE) proximos.set('janela', nova)
+    else proximos.delete('janela')
+    setSearchParams(proximos, { replace: true })
+  }
+
   const moedas = useMemo(() => moedasDaRodada(rodada), [rodada])
-  const estrategia = escolhida ?? estrategiaPadrao(rodada)
+  const estrategia = estrategiaDaRodada(rodada, escolhida)
   const moeda = moedaEscolhida && moedas.includes(moedaEscolhida) ? moedaEscolhida : moedaPadrao(moedas)
   const daRodada = rodada?.estrategias?.find((e) => e.estrategia === estrategia) ?? null
   const nome = daRodada ? nomeDaEstrategia(t, daRodada.estrategia, daRodada.descricao) : ''
@@ -370,74 +423,114 @@ export default function ZooEstrategias() {
         <Box>
           <Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>{t('zoo.title')}</Typography>
           <Typography variant="body2" sx={{ color: 'var(--text-secondary)', maxWidth: 900, mt: 0.5 }}>{t('zoo.intro')}</Typography>
-          {rodada && (
+        </Box>
+
+        <Tabs value={janela} onChange={(_, v) => trocarJanela(v)} aria-label={t('zoo.tabsLabel')} sx={estiloDasAbas}>
+          <Tab value={JANELAS.HISTORICO} id="aba-zoo-historico" aria-controls="painel-zoo" icon={<MdHistory size={18} />} iconPosition="start" label={t('zoo.tabHistory')} />
+          <Tab value={JANELAS.TESTE_AGENTE} id="aba-zoo-teste-agente" aria-controls="painel-zoo" icon={<MdSmartToy size={18} />} iconPosition="start" label={t('zoo.tabAgentWindow')} />
+        </Tabs>
+
+        <Box role="tabpanel" id="painel-zoo" aria-labelledby={`aba-zoo-${janela}`} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Box>
+            {naJanela && (
+              <Typography variant="body2" sx={{ color: 'var(--text-secondary)', maxWidth: 900 }}>{t('zoo.windowIntro')}</Typography>
+            )}
+            {rodada && (
+              <>
+                <Typography variant="body2" sx={{ color: 'var(--text-secondary)', maxWidth: 900, mt: 1 }}>
+                  {t('zoo.criterion', {
+                    queda: pctSemSinal(rodada.quedaMaximaRelativa),
+                    retorno: pctSemSinal(rodada.retornoMinimoRelativo),
+                  })}
+                </Typography>
+                <Typography variant="caption" component="p" sx={{ color: 'var(--text-muted)', mt: 0.5 }}>
+                  {t('zoo.roundInfo', {
+                    data: formatarDataCurta(new Date(rodada.dataHora).getTime(), idioma.intl),
+                    versao: rodada.versaoZoo,
+                    taxa: pctSemSinal(rodada.taxa, 2),
+                  })}
+                </Typography>
+                {naJanela && rodada.janelaInicio && (
+                  <>
+                    <Typography variant="caption" component="p" sx={{ color: 'var(--text-muted)', mt: 0.25 }}>
+                      {t('zoo.windowInfo', {
+                        inicio: formatarDiaUtc(rodada.janelaInicio, idioma.intl),
+                        fim: formatarDiaUtc(rodada.janelaFim, idioma.intl),
+                        modelo: rodada.modeloAgente,
+                      })}
+                      {rodada.modeloAgentePromovidoEm
+                        ? ` · ${t('zoo.windowPromoted', { data: formatarDiaUtc(rodada.modeloAgentePromovidoEm, idioma.intl) })}`
+                        : ''}
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: 'var(--text-secondary)', maxWidth: 900, mt: 1 }}>
+                      {t('zoo.windowCaveat', { meses: mesesDaJanela(rodada.janelaInicio, rodada.janelaFim) })}
+                    </Typography>
+                  </>
+                )}
+                {rodadaAtrasada(rodada.dataHora) && (
+                  <Box
+                    role="status"
+                    sx={{
+                      display: 'flex', alignItems: 'center', gap: 1, mt: 1, px: 1.5, py: 1, maxWidth: 900,
+                      border: '1px solid var(--accent-a30)', background: 'var(--accent-a08)', borderRadius: 1,
+                    }}
+                  >
+                    <MdWarning aria-hidden="true" style={{ color: 'var(--accent-ink)', flexShrink: 0 }} />
+                    <Typography variant="body2" sx={{ color: 'var(--text-primary)' }}>
+                      {t('zoo.stale', { horas: horasDesdeARodada(rodada.dataHora) })}
+                    </Typography>
+                  </Box>
+                )}
+              </>
+            )}
+          </Box>
+
+          {rodada === undefined && carregando ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress sx={{ color: 'var(--accent-ink)' }} /></Box>
+          ) : rodada === undefined && erro ? (
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1 }}>
+              <ErrorMessage message={t('zoo.loadError')} />
+              <Button size="small" onClick={recarregar} sx={{ color: 'var(--accent-ink)', textTransform: 'none', fontWeight: 600 }}>
+                {t('zoo.retry')}
+              </Button>
+            </Box>
+          ) : !rodada ? (
+            <Painel><EstadoVazio mensagem={t(naJanela ? 'zoo.windowEmpty' : 'zoo.empty')} /></Painel>
+          ) : (
             <>
-              <Typography variant="body2" sx={{ color: 'var(--text-secondary)', maxWidth: 900, mt: 1 }}>
-                {t('zoo.criterion', {
-                  queda: pctSemSinal(rodada.quedaMaximaRelativa),
-                  retorno: pctSemSinal(rodada.retornoMinimoRelativo),
-                })}
-              </Typography>
-              <Typography variant="caption" component="p" sx={{ color: 'var(--text-muted)', mt: 0.5 }}>
-                {t('zoo.roundInfo', {
-                  data: formatarDataCurta(new Date(rodada.dataHora).getTime(), idioma.intl),
-                  versao: rodada.versaoZoo,
-                  taxa: pctSemSinal(rodada.taxa, 2),
-                })}
-              </Typography>
-              {rodadaAtrasada(rodada.dataHora) && (
-                <Box
-                  role="status"
-                  sx={{
-                    display: 'flex', alignItems: 'center', gap: 1, mt: 1, px: 1.5, py: 1, maxWidth: 900,
-                    border: '1px solid var(--accent-a30)', background: 'var(--accent-a08)', borderRadius: 1,
-                  }}
-                >
-                  <MdWarning aria-hidden="true" style={{ color: 'var(--accent-ink)', flexShrink: 0 }} />
-                  <Typography variant="body2" sx={{ color: 'var(--text-primary)' }}>
-                    {t('zoo.stale', { horas: horasDesdeARodada(rodada.dataHora) })}
-                  </Typography>
-                </Box>
+              <TabelaRanking estrategias={rodada.estrategias} selecionada={estrategia} onSelecionar={setEscolhida} janela={janela} />
+
+              <Box role="group" aria-label={t('zoo.coinPicker')} sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                {moedas.map((m) => (
+                  <MoedaChip
+                    key={m}
+                    moeda={m}
+                    onClick={() => setMoedaEscolhida(m)}
+                    rotulo={m === moeda ? t('zoo.coinSelected', { moeda: m }) : m}
+                    sx={m === moeda ? { outline: '2px solid var(--accent)', outlineOffset: 1 } : { opacity: 0.75 }}
+                  />
+                ))}
+              </Box>
+
+              {estrategia && moeda && (
+                // A chave da janela remonta os gráficos ao trocar de aba: as curvas
+                // da outra janela não ficam na tela enquanto as novas carregam.
+                <GraficosDaCurva
+                  key={janela}
+                  moeda={moeda}
+                  estrategia={estrategia}
+                  nome={nome}
+                  linha={linha}
+                  versaoZoo={rodada.versaoZoo}
+                  janela={janela}
+                />
               )}
+
+              <TabelaMoedas estrategia={daRodada} nome={nome} moedaSelecionada={moeda} onSelecionar={setMoedaEscolhida} />
+              <TabelaAnos linha={linha} moeda={moeda} />
             </>
           )}
         </Box>
-
-        {rodada === undefined && carregando ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress sx={{ color: 'var(--accent-ink)' }} /></Box>
-        ) : rodada === undefined && erro ? (
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1 }}>
-            <ErrorMessage message={t('zoo.loadError')} />
-            <Button size="small" onClick={recarregar} sx={{ color: 'var(--accent-ink)', textTransform: 'none', fontWeight: 600 }}>
-              {t('zoo.retry')}
-            </Button>
-          </Box>
-        ) : !rodada ? (
-          <Painel><EstadoVazio mensagem={t('zoo.empty')} /></Painel>
-        ) : (
-          <>
-            <TabelaRanking estrategias={rodada.estrategias} selecionada={estrategia} onSelecionar={setEscolhida} />
-
-            <Box role="group" aria-label={t('zoo.coinPicker')} sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              {moedas.map((m) => (
-                <MoedaChip
-                  key={m}
-                  moeda={m}
-                  onClick={() => setMoedaEscolhida(m)}
-                  rotulo={m === moeda ? t('zoo.coinSelected', { moeda: m }) : m}
-                  sx={m === moeda ? { outline: '2px solid var(--accent)', outlineOffset: 1 } : { opacity: 0.75 }}
-                />
-              ))}
-            </Box>
-
-            {estrategia && moeda && (
-              <GraficosDaCurva moeda={moeda} estrategia={estrategia} nome={nome} linha={linha} versaoZoo={rodada.versaoZoo} />
-            )}
-
-            <TabelaMoedas estrategia={daRodada} nome={nome} moedaSelecionada={moeda} onSelecionar={setMoedaEscolhida} />
-            <TabelaAnos linha={linha} moeda={moeda} />
-          </>
-        )}
       </Box>
     </div>
   )

@@ -1030,6 +1030,16 @@
     "loadError": "Could not load the strategy zoo.",
     "retry": "Try again",
     "empty": "The zoo has not run yet. The first run shows up here after the daily close.",
+    "tabsLabel": "Measured period",
+    "tabHistory": "History",
+    "tabAgentWindow": "Agent window (test)",
+    "windowIntro": "The same rules and the DQN agent, measured only on the stretch the training never saw and that did not pick the model: the most recent half of the holdout. The agent is the training's best model (_melhor), raw — without the live decision gates. It trades hourly and can go short.",
+    "windowInfo": "Window from {{inicio}} to {{fim}} · model {{modelo}}",
+    "windowPromoted": "last promoted on {{data}}",
+    "windowCaveat": "{{meses}} months are a single regime: the order of this ranking changes from one window to the next. What matters is the gap between the agent and the rules.",
+    "windowEmpty": "The agent window has not run yet. It is measured every day, right after the history.",
+    "colExposureHintWindow": "Average share of the portfolio in the asset. For the agent, the gross figure: long and short added together",
+    "drawdownSubDaily": "Worst drawdown: {{pior}} against {{piorBh}} for buy & hold.",
     "rankingTitle": "Ranking",
     "rankingSub": "Median across coins. Pick a strategy to see its curves, coins and years.",
     "colStrategy": "Strategy",
@@ -1090,7 +1100,8 @@
       "cruzamento_50_200": "50/200 crossover",
       "momento_28d": "28-day momentum",
       "vol_alvo_40": "40% volatility target",
-      "media_50d_vol_alvo_40": "50-day average + 40% vol target"
+      "media_50d_vol_alvo_40": "50-day average + 40% vol target",
+      "agente_dqn": "DQN agent (raw)"
     }
   }
 }

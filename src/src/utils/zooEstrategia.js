@@ -8,10 +8,40 @@
 export const REFERENCIAS = Object.freeze(['buy_hold', 'caixa'])
 export const BUY_HOLD = 'buy_hold'
 
-/** A primeira estratégia do ranking que não é referência; sem nenhuma, a primeira. */
+// O agente DQN na janela de teste dele: o _melhor do treino, cru (sem os gates
+// da decisão ao vivo), como mais uma linha do ranking.
+export const AGENTE = 'agente_dqn'
+
+// Os dois rankings do zoo. O histórico mede as regras no histórico inteiro de
+// cada moeda; a janela do agente mede as regras e o agente só no teste do
+// holdout, o único trecho que o treino não viu e que não escolheu o modelo.
+export const JANELAS = Object.freeze({ HISTORICO: 'historico', TESTE_AGENTE: 'teste-agente' })
+
+/** A janela pedida na URL (?janela=); qualquer outra coisa é o histórico. */
+export const janelaDaUrl = (valor) => (valor === JANELAS.TESTE_AGENTE ? JANELAS.TESTE_AGENTE : JANELAS.HISTORICO)
+
+/** O parâmetro da API: o histórico vai sem ele, como antes da janela existir. */
+export const parametroDaJanela = (janela) => (janela === JANELAS.TESTE_AGENTE ? janela : undefined)
+
+/**
+ * A escolha padrão do ranking. Na janela do agente, o agente — é para ele que a
+ * aba existe. Senão, a primeira estratégia que não é referência; sem nenhuma, a
+ * primeira.
+ */
 export const estrategiaPadrao = (rodada) => {
   const lista = rodada?.estrategias ?? []
+  if (rodada?.janela === JANELAS.TESTE_AGENTE && lista.some((e) => e.estrategia === AGENTE)) return AGENTE
   return (lista.find((e) => !REFERENCIAS.includes(e.estrategia)) ?? lista[0])?.estrategia ?? null
+}
+
+/** A estratégia escolhida, se ela existe nesta rodada; senão, a padrão. */
+export const estrategiaDaRodada = (rodada, escolhida) =>
+  (escolhida && (rodada?.estrategias ?? []).some((e) => e.estrategia === escolhida) ? escolhida : estrategiaPadrao(rodada))
+
+/** Meses inteiros da janela, de início a fim (datas ISO); nulo sem as duas. */
+export const mesesDaJanela = (inicio, fim) => {
+  const ms = Date.parse(fim) - Date.parse(inicio)
+  return Number.isFinite(ms) ? Math.max(1, Math.round(ms / (30.44 * 24 * 3_600_000))) : null
 }
 
 /** As moedas da rodada, em ordem alfabética. */

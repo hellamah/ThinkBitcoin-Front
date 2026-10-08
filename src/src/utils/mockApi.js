@@ -2,6 +2,7 @@
 // import dinâmico e não viajar no bundle de produção.
 
 import { CURVAS_ZOO, RODADA_ZOO } from './mockZooEstrategia'
+import { CURVAS_ZOO_JANELA, RODADA_ZOO_JANELA } from './mockZooJanelaAgente'
 
 // As preferências do modo demo vivem no localStorage: sem isso o GET devolve
 // sempre o mesmo objeto fixo e qualquer alteração do usuário (tema, idioma…)
@@ -1114,12 +1115,17 @@ const mockCriarAlerta = (body) => {
   return { mensagem: 'Alerta mock criado com sucesso' }
 }
 
-// Zoo de estratégias (/api/ZooEstrategia/*): a rodada real guardada em
-// mockZooEstrategia.js. A curva vem como a API a devolve — uma por estratégia,
-// em ordem de nome —, só que com um ponto a cada quatro semanas.
+// Zoo de estratégias (/api/ZooEstrategia/*): as rodadas reais guardadas em
+// mockZooEstrategia.js (histórico) e mockZooJanelaAgente.js (janela do agente,
+// ?janela=teste-agente). A curva vem como a API a devolve — uma por estratégia,
+// em ordem de nome —, só que com menos pontos.
 const DIA_MS = 24 * 60 * 60 * 1000
 
-const mockZooRodada = () => ({ mensagem: 'Rodada do zoo (mock)', resultado: RODADA_ZOO })
+const zooDaJanela = (endpoint) => (treinoQuery(endpoint).get('janela') === 'teste-agente'
+  ? { rodada: RODADA_ZOO_JANELA, curvas: CURVAS_ZOO_JANELA }
+  : { rodada: RODADA_ZOO, curvas: CURVAS_ZOO })
+
+const mockZooRodada = (endpoint) => ({ mensagem: 'Rodada do zoo (mock)', resultado: zooDaJanela(endpoint).rodada })
 
 const mockZooCurva = (endpoint) => {
   const q = treinoQuery(endpoint)
@@ -1129,16 +1135,17 @@ const mockZooCurva = (endpoint) => {
     erro.status = 400
     throw erro
   }
+  const { rodada, curvas } = zooDaJanela(endpoint)
   const pedidas = (q.get('estrategias') || '').split(',').map((e) => e.trim()).filter(Boolean)
-  const nomes = pedidas.length > 0 ? pedidas : RODADA_ZOO.estrategias.map((e) => e.estrategia)
+  const nomes = pedidas.length > 0 ? pedidas : rodada.estrategias.map((e) => e.estrategia)
   const resultado = [...new Set(nomes)]
     .sort()
-    .map((estrategia) => ({ estrategia, curva: CURVAS_ZOO[`${estrategia}|${moeda}`] }))
+    .map((estrategia) => ({ estrategia, curva: curvas[`${estrategia}|${moeda}`] }))
     .filter(({ curva }) => curva)
     .map(({ estrategia, curva }) => {
       const inicio = Date.parse(`${curva.inicio}T00:00:00Z`)
       return {
-        versaoZoo: RODADA_ZOO.versaoZoo,
+        versaoZoo: rodada.versaoZoo,
         estrategia,
         moeda,
         pontos: curva.pontos.map(([dias, patrimonio, exposicao]) => ({
@@ -1175,7 +1182,7 @@ const mockHandlers = [
   {
     method: 'GET',
     match: (endpoint) => endpoint.split('?')[0] === '/api/ZooEstrategia/rodada',
-    response: () => mockZooRodada(),
+    response: (endpoint) => mockZooRodada(endpoint),
   },
   {
     method: 'GET',

@@ -1030,6 +1030,16 @@
     "loadError": "Impossible de charger le zoo de stratégies.",
     "retry": "Réessayer",
     "empty": "Le zoo n'a pas encore tourné. La première exécution apparaît ici après la clôture du jour.",
+    "tabsLabel": "Période mesurée",
+    "tabHistory": "Historique",
+    "tabAgentWindow": "Fenêtre de l'agent (test)",
+    "windowIntro": "Les mêmes règles et l'agent DQN, mesurés uniquement sur la portion que l'entraînement n'a pas vue et qui n'a pas servi à choisir le modèle : la moitié la plus récente du holdout. L'agent est le meilleur modèle de l'entraînement (_melhor), brut — sans les filtres de la décision en direct. Il opère toutes les heures et peut être vendeur à découvert.",
+    "windowInfo": "Fenêtre du {{inicio}} au {{fim}} · modèle {{modelo}}",
+    "windowPromoted": "dernière promotion le {{data}}",
+    "windowCaveat": "{{meses}} mois forment un seul régime : l'ordre de ce classement change d'une fenêtre à l'autre. Ce qui compte, c'est l'écart entre l'agent et les règles.",
+    "windowEmpty": "La fenêtre de l'agent n'a pas encore tourné. Elle est mesurée chaque jour, juste après l'historique.",
+    "colExposureHintWindow": "Part moyenne du patrimoine dans l'actif. Pour l'agent, la part brute : achat et vente à découvert additionnés",
+    "drawdownSubDaily": "Pire baisse : {{pior}} contre {{piorBh}} pour le buy & hold.",
     "rankingTitle": "Classement",
     "rankingSub": "Médiane entre les cryptos. Choisissez une stratégie pour voir les courbes, les cryptos et les années.",
     "colStrategy": "Stratégie",
@@ -1090,7 +1100,8 @@
       "cruzamento_50_200": "Croisement 50/200",
       "momento_28d": "Momentum 28 jours",
       "vol_alvo_40": "Volatilité cible de 40 %",
-      "media_50d_vol_alvo_40": "Moyenne 50 jours + volatilité cible de 40 %"
+      "media_50d_vol_alvo_40": "Moyenne 50 jours + volatilité cible de 40 %",
+      "agente_dqn": "Agent DQN (brut)"
     }
   }
 }

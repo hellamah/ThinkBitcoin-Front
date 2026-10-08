@@ -1030,6 +1030,16 @@
     "loadError": "Não foi possível carregar o zoo de estratégias.",
     "retry": "Tentar de novo",
     "empty": "O zoo ainda não rodou. A primeira rodada aparece aqui depois do fechamento do dia.",
+    "tabsLabel": "Trecho medido",
+    "tabHistory": "Histórico",
+    "tabAgentWindow": "Janela do agente (teste)",
+    "windowIntro": "As mesmas regras e o agente DQN, medidos só no trecho que o treino não viu e que não escolheu o modelo: a metade mais recente do holdout. O agente é o _melhor do treino, cru — sem os gates da decisão ao vivo. Ele opera de hora em hora e pode ficar vendido.",
+    "windowInfo": "Janela de {{inicio}} a {{fim}} · modelo {{modelo}}",
+    "windowPromoted": "última promoção em {{data}}",
+    "windowCaveat": "{{meses}} meses são um regime só: a ordem deste ranking muda de uma janela para outra. O que vale olhar é a distância entre o agente e as regras.",
+    "windowEmpty": "A janela do agente ainda não rodou. Ela é medida todo dia, logo depois do histórico.",
+    "colExposureHintWindow": "Fração média do patrimônio no ativo. No agente, a bruta: comprado e vendido somados",
+    "drawdownSubDaily": "Pior queda: {{pior}} contra {{piorBh}} do buy & hold.",
     "rankingTitle": "Ranking",
     "rankingSub": "Mediana entre as moedas. Escolha uma estratégia para ver as curvas, as moedas e os anos.",
     "colStrategy": "Estratégia",
@@ -1090,7 +1100,8 @@
       "cruzamento_50_200": "Cruzamento 50/200",
       "momento_28d": "Momento de 28 dias",
       "vol_alvo_40": "Volatilidade-alvo de 40%",
-      "media_50d_vol_alvo_40": "Média de 50 dias + vol-alvo de 40%"
+      "media_50d_vol_alvo_40": "Média de 50 dias + vol-alvo de 40%",
+      "agente_dqn": "Agente DQN (cru)"
     }
   }
 }

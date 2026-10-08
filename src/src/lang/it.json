@@ -1030,6 +1030,16 @@
     "loadError": "Impossibile caricare lo zoo di strategie.",
     "retry": "Riprova",
     "empty": "Lo zoo non è ancora stato eseguito. La prima esecuzione compare qui dopo la chiusura del giorno.",
+    "tabsLabel": "Periodo misurato",
+    "tabHistory": "Storico",
+    "tabAgentWindow": "Finestra dell'agente (test)",
+    "windowIntro": "Le stesse regole e l'agente DQN, misurati solo sul tratto che l'addestramento non ha visto e che non ha scelto il modello: la metà più recente dell'holdout. L'agente è il miglior modello dell'addestramento (_melhor), grezzo — senza i filtri della decisione dal vivo. Opera ogni ora e può andare allo scoperto.",
+    "windowInfo": "Finestra dal {{inicio}} al {{fim}} · modello {{modelo}}",
+    "windowPromoted": "ultima promozione il {{data}}",
+    "windowCaveat": "{{meses}} mesi sono un solo regime: l'ordine di questa classifica cambia da una finestra all'altra. Conta la distanza tra l'agente e le regole.",
+    "windowEmpty": "La finestra dell'agente non è ancora stata eseguita. Viene misurata ogni giorno, subito dopo lo storico.",
+    "colExposureHintWindow": "Quota media del patrimonio nell'attivo. Per l'agente, quella lorda: acquisti e vendite allo scoperto sommati",
+    "drawdownSubDaily": "Calo peggiore: {{pior}} contro {{piorBh}} del buy & hold.",
     "rankingTitle": "Classifica",
     "rankingSub": "Mediana tra le monete. Scegli una strategia per vedere le curve, le monete e gli anni.",
     "colStrategy": "Strategia",
@@ -1090,7 +1100,8 @@
       "cruzamento_50_200": "Incrocio 50/200",
       "momento_28d": "Momentum a 28 giorni",
       "vol_alvo_40": "Volatilità target del 40%",
-      "media_50d_vol_alvo_40": "Media a 50 giorni + volatilità target del 40%"
+      "media_50d_vol_alvo_40": "Media a 50 giorni + volatilità target del 40%",
+      "agente_dqn": "Agente DQN (grezzo)"
     }
   }
 }

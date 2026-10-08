@@ -137,21 +137,24 @@ export const ApiEndpoint = Object.freeze({
     FILTROS: '/api/TreinamentoEpisodio/filtros',
   }),
   // Zoo de estratégias: regras simples medidas pela régua de risco (recurso pago).
+  // `janela`: 'teste-agente' para a janela do agente; omitida, o histórico.
   ZOO_ESTRATEGIA: Object.freeze({
-    RODADA: ({ versaoZoo, dataHora } = {}) => {
+    RODADA: ({ versaoZoo, dataHora, janela } = {}) => {
       const params = new URLSearchParams()
       if (versaoZoo) params.set('versaoZoo', versaoZoo)
       if (dataHora) params.set('dataHora', dataHora)
+      if (janela) params.set('janela', janela)
       const qs = params.toString()
       return qs ? `/api/ZooEstrategia/rodada?${qs}` : '/api/ZooEstrategia/rodada'
     },
-    CURVA: ({ moeda, estrategias, versaoZoo, dataInicio, dataFim } = {}) => {
+    CURVA: ({ moeda, estrategias, versaoZoo, dataInicio, dataFim, janela } = {}) => {
       const params = new URLSearchParams()
       if (moeda) params.set('moeda', moeda)
       if (estrategias?.length) params.set('estrategias', estrategias.join(','))
       if (versaoZoo) params.set('versaoZoo', versaoZoo)
       if (dataInicio) params.set('dataInicio', dataInicio)
       if (dataFim) params.set('dataFim', dataFim)
+      if (janela) params.set('janela', janela)
       const qs = params.toString()
       return qs ? `/api/ZooEstrategia/curva?${qs}` : '/api/ZooEstrategia/curva'
     },
