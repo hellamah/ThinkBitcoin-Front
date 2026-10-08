@@ -1026,6 +1026,7 @@
     "intro": "Reglas simples y transparentes en velas diarias, cada una medida contra el buy & hold de la misma moneda, en el mismo período y con la comisión real. El objetivo no es ganarle al mercado: es rendir parecido con caídas mucho menores.",
     "criterion": "Criterio: caída máxima de como mucho {{queda}} de la del buy & hold y retorno de al menos {{retorno}} del suyo, en todo el período y en cada año. Aprobada en el zoo = pasa en más de la mitad de las monedas.",
     "roundInfo": "Ronda del {{data}} · {{versao}} · comisión de {{taxa}} por operación",
+    "stale": "Ronda atrasada: la más reciente tiene {{horas}} horas, y el zoo se ejecuta todos los días a las 00:30 UTC. Las cifras de abajo son de ella.",
     "loadError": "No se pudo cargar el zoo de estrategias.",
     "retry": "Intentar de nuevo",
     "empty": "El zoo aún no se ha ejecutado. La primera ronda aparece aquí después del cierre del día.",

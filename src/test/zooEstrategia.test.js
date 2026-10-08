@@ -3,6 +3,8 @@ import { getMockResponse } from '../src/utils/mockApi'
 import {
   estrategiaPadrao,
   formatarDiaUtc,
+  HORAS_PARA_ATRASO,
+  horasDesdeARodada,
   linhaDaMoeda,
   moedaPadrao,
   moedasDaRodada,
@@ -12,7 +14,35 @@ import {
   pontosDaCurva,
   quedaDaCurva,
   resultadoDoAno,
+  rodadaAtrasada,
 } from '../src/utils/zooEstrategia'
+
+describe('zoo › rodada atrasada', () => {
+  // A rodada de 08/10/2026, às 00:31 UTC, como a API entrega depois do apiClient.
+  const rodadaDe = '2026-10-08T00:31:00Z'
+  const horasDepois = (h) => new Date(rodadaDe).getTime() + h * 3_600_000
+
+  it('conta as horas inteiras desde a rodada', () => {
+    expect(horasDesdeARodada(rodadaDe, horasDepois(5.9))).toBe(5)
+    expect(horasDesdeARodada(rodadaDe, horasDepois(52))).toBe(52)
+    expect(horasDesdeARodada('não é data', horasDepois(1))).toBeNull()
+    expect(horasDesdeARodada(undefined, horasDepois(1))).toBeNull()
+  })
+
+  it('a rodada de ontem não é atraso; passada a seguinte, com folga, é', () => {
+    // Às 23:59 UTC do mesmo dia: a próxima ainda nem era para ter saído.
+    expect(rodadaAtrasada(rodadaDe, horasDepois(23.5))).toBe(false)
+    // A das 00:30 do dia seguinte pode levar uns minutos, e a máquina pode ter
+    // ligado de manhã e rodado a perdida: até 30 h, sem aviso.
+    expect(rodadaAtrasada(rodadaDe, horasDepois(HORAS_PARA_ATRASO - 0.1))).toBe(false)
+    expect(rodadaAtrasada(rodadaDe, horasDepois(HORAS_PARA_ATRASO))).toBe(true)
+    expect(rodadaAtrasada(rodadaDe, horasDepois(72))).toBe(true)
+  })
+
+  it('sem data válida não acusa atraso', () => {
+    expect(rodadaAtrasada(null, horasDepois(100))).toBe(false)
+  })
+})
 
 const rodada = {
   estrategias: [

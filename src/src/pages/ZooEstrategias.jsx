@@ -12,7 +12,7 @@ import Typography from '@mui/material/Typography'
 import { useTheme } from '@mui/material/styles'
 import { Chart as ChartJS, LogarithmicScale } from 'chart.js'
 import { Line } from 'react-chartjs-2'
-import { MdCheckCircle } from 'react-icons/md'
+import { MdCheckCircle, MdWarning } from 'react-icons/md'
 import ErrorMessage from '../components/ErrorMessage'
 import { comBordaDeEixo, corDaGrade, corDaLegenda, corDoTique, comAlfa, eixoDeTempo, tooltipBase } from '../components/treinamento/graficos'
 import { EstadoVazio, MoedaChip, Painel } from '../components/treinamento/Painel'
@@ -32,6 +32,7 @@ import {
   BUY_HOLD,
   estrategiaPadrao,
   formatarDiaUtc,
+  horasDesdeARodada,
   linhaDaMoeda,
   moedaPadrao,
   moedasDaRodada,
@@ -41,6 +42,7 @@ import {
   pontosDaCurva,
   quedaDaCurva,
   resultadoDoAno,
+  rodadaAtrasada,
 } from '../utils/zooEstrategia'
 
 // Zoo de estratégias (recurso pago). A pergunta desta tela é a do objetivo de
@@ -383,6 +385,20 @@ export default function ZooEstrategias() {
                   taxa: pctSemSinal(rodada.taxa, 2),
                 })}
               </Typography>
+              {rodadaAtrasada(rodada.dataHora) && (
+                <Box
+                  role="status"
+                  sx={{
+                    display: 'flex', alignItems: 'center', gap: 1, mt: 1, px: 1.5, py: 1, maxWidth: 900,
+                    border: '1px solid var(--accent-a30)', background: 'var(--accent-a08)', borderRadius: 1,
+                  }}
+                >
+                  <MdWarning aria-hidden="true" style={{ color: 'var(--accent-ink)', flexShrink: 0 }} />
+                  <Typography variant="body2" sx={{ color: 'var(--text-primary)' }}>
+                    {t('zoo.stale', { horas: horasDesdeARodada(rodada.dataHora) })}
+                  </Typography>
+                </Box>
+              )}
             </>
           )}
         </Box>

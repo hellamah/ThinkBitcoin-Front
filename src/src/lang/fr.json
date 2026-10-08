@@ -1026,6 +1026,7 @@
     "intro": "Des règles simples et transparentes sur bougies journalières, chacune mesurée face au buy & hold de la même crypto, sur la même période et avec les frais réels. Le but n'est pas de battre le marché : c'est de rapporter à peu près autant avec des baisses bien plus faibles.",
     "criterion": "Critère : baisse maximale d'au plus {{queda}} de celle du buy & hold et rendement d'au moins {{retorno}} du sien, sur toute la période et chaque année. Approuvée dans le zoo = réussit sur plus de la moitié des cryptos.",
     "roundInfo": "Exécution du {{data}} · {{versao}} · frais de {{taxa}} par opération",
+    "stale": "Exécution en retard : la plus récente date de {{horas}} heures, et le zoo tourne tous les jours à 00:30 UTC. Les chiffres ci-dessous en sont issus.",
     "loadError": "Impossible de charger le zoo de stratégies.",
     "retry": "Réessayer",
     "empty": "Le zoo n'a pas encore tourné. La première exécution apparaît ici après la clôture du jour.",

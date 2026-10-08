@@ -1026,6 +1026,7 @@
     "intro": "Regole semplici e trasparenti su candele giornaliere, ognuna misurata contro il buy & hold della stessa moneta, nello stesso periodo e con la commissione reale. L'obiettivo non è battere il mercato: è rendere più o meno come lui con cali molto più piccoli.",
     "criterion": "Criterio: calo massimo al più {{queda}} di quello del buy & hold e rendimento di almeno {{retorno}} del suo, sull'intero periodo e in ogni anno. Approvata nello zoo = supera il criterio in più di metà delle monete.",
     "roundInfo": "Esecuzione del {{data}} · {{versao}} · commissione di {{taxa}} per operazione",
+    "stale": "Esecuzione in ritardo: la più recente risale a {{horas}} ore fa, e lo zoo gira ogni giorno alle 00:30 UTC. I numeri qui sotto sono di quella.",
     "loadError": "Impossibile caricare lo zoo di strategie.",
     "retry": "Riprova",
     "empty": "Lo zoo non è ancora stato eseguito. La prima esecuzione compare qui dopo la chiusura del giorno.",

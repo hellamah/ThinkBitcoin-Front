@@ -84,6 +84,28 @@ export const noDiaLocal = (ms) => {
   return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()).getTime()
 }
 
+/**
+ * O zoo roda todo dia às 00:30 UTC (CronJob thinkbitcoin-back-python-worker-zoo)
+ * e a rodada leva um minuto. Passadas 30 horas, a do dia não saiu: job com erro,
+ * máquina desligada o dia inteiro, release fora do ar. Sem o aviso, a tela seguia
+ * mostrando a rodada velha, e só a data miúda do cabeçalho denunciava.
+ */
+export const HORAS_PARA_ATRASO = 30
+
+/** Horas inteiras desde a rodada; nulo sem data válida. */
+export const horasDesdeARodada = (dataHora, agora = Date.now()) => {
+  // new Date(null) é 1970, não data inválida.
+  if (!dataHora) return null
+  const instante = new Date(dataHora).getTime()
+  return Number.isFinite(instante) ? Math.floor((agora - instante) / 3_600_000) : null
+}
+
+/** A rodada passou do horário da seguinte, com folga. */
+export const rodadaAtrasada = (dataHora, agora = Date.now()) => {
+  const horas = horasDesdeARodada(dataHora, agora)
+  return horas !== null && horas >= HORAS_PARA_ATRASO
+}
+
 /** A linha de uma moeda dentro de uma estratégia da rodada. */
 export const linhaDaMoeda = (rodada, estrategia, moeda) =>
   rodada?.estrategias?.find((e) => e.estrategia === estrategia)?.porMoeda?.find((m) => m.moeda === moeda) ?? null

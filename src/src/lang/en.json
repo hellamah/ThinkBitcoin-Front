@@ -1026,6 +1026,7 @@
     "intro": "Simple, transparent rules on daily candles, each measured against buy & hold of the same coin, over the same period and with the real fee. The goal is not to beat the market: it is to return about as much with far smaller drawdowns.",
     "criterion": "Criterion: maximum drawdown at most {{queda}} of buy & hold's and return of at least {{retorno}} of its return, over the whole period and in every year. Approved in the zoo = passes in more than half of the coins.",
     "roundInfo": "Run of {{data}} · {{versao}} · {{taxa}} fee per trade",
+    "stale": "Late run: the latest one is {{horas}} hours old, and the zoo runs every day at 00:30 UTC. The figures below are from it.",
     "loadError": "Could not load the strategy zoo.",
     "retry": "Try again",
     "empty": "The zoo has not run yet. The first run shows up here after the daily close.",

@@ -1026,6 +1026,7 @@
     "intro": "Regras simples e transparentes em candle diário, cada uma medida contra o buy & hold da mesma moeda, no mesmo período e com a taxa real. O objetivo não é ganhar do mercado: é render parecido com ele com bem menos queda.",
     "criterion": "Critério: queda máxima de no máximo {{queda}} da do buy & hold e retorno de pelo menos {{retorno}} do dele, no período inteiro e em cada ano. Aprovada no zoo = passa em mais da metade das moedas.",
     "roundInfo": "Rodada de {{data}} · {{versao}} · taxa de {{taxa}} por operação",
+    "stale": "Rodada atrasada: a mais recente tem {{horas}} horas, e o zoo roda todo dia às 00:30 UTC. Os números abaixo são dela.",
     "loadError": "Não foi possível carregar o zoo de estratégias.",
     "retry": "Tentar de novo",
     "empty": "O zoo ainda não rodou. A primeira rodada aparece aqui depois do fechamento do dia.",
