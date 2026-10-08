@@ -190,8 +190,9 @@ describe('zoo › modo demo', () => {
     expect(resultado.map((c) => c.estrategia)).toEqual([AGENTE, 'buy_hold'])
     const agente = resultado[0]
     expect(agente.pontos[0].patrimonio).toBeCloseTo(1, 2)
-    // O agente pode ficar vendido: a curva guarda o sinal da exposição.
-    expect(agente.pontos.some((p) => p.exposicao < 0)).toBe(true)
+    // Só comprado, como a decisão ao vivo: a exposição nunca fica negativa.
+    expect(agente.pontos.some((p) => p.exposicao > 0)).toBe(true)
+    expect(agente.pontos.every((p) => p.exposicao == null || p.exposicao >= 0)).toBe(true)
   })
 })
 

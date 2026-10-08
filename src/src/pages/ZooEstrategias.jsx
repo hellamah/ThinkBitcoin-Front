@@ -112,7 +112,7 @@ const estiloDasAbas = {
 // que a aba da janela existe para mostrar.
 const fundoDoAgente = { background: 'var(--accent-a05)' }
 
-function TabelaRanking({ estrategias, selecionada, onSelecionar, janela }) {
+function TabelaRanking({ estrategias, selecionada, onSelecionar }) {
   const { t } = useTranslation()
   const colunas = [
     { id: 'estrategia', rotulo: t('zoo.colStrategy') },
@@ -125,12 +125,7 @@ function TabelaRanking({ estrategias, selecionada, onSelecionar, janela }) {
     { id: 'calmar', rotulo: t('zoo.colCalmar'), dica: t('zoo.colCalmarHint'), numerica: true },
     { id: 'alta', rotulo: t('zoo.colUpCapture'), dica: t('zoo.colUpCaptureHint'), numerica: true },
     { id: 'quedaCap', rotulo: t('zoo.colDownCapture'), dica: t('zoo.colDownCaptureHint'), numerica: true },
-    {
-      id: 'exposicao',
-      rotulo: t('zoo.colExposure'),
-      dica: t(janela === JANELAS.TESTE_AGENTE ? 'zoo.colExposureHintWindow' : 'zoo.colExposureHint'),
-      numerica: true,
-    },
+    { id: 'exposicao', rotulo: t('zoo.colExposure'), dica: t('zoo.colExposureHint'), numerica: true },
     { id: 'taxa', rotulo: t('zoo.colFees'), dica: t('zoo.colFeesHint'), numerica: true },
   ]
 
@@ -498,7 +493,7 @@ export default function ZooEstrategias() {
             <Painel><EstadoVazio mensagem={t(naJanela ? 'zoo.windowEmpty' : 'zoo.empty')} /></Painel>
           ) : (
             <>
-              <TabelaRanking estrategias={rodada.estrategias} selecionada={estrategia} onSelecionar={setEscolhida} janela={janela} />
+              <TabelaRanking estrategias={rodada.estrategias} selecionada={estrategia} onSelecionar={setEscolhida} />
 
               <Box role="group" aria-label={t('zoo.coinPicker')} sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                 {moedas.map((m) => (
