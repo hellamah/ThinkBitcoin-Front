@@ -1,9 +1,14 @@
 import { describe, it, expect } from 'vitest'
 import {
+  CRITERIOS_DO_MELHOR,
   PERIODO_PADRAO,
   UM_MINUTO_MS,
   UMA_HORA_MS,
+  avaliacoesDoCriterio,
   cicloDoEpisodio,
+  criterioDaAvaliacao,
+  criteriosDasAvaliacoes,
+  janelaDaRegua,
   cicloQueContem,
   cortesEntreCiclos,
   decisaoDaAvaliacao,
@@ -799,6 +804,67 @@ describe('treinamento › validação das sessões', () => {
     expect(decisaoDaAvaliacao({ score: 0.01, promovido: false, motivo: 'motivo novo' })).toEqual({ texto: 'motivo novo' })
     expect(decisaoDaAvaliacao({ score: 0.01, promovido: false, motivo: null })).toBeNull()
     expect(decisaoDaAvaliacao(null)).toBeNull()
+  })
+})
+
+describe('treinamento › validação da v9 (régua do zoo)', () => {
+  const REGUA = 'regua-zoo-contra-200d-validacao-3-partes'
+  const sessao = (horas, criterio, extra = {}) => ({
+    idAvaliacaoSessaoTreino: `s-${horas}`,
+    dataHora: iso(BASE + horas * UMA_HORA_MS),
+    criterio,
+    score: 1.5,
+    promovido: false,
+    ...extra,
+  })
+
+  it('separa os critérios, o da sessão mais recente primeiro', () => {
+    const avaliacoes = [sessao(0, 'mediana-vs-passivo-validacao'), sessao(5, REGUA), sessao(3, undefined)]
+    expect(criterioDaAvaliacao(avaliacoes[1])).toBe(CRITERIOS_DO_MELHOR.REGUA)
+    // Sem critério (worker antigo) é o do v8.
+    expect(criterioDaAvaliacao(avaliacoes[2])).toBe(CRITERIOS_DO_MELHOR.PASSIVO)
+    expect(criteriosDasAvaliacoes(avaliacoes)).toEqual([CRITERIOS_DO_MELHOR.REGUA, CRITERIOS_DO_MELHOR.PASSIVO])
+    expect(avaliacoesDoCriterio(avaliacoes, CRITERIOS_DO_MELHOR.REGUA).map((a) => a.idAvaliacaoSessaoTreino)).toEqual(['s-5'])
+    expect(criteriosDasAvaliacoes(null)).toEqual([])
+  })
+
+  it('conta as elegíveis: as que passaram pela régua, pelo lucro e pelo piso', () => {
+    const r = resumoDasAvaliacoes([
+      sessao(0, REGUA, { promovido: true }),
+      sessao(1, REGUA, { motivoCodigo: 'abaixo-do-campeao', scoreCampeao: 2 }),
+      sessao(2, REGUA, { motivoCodigo: 'abaixo-da-regra' }),
+      sessao(3, REGUA, { motivoCodigo: 'sem-lucro-na-validacao' }),
+      sessao(4, REGUA, { motivoCodigo: 'abaixo-do-acaso' }),
+      sessao(5, REGUA, { motivoCodigo: 'falha-ao-medir-campeao' }),
+    ])
+    expect(r).toMatchObject({ elegiveis: 3, total: 6 })
+  })
+
+  it('traduz os motivos da v9, e o campeão é o _melhor dela, não o modelo ao vivo', () => {
+    expect(decisaoDaAvaliacao(sessao(0, REGUA, { motivoCodigo: 'abaixo-da-regra' })))
+      .toEqual({ chave: 'treinamento.decisionBelowRule' })
+    expect(decisaoDaAvaliacao(sessao(0, REGUA, { motivoCodigo: 'sem-lucro-na-validacao' })))
+      .toEqual({ chave: 'treinamento.decisionNoProfit' })
+    expect(decisaoDaAvaliacao(sessao(0, REGUA, { motivoCodigo: 'abaixo-do-acaso' })))
+      .toEqual({ chave: 'treinamento.decisionBelowChance' })
+    expect(decisaoDaAvaliacao(sessao(0, REGUA, { motivoCodigo: 'abaixo-do-campeao', scoreCampeao: 2.1 })))
+      .toEqual({ chave: 'treinamento.decisionBelowChampionV9', campeao: 2.1 })
+    expect(decisaoDaAvaliacao(sessao(0, REGUA, { promovido: true })))
+      .toEqual({ chave: 'treinamento.decisionPromotedV9' })
+    // O v8 continua com as chaves dele.
+    expect(decisaoDaAvaliacao(sessao(0, 'mediana-vs-passivo-validacao', { promovido: true })))
+      .toEqual({ chave: 'treinamento.decisionPromoted' })
+  })
+
+  it('acha cada janela da régua; o v8 não tem nenhuma', () => {
+    const regua = [
+      { janela: 'parte-1', calmarAgente: 0.6, bate: true },
+      { janela: 'validacao', calmarAgente: 1.5, bate: true },
+    ]
+    expect(janelaDaRegua({ regua }, 'parte-1').calmarAgente).toBe(0.6)
+    expect(janelaDaRegua({ regua }, 'parte-2')).toBeNull()
+    expect(janelaDaRegua({ regua: null }, 'validacao')).toBeNull()
+    expect(janelaDaRegua(null, 'validacao')).toBeNull()
   })
 })
 

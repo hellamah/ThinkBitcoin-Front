@@ -643,12 +643,34 @@ describe('utils/mockApi › getMockResponse', () => {
         else expect(a.motivo).toEqual(expect.any(String))
         // O código do motivo, como a API devolve (MotivoCodigo).
         if (a.promovido) expect(a.motivoCodigo).toBeNull()
-        else expect(a.motivoCodigo).toBe(a.score <= 0 ? 'abaixo-do-passivo' : 'abaixo-do-campeao')
+        else if (a.criterio === 'mediana-vs-passivo-validacao') {
+          expect(a.motivoCodigo).toBe(a.score <= 0 ? 'abaixo-do-passivo' : 'abaixo-do-campeao')
+        }
         // Quem nem bate o passivo não chega a medir o campeão.
         if (a.score <= 0) expect(a.scoreCampeao).toBeNull()
       }
       expect(resultado.some((a) => a.promovido)).toBe(true)
       expect(resultado.some((a) => a.score <= 0)).toBe(true)
+    })
+
+    it('as sessões da v9 vêm pela régua: sem teste, com o piso e as quatro janelas', () => {
+      const { resultado } = getMockResponse({ endpoint: '/api/TreinamentoEpisodio/avaliacoes', method: 'GET' })
+      const v9 = resultado.filter((a) => a.criterio === 'regua-zoo-contra-200d-validacao-3-partes')
+      expect(v9.length).toBeGreaterThan(3)
+      for (const a of v9) {
+        expect(a.teste).toBeNull()
+        expect(a.pisoDeAcaso).toBeCloseTo(1.1843, 4)
+        expect(a.regua.map((j) => j.janela)).toEqual(['parte-1', 'parte-2', 'parte-3', 'validacao'])
+        expect(a.regua[3].calmarAgente).toBe(a.score)
+        const elegivel = a.regua.every((j) => j.bate) && a.score > a.pisoDeAcaso
+        if (!elegivel) {
+          expect(['abaixo-da-regra', 'sem-lucro-na-validacao', 'abaixo-do-acaso']).toContain(a.motivoCodigo)
+          expect(a.scoreCampeao).toBeNull()
+        }
+      }
+      // O "ao vivo" dos filtros é do v8: o _melhor da v9 ainda não decide.
+      const { resultado: filtros } = getMockResponse({ endpoint: '/api/TreinamentoEpisodio/filtros', method: 'GET' })
+      expect(filtros.versoes.find((v) => v.versao === 'v9-diaria-so-comprado')?.aoVivo ?? false).toBe(false)
     })
 
     it('os filtros trazem as versões do histórico, da mais recente para a mais antiga', () => {

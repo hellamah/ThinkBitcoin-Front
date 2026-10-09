@@ -961,9 +961,39 @@ export const serieDasAvaliacoes = (avaliacoes) => {
     })
 }
 
+// Como a sessão disputou o _melhor (`criterio`; CriterioDoMelhor no worker). O
+// v8 é escolhido pela mediana sobre o passivo, e o score é um retorno (%). A v9,
+// pela régua do zoo contra a média de 200 dias (docs/agente-v9.md no repositório
+// Python): o score é o Calmar mediano na validação, a avaliação traz cada janela
+// da régua e o piso de acaso, e o teste não é medido. Os dois não cabem no mesmo
+// eixo: a aba mostra um critério por vez.
+export const CRITERIOS_DO_MELHOR = Object.freeze({ PASSIVO: 'passivo', REGUA: 'regua' })
+const CRITERIO_DA_REGUA = 'regua-zoo-contra-200d-validacao-3-partes'
+
+export const criterioDaAvaliacao = (avaliacao) =>
+  (avaliacao?.criterio === CRITERIO_DA_REGUA ? CRITERIOS_DO_MELHOR.REGUA : CRITERIOS_DO_MELHOR.PASSIVO)
+
+/** Os critérios presentes, o da sessão mais recente primeiro. */
+export const criteriosDasAvaliacoes = (avaliacoes) => {
+  const vistos = []
+  for (const a of [...(avaliacoes || [])].sort((x, y) => instanteDe(y) - instanteDe(x))) {
+    const criterio = criterioDaAvaliacao(a)
+    if (!vistos.includes(criterio)) vistos.push(criterio)
+  }
+  return vistos
+}
+
+export const avaliacoesDoCriterio = (avaliacoes, criterio) =>
+  (avaliacoes || []).filter((a) => criterioDaAvaliacao(a) === criterio)
+
+// Na régua, o que barra a sessão antes de ela disputar o campeão. As demais
+// (perdeu para o campeão, falhas, promoção desligada) passaram por tudo isso.
+const MOTIVOS_DE_INELEGIVEL = new Set(['abaixo-da-regra', 'sem-lucro-na-validacao', 'abaixo-do-acaso'])
+
 /**
  * Para os cartões: a última sessão, o modelo ao vivo (a última promovida entre
- * as carregadas; null se a promoção foi antes delas) e quantas batem o passivo.
+ * as carregadas; null se a promoção foi antes delas), quantas batem o passivo
+ * (score > 0) e, na régua da v9, quantas foram elegíveis.
  */
 export const resumoDasAvaliacoes = (avaliacoes) => {
   const serie = serieDasAvaliacoes(avaliacoes)
@@ -972,6 +1002,7 @@ export const resumoDasAvaliacoes = (avaliacoes) => {
     ultima: serie[serie.length - 1],
     aoVivo: [...serie].reverse().find((a) => a.promovido) ?? null,
     batendoPassivo: serie.filter((a) => a.score > 0).length,
+    elegiveis: serie.filter((a) => a.promovido || !MOTIVOS_DE_INELEGIVEL.has(a.motivoCodigo)).length,
     total: serie.length,
   }
 }
@@ -985,6 +1016,17 @@ const CHAVE_DO_MOTIVO = {
   'abaixo-do-campeao': 'treinamento.decisionBelowChampion',
   'falha-ao-medir-campeao': 'treinamento.decisionChampionFailed',
   'falha-ao-guardar-copia': 'treinamento.decisionSaveFailed',
+  'abaixo-da-regra': 'treinamento.decisionBelowRule',
+  'sem-lucro-na-validacao': 'treinamento.decisionNoProfit',
+  'abaixo-do-acaso': 'treinamento.decisionBelowChance',
+}
+
+// Na v9 o campeão é o _melhor dela, que ainda não opera ao vivo (o v8 segue
+// decidindo até a v9 passar no critério de sucesso).
+const CHAVE_DA_REGUA = {
+  'treinamento.decisionPromoted': 'treinamento.decisionPromotedV9',
+  'treinamento.decisionBelowChampion': 'treinamento.decisionBelowChampionV9',
+  'treinamento.decisionChampionFailed': 'treinamento.decisionChampionFailedV9',
 }
 
 // Avaliação sem código: gravada por um worker anterior a ele depois da migration
@@ -999,6 +1041,13 @@ const MOTIVOS_CONHECIDOS = {
 const comCampeao = (chave, scoreCampeao) =>
   chave === 'treinamento.decisionBelowChampion' ? { chave, campeao: scoreCampeao ?? null } : { chave }
 
+// As janelas da régua na ordem da tela (a API já as devolve assim).
+export const JANELAS_DA_REGUA = Object.freeze(['parte-1', 'parte-2', 'parte-3', 'validacao'])
+
+/** A janela `nome` da régua de uma avaliação da v9; null no v8 ou se ela não veio. */
+export const janelaDaRegua = (avaliacao, nome) =>
+  (Array.isArray(avaliacao?.regua) ? avaliacao.regua.find((j) => j.janela === nome) ?? null : null)
+
 /**
  * A decisão sobre a sessão, para a tela: `{ chave }` de tradução, com
  * `campeao` quando perdeu para o modelo ao vivo, ou `{ texto }` para um motivo
@@ -1007,6 +1056,12 @@ const comCampeao = (chave, scoreCampeao) =>
  */
 export const decisaoDaAvaliacao = (avaliacao) => {
   if (!avaliacao) return null
+  const decisao = decisaoPeloCriterioDoV8(avaliacao)
+  if (!decisao?.chave || criterioDaAvaliacao(avaliacao) !== CRITERIOS_DO_MELHOR.REGUA) return decisao
+  return { ...decisao, chave: CHAVE_DA_REGUA[decisao.chave] ?? decisao.chave }
+}
+
+const decisaoPeloCriterioDoV8 = (avaliacao) => {
   if (avaliacao.promovido) return { chave: 'treinamento.decisionPromoted' }
   const { score, scoreCampeao, motivo, motivoCodigo } = avaliacao
   const doCodigo = CHAVE_DO_MOTIVO[motivoCodigo]

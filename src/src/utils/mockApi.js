@@ -578,7 +578,10 @@ const TREINO_EPOCA = Date.UTC(2026, 0, 1)
 const TREINO_DURACAO_CICLO_MS = (TREINO_EPISODIOS_POR_CICLO - 1) * TREINO_PASSO_MS
 // As pausas se repetem de quatro em quatro ciclos: um bloco tem duração fixa.
 const TREINO_BLOCO_MS = TREINO_PAUSAS_MIN.reduce((soma, p) => soma + TREINO_DURACAO_CICLO_MS + p * 60 * 1000, 0)
-const TREINO_VERSOES = ['v3.1.0', 'v3.2.1', 'v3.3.0', 'v3.4.0']
+// A última é a v9 (docs/agente-v9.md no repositório Python): as sessões dela são
+// escolhidas pela régua do zoo, e a aba Validação as mostra pelo critério delas.
+const TREINO_VERSOES = ['v3.1.0', 'v3.2.1', 'v3.3.0', 'v9-diaria-so-comprado']
+const TREINO_VERSAO_V9 = 'v9-diaria-so-comprado'
 const TREINO_VERSAO_A_CADA_MS = 16 * 3600 * 1000
 
 // A janela de dados de cada rodada. O treinador percorre o dataset de trás para
@@ -863,6 +866,49 @@ const treinoParteDaAvaliacao = (mediana, semente, linhas) => ({
   linhas,
 })
 
+// A régua da v9 na validação de 30%: a média de 200 dias em cada janela (os
+// números reais, medidos em 08/10/2026) e o piso de acaso (09/10/2026).
+const TREINO_REGRA_V9 = { 'parte-1': -1.797, 'parte-2': 3.568, 'parte-3': -1.507, validacao: -0.837 }
+const TREINO_PISO_V9 = 1.1843
+
+// Uma sessão da v9: o Calmar do agente em cada janela anda em volta do da
+// validação inteira, e a escolha segue o worker (régua, lucro, piso, campeão).
+const treinoAvaliacaoV9 = (c, campeao) => {
+  const score = 0.75 + 0.75 * treinoRuido(c * 41 + 1)
+  const desvio = { 'parte-1': -0.9, 'parte-2': 2.6, 'parte-3': -0.4, validacao: 0 }
+  const regua = Object.entries(desvio).map(([janela, d], i) => {
+    const calmarAgente = janela === 'validacao' ? score : score + d + 0.6 * treinoRuido(c * 61 + i)
+    const aprovadasAgente = Math.max(0, Math.min(10, Math.round(2 + calmarAgente)))
+    return {
+      janela,
+      calmarAgente,
+      aprovadasAgente,
+      calmarRegra: TREINO_REGRA_V9[janela],
+      aprovadasRegra: 0,
+      bate: calmarAgente > TREINO_REGRA_V9[janela],
+    }
+  })
+  const batidas = regua.filter((j) => j.bate).length
+  let motivo = null
+  let motivoCodigo = null
+  let scoreCampeao = null
+  if (batidas < regua.length) {
+    motivo = `não bate a média de 200 dias na validação inteira e em cada parte (bate em ${batidas} de ${regua.length})`
+    motivoCodigo = 'abaixo-da-regra'
+  } else if (score <= 0) {
+    motivo = `bate a média de 200 dias, mas perde dinheiro na validação inteira (Calmar mediano ${score.toFixed(2)})`
+    motivoCodigo = 'sem-lucro-na-validacao'
+  } else if (score <= TREINO_PISO_V9) {
+    motivo = `Calmar mediano ${score.toFixed(2)} não passa do piso de acaso (${TREINO_PISO_V9.toFixed(2)}, o percentil 95 de redes sem treino)`
+    motivoCodigo = 'abaixo-do-acaso'
+  } else if (campeao !== null && score <= campeao) {
+    scoreCampeao = campeao
+    motivo = `o campeão atual tem Calmar mediano ${campeao.toFixed(2)} na mesma validação`
+    motivoCodigo = 'abaixo-do-campeao'
+  }
+  return { score, regua, motivo, motivoCodigo, scoreCampeao, promovido: motivo === null }
+}
+
 let treinoAvaliacoesCache = null
 const buildTreinoAvaliacoes = () => {
   if (treinoAvaliacoesCache) return treinoAvaliacoesCache
@@ -870,10 +916,39 @@ const buildTreinoAvaliacoes = () => {
   const ate = agora + TREINO_FUTURO_MS
   let c = Math.floor((agora - TREINO_HISTORICO_MS - TREINO_EPOCA) / TREINO_BLOCO_MS) * TREINO_PAUSAS_MIN.length
   const avaliacoes = []
+  let campeaoV9 = null
   for (; treinoInicioDoCiclo(c) <= ate; c++) {
     const ms = Math.floor((treinoInicioDoCiclo(c) + TREINO_DURACAO_CICLO_MS + TREINO_AVALIACAO_APOS_MS) / 1000) * 1000
     const nVersao = Math.floor((treinoInicioDoCiclo(c) - TREINO_EPOCA) / TREINO_VERSAO_A_CADA_MS) % TREINO_VERSOES.length
     const versao = TREINO_VERSOES[nVersao]
+    if (versao === TREINO_VERSAO_V9) {
+      const v9 = treinoAvaliacaoV9(c, campeaoV9)
+      if (v9.promovido) campeaoV9 = v9.score
+      avaliacoes.push({
+        idAvaliacaoSessaoTreino: `mock-avaliacao-${c}`,
+        dataHora: treinoUtcNaive(ms),
+        _ms: ms,
+        modelo: 'DQNAgent_v9',
+        versaoModelo: versao,
+        episodios: 40,
+        criterio: 'regua-zoo-contra-200d-validacao-3-partes',
+        score: v9.score,
+        scoreCampeao: v9.scoreCampeao,
+        promovido: v9.promovido,
+        motivo: v9.motivo,
+        motivoCodigo: v9.motivoCodigo,
+        fracaoHoldout: 0.3,
+        fracaoTeste: 0.5,
+        taxaTreino: 0.001,
+        taxaAvaliacao: 0.001,
+        validacao: treinoParteDaAvaliacao(0.004 + 0.01 * treinoRuido(c * 67), c * 53, 8034),
+        // A v9 não mede o teste nas sessões: ele é medido uma vez, com o _melhor final.
+        teste: null,
+        pisoDeAcaso: TREINO_PISO_V9,
+        regua: v9.regua,
+      })
+      continue
+    }
     const score = treinoScoreDaSessao(c)
     let campeao = 0.004
     for (let j = c - 12; j < c; j++) campeao = Math.max(campeao, treinoScoreDaSessao(j))
@@ -916,6 +991,8 @@ const buildTreinoAvaliacoes = () => {
       validacao: treinoParteDaAvaliacao(score, c * 53, 4380),
       // O teste é o número honesto: fica abaixo da validação, que escolheu.
       teste: treinoParteDaAvaliacao(score - 0.008 + 0.015 * treinoRuido(c * 43 + 2), c * 59, 4381),
+      pisoDeAcaso: null,
+      regua: null,
     })
   }
   treinoAvaliacoesCache = avaliacoes
@@ -954,7 +1031,10 @@ const mockTreinoFiltros = () => {
   }
   const atual = eps[eps.length - 1]?.versaoModelo ?? null
   const agora = Date.now()
-  const aoVivo = buildTreinoAvaliacoes().filter((a) => a._ms <= agora && a.promovido).pop()?.versaoModelo ?? null
+  // O _melhor da v9 não opera ao vivo: só o critério do v8 decide o "ao vivo".
+  const aoVivo = buildTreinoAvaliacoes()
+    .filter((a) => a._ms <= agora && a.promovido && a.criterio === 'mediana-vs-passivo-validacao')
+    .pop()?.versaoModelo ?? null
   const versoes = [...porVersao.entries()]
     .sort(([, a], [, b]) => b.ultimo._ms - a.ultimo._ms)
     .map(([versao, v]) => ({
