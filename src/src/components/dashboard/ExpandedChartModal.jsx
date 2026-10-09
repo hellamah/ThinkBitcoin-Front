@@ -283,13 +283,14 @@ const ExpandedChartModal = ({
                   <div className="chart-intel-tooltip-item">
                     <MdTimeline className="chart-intel-tip-icon" />
                     <div>
-                      <div className="chart-intel-tip-label">{t('movingAverages')}</div>
+                      {/* trendAtual é interesse de busca, não preço: ver IntelligencePanel. */}
+                      <div className="chart-intel-tip-label">{t('searchMovingAverages')}</div>
                       <div className={`chart-intel-tip-value ${
                         (trendAtual.mA5 || trendAtual.MA5) >= (trendAtual.mA15 || trendAtual.MA15) ? 'up' : 'down'
                       }`}>
                         {(trendAtual.mA5 || trendAtual.MA5) >= (trendAtual.mA15 || trendAtual.MA15)
-                          ? t('bullishTrend')
-                          : t('bearishTrend')}
+                          ? t('searchRising')
+                          : t('searchFalling')}
                       </div>
                       <div className="chart-intel-tip-sub">MA5 vs MA15</div>
                     </div>
@@ -297,7 +298,7 @@ const ExpandedChartModal = ({
                   <div className="chart-intel-tooltip-item">
                     <MdSpeed className="chart-intel-tip-icon" />
                     <div>
-                      <div className="chart-intel-tip-label">{t('momentum')}</div>
+                      <div className="chart-intel-tip-label">{t('searchMomentum')}</div>
                       <div className={`chart-intel-tip-value ${
                         (trendAtual.delta5 || trendAtual.Delta5) >= 0 ? 'up' : 'down'
                       }`}>
@@ -309,7 +310,7 @@ const ExpandedChartModal = ({
                   <div className="chart-intel-tooltip-item">
                     <MdUpdate className="chart-intel-tip-icon" />
                     <div>
-                      <div className="chart-intel-tip-label">{t('trendVolatility')}</div>
+                      <div className="chart-intel-tip-label">{t('searchVolatility')}</div>
                       <div className="chart-intel-tip-value">
                         {(trendAtual.volatilidade15 || trendAtual.Volatilidade15 || 0).toFixed(2)}
                       </div>

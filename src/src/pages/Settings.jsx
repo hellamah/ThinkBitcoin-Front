@@ -486,8 +486,10 @@ function Settings() {
                 {t(erroAlertas)}
               </Typography>
             ) : alertas.length === 0 ? (
+              /* Não reaproveita `alertas.listaVazia`: aquele texto aponta para o
+                 formulário "acima" no modal do sino, que não existe nesta tela. */
               <Typography variant="body2" sx={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                {t('alertas.listaVazia')}
+                {t('alertas.settingsListaVazia')}
               </Typography>
             ) : (
               <>
