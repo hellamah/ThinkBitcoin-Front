@@ -78,7 +78,9 @@ function Home() {
         </p>
         
         <div className="cta-group">
-          <NavLink to="/login" className="btn-premium btn-primary-v3">
+          {/* Logado, o "Acessar terminal" leva ao painel: apontava sempre para
+              /login e devolvia o formulário a quem já tinha entrado. */}
+          <NavLink to={token ? '/dashboard' : '/login'} className="btn-premium btn-primary-v3">
             {t('heroCta')} <MdArrowForward />
           </NavLink>
           <span

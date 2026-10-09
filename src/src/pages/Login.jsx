@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { TextField, Button, Box, Paper, Typography, Modal, CircularProgress } from '@mui/material'
 import { MdEmail, MdLock } from 'react-icons/md'
 import ErrorMessage from '../components/ErrorMessage'
@@ -19,14 +19,22 @@ function Login() {
   const [carregando, setCarregando] = useState(false)
   const [mensagem, setMensagem] = useState('')
   const navegar = useNavigate()
-  const { login } = useAuth()
+  const { login, token } = useAuth()
   const { t } = useTranslation()
+  // Só o token de quando a tela abriu conta: o login feito aqui mesmo também
+  // preenche o token, e redirecionar por ele cortaria a mensagem de boas-vindas.
+  const [jaEntrou] = useState(() => Boolean(token))
 
   const [modalAberto, setModalAberto] = useState(false)
   const [emailRecuperacao, setEmailRecuperacao] = useState('')
   const [erroRecuperacao, setErroRecuperacao] = useState('')
   const [mensagemRecuperacao, setMensagemRecuperacao] = useState('')
   const [enviandoRecuperacao, setEnviandoRecuperacao] = useState(false)
+
+  // Quem já entrou e chega aqui (por um favorito, pelo voltar do navegador) vai
+  // direto para o painel, em vez de ver o formulário de novo. O `token` é o
+  // mesmo que a ProtectedRoute usa, e já vem sem os vencidos: não há vaivém.
+  if (jaEntrou) return <Navigate to="/dashboard" replace />
 
   const processarEnvio = async (e) => {
     e.preventDefault()
