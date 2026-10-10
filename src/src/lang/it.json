@@ -1194,5 +1194,34 @@
     "retry": "Riprova",
     "vazio": "Nessuna richiesta con questo stato.",
     "vazioEsperando": "Nessuna richiesta in attesa di decisione. Il Trader gira alle 9, alle 13 e alle 18; ciò che vede ripetersi in giorni diversi compare qui."
+  },
+  "pregaoPublico": {
+    "title": "Richieste del Team Pregão",
+    "subtitulo": "Utenti IA usano la piattaforma ogni giorno e chiedono cosa va migliorato. Guarda cosa hanno chiesto e a che punto è ogni richiesta.",
+    "oQueETitulo": "Cos'è il Team Pregão",
+    "oQueE": "Il Team Pregão sono utenti sintetici: agenti di intelligenza artificiale che usano ThinkBitcoin come clienti. Il Trader, un day trader, passa per tutte le schermate tre volte al giorno e annota ciò che è sbagliato, ciò che confonde e ciò che manca a chi opera nel breve periodo. Un problema visto una sola volta non basta: diventa richiesta ciò che si ripete in giorni diversi.",
+    "comoFunciona": "Prima di cambiare qualcosa, ogni richiesta passa per delle persone: un amministratore decide se va avanti; quelle approvate passano alla correzione; poi il Pregão continua a usare la schermata e verifica se il problema è sparito. Qui ci sono le richieste in attesa di decisione e quelle approvate, ognuna con la sua cronologia.",
+    "linhaDoTempo": "Cronologia",
+    "loadError": "Impossibile caricare le richieste del Team Pregão.",
+    "vazio": "Non ci sono ancora richieste. Quando il Pregão vedrà un problema ripetersi in giorni diversi, comparirà qui.",
+    "homeTitulo": "Team Pregão",
+    "homeDescricao": "Utenti IA usano la piattaforma ogni giorno come clienti e chiedono cosa va migliorato. Le richieste e l'avanzamento di ognuna sono sotto gli occhi di tutti.",
+    "homeLink": "Vedi le richieste del Pregão",
+    "statusExplicado": {
+      "aberto": "In attesa della decisione di un amministratore.",
+      "reaberto": "Il problema è tornato dopo la correzione; in attesa di una nuova decisione.",
+      "aprovado": "Approvata da un amministratore; in attesa di correzione.",
+      "em-correcao": "La correzione è in corso.",
+      "corrigido": "Corretta; il Pregão sta verificando se il problema è sparito.",
+      "validado": "Il Pregão ha confermato: il problema non è tornato."
+    },
+    "acoes": {
+      "aberto": "Il Team Pregão ha chiesto",
+      "reaberto": "Il Team Pregão ha rivisto il problema e ha riaperto la richiesta",
+      "aprovado": "Un amministratore ha approvato",
+      "em-correcao": "Chi corregge ha iniziato la correzione",
+      "corrigido": "Chi corregge ha consegnato la correzione",
+      "validado": "Il Team Pregão ha verificato: il problema non è tornato"
+    }
   }
 }

@@ -121,6 +121,21 @@ describe('utils/apiClient › apiRequest em modo mock (erros)', () => {
     expect(eventosDisparados(dispatchEvent)).toEqual(['auth-expired'])
   })
 
+  // A página aberta (/pregao) chama com `anonimo`: no modo demo também nada de
+  // logout nem de convite de plano.
+  it.each([401, 403])('chamada anônima com %i do mock não dispara evento', async (status) => {
+    const dispatchEvent = stubWindow()
+    getMockResponse.mockImplementation(() => {
+      const err = new Error('Recusado.')
+      err.status = status
+      throw err
+    })
+
+    await expect(apiRequest('/api/PedidoAlteracao/publico', { anonimo: true })).rejects.toMatchObject({ status })
+
+    expect(dispatchEvent).not.toHaveBeenCalled()
+  })
+
   it('deve respeitar suppressAuthRedirect num 401 do mock', async () => {
     const dispatchEvent = stubWindow()
     getMockResponse.mockImplementation(() => {

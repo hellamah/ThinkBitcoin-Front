@@ -250,6 +250,41 @@ describe('utils/apiClient › apiRequest (Comunicação com API)', () => {
     }
   })
 
+  // Página aberta (/pregao): o endpoint é público, e quem está logado não
+  // manda o token para ele — nem leva logout ou convite de plano por causa dele.
+  it('chamada anônima não leva o token guardado', async () => {
+    vi.stubGlobal('window', {
+      localStorage: {
+        getItem: (k) => (k === 'token' ? 'token-armazenado' : null),
+      },
+    })
+    fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({}),
+    })
+
+    try {
+      await apiRequest('/aberto', { anonimo: true })
+      expect(fetch).toHaveBeenCalledWith(`${API_URL}/aberto`, expect.objectContaining({ headers: {} }))
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it.each([401, 403])('chamada anônima com %i não dispara fim de sessão nem convite de assinatura', async (status) => {
+    const dispatchEvent = vi.fn()
+    vi.stubGlobal('window', { dispatchEvent, localStorage: { getItem: () => 'token-armazenado' } })
+    fetch.mockResolvedValue({ ok: false, status, json: () => Promise.reject(new Error('sem corpo')) })
+
+    try {
+      await expect(apiRequest('/aberto', { anonimo: true })).rejects.toMatchObject({ status })
+      expect(dispatchEvent).not.toHaveBeenCalled()
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
   it('deve propagar falhas de rede (rejeição do fetch) corretamente', async () => {
     fetch.mockRejectedValue(new Error('Network Failure'))
     await expect(apiRequest('/offline')).rejects.toThrow('Network Failure')

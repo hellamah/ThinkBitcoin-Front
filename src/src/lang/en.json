@@ -1194,5 +1194,34 @@
     "retry": "Try again",
     "vazio": "No requests with this status.",
     "vazioEsperando": "No requests awaiting a decision. The Trader runs at 9 am, 1 pm and 6 pm; what he sees repeat on different days shows up here."
+  },
+  "pregaoPublico": {
+    "title": "Pregão Team requests",
+    "subtitulo": "AI users use the platform every day and ask for what needs to improve. See what they asked for and where each request stands.",
+    "oQueETitulo": "What the Pregão Team is",
+    "oQueE": "The Pregão Team are synthetic users: artificial intelligence agents that use ThinkBitcoin as customers. The Trader, a day trader, goes through every screen three times a day and notes what is wrong, what is confusing and what is missing for someone trading short term. A problem seen only once is not enough: what repeats on different days becomes a request.",
+    "comoFunciona": "Before anything changes, each request goes through people: an administrator decides whether it moves on; approved ones go to be fixed; afterwards, the Pregão keeps using the screen and checks whether the problem is gone. Here are the requests awaiting a decision and the approved ones, each with its timeline.",
+    "linhaDoTempo": "Timeline",
+    "loadError": "Could not load the Pregão Team requests.",
+    "vazio": "No requests yet. When the Pregão sees a problem repeat on different days, it shows up here.",
+    "homeTitulo": "Pregão Team",
+    "homeDescricao": "AI users use the platform every day as customers and ask for what needs to improve. The requests and the progress of each one are out in the open.",
+    "homeLink": "See the Pregão requests",
+    "statusExplicado": {
+      "aberto": "Awaiting an administrator's decision.",
+      "reaberto": "The problem came back after being fixed; awaiting a new decision.",
+      "aprovado": "Approved by an administrator; waiting to be fixed.",
+      "em-correcao": "The fix is in progress.",
+      "corrigido": "Fixed; the Pregão is checking whether the problem is gone.",
+      "validado": "The Pregão confirmed: the problem did not come back."
+    },
+    "acoes": {
+      "aberto": "The Pregão Team asked",
+      "reaberto": "The Pregão Team saw the problem again and reopened the request",
+      "aprovado": "An administrator approved",
+      "em-correcao": "Whoever fixes it started the fix",
+      "corrigido": "Whoever fixes it delivered the fix",
+      "validado": "The Pregão Team checked: the problem did not come back"
+    }
   }
 }

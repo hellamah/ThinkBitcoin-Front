@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { NavLink } from 'react-router-dom'
-import { MdArrowForward, MdBolt, MdAutoGraph, MdShield } from 'react-icons/md'
+import { MdArrowForward, MdBolt, MdAutoGraph, MdShield, MdSmartToy } from 'react-icons/md'
 import useTranslation from '../hooks/useTranslation'
 import { useAuth } from '../context/AuthContext'
 import '../App.css'
@@ -118,6 +118,25 @@ function Home() {
             <div className="stat-label-v3">{t('statCoreUptime')}</div>
           </div>
         </div>
+      </section>
+
+      {/* Equipe Pregão: o link para a página aberta /pregao, para visitante e
+          para quem está logado. Os usuários de IA pedem o que precisa
+          melhorar, e o andamento de cada pedido fica à vista. */}
+      <section className="home-section" style={{ paddingTop: 0 }}>
+        <h2 className="terminal-text" style={{ fontSize: '1.5rem', color: 'var(--text-primary)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <MdSmartToy aria-hidden="true" style={{ color: 'var(--accent-ink)' }} />
+          {t('pregaoPublico.homeTitulo')}
+        </h2>
+        <p style={{ color: 'var(--text-muted)', maxWidth: '560px', marginBottom: '24px' }}>
+          {t('pregaoPublico.homeDescricao')}
+        </p>
+        <NavLink
+          to="/pregao"
+          style={{ color: 'var(--accent-ink)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}
+        >
+          {t('pregaoPublico.homeLink')} <MdArrowForward aria-hidden="true" />
+        </NavLink>
       </section>
 
       {/* AI Showcase Section */}

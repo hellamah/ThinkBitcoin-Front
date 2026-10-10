@@ -173,6 +173,9 @@ export const ApiEndpoint = Object.freeze({
     },
     // Corpo: { decisao: 'aprovado' | 'descartado', motivo }. Descartar pede motivo.
     DECISAO: (id) => `/api/PedidoAlteracao/${id}/decisao`,
+    // Sem login: os pedidos que esperam decisão e os aprovados (nunca os
+    // descartados), com a linha do tempo, sem quem decidiu nem o motivo.
+    PUBLICO: '/api/PedidoAlteracao/publico',
   }),
 })
 
@@ -327,6 +330,12 @@ export const apiRequest = async (
     // de carregamento do topo não acende. Sem isto, ela piscaria a cada minuto
     // numa tela parada, sugerindo que algo mudou quando nada mudou.
     emSegundoPlano = false,
+    // Endpoint aberto, lido por página pública (ex.: /pregao): a chamada vai
+    // sem o token, e um 401 ou 403 não dispara nada — nem o fim da sessão nem
+    // o convite de assinatura. Quem lê sem login não tem sessão para expirar
+    // nem plano para migrar, e quem está logado e abre a página aberta não pode
+    // ser deslogado nem convidado a pagar por causa dela.
+    anonimo = false,
   } = {}
 ) => {
   const isGet = method === HttpMethod.GET
@@ -344,7 +353,7 @@ export const apiRequest = async (
   const encerrarCarregamento = emSegundoPlano ? () => {} : iniciarCarregamento()
   try {
     return await requisitarSemCache(endpoint, {
-      method, headers, body, signal, useCache, ttl, key, isGet, suppressAuthRedirect,
+      method, headers, body, signal, useCache, ttl, key, isGet, suppressAuthRedirect, anonimo,
     })
   } finally {
     encerrarCarregamento()
@@ -353,8 +362,12 @@ export const apiRequest = async (
 
 const requisitarSemCache = async (
   endpoint,
-  { method, headers, body, signal, useCache, ttl, key, isGet, suppressAuthRedirect }
+  { method, headers, body, signal, useCache, ttl, key, isGet, suppressAuthRedirect, anonimo }
 ) => {
+  const notificar = (status) => {
+    if (!anonimo) notificarStatusDeErro(status, endpoint, suppressAuthRedirect)
+  }
+
   if (USE_MOCK_API) {
     // Import dinâmico: em produção a flag é estaticamente falsa e o Rollup joga
     // o mockApi num chunk separado, que o navegador nunca chega a buscar.
@@ -370,7 +383,7 @@ const requisitarSemCache = async (
       // texto quando essa marca existe — descartava a mensagem específica e
       // exibia "tente novamente" no lugar dela.
       const status = Number.isInteger(mockError?.status) ? mockError.status : 400
-      notificarStatusDeErro(status, endpoint, suppressAuthRedirect)
+      notificar(status)
       throw montarErroDeApi(mockError?.message, status)
     }
 
@@ -385,11 +398,11 @@ const requisitarSemCache = async (
 
   const response = await fetch(
     buildUrl(endpoint),
-    { ...createRequestInit(method, withAuthHeader(headers), body), signal }
+    { ...createRequestInit(method, anonimo ? headers : withAuthHeader(headers), body), signal }
   )
 
   if (!response.ok) {
-    notificarStatusDeErro(response.status, endpoint, suppressAuthRedirect)
+    notificar(response.status)
     throw montarErroDeApi(await extractErrorMessage(response), response.status)
   }
 

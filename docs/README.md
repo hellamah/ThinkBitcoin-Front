@@ -81,11 +81,20 @@ VITE_USE_MOCK=true
 - Se `VITE_USE_MOCK` estiver ausente, o app usa mock automaticamente em desenvolvimento (`npm run dev`) e usa API real em produção (`npm run build`/deploy).
 - No modo demo qualquer credencial entra, como **Minerador** (os recursos de assinatura aparecem liberados). Um e-mail que começa com `admin` (ex.: `admin@teste.local`) entra como **Administrador** e vê as telas internas, como a de Pedidos do Pregão. O Trader da Equipe Pregão entra com `trader@teste.local` e continua vendo a plataforma como cliente.
 
-## Pedidos do Pregão (só administrador)
+## Pedidos do Pregão
+### Tela do administrador
 - Rota `/pedidos-pregao`, no menu só para o cargo Administrador (ícone ao lado de Configurações no desktop, item na barra de baixo no celular). Quem não tem o cargo e abre o link volta ao painel; a API confere de novo.
 - É a primeira porta humana do ciclo da Equipe Pregão (repositório `ThinkBitcoin-Back-Python-Agents-Pregao`): o que o Trader, usuário sintético, viu se repetir em dias diferentes vira um pedido no `ThinkBitcoin-Back-DotNet` (`GET /api/PedidoAlteracao`), e o administrador aprova ou descarta (`POST /api/PedidoAlteracao/{id}/decisao`). Descartar pede motivo (até 500 caracteres).
 - A lista vem inteira e o filtro por status é feito na tela (padrão: esperando decisão, isto é, aberto e reaberto), com o total de cada status no chip. O filtro vai na URL (`?status=descartado`).
-- No modo demo há três pedidos esperando decisão e um descartado, em memória: decidir muda a fila na hora, e o reload volta ao início.
+
+### Página aberta
+- Rota `/pregao`, sem login e só leitura, no molde de `/privacidade` e `/termos`, com link no Início para visitante e para quem está logado. Explica o que é a Equipe Pregão e mostra cada pedido com tipo, telas, problema, trecho, dias e rodadas, o status em linguagem simples e a linha do tempo ("a Equipe Pregão pediu → um administrador aprovou → … → a Equipe Pregão conferiu").
+- Lê `GET /api/PedidoAlteracao/publico` (AllowAnonymous): os que esperam decisão e os aprovados, nunca os descartados, sem quem decidiu, motivo, link do PR, ambiente, diários, chave ou agente. A linha do tempo não traz autor: a tela diz quem fez pela ação (aberto, reaberto e validado = Equipe Pregão; aprovado = um administrador; em correção e corrigido = quem corrige). O detalhe de cada passo vem do backend, em português.
+- A chamada usa `apiRequest(..., { anonimo: true })`: vai sem o token, e um 401 ou 403 não desloga nem abre o convite de assinatura (que o apiClient dispara em todo 403).
+- Filtro por status na URL (`?status=aprovado`), sem a opção de descartados; o padrão é ver todos.
+
+### Modo demo
+- Sete pedidos em memória, compartilhados pelas duas telas: três esperando decisão, um aprovado, um corrigido (aberto → aprovado → em correção → corrigido), um validado (o ciclo inteiro) e um descartado, que só a tela do administrador mostra. Decidir na tela do administrador muda a página aberta na mesma sessão (o passo entra na linha do tempo, sem o motivo); o reload volta ao início.
 
 ## Scripts Disponíveis (Executar dentro de /src)
 | Comando        | Descrição                                     |

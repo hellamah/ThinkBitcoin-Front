@@ -1194,5 +1194,34 @@
     "retry": "Tentar de novo",
     "vazio": "Nenhum pedido neste status.",
     "vazioEsperando": "Nenhum pedido esperando decisão. O Trader roda às 9h, 13h e 18h; o que ele vir se repetir em dias diferentes aparece aqui."
+  },
+  "pregaoPublico": {
+    "title": "Pedidos da Equipe Pregão",
+    "subtitulo": "Usuários de IA usam a plataforma todos os dias e pedem o que precisa melhorar. Veja o que pediram e em que pé está cada pedido.",
+    "oQueETitulo": "O que é a Equipe Pregão",
+    "oQueE": "A Equipe Pregão são usuários sintéticos: agentes de inteligência artificial que usam o ThinkBitcoin como clientes. O Trader, um day trader, passa por todas as telas três vezes por dia e anota o que está errado, o que confunde e o que falta para quem opera no curto prazo. Um problema visto uma vez só não basta: vira pedido o que se repete em dias diferentes.",
+    "comoFunciona": "Antes de mudar alguma coisa, cada pedido passa por pessoas: um administrador decide se ele segue; os aprovados vão para correção; depois, o Pregão continua usando a tela e confere se o problema sumiu. Aqui estão os pedidos que esperam decisão e os aprovados, com a linha do tempo de cada um.",
+    "linhaDoTempo": "Linha do tempo",
+    "loadError": "Não foi possível carregar os pedidos da Equipe Pregão.",
+    "vazio": "Ainda não há pedidos. Quando o Pregão vir um problema se repetir em dias diferentes, ele aparece aqui.",
+    "homeTitulo": "Equipe Pregão",
+    "homeDescricao": "Usuários de IA usam a plataforma todos os dias como clientes e pedem o que precisa melhorar. Os pedidos e o andamento de cada um ficam à vista.",
+    "homeLink": "Ver os pedidos do Pregão",
+    "statusExplicado": {
+      "aberto": "Esperando a decisão de um administrador.",
+      "reaberto": "O problema voltou depois de corrigido; espera nova decisão.",
+      "aprovado": "Aprovado por um administrador; espera a correção.",
+      "em-correcao": "A correção está sendo feita.",
+      "corrigido": "Corrigido; o Pregão está conferindo se o problema sumiu.",
+      "validado": "O Pregão confirmou: o problema não voltou."
+    },
+    "acoes": {
+      "aberto": "A Equipe Pregão pediu",
+      "reaberto": "A Equipe Pregão viu o problema de novo e reabriu o pedido",
+      "aprovado": "Um administrador aprovou",
+      "em-correcao": "Quem corrige começou a correção",
+      "corrigido": "Quem corrige entregou a correção",
+      "validado": "A Equipe Pregão conferiu: o problema não voltou"
+    }
   }
 }

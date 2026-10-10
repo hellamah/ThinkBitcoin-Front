@@ -1194,5 +1194,34 @@
     "retry": "Intentar de nuevo",
     "vazio": "Ningún pedido en este estado.",
     "vazioEsperando": "Ningún pedido esperando decisión. El Trader se ejecuta a las 9 h, 13 h y 18 h; lo que vea repetirse en días distintos aparece aquí."
+  },
+  "pregaoPublico": {
+    "title": "Pedidos del Equipo Pregão",
+    "subtitulo": "Usuarios de IA usan la plataforma todos los días y piden lo que hay que mejorar. Mira lo que pidieron y en qué punto está cada pedido.",
+    "oQueETitulo": "Qué es el Equipo Pregão",
+    "oQueE": "El Equipo Pregão son usuarios sintéticos: agentes de inteligencia artificial que usan ThinkBitcoin como clientes. El Trader, un day trader, recorre todas las pantallas tres veces al día y anota lo que está mal, lo que confunde y lo que falta para quien opera a corto plazo. Un problema visto una sola vez no basta: se convierte en pedido lo que se repite en días distintos.",
+    "comoFunciona": "Antes de cambiar nada, cada pedido pasa por personas: un administrador decide si sigue adelante; los aprobados pasan a corrección; después, el Pregão sigue usando la pantalla y comprueba si el problema desapareció. Aquí están los pedidos que esperan decisión y los aprobados, con la línea de tiempo de cada uno.",
+    "linhaDoTempo": "Línea de tiempo",
+    "loadError": "No se pudieron cargar los pedidos del Equipo Pregão.",
+    "vazio": "Aún no hay pedidos. Cuando el Pregão vea un problema repetirse en días distintos, aparecerá aquí.",
+    "homeTitulo": "Equipo Pregão",
+    "homeDescricao": "Usuarios de IA usan la plataforma todos los días como clientes y piden lo que hay que mejorar. Los pedidos y el avance de cada uno están a la vista.",
+    "homeLink": "Ver los pedidos del Pregão",
+    "statusExplicado": {
+      "aberto": "Esperando la decisión de un administrador.",
+      "reaberto": "El problema volvió después de corregido; espera una nueva decisión.",
+      "aprovado": "Aprobado por un administrador; espera la corrección.",
+      "em-correcao": "La corrección está en curso.",
+      "corrigido": "Corregido; el Pregão está comprobando si el problema desapareció.",
+      "validado": "El Pregão confirmó: el problema no volvió."
+    },
+    "acoes": {
+      "aberto": "El Equipo Pregão pidió",
+      "reaberto": "El Equipo Pregão vio el problema de nuevo y reabrió el pedido",
+      "aprovado": "Un administrador aprobó",
+      "em-correcao": "Quien corrige empezó la corrección",
+      "corrigido": "Quien corrige entregó la corrección",
+      "validado": "El Equipo Pregão comprobó: el problema no volvió"
+    }
   }
 }

@@ -1263,12 +1263,20 @@ const sessaoMock = (endpoint, body) => {
     : { email: EMAIL_DEMO, cargo: AuthRole.MINERADOR }
 }
 
-// Pedidos de alteração da Equipe Pregão (/api/PedidoAlteracao). Três esperando
-// decisão, com os achados que o Trader de fato repetiu entre os dias (os dois
-// primeiros são os do contrato da fila no Back-DotNet), e um já descartado,
-// para o filtro de descartados ter o que mostrar. Em memória de propósito,
-// como os alertas: o que vale é ver a fila mudar ao decidir, não sobreviver ao
-// reload.
+// Pedidos de alteração da Equipe Pregão (/api/PedidoAlteracao). Sete pedidos,
+// com os achados que o Trader de fato repetiu entre os dias:
+//   · três esperando decisão (os dois primeiros são os do contrato da fila no
+//     Back-DotNet);
+//   · um aprovado, esperando a correção;
+//   · dois que fizeram o ciclo: o rótulo de preço no índice de busca, corrigido
+//     (7fe6ede), e o "Acessar terminal" que devolvia o logado ao login,
+//     corrigido (a538d17) e validado pelo Pregão;
+//   · um descartado, para o filtro de descartados ter o que mostrar — e para a
+//     página aberta provar que ele não sai lá.
+// Cada um guarda a linha do tempo (`eventos`), como TbPedidoAlteracaoEvento: o
+// detalhe dos passos do Pregão é o texto do consumidor; o da decisão, o motivo.
+// Em memória de propósito, como os alertas: o que vale é ver a fila mudar ao
+// decidir, não sobreviver ao reload.
 //
 // As datas andam com o relógio (horas antes do load), para "última vez" não
 // envelhecer na demo, e saem sem marca de fuso, como a API as serializa
@@ -1278,6 +1286,22 @@ const pedidoHaHoras = (horas) => treinoUtcNaive(PEDIDO_AGORA - horas * 3600 * 10
 // O nome da rodada no Pregão (a pasta do diário): AAAA-MM-DD_HHMM.
 const rodadaHaHoras = (horas) => pedidoHaHoras(horas).slice(0, 16).replace('T', '_').replace(':', '')
 const ORDEM_DOS_TIPOS = ['errado', 'automatico', 'confuso', 'falta']
+
+// Os textos do FuncaoPedidoAlteracaoPregaoConsumidor para os passos do Pregão.
+const detalheAberto = (dias, rodadas, visitas) =>
+  `Visto em ${dias} dias diferentes (${rodadas} de ${visitas} rodadas que passaram pela tela).`
+const DETALHE_VALIDADO = 'Não se repetiu nos 3 dias depois da correção (8 rodadas na janela; o critério é aparecer em 2 dias diferentes).'
+
+// Um passo da linha do tempo. `autor` e `statusAnterior` existem no banco e
+// nunca saem na API pública.
+const eventoMock = (acao, horas, { anterior = null, detalhe = null, autor = 'pregao.trader' } = {}) => ({
+  acao,
+  dataHora: pedidoHaHoras(horas),
+  autor,
+  statusAnterior: anterior,
+  statusNovo: acao,
+  detalhe,
+})
 
 const pedidoMock = (dados) => ({
   agente: 'pregao.trader',
@@ -1310,6 +1334,8 @@ let mockPedidos = [
     diarios: [52, 44, 33, 9, 4].map(rodadaHaHoras),
     dataStatus: pedidoHaHoras(28),
     dataCriacao: pedidoHaHoras(28),
+    // Aberto com o que se via então; os contadores andam depois, sem passo novo.
+    eventos: [eventoMock('aberto', 28, { detalhe: detalheAberto(2, 3, 6) })],
   }),
   pedidoMock({
     idPedidoAlteracao: '5b0e7c1a-3f2d-4e8a-9b6c-0d1e2f3a4b02',
@@ -1325,6 +1351,7 @@ let mockPedidos = [
     diarios: [33, 9].map(rodadaHaHoras),
     dataStatus: pedidoHaHoras(9),
     dataCriacao: pedidoHaHoras(9),
+    eventos: [eventoMock('aberto', 9, { detalhe: detalheAberto(2, 2, 7) })],
   }),
   pedidoMock({
     idPedidoAlteracao: '5b0e7c1a-3f2d-4e8a-9b6c-0d1e2f3a4b03',
@@ -1340,6 +1367,7 @@ let mockPedidos = [
     diarios: [47, 28, 4].map(rodadaHaHoras),
     dataStatus: pedidoHaHoras(28),
     dataCriacao: pedidoHaHoras(28),
+    eventos: [eventoMock('aberto', 28, { detalhe: detalheAberto(2, 2, 6) })],
   }),
   pedidoMock({
     idPedidoAlteracao: '5b0e7c1a-3f2d-4e8a-9b6c-0d1e2f3a4b04',
@@ -1360,6 +1388,88 @@ let mockPedidos = [
     decididoPor: 'admin@teste.local',
     motivoDecisao: 'Agora não: a simulação é para quem estuda regras, não para o day trade.',
     dataCriacao: pedidoHaHoras(27),
+    eventos: [
+      eventoMock('aberto', 27, { detalhe: detalheAberto(2, 2, 6) }),
+      eventoMock('descartado', 20, {
+        anterior: 'aberto',
+        autor: 'admin@teste.local',
+        detalhe: 'Agora não: a simulação é para quem estuda regras, não para o day trade.',
+      }),
+    ],
+  }),
+  pedidoMock({
+    idPedidoAlteracao: '5b0e7c1a-3f2d-4e8a-9b6c-0d1e2f3a4b05',
+    chave: '3a7f9c2e4b6d8a0c1e3f5a7b9c1d3e5f7a9b1c3d',
+    tipo: 'errado',
+    telas: 'Painel',
+    problema: 'Variação do BTC no carrossel não bate com a do gráfico',
+    trecho: 'BTC -0,9%',
+    dias: 2,
+    rodadas: 2,
+    visitas: 8,
+    primeiraVez: pedidoHaHoras(70),
+    ultimaVez: pedidoHaHoras(46),
+    diarios: [70, 46].map(rodadaHaHoras),
+    dataHora: pedidoHaHoras(45.5),
+    status: STATUS.APROVADO,
+    dataStatus: pedidoHaHoras(20),
+    decididoPor: 'admin@teste.local',
+    dataCriacao: pedidoHaHoras(45),
+    eventos: [
+      eventoMock('aberto', 45, { detalhe: detalheAberto(2, 2, 8) }),
+      eventoMock('aprovado', 20, { anterior: 'aberto', autor: 'admin@teste.local' }),
+    ],
+  }),
+  pedidoMock({
+    idPedidoAlteracao: '5b0e7c1a-3f2d-4e8a-9b6c-0d1e2f3a4b06',
+    chave: '8c1e5a9d3f7b2c6e0a4d8f2b6c0e4a8d2f6b0c4e',
+    tipo: 'confuso',
+    telas: 'Painel',
+    problema: 'Índice de interesse de busca aparece com rótulos de preço',
+    trecho: 'Médias Móveis - Tendência de Baixa',
+    dias: 3,
+    rodadas: 4,
+    visitas: 9,
+    primeiraVez: pedidoHaHoras(150),
+    ultimaVez: pedidoHaHoras(101),
+    diarios: [150, 126, 105, 101].map(rodadaHaHoras),
+    dataHora: pedidoHaHoras(100.5),
+    status: STATUS.CORRIGIDO,
+    dataStatus: pedidoHaHoras(80),
+    decididoPor: 'admin@teste.local',
+    dataCriacao: pedidoHaHoras(120),
+    eventos: [
+      eventoMock('aberto', 120, { detalhe: detalheAberto(2, 3, 7) }),
+      eventoMock('aprovado', 100, { anterior: 'aberto', autor: 'admin@teste.local' }),
+      eventoMock('em-correcao', 98, { anterior: 'aprovado', autor: 'agents-front' }),
+      eventoMock('corrigido', 80, { anterior: 'em-correcao', autor: 'agents-front' }),
+    ],
+  }),
+  pedidoMock({
+    idPedidoAlteracao: '5b0e7c1a-3f2d-4e8a-9b6c-0d1e2f3a4b07',
+    chave: 'e2b4d6f8a0c2e4b6d8f0a2c4e6b8d0f2a4c6e8b0',
+    tipo: 'errado',
+    telas: 'Início',
+    problema: 'Já logado, "Acessar terminal" volta ao formulário de login',
+    trecho: 'Acessar terminal',
+    dias: 2,
+    rodadas: 3,
+    visitas: 8,
+    primeiraVez: pedidoHaHoras(230),
+    ultimaVez: pedidoHaHoras(205),
+    diarios: [230, 210, 205].map(rodadaHaHoras),
+    dataHora: pedidoHaHoras(100.5),
+    status: STATUS.VALIDADO,
+    dataStatus: pedidoHaHoras(100),
+    decididoPor: 'admin@teste.local',
+    dataCriacao: pedidoHaHoras(204),
+    eventos: [
+      eventoMock('aberto', 204, { detalhe: detalheAberto(2, 3, 8) }),
+      eventoMock('aprovado', 190, { anterior: 'aberto', autor: 'admin@teste.local' }),
+      eventoMock('em-correcao', 189, { anterior: 'aprovado', autor: 'agents-front' }),
+      eventoMock('corrigido', 180, { anterior: 'em-correcao', autor: 'agents-front' }),
+      eventoMock('validado', 100, { anterior: 'corrigido', detalhe: DETALHE_VALIDADO }),
+    ],
   }),
 ]
 
@@ -1376,6 +1486,14 @@ const posicaoDoTipo = (tipo) => {
   return posicao >= 0 ? posicao : ORDEM_DOS_TIPOS.length
 }
 
+const ordenarPedidos = (lista) => [...lista].sort((a, b) => posicaoDoTipo(a.tipo) - posicaoDoTipo(b.tipo)
+  || b.dias - a.dias
+  || b.rodadas - a.rodadas
+  || Date.parse(b.ultimaVez) - Date.parse(a.ultimaVez))
+
+const respostaDaLista = (resultado) =>
+  ({ mensagem: resultado.length ? 'Operação realizada com sucesso' : 'Dados não encontrados', resultado })
+
 const mockListarPedidos = (endpoint) => {
   const q = treinoQuery(endpoint)
   const status = (q.get('status') || '').trim().toLowerCase()
@@ -1384,18 +1502,49 @@ const mockListarPedidos = (endpoint) => {
   if (status && !Object.values(STATUS).includes(status)) {
     erroDoPedido(`Status desconhecido: '${q.get('status')}'. Use ${Object.values(STATUS).join(', ')}.`)
   }
-  const resultado = mockPedidos
+  const filtrados = mockPedidos
     .filter((p) => (!status || p.status === status) && (!tipo || p.tipo === tipo) && (!agente || p.agente.toLowerCase() === agente))
-    .sort((a, b) => posicaoDoTipo(a.tipo) - posicaoDoTipo(b.tipo)
-      || b.dias - a.dias
-      || b.rodadas - a.rodadas
-      || Date.parse(b.ultimaVez) - Date.parse(a.ultimaVez))
-  return { mensagem: resultado.length ? 'Operação realizada com sucesso' : 'Dados não encontrados', resultado }
+  // A lista do administrador não traz a linha do tempo (é do GET /{id}).
+  return respostaDaLista(ordenarPedidos(filtrados).map(({ eventos: _eventos, ...pedido }) => pedido))
 }
+
+// A lista aberta (/api/PedidoAlteracao/publico, sem login): os que esperam
+// decisão e os aprovados, nunca os descartados, até 200, na ordem do
+// administrador. Só os campos que a API pública expõe: nada de quem decidiu,
+// motivo, link do PR, ambiente, diários, chave ou agente. Nos passos, o
+// detalhe só nos do Pregão — o da decisão é o motivo, e o motivo é privado.
+const LIMITE_PUBLICO = 200
+const ACOES_DO_PREGAO = [STATUS.ABERTO, STATUS.REABERTO, STATUS.VALIDADO]
+
+const mockPedidosPublicos = () => respostaDaLista(
+  ordenarPedidos(mockPedidos.filter((p) => p.status !== STATUS.DESCARTADO))
+    .slice(0, LIMITE_PUBLICO)
+    .map((p) => ({
+      idPedidoAlteracao: p.idPedidoAlteracao,
+      tipo: p.tipo,
+      telas: p.telas,
+      problema: p.problema,
+      trecho: p.trecho,
+      dias: p.dias,
+      rodadas: p.rodadas,
+      visitas: p.visitas,
+      primeiraVez: p.primeiraVez,
+      ultimaVez: p.ultimaVez,
+      status: p.status,
+      dataStatus: p.dataStatus,
+      eventos: p.eventos.map((e) => ({
+        acao: e.acao,
+        dataHora: e.dataHora,
+        statusNovo: e.statusNovo,
+        detalhe: ACOES_DO_PREGAO.includes(e.acao) ? e.detalhe : null,
+      })),
+    }))
+)
 
 const ROTA_DECISAO = /^\/api\/PedidoAlteracao\/([^/?]+)\/decisao$/
 
-// As mesmas regras e mensagens da FuncaoDecidirPedidoAlteracao.
+// As mesmas regras e mensagens da FuncaoDecidirPedidoAlteracao, com o passo na
+// linha do tempo.
 const mockDecidirPedido = (endpoint, body) => {
   const id = endpoint.match(ROTA_DECISAO)?.[1]
   const decisao = String(body?.decisao ?? '').trim().toLowerCase()
@@ -1413,13 +1562,18 @@ const mockDecidirPedido = (endpoint, body) => {
   }
 
   const agora = treinoUtcNaive(Date.now())
+  const quem = decodeAuthenticationToken(getStoredToken())?.email || 'admin@teste.local'
   mockPedidos = mockPedidos.map((p) => (p === pedido
     ? {
       ...p,
       status: decisao,
       dataStatus: agora,
-      decididoPor: decodeAuthenticationToken(getStoredToken())?.email || 'admin@teste.local',
+      decididoPor: quem,
       motivoDecisao: motivo,
+      eventos: [
+        ...p.eventos,
+        { acao: decisao, dataHora: agora, autor: quem, statusAnterior: p.status, statusNovo: decisao, detalhe: motivo },
+      ],
     }
     : p))
   return { mensagem: 'Operação realizada com sucesso' }
@@ -1430,6 +1584,11 @@ const mockHandlers = [
     method: 'GET',
     match: (endpoint) => endpoint.split('?')[0] === '/api/PedidoAlteracao',
     response: (endpoint) => mockListarPedidos(endpoint),
+  },
+  {
+    method: 'GET',
+    match: (endpoint) => endpoint.split('?')[0] === '/api/PedidoAlteracao/publico',
+    response: () => mockPedidosPublicos(),
   },
   {
     method: 'POST',

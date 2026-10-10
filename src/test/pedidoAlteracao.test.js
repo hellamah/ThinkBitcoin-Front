@@ -3,11 +3,15 @@ import pt from '../src/lang/pt.json'
 import { PedidoAlteracaoEndpoint } from '../src/utils/apiClient'
 import { AuthRole, decodeAuthenticationToken } from '../src/utils/authentication'
 import {
+  FILTROS_PUBLICOS,
   FILTRO_PADRAO,
+  FILTRO_PADRAO_PUBLICO,
   STATUS,
   TAMANHO_MOTIVO,
+  autorDaAcao,
   conferirMotivo,
   contagemPorFiltro,
+  eventosDoPedido,
   filtroDaUrl,
   frequenciaDoPedido,
   pedidosDoFiltro,
@@ -71,6 +75,38 @@ describe('pregão › filtros', () => {
   })
 })
 
+describe('pregão › página aberta', () => {
+  it('os filtros abertos não têm descartados, e o padrão é ver tudo', () => {
+    expect(FILTROS_PUBLICOS.map((f) => f.id)).toEqual(['todos', 'esperando', 'aprovado', 'em-correcao', 'corrigido', 'validado'])
+    expect(FILTRO_PADRAO_PUBLICO).toBe('todos')
+    expect(filtroDaUrl(null, FILTROS_PUBLICOS, FILTRO_PADRAO_PUBLICO)).toBe('todos')
+    // Descartado não é filtro da página aberta: cai no padrão.
+    expect(filtroDaUrl('descartado', FILTROS_PUBLICOS, FILTRO_PADRAO_PUBLICO)).toBe('todos')
+    expect(filtroDaUrl('aprovado', FILTROS_PUBLICOS, FILTRO_PADRAO_PUBLICO)).toBe('aprovado')
+    expect(contagemPorFiltro(LISTA, FILTROS_PUBLICOS)).toEqual({
+      todos: 4, esperando: 2, aprovado: 1, 'em-correcao': 0, corrigido: 0, validado: 0,
+    })
+  })
+
+  it('a ação diz quem deu o passo', () => {
+    expect(['aberto', 'reaberto', 'validado'].map(autorDaAcao)).toEqual(['pregao', 'pregao', 'pregao'])
+    expect(autorDaAcao('aprovado')).toBe('administrador')
+    expect(['em-correcao', 'corrigido'].map(autorDaAcao)).toEqual(['correcao', 'correcao'])
+    expect(autorDaAcao('nova-acao')).toBeNull()
+  })
+
+  it('a linha do tempo sai em ordem cronológica, estável no empate', () => {
+    const eventos = [
+      { acao: 'corrigido', dataHora: '2026-10-05T12:00:00Z' },
+      { acao: 'aberto', dataHora: '2026-10-01T09:00:00Z' },
+      { acao: 'aprovado', dataHora: '2026-10-02T10:00:00Z' },
+      { acao: 'em-correcao', dataHora: '2026-10-02T10:00:00Z' },
+    ]
+    expect(eventosDoPedido({ eventos }).map((e) => e.acao)).toEqual(['aberto', 'aprovado', 'em-correcao', 'corrigido'])
+    expect(eventosDoPedido({})).toEqual([])
+  })
+})
+
 describe('pregão › motivo da decisão', () => {
   it('descartar exige motivo, e espaço não conta', () => {
     expect(conferirMotivo('descartado', '')).toEqual({ erro: 'pregao.motivoObrigatorio' })
@@ -109,6 +145,7 @@ describe('pregão › endpoints', () => {
     expect(PedidoAlteracaoEndpoint.LIST({ status: 'aberto', agente: 'pregao.trader' }))
       .toBe('/api/PedidoAlteracao?status=aberto&agente=pregao.trader')
     expect(PedidoAlteracaoEndpoint.DECISAO('abc')).toBe('/api/PedidoAlteracao/abc/decisao')
+    expect(PedidoAlteracaoEndpoint.PUBLICO).toBe('/api/PedidoAlteracao/publico')
   })
 })
 
@@ -137,11 +174,13 @@ describe('pregão › modo demo', () => {
     return null
   }
 
-  it('traz três pedidos esperando decisão e um descartado, do mais grave ao menos grave', () => {
+  it('traz três esperando decisão, um aprovado, o ciclo andando e um descartado, do mais grave ao menos grave', () => {
     const lista = listar()
-    expect(lista).toHaveLength(4)
-    expect(pedidosDoFiltro(lista, 'esperando')).toHaveLength(3)
-    expect(lista.map((p) => p.tipo)).toEqual(['errado', 'confuso', 'confuso', 'falta'])
+    expect(lista).toHaveLength(7)
+    expect(contagemPorFiltro(lista)).toMatchObject({ esperando: 3, aprovado: 1, corrigido: 1, validado: 1, descartado: 1 })
+    expect(lista.map((p) => p.tipo)).toEqual(['errado', 'errado', 'errado', 'confuso', 'confuso', 'confuso', 'falta'])
+    // A lista do administrador não traz a linha do tempo (é do GET /{id}).
+    expect(lista.every((p) => !('eventos' in p))).toBe(true)
     expect(lista[0]).toMatchObject({
       tipo: 'errado',
       telas: 'Alertas de preço · Geopolítica',
@@ -158,7 +197,7 @@ describe('pregão › modo demo', () => {
 
   it('filtra por status e recusa status desconhecido com 400, como a API', () => {
     expect(listar('?status=descartado').map((p) => p.status)).toEqual(['descartado'])
-    expect(getMockResponse({ endpoint: '/api/PedidoAlteracao?status=aprovado', method: 'GET' }))
+    expect(getMockResponse({ endpoint: '/api/PedidoAlteracao?status=em-correcao', method: 'GET' }))
       .toEqual({ mensagem: 'Dados não encontrados', resultado: [] })
     expect(erroDe(() => listar('?status=xyz'))).toMatchObject({ status: 400, mensagem: expect.stringContaining('Status desconhecido') })
   })
@@ -167,9 +206,8 @@ describe('pregão › modo demo', () => {
     tokenGuardado.valor = entrar('admin@teste.local')
     const [primeiro] = listar('?status=aberto')
     expect(decidir(primeiro.idPedidoAlteracao, { decisao: 'aprovado' })).toEqual({ mensagem: 'Operação realizada com sucesso' })
-    const aprovado = listar('?status=aprovado')
-    expect(aprovado).toHaveLength(1)
-    expect(aprovado[0]).toMatchObject({ idPedidoAlteracao: primeiro.idPedidoAlteracao, decididoPor: 'admin@teste.local', motivoDecisao: null })
+    const aprovado = listar('?status=aprovado').find((p) => p.idPedidoAlteracao === primeiro.idPedidoAlteracao)
+    expect(aprovado).toMatchObject({ decididoPor: 'admin@teste.local', motivoDecisao: null })
     expect(pedidosDoFiltro(listar(), 'esperando')).toHaveLength(2)
   })
 
@@ -211,5 +249,65 @@ describe('pregão › modo demo', () => {
     expect(renovar()).toMatchObject({ email: 'admin@teste.local', cargos: [AuthRole.ADMINISTRADOR] })
     tokenGuardado.valor = entrar('qualquer@teste.local')
     expect(renovar().cargos).toEqual([AuthRole.MINERADOR])
+  })
+
+  // ── A lista aberta (/api/PedidoAlteracao/publico, sem login) ──
+
+  const publicos = () => getMockResponse({ endpoint: PedidoAlteracaoEndpoint.PUBLICO, method: 'GET' }).resultado
+  const CAMPOS_PUBLICOS = [
+    'dataStatus', 'dias', 'eventos', 'idPedidoAlteracao', 'primeiraVez', 'problema',
+    'rodadas', 'status', 'telas', 'tipo', 'trecho', 'ultimaVez', 'visitas',
+  ]
+
+  it('a lista aberta responde sem sessão e nunca traz descartado', () => {
+    expect(tokenGuardado.valor).toBeNull()
+    const lista = publicos()
+    expect(lista).toHaveLength(6)
+    expect(lista.some((p) => p.status === STATUS.DESCARTADO)).toBe(false)
+    expect(new Set(lista.map((p) => p.status))).toEqual(new Set(['aberto', 'aprovado', 'corrigido', 'validado']))
+    // Na mesma ordem da lista do administrador.
+    expect(lista.map((p) => p.idPedidoAlteracao))
+      .toEqual(listar().filter((p) => p.status !== STATUS.DESCARTADO).map((p) => p.idPedidoAlteracao))
+  })
+
+  it('só os campos públicos: nada de quem decidiu, motivo, PR, ambiente, diários, chave ou agente', () => {
+    const lista = publicos()
+    for (const p of lista) {
+      expect(Object.keys(p).sort()).toEqual(CAMPOS_PUBLICOS)
+      for (const e of p.eventos) expect(Object.keys(e).sort()).toEqual(['acao', 'dataHora', 'detalhe', 'statusNovo'])
+    }
+    const texto = JSON.stringify(lista)
+    expect(texto).not.toContain('admin@teste.local')
+    expect(texto).not.toContain('pregao.trader')
+    expect(texto).not.toContain('localhost')
+  })
+
+  it('a linha do tempo vem em ordem, e o detalhe só nos passos do Pregão', () => {
+    const lista = publicos()
+    const validado = lista.find((p) => p.status === STATUS.VALIDADO)
+    expect(validado.eventos.map((e) => e.acao)).toEqual(['aberto', 'aprovado', 'em-correcao', 'corrigido', 'validado'])
+    expect(validado.eventos.map((e) => Boolean(e.detalhe))).toEqual([true, false, false, false, true])
+    expect(validado.eventos[0].detalhe).toBe('Visto em 2 dias diferentes (3 de 8 rodadas que passaram pela tela).')
+    const corrigido = lista.find((p) => p.status === STATUS.CORRIGIDO)
+    expect(corrigido.eventos.map((e) => e.acao)).toEqual(['aberto', 'aprovado', 'em-correcao', 'corrigido'])
+    for (const p of lista) {
+      const instantes = p.eventos.map((e) => Date.parse(`${e.dataHora}Z`))
+      expect(instantes).toEqual([...instantes].sort((x, y) => x - y))
+    }
+  })
+
+  it('a decisão do administrador entra na linha do tempo aberta sem o motivo; o descarte some dela', () => {
+    tokenGuardado.valor = entrar('admin@teste.local')
+    const [aprovar, descartar] = listar('?status=aberto')
+    decidir(aprovar.idPedidoAlteracao, { decisao: 'aprovado', motivo: 'Vale para todo day trader.' })
+    decidir(descartar.idPedidoAlteracao, { decisao: 'descartado', motivo: 'Falso alarme do Trader.' })
+    tokenGuardado.valor = null
+
+    const lista = publicos()
+    const aprovado = lista.find((p) => p.idPedidoAlteracao === aprovar.idPedidoAlteracao)
+    expect(aprovado.status).toBe('aprovado')
+    expect(aprovado.eventos.at(-1)).toMatchObject({ acao: 'aprovado', statusNovo: 'aprovado', detalhe: null })
+    expect(lista.some((p) => p.idPedidoAlteracao === descartar.idPedidoAlteracao)).toBe(false)
+    expect(JSON.stringify(lista)).not.toMatch(/Vale para todo|Falso alarme/)
   })
 })

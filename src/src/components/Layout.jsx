@@ -28,6 +28,7 @@ const ROTULO_DA_ROTA = [
   ['/treinamento-episodios', 'nav.training'],
   ['/estrategias', 'nav.strategies'],
   ['/pedidos-pregao', 'nav.pregao'],
+  ['/pregao', 'pregaoPublico.title'],
   ['/login', 'nav.login'],
   ['/redefinir-senha', 'senha.redefinirTitulo'],
   ['/privacidade', 'consentimento.tipos.privacidade'],

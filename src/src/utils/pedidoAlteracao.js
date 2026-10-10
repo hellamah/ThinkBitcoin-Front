@@ -38,8 +38,19 @@ export const FILTROS = Object.freeze([
 
 export const FILTRO_PADRAO = 'esperando'
 
+// Os filtros da página aberta (/pregao). Sem descartados: a API pública não os
+// traz. O padrão é ver tudo — quem chega de fora quer o quadro inteiro, e não a
+// fila de trabalho do administrador.
+export const FILTROS_PUBLICOS = Object.freeze([
+  { id: 'todos', status: null },
+  ...FILTROS.filter((f) => f.id !== STATUS.DESCARTADO && f.id !== 'todos'),
+])
+
+export const FILTRO_PADRAO_PUBLICO = 'todos'
+
 /** O filtro pedido na URL (?status=); qualquer outra coisa é o padrão. */
-export const filtroDaUrl = (valor) => (FILTROS.some((f) => f.id === valor) ? valor : FILTRO_PADRAO)
+export const filtroDaUrl = (valor, filtros = FILTROS, padrao = FILTRO_PADRAO) =>
+  (filtros.some((f) => f.id === valor) ? valor : padrao)
 
 /**
  * Os pedidos de um filtro, na ordem em que a API os entregou (do mais grave
@@ -47,15 +58,15 @@ export const filtroDaUrl = (valor) => (FILTROS.some((f) => f.id === valor) ? val
  * inteira e o filtro é feito aqui: são dezenas de pedidos, e assim cada filtro
  * mostra quantos tem sem uma requisição por status.
  */
-export const pedidosDoFiltro = (pedidos, filtro) => {
-  const definicao = FILTROS.find((f) => f.id === filtro) ?? FILTROS[0]
+export const pedidosDoFiltro = (pedidos, filtro, filtros = FILTROS) => {
+  const definicao = filtros.find((f) => f.id === filtro) ?? filtros[0]
   const lista = Array.isArray(pedidos) ? pedidos : []
   return definicao.status ? lista.filter((p) => definicao.status.includes(p.status)) : lista
 }
 
 /** Quantos pedidos cada filtro tem: { esperando: 2, aprovado: 1, ..., todos: 4 }. */
-export const contagemPorFiltro = (pedidos) =>
-  Object.fromEntries(FILTROS.map((f) => [f.id, pedidosDoFiltro(pedidos, f.id).length]))
+export const contagemPorFiltro = (pedidos, filtros = FILTROS) =>
+  Object.fromEntries(filtros.map((f) => [f.id, pedidosDoFiltro(pedidos, f.id, filtros).length]))
 
 /** Se o pedido ainda aceita aprovar ou descartar. */
 export const podeDecidir = (pedido) => AGUARDANDO_DECISAO.includes(pedido?.status)
@@ -94,3 +105,29 @@ export const frequenciaDoPedido = (t, pedido) => {
     visitas: Number(pedido?.visitas) || 0,
   })
 }
+
+// ── Linha do tempo (página aberta) ─────────────────────────────────────────
+
+// Quem faz cada passo do ciclo. A API pública não traz o autor (o e-mail de
+// quem decidiu é privado): a ação diz quem foi. A Equipe Pregão abre, reabre e
+// valida; um administrador aprova; quem corrige começa e entrega a correção.
+const AUTOR_DA_ACAO = Object.freeze({
+  [STATUS.ABERTO]: 'pregao',
+  [STATUS.REABERTO]: 'pregao',
+  [STATUS.VALIDADO]: 'pregao',
+  [STATUS.APROVADO]: 'administrador',
+  [STATUS.EM_CORRECAO]: 'correcao',
+  [STATUS.CORRIGIDO]: 'correcao',
+})
+
+/** 'pregao', 'administrador' ou 'correcao'; nulo para ação que a tela não conhece. */
+export const autorDaAcao = (acao) => AUTOR_DA_ACAO[acao] ?? null
+
+/**
+ * Os passos do pedido em ordem cronológica. A API já os entrega assim; ordenar
+ * de novo custa nada e protege a história de ser contada de trás para frente.
+ * A ordenação é estável: dois passos no mesmo instante ficam na ordem da API.
+ */
+export const eventosDoPedido = (pedido) =>
+  [...(Array.isArray(pedido?.eventos) ? pedido.eventos : [])]
+    .sort((a, b) => (Date.parse(a.dataHora) || 0) - (Date.parse(b.dataHora) || 0))

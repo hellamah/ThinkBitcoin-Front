@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { apiRequest, HttpMethod, PedidoAlteracaoEndpoint } from '../utils/apiClient'
 
-// Os pedidos de alteração da Equipe Pregão e a decisão do administrador. A
-// lista vem inteira (são dezenas de pedidos) e a tela filtra por status. O
-// Pregão consolida três vezes por dia: sem polling — quem quer o que chegou
-// depois recarrega.
+// Os pedidos de alteração da Equipe Pregão. A lista vem inteira (são dezenas
+// de pedidos) e a tela filtra por status. O Pregão consolida três vezes por
+// dia: sem polling — quem quer o que chegou depois recarrega.
 
-export default function usePedidosAlteracao() {
+// A busca comum às duas telas. `anonimo`: a chamada da página aberta, sem token
+// e sem os efeitos de 401/403 na sessão (ver apiRequest).
+function useListaDePedidos(endpoint, anonimo = false) {
   // pedidos: undefined = ainda não carregou; [] = carregou e não há nenhum.
   const [pedidos, setPedidos] = useState(undefined)
   const [carregando, setCarregando] = useState(false)
@@ -18,7 +19,7 @@ export default function usePedidosAlteracao() {
     const buscar = async () => {
       setCarregando(true)
       try {
-        const resp = await apiRequest(PedidoAlteracaoEndpoint.LIST())
+        const resp = await apiRequest(endpoint, { anonimo })
         if (cancelado) return
         setPedidos(Array.isArray(resp?.resultado) ? resp.resultado : [])
         setErro(null)
@@ -31,9 +32,16 @@ export default function usePedidosAlteracao() {
     }
     buscar()
     return () => { cancelado = true }
-  }, [recarga])
+  }, [endpoint, anonimo, recarga])
 
   const recarregar = useCallback(() => setRecarga((n) => n + 1), [])
+
+  return { pedidos, setPedidos, carregando, erro, recarregar }
+}
+
+/** A fila do administrador (/pedidos-pregao), com a decisão. */
+export default function usePedidosAlteracao() {
+  const { pedidos, setPedidos, carregando, erro, recarregar } = useListaDePedidos(PedidoAlteracaoEndpoint.LIST())
 
   /**
    * Aprova ou descarta um pedido. O erro da API (400 com a mensagem da regra)
@@ -51,8 +59,17 @@ export default function usePedidosAlteracao() {
         ? { ...p, status: decisao, motivoDecisao: motivo || null }
         : p))
       : atual))
-    setRecarga((n) => n + 1)
-  }, [])
+    recarregar()
+  }, [setPedidos, recarregar])
 
   return { pedidos, carregando, erro, recarregar, decidir }
+}
+
+/**
+ * A lista da página aberta (/pregao): sem login, só leitura. Os que esperam
+ * decisão e os aprovados, com a linha do tempo; nunca os descartados.
+ */
+export function usePedidosPublicos() {
+  const { pedidos, carregando, erro, recarregar } = useListaDePedidos(PedidoAlteracaoEndpoint.PUBLICO, true)
+  return { pedidos, carregando, erro, recarregar }
 }

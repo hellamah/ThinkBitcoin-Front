@@ -25,6 +25,7 @@ const DocumentoLegal = lazy(() => import('./pages/DocumentoLegal.jsx'))
 const Simulacao = lazy(() => import('./pages/Simulacao.jsx'))
 const ZooEstrategias = lazy(() => import('./pages/ZooEstrategias.jsx'))
 const PedidosPregao = lazy(() => import('./pages/PedidosPregao.jsx'))
+const PregaoPublico = lazy(() => import('./pages/PregaoPublico.jsx'))
 
 // Link de antes da tela própria da simulação — `/dashboard?sim.sinal=…` —
 // continua abrindo a simulação, com a configuração inteira. Sem isto, quem
@@ -75,6 +76,9 @@ function App() {
                   seria o avesso do consentimento informado. */}
               <Route path="/privacidade" element={<DocumentoLegal documento="privacidade" />} />
               <Route path="/termos" element={<DocumentoLegal documento="termos" />} />
+              {/* Pública também: os pedidos da Equipe Pregão, só leitura. A
+                  decisão fica em /pedidos-pregao, só para administrador. */}
+              <Route path="/pregao" element={<PregaoPublico />} />
               <Route
                 path="/dashboard"
                 element={
