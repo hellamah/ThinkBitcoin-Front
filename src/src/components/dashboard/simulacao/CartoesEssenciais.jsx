@@ -124,7 +124,7 @@ export default function CartoesEssenciais({ metricas, robustez, validacao, dispa
           {t('simulationWinRate')}:{' '}
           {metricas.winRate === null ? '—' : `${metricas.winRate.toFixed(1)}%`}
           {metricas.intervalo
-            ? ` (${metricas.intervalo.inferior.toFixed(0)}–${metricas.intervalo.superior.toFixed(0)}%)`
+            ? ` (${t('simulationWinRateRange')}: ${metricas.intervalo.inferior.toFixed(0)}–${metricas.intervalo.superior.toFixed(0)}%)`
             : ''}
         </div>
         <div className="intel-subvalue" style={{ opacity: 0.5 }}>{linhaDisparo}</div>
