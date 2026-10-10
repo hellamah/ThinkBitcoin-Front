@@ -25,9 +25,11 @@ import {
 // com a linha do tempo de cada um.
 //
 // Pública de propósito: é a parte do ciclo de melhoria que dá para mostrar.
-// Aparecem os que esperam decisão e os aprovados; descartados, quem decidiu e o
-// motivo ficam de fora (a API pública nem os traz). A decisão continua na tela
-// do administrador, /pedidos-pregao.
+// Aparecem só os pedidos que um administrador aprovou, e o caminho até a
+// correção. O que espera decisão, os descartados, quem decidiu e o motivo ficam
+// de fora (a API pública nem os traz): nenhum pedido do Pregão chega ao público
+// sem revisão. A decisão continua na tela do administrador, /pedidos-pregao.
+// Até o primeiro pedido aprovado, a lista fica vazia, e o estado vazio diz isso.
 
 const estiloDoBotao = { color: 'var(--accent-ink)', textTransform: 'none', fontWeight: 600 }
 

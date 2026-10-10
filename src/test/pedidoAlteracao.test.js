@@ -7,6 +7,7 @@ import {
   FILTRO_PADRAO,
   FILTRO_PADRAO_PUBLICO,
   STATUS,
+  STATUS_PUBLICOS,
   TAMANHO_MOTIVO,
   autorDaAcao,
   conferirMotivo,
@@ -76,15 +77,18 @@ describe('pregão › filtros', () => {
 })
 
 describe('pregão › página aberta', () => {
-  it('os filtros abertos não têm descartados, e o padrão é ver tudo', () => {
-    expect(FILTROS_PUBLICOS.map((f) => f.id)).toEqual(['todos', 'esperando', 'aprovado', 'em-correcao', 'corrigido', 'validado'])
+  it('os filtros abertos são só do que um administrador aprovou, e o padrão é ver tudo', () => {
+    expect(STATUS_PUBLICOS).toEqual(['aprovado', 'em-correcao', 'corrigido', 'validado'])
+    expect(FILTROS_PUBLICOS.map((f) => f.id)).toEqual(['todos', 'aprovado', 'em-correcao', 'corrigido', 'validado'])
     expect(FILTRO_PADRAO_PUBLICO).toBe('todos')
     expect(filtroDaUrl(null, FILTROS_PUBLICOS, FILTRO_PADRAO_PUBLICO)).toBe('todos')
-    // Descartado não é filtro da página aberta: cai no padrão.
+    // Esperando decisão e descartado não são filtros da página aberta: caem no padrão.
+    expect(filtroDaUrl('esperando', FILTROS_PUBLICOS, FILTRO_PADRAO_PUBLICO)).toBe('todos')
     expect(filtroDaUrl('descartado', FILTROS_PUBLICOS, FILTRO_PADRAO_PUBLICO)).toBe('todos')
     expect(filtroDaUrl('aprovado', FILTROS_PUBLICOS, FILTRO_PADRAO_PUBLICO)).toBe('aprovado')
-    expect(contagemPorFiltro(LISTA, FILTROS_PUBLICOS)).toEqual({
-      todos: 4, esperando: 2, aprovado: 1, 'em-correcao': 0, corrigido: 0, validado: 0,
+    const publicos = [pedido(STATUS.APROVADO), pedido(STATUS.CORRIGIDO), pedido(STATUS.VALIDADO), pedido(STATUS.APROVADO)]
+    expect(contagemPorFiltro(publicos, FILTROS_PUBLICOS)).toEqual({
+      todos: 4, aprovado: 2, 'em-correcao': 0, corrigido: 1, validado: 1,
     })
   })
 
@@ -259,15 +263,16 @@ describe('pregão › modo demo', () => {
     'rodadas', 'status', 'telas', 'tipo', 'trecho', 'ultimaVez', 'visitas',
   ]
 
-  it('a lista aberta responde sem sessão e nunca traz descartado', () => {
+  it('a lista aberta responde sem sessão e só traz o que um administrador aprovou', () => {
     expect(tokenGuardado.valor).toBeNull()
     const lista = publicos()
-    expect(lista).toHaveLength(6)
-    expect(lista.some((p) => p.status === STATUS.DESCARTADO)).toBe(false)
-    expect(new Set(lista.map((p) => p.status))).toEqual(new Set(['aberto', 'aprovado', 'corrigido', 'validado']))
+    expect(lista).toHaveLength(3)
+    // Nem esperando decisão nem descartado: nenhum pedido chega ao público sem revisão.
+    expect(lista.some((p) => ['aberto', 'reaberto', 'descartado'].includes(p.status))).toBe(false)
+    expect(new Set(lista.map((p) => p.status))).toEqual(new Set(['aprovado', 'corrigido', 'validado']))
     // Na mesma ordem da lista do administrador.
     expect(lista.map((p) => p.idPedidoAlteracao))
-      .toEqual(listar().filter((p) => p.status !== STATUS.DESCARTADO).map((p) => p.idPedidoAlteracao))
+      .toEqual(listar().filter((p) => STATUS_PUBLICOS.includes(p.status)).map((p) => p.idPedidoAlteracao))
   })
 
   it('só os campos públicos: nada de quem decidiu, motivo, PR, ambiente, diários, chave ou agente', () => {
@@ -296,9 +301,10 @@ describe('pregão › modo demo', () => {
     }
   })
 
-  it('a decisão do administrador entra na linha do tempo aberta sem o motivo; o descarte some dela', () => {
+  it('o pedido só aparece na lista aberta depois de aprovado, e sem o motivo; o descartado nunca aparece', () => {
     tokenGuardado.valor = entrar('admin@teste.local')
     const [aprovar, descartar] = listar('?status=aberto')
+    expect(publicos().some((p) => p.idPedidoAlteracao === aprovar.idPedidoAlteracao)).toBe(false)
     decidir(aprovar.idPedidoAlteracao, { decisao: 'aprovado', motivo: 'Vale para todo day trader.' })
     decidir(descartar.idPedidoAlteracao, { decisao: 'descartado', motivo: 'Falso alarme do Trader.' })
     tokenGuardado.valor = null
@@ -306,6 +312,7 @@ describe('pregão › modo demo', () => {
     const lista = publicos()
     const aprovado = lista.find((p) => p.idPedidoAlteracao === aprovar.idPedidoAlteracao)
     expect(aprovado.status).toBe('aprovado')
+    expect(aprovado.eventos.map((e) => e.acao)).toEqual(['aberto', 'aprovado'])
     expect(aprovado.eventos.at(-1)).toMatchObject({ acao: 'aprovado', statusNovo: 'aprovado', detalhe: null })
     expect(lista.some((p) => p.idPedidoAlteracao === descartar.idPedidoAlteracao)).toBe(false)
     expect(JSON.stringify(lista)).not.toMatch(/Vale para todo|Falso alarme/)

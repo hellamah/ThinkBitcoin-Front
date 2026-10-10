@@ -66,8 +66,8 @@ export default function usePedidosAlteracao() {
 }
 
 /**
- * A lista da página aberta (/pregao): sem login, só leitura. Os que esperam
- * decisão e os aprovados, com a linha do tempo; nunca os descartados.
+ * A lista da página aberta (/pregao): sem login, só leitura. Só os pedidos que
+ * um administrador aprovou, com a linha do tempo até a correção.
  */
 export function usePedidosPublicos() {
   const { pedidos, carregando, erro, recarregar } = useListaDePedidos(PedidoAlteracaoEndpoint.PUBLICO, true)

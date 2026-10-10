@@ -89,12 +89,12 @@ VITE_USE_MOCK=true
 
 ### Página aberta
 - Rota `/pregao`, sem login e só leitura, no molde de `/privacidade` e `/termos`, com link no Início para visitante e para quem está logado. Explica o que é a Equipe Pregão e mostra cada pedido com tipo, telas, problema, trecho, dias e rodadas, o status em linguagem simples e a linha do tempo ("a Equipe Pregão pediu → um administrador aprovou → … → a Equipe Pregão conferiu").
-- Lê `GET /api/PedidoAlteracao/publico` (AllowAnonymous): os que esperam decisão e os aprovados, nunca os descartados, sem quem decidiu, motivo, link do PR, ambiente, diários, chave ou agente. A linha do tempo não traz autor: a tela diz quem fez pela ação (aberto, reaberto e validado = Equipe Pregão; aprovado = um administrador; em correção e corrigido = quem corrige). O detalhe de cada passo vem do backend, em português.
+- Mostra só o que um administrador aprovou: nenhum pedido do Pregão chega ao público sem revisão. Lê `GET /api/PedidoAlteracao/publico` (AllowAnonymous), que devolve só os status aprovado, em-correcao, corrigido e validado (esperando decisão e descartado nunca vêm), sem quem decidiu, motivo, link do PR, ambiente, diários, chave ou agente. Até o primeiro aprovado a lista fica vazia, e o estado vazio diz "nenhum pedido aprovado ainda". A linha do tempo não traz autor: a tela diz quem fez pela ação (aberto, reaberto e validado = Equipe Pregão; aprovado = um administrador; em correção e corrigido = quem corrige). O detalhe de cada passo vem do backend, em português.
 - A chamada usa `apiRequest(..., { anonimo: true })`: vai sem o token, e um 401 ou 403 não desloga nem abre o convite de assinatura (que o apiClient dispara em todo 403).
-- Filtro por status na URL (`?status=aprovado`), sem a opção de descartados; o padrão é ver todos.
+- Filtro por status na URL (`?status=aprovado`), só com os status públicos; o padrão é ver todos, e um status que não é público cai nele.
 
 ### Modo demo
-- Sete pedidos em memória, compartilhados pelas duas telas: três esperando decisão, um aprovado, um corrigido (aberto → aprovado → em correção → corrigido), um validado (o ciclo inteiro) e um descartado, que só a tela do administrador mostra. Decidir na tela do administrador muda a página aberta na mesma sessão (o passo entra na linha do tempo, sem o motivo); o reload volta ao início.
+- Sete pedidos em memória, compartilhados pelas duas telas: três esperando decisão, um aprovado, um corrigido (aberto → aprovado → em correção → corrigido), um validado (o ciclo inteiro) e um descartado. A página aberta mostra só os três aprovados; os outros ficam na tela do administrador. Aprovar ali põe o pedido na página aberta na mesma sessão (o passo entra na linha do tempo, sem o motivo); o reload volta ao início.
 
 ## Scripts Disponíveis (Executar dentro de /src)
 | Comando        | Descrição                                     |

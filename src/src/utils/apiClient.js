@@ -173,8 +173,9 @@ export const ApiEndpoint = Object.freeze({
     },
     // Corpo: { decisao: 'aprovado' | 'descartado', motivo }. Descartar pede motivo.
     DECISAO: (id) => `/api/PedidoAlteracao/${id}/decisao`,
-    // Sem login: os pedidos que esperam decisão e os aprovados (nunca os
-    // descartados), com a linha do tempo, sem quem decidiu nem o motivo.
+    // Sem login: só os pedidos que um administrador aprovou (aprovado,
+    // em-correcao, corrigido, validado), com a linha do tempo, sem quem decidiu
+    // nem o motivo. Esperando decisão e descartado nunca vêm.
     PUBLICO: '/api/PedidoAlteracao/publico',
   }),
 })

@@ -6,7 +6,8 @@ import { apiRequest, PedidoAlteracaoEndpoint } from '../src/utils/apiClient'
 import PregaoPublico from '../src/pages/PregaoPublico'
 
 // A página aberta /pregao: chama o endpoint público sem sessão (`anonimo`),
-// não oferece filtro de descartados e mostra os pedidos com a linha do tempo.
+// só tem filtros do que um administrador aprovou (nem esperando decisão nem
+// descartado) e mostra os pedidos com a linha do tempo.
 // Sem provider de tradução, `t` devolve a chave.
 
 vi.mock('../src/utils/apiClient', async (importOriginal) => ({
@@ -32,8 +33,9 @@ const pedido = (id, status, problema) => ({
   eventos: [{ acao: 'aberto', dataHora: '2026-10-05T21:30:00Z', statusNovo: 'aberto', detalhe: null }],
 })
 
+// Como a API pública entrega: só aprovado, em-correcao, corrigido e validado.
 const LISTA = [
-  pedido('a', 'aberto', 'Problema esperando decisão'),
+  pedido('a', 'corrigido', 'Problema corrigido'),
   pedido('b', 'aprovado', 'Problema aprovado'),
 ]
 
@@ -54,25 +56,32 @@ describe('Página aberta dos pedidos do Pregão', () => {
     expect(apiRequest).toHaveBeenCalledWith(PedidoAlteracaoEndpoint.PUBLICO, { anonimo: true })
   })
 
-  it('mostra todos por padrão, e os filtros não têm descartados', async () => {
+  it('mostra todos por padrão, e os filtros são só do que foi aprovado', async () => {
     renderizar()
-    expect(await screen.findByText('Problema esperando decisão')).toBeTruthy()
+    expect(await screen.findByText('Problema corrigido')).toBeTruthy()
     expect(screen.getByText('Problema aprovado')).toBeTruthy()
+    // Todos, aprovado, em correção, corrigido e validado: sem esperando decisão nem descartado.
     const filtros = screen.getByRole('group', { name: 'pregao.filtroRotulo' })
-    expect(filtros.textContent).not.toContain('descartado')
-    expect(filtros.querySelectorAll('[aria-pressed]')).toHaveLength(6)
+    expect(filtros.querySelectorAll('[aria-pressed]')).toHaveLength(5)
   })
 
   it('filtra por status', async () => {
     renderizar('/pregao?status=aprovado')
     expect(await screen.findByText('Problema aprovado')).toBeTruthy()
-    expect(screen.queryByText('Problema esperando decisão')).toBeNull()
+    expect(screen.queryByText('Problema corrigido')).toBeNull()
     // `t` sem provider não interpola: o chip mostra a chave do rótulo com total.
     fireEvent.click(screen.getAllByText('pregao.filtroComTotal')[0])
-    expect(await screen.findByText('Problema esperando decisão')).toBeTruthy()
+    expect(await screen.findByText('Problema corrigido')).toBeTruthy()
   })
 
-  it('lista vazia explica quando os pedidos aparecem', async () => {
+  it('link antigo com ?status=esperando cai em todos', async () => {
+    renderizar('/pregao?status=esperando')
+    expect(await screen.findByText('Problema corrigido')).toBeTruthy()
+    expect(screen.getByText('Problema aprovado')).toBeTruthy()
+  })
+
+  // Em produção, até o administrador aprovar o primeiro pedido.
+  it('lista vazia explica que nenhum pedido foi aprovado ainda', async () => {
     apiRequest.mockResolvedValue({ mensagem: 'Dados não encontrados', resultado: [] })
     renderizar()
     expect(await screen.findByText('pregaoPublico.vazio')).toBeTruthy()

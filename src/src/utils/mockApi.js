@@ -5,7 +5,7 @@ import { CURVAS_ZOO, RODADA_ZOO } from './mockZooEstrategia'
 import { CURVAS_ZOO_JANELA, RODADA_ZOO_JANELA } from './mockZooJanelaAgente'
 import { AuthRole, decodeAuthenticationToken, temCargo } from './authentication'
 import { getStoredToken } from './preferences'
-import { AGUARDANDO_DECISAO, DECISOES, STATUS, TAMANHO_MOTIVO } from './pedidoAlteracao'
+import { AGUARDANDO_DECISAO, DECISOES, STATUS, STATUS_PUBLICOS, TAMANHO_MOTIVO } from './pedidoAlteracao'
 
 // As preferências do modo demo vivem no localStorage: sem isso o GET devolve
 // sempre o mesmo objeto fixo e qualquer alteração do usuário (tema, idioma…)
@@ -1271,8 +1271,9 @@ const sessaoMock = (endpoint, body) => {
 //   · dois que fizeram o ciclo: o rótulo de preço no índice de busca, corrigido
 //     (7fe6ede), e o "Acessar terminal" que devolvia o logado ao login,
 //     corrigido (a538d17) e validado pelo Pregão;
-//   · um descartado, para o filtro de descartados ter o que mostrar — e para a
-//     página aberta provar que ele não sai lá.
+//   · um descartado, para o filtro de descartados ter o que mostrar.
+// A página aberta mostra só os três que um administrador aprovou: os abertos e
+// o descartado ficam só na tela do administrador.
 // Cada um guarda a linha do tempo (`eventos`), como TbPedidoAlteracaoEvento: o
 // detalhe dos passos do Pregão é o texto do consumidor; o da decisão, o motivo.
 // Em memória de propósito, como os alertas: o que vale é ver a fila mudar ao
@@ -1508,16 +1509,17 @@ const mockListarPedidos = (endpoint) => {
   return respostaDaLista(ordenarPedidos(filtrados).map(({ eventos: _eventos, ...pedido }) => pedido))
 }
 
-// A lista aberta (/api/PedidoAlteracao/publico, sem login): os que esperam
-// decisão e os aprovados, nunca os descartados, até 200, na ordem do
-// administrador. Só os campos que a API pública expõe: nada de quem decidiu,
-// motivo, link do PR, ambiente, diários, chave ou agente. Nos passos, o
-// detalhe só nos do Pregão — o da decisão é o motivo, e o motivo é privado.
+// A lista aberta (/api/PedidoAlteracao/publico, sem login): só o que um
+// administrador aprovou (aprovado, em-correcao, corrigido, validado), até 200,
+// na ordem do administrador. Esperando decisão e descartado nunca vêm. Só os
+// campos que a API pública expõe: nada de quem decidiu, motivo, link do PR,
+// ambiente, diários, chave ou agente. Nos passos, o detalhe só nos do Pregão —
+// o da decisão é o motivo, e o motivo é privado.
 const LIMITE_PUBLICO = 200
 const ACOES_DO_PREGAO = [STATUS.ABERTO, STATUS.REABERTO, STATUS.VALIDADO]
 
 const mockPedidosPublicos = () => respostaDaLista(
-  ordenarPedidos(mockPedidos.filter((p) => p.status !== STATUS.DESCARTADO))
+  ordenarPedidos(mockPedidos.filter((p) => STATUS_PUBLICOS.includes(p.status)))
     .slice(0, LIMITE_PUBLICO)
     .map((p) => ({
       idPedidoAlteracao: p.idPedidoAlteracao,

@@ -38,12 +38,18 @@ export const FILTROS = Object.freeze([
 
 export const FILTRO_PADRAO = 'esperando'
 
-// Os filtros da página aberta (/pregao). Sem descartados: a API pública não os
-// traz. O padrão é ver tudo — quem chega de fora quer o quadro inteiro, e não a
-// fila de trabalho do administrador.
+// O que a página aberta (/pregao) mostra: só o que um administrador aprovou, e
+// o caminho até a correção. Esperando decisão (aberto, reaberto) e descartado
+// nunca saem dali — a API pública nem os traz: nenhum pedido do Pregão chega ao
+// público sem revisão.
+export const STATUS_PUBLICOS = Object.freeze([STATUS.APROVADO, STATUS.EM_CORRECAO, STATUS.CORRIGIDO, STATUS.VALIDADO])
+
+// Os filtros da página aberta, um por status público. O padrão é ver tudo —
+// quem chega de fora quer o quadro inteiro, e não a fila de trabalho do
+// administrador.
 export const FILTROS_PUBLICOS = Object.freeze([
   { id: 'todos', status: null },
-  ...FILTROS.filter((f) => f.id !== STATUS.DESCARTADO && f.id !== 'todos'),
+  ...FILTROS.filter((f) => f.status?.length === 1 && STATUS_PUBLICOS.includes(f.status[0])),
 ])
 
 export const FILTRO_PADRAO_PUBLICO = 'todos'
