@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { apiRequest, HttpMethod, PedidoAlteracaoEndpoint } from '../utils/apiClient'
+import { STATUS_PUBLICOS } from '../utils/pedidoAlteracao'
 
 // Os pedidos de alteração da Equipe Pregão. A lista vem inteira (são dezenas
 // de pedidos) e a tela filtra por status. O Pregão consolida três vezes por
@@ -71,5 +72,10 @@ export default function usePedidosAlteracao() {
  */
 export function usePedidosPublicos() {
   const { pedidos, carregando, erro, recarregar } = useListaDePedidos(PedidoAlteracaoEndpoint.PUBLICO, true)
-  return { pedidos, carregando, erro, recarregar }
+  // A API já devolve só os aprovados; este filtro é a segunda barreira. Em
+  // 10/10/2026 a API ainda mostrava os abertos quando o Pregão publicou os
+  // primeiros 18 pedidos, e eles foram a público sem revisão. Uma API antiga,
+  // ou uma regra mudada por engano, não põe pedido sem revisão nesta página.
+  const publicos = useMemo(() => pedidos?.filter((p) => STATUS_PUBLICOS.includes(p.status)), [pedidos])
+  return { pedidos: publicos, carregando, erro, recarregar }
 }

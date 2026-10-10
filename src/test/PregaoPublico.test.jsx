@@ -65,6 +65,19 @@ describe('Página aberta dos pedidos do Pregão', () => {
     expect(filtros.querySelectorAll('[aria-pressed]')).toHaveLength(5)
   })
 
+  it('não mostra pedido sem revisão, mesmo que a API o devolva', async () => {
+    apiRequest.mockResolvedValue({
+      mensagem: 'Operação realizada com sucesso',
+      resultado: [...LISTA, pedido('c', 'aberto', 'Problema aberto'), pedido('d', 'reaberto', 'Problema reaberto'),
+        pedido('e', 'descartado', 'Problema descartado')],
+    })
+    renderizar()
+    expect(await screen.findByText('Problema aprovado')).toBeTruthy()
+    expect(screen.queryByText('Problema aberto')).toBeNull()
+    expect(screen.queryByText('Problema reaberto')).toBeNull()
+    expect(screen.queryByText('Problema descartado')).toBeNull()
+  })
+
   it('filtra por status', async () => {
     renderizar('/pregao?status=aprovado')
     expect(await screen.findByText('Problema aprovado')).toBeTruthy()
