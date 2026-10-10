@@ -159,6 +159,21 @@ export const ApiEndpoint = Object.freeze({
       return qs ? `/api/ZooEstrategia/curva?${qs}` : '/api/ZooEstrategia/curva'
     },
   }),
+  // Pedidos de alteração da Equipe Pregão (o usuário sintético que usa a
+  // plataforma como um day trader). A leitura é do cargo interno (Sistema ou
+  // Administrador); a decisão, só do administrador.
+  PEDIDO_ALTERACAO: Object.freeze({
+    LIST: ({ status, tipo, agente } = {}) => {
+      const params = new URLSearchParams()
+      if (status) params.set('status', status)
+      if (tipo) params.set('tipo', tipo)
+      if (agente) params.set('agente', agente)
+      const qs = params.toString()
+      return qs ? `/api/PedidoAlteracao?${qs}` : '/api/PedidoAlteracao'
+    },
+    // Corpo: { decisao: 'aprovado' | 'descartado', motivo }. Descartar pede motivo.
+    DECISAO: (id) => `/api/PedidoAlteracao/${id}/decisao`,
+  }),
 })
 
 /**
@@ -398,5 +413,6 @@ export const AlertaPrecoEndpoint = ApiEndpoint.ALERTA_PRECO
 export const PlanosPagamentoEndpoint = ApiEndpoint.PLANOS_PAGAMENTO
 export const TreinamentoEpisodioEndpoint = ApiEndpoint.TREINAMENTO_EPISODIO
 export const ZooEstrategiaEndpoint = ApiEndpoint.ZOO_ESTRATEGIA
+export const PedidoAlteracaoEndpoint = ApiEndpoint.PEDIDO_ALTERACAO
 export const DocumentoLegalEndpoint = ApiEndpoint.DOCUMENTO_LEGAL
 export const ConsentimentoEndpoint = ApiEndpoint.CONSENTIMENTO

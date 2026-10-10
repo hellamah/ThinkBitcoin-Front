@@ -74,7 +74,8 @@
     "heatmap": "Geopolítica",
     "training": "Entrenamiento IA",
     "simulation": "Simulación",
-    "strategies": "Estrategias"
+    "strategies": "Estrategias",
+    "pregao": "Pedidos del Pregão"
   },
   "dashboard": "Panel",
   "sequence": "Secuencia de retorno",
@@ -1138,5 +1139,60 @@
       "media_50d_vol_alvo_40": "Media de 50 días + vol. objetivo del 40%",
       "agente_dqn": "Agente DQN (crudo)"
     }
+  },
+  "pregao": {
+    "title": "Pedidos del Pregão",
+    "intro": "El Trader, usuario sintético del Equipo Pregão, usa la plataforma tres veces al día como un day trader. Lo que ve repetirse en días distintos se convierte en un pedido. Aprobar envía el pedido a quien lo corrige; descartar pide el motivo, que ayuda a ajustar al Trader.",
+    "atualizar": "Actualizar",
+    "filtroRotulo": "Filtrar por estado",
+    "filtroComTotal": "{{filtro}} ({{total}})",
+    "filtros": {
+      "esperando": "Esperando decisión",
+      "aprovado": "Aprobados",
+      "em-correcao": "En corrección",
+      "corrigido": "Corregidos",
+      "validado": "Validados",
+      "descartado": "Descartados",
+      "todos": "Todos"
+    },
+    "tipos": {
+      "errado": "Incorrecto o no cuadra",
+      "automatico": "Verificación automática",
+      "confuso": "Confunde",
+      "falta": "Falta para el day trader"
+    },
+    "status": {
+      "aberto": "Abierto",
+      "aprovado": "Aprobado",
+      "descartado": "Descartado",
+      "em-correcao": "En corrección",
+      "corrigido": "Corregido",
+      "validado": "Validado",
+      "reaberto": "Reabierto"
+    },
+    "trecho": "En pantalla:",
+    "vistoEm": "{{dias}}, {{rodadas}} de {{visitas}} rondas que pasaron por la pantalla",
+    "dias": "{{n}} días",
+    "diaUm": "1 día",
+    "ultimaVez": "última vez el {{data}}",
+    "reabertoDica": "Volvió a aparecer después de darse por corregido.",
+    "decididoPor": "Decidido por {{quem}}",
+    "motivoDecisao": "Motivo: {{motivo}}",
+    "aprovar": "Aprobar",
+    "descartar": "Descartar",
+    "motivoRotulo": "Motivo del descarte",
+    "motivoAjuda": "Indica si es una falsa alarma del Trader o un \"ahora no\".",
+    "motivoObrigatorio": "Indica el motivo del descarte.",
+    "motivoLongo": "El motivo supera los {{max}} caracteres.",
+    "confirmarDescarte": "Confirmar descarte",
+    "cancelar": "Cancelar",
+    "enviando": "Enviando…",
+    "erroDecisao": "No se pudo registrar la decisión. Inténtalo de nuevo.",
+    "avisoAprovado": "Pedido aprobado: {{problema}}",
+    "avisoDescartado": "Pedido descartado: {{problema}}",
+    "loadError": "No se pudieron cargar los pedidos del Pregão.",
+    "retry": "Intentar de nuevo",
+    "vazio": "Ningún pedido en este estado.",
+    "vazioEsperando": "Ningún pedido esperando decisión. El Trader se ejecuta a las 9 h, 13 h y 18 h; lo que vea repetirse en días distintos aparece aquí."
   }
 }

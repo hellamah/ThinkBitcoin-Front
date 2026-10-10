@@ -1,5 +1,5 @@
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { MdHome, MdLogin, MdDashboard, MdLogout, MdSettings, MdPublic, MdPsychology, MdWorkspacePremium, MdClose, MdPlayCircleOutline, MdScience } from 'react-icons/md'
+import { MdHome, MdLogin, MdDashboard, MdLogout, MdSettings, MdPublic, MdPsychology, MdWorkspacePremium, MdClose, MdPlayCircleOutline, MdScience, MdFactCheck } from 'react-icons/md'
 import AppBar from '@mui/material/AppBar'
 import Toolbar from '@mui/material/Toolbar'
 import IconButton from '@mui/material/IconButton'
@@ -9,6 +9,7 @@ import Container from '@mui/material/Container'
 import logoLight from '../../logo-light.svg'
 import '../App.css'
 import { useAuth } from '../context/AuthContext'
+import { AuthRole, temCargo } from '../utils/authentication'
 import useConsentimento from '../hooks/useConsentimento'
 import ConsentimentoLGPD from './ConsentimentoLGPD'
 import CookieBanner from './CookieBanner'
@@ -26,6 +27,7 @@ const ROTULO_DA_ROTA = [
   ['/heatmap', 'nav.heatmap'],
   ['/treinamento-episodios', 'nav.training'],
   ['/estrategias', 'nav.strategies'],
+  ['/pedidos-pregao', 'nav.pregao'],
   ['/login', 'nav.login'],
   ['/redefinir-senha', 'senha.redefinirTitulo'],
   ['/privacidade', 'consentimento.tipos.privacidade'],
@@ -123,6 +125,9 @@ function Layout({ children }) {
     return () => cancelAnimationFrame(ponteiro.quadro)
   }, [])
   const semNav = false /* Padronizado para manter Header/Footer em todas as telas */
+  // A tela dos pedidos do Pregão é só de administrador: o item do menu também.
+  // O Trader da Equipe Pregão entra como cliente e não o vê.
+  const administrador = Boolean(token) && temCargo(user, AuthRole.ADMINISTRADOR)
 
   // `nav-item` vai como string literal, e não pela forma de função que o
   // NavLink aceita: o IconButton do MUI funde a className com a dele via clsx
@@ -205,6 +210,18 @@ function Layout({ children }) {
         <MdScience />
         <span className="nav-label">{t('nav.strategies')}</span>
       </IconButton>
+      {administrador && (
+        <IconButton
+          component={NavLink}
+          to="/pedidos-pregao"
+          className="nav-item"
+          title={t('nav.pregao')}
+          aria-label={t('nav.pregao')}
+        >
+          <MdFactCheck />
+          <span className="nav-label">{t('nav.pregao')}</span>
+        </IconButton>
+      )}
     </>
   )
 
@@ -322,6 +339,22 @@ function Layout({ children }) {
 
             {!semNav && (
               <div className="header-right">
+                {/* Só ícone, ao lado de Configurações: com rótulo, a barra de
+                    cima não cabe entre 1024px e ~1230px. Abaixo de 768px o item
+                    vem com rótulo na barra de baixo, e o corte é o mesmo dela
+                    (App.css). */}
+                {administrador && (
+                  <IconButton
+                    component={NavLink}
+                    to="/pedidos-pregao"
+                    className="nav-item"
+                    title={t('nav.pregao')}
+                    aria-label={t('nav.pregao')}
+                    sx={{ display: 'none', '@media (min-width: 768px)': { display: 'flex' } }}
+                  >
+                    <MdFactCheck />
+                  </IconButton>
+                )}
                 <IconButton
                   component={NavLink}
                   to="/settings"

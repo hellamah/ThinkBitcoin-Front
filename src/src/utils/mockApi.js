@@ -3,6 +3,9 @@
 
 import { CURVAS_ZOO, RODADA_ZOO } from './mockZooEstrategia'
 import { CURVAS_ZOO_JANELA, RODADA_ZOO_JANELA } from './mockZooJanelaAgente'
+import { AuthRole, decodeAuthenticationToken, temCargo } from './authentication'
+import { getStoredToken } from './preferences'
+import { AGUARDANDO_DECISAO, DECISOES, STATUS, TAMANHO_MOTIVO } from './pedidoAlteracao'
 
 // As preferências do modo demo vivem no localStorage: sem isso o GET devolve
 // sempre o mesmo objeto fixo e qualquer alteração do usuário (tema, idioma…)
@@ -1238,7 +1241,201 @@ const mockZooCurva = (endpoint) => {
   return { mensagem: resultado.length ? 'Curva do zoo (mock)' : 'Dados não encontrados', resultado }
 }
 
+// Quem entra no modo demo. Qualquer credencial entra como Minerador, para que
+// os recursos de assinatura (alertas de preço) apareçam em vez de virarem
+// cadeado. Um e-mail que começa com "admin" entra como Administrador, para
+// exercitar as telas internas (Pedidos do Pregão); o Trader da Equipe Pregão
+// entra com trader@teste.local e continua vendo a plataforma como cliente.
+//
+// A renovação não manda e-mail: mantém quem está na sessão, como a API, que
+// reemite o token para o usuário do token atual.
+const EMAIL_DEMO = 'teste@thinkbitcoin.com'
+const sessaoMock = (endpoint, body) => {
+  if (endpoint.endsWith('/renovar')) {
+    const atual = decodeAuthenticationToken(getStoredToken())
+    return temCargo(atual, AuthRole.ADMINISTRADOR)
+      ? { email: atual.email || EMAIL_DEMO, cargo: AuthRole.ADMINISTRADOR }
+      : { email: EMAIL_DEMO, cargo: AuthRole.MINERADOR }
+  }
+  const email = String(body?.email ?? '').trim().toLowerCase()
+  return email.startsWith('admin')
+    ? { email, cargo: AuthRole.ADMINISTRADOR }
+    : { email: EMAIL_DEMO, cargo: AuthRole.MINERADOR }
+}
+
+// Pedidos de alteração da Equipe Pregão (/api/PedidoAlteracao). Três esperando
+// decisão, com os achados que o Trader de fato repetiu entre os dias (os dois
+// primeiros são os do contrato da fila no Back-DotNet), e um já descartado,
+// para o filtro de descartados ter o que mostrar. Em memória de propósito,
+// como os alertas: o que vale é ver a fila mudar ao decidir, não sobreviver ao
+// reload.
+//
+// As datas andam com o relógio (horas antes do load), para "última vez" não
+// envelhecer na demo, e saem sem marca de fuso, como a API as serializa
+// (treinoUtcNaive).
+const PEDIDO_AGORA = Date.now()
+const pedidoHaHoras = (horas) => treinoUtcNaive(PEDIDO_AGORA - horas * 3600 * 1000)
+// O nome da rodada no Pregão (a pasta do diário): AAAA-MM-DD_HHMM.
+const rodadaHaHoras = (horas) => pedidoHaHoras(horas).slice(0, 16).replace('T', '_').replace(':', '')
+const ORDEM_DOS_TIPOS = ['errado', 'automatico', 'confuso', 'falta']
+
+const pedidoMock = (dados) => ({
+  agente: 'pregao.trader',
+  ambiente: 'http://localhost:5174',
+  trecho: null,
+  janelaDias: 3,
+  minimoDias: 2,
+  rodadasNaJanela: 8,
+  dataHora: pedidoHaHoras(3.5),
+  status: STATUS.ABERTO,
+  decididoPor: null,
+  motivoDecisao: null,
+  referenciaCorrecao: null,
+  ...dados,
+})
+
+let mockPedidos = [
+  pedidoMock({
+    idPedidoAlteracao: '5b0e7c1a-3f2d-4e8a-9b6c-0d1e2f3a4b01',
+    chave: '7733adfd8f8ce6a88ee0b5a1891a48bf9570094b',
+    tipo: 'errado',
+    telas: 'Alertas de preço · Geopolítica',
+    problema: 'Atraso de até 1 hora no e-mail é inviável para day trade',
+    trecho: 'avisamos por e-mail em até 1 hora',
+    dias: 3,
+    rodadas: 5,
+    visitas: 8,
+    primeiraVez: pedidoHaHoras(52),
+    ultimaVez: pedidoHaHoras(4),
+    diarios: [52, 44, 33, 9, 4].map(rodadaHaHoras),
+    dataStatus: pedidoHaHoras(28),
+    dataCriacao: pedidoHaHoras(28),
+  }),
+  pedidoMock({
+    idPedidoAlteracao: '5b0e7c1a-3f2d-4e8a-9b6c-0d1e2f3a4b02',
+    chave: '6edbc4dd08c02755f350bea18772769702d983b4',
+    tipo: 'confuso',
+    telas: 'Alertas de preço',
+    problema: 'Lista com 10 ativos sob rótulo de TOP 5',
+    dias: 2,
+    rodadas: 2,
+    visitas: 7,
+    primeiraVez: pedidoHaHoras(33),
+    ultimaVez: pedidoHaHoras(9),
+    diarios: [33, 9].map(rodadaHaHoras),
+    dataStatus: pedidoHaHoras(9),
+    dataCriacao: pedidoHaHoras(9),
+  }),
+  pedidoMock({
+    idPedidoAlteracao: '5b0e7c1a-3f2d-4e8a-9b6c-0d1e2f3a4b03',
+    chave: '0c9f3be1a7d24e6f8b5a2c1d0e9f8a7b6c5d4e3f',
+    tipo: 'falta',
+    telas: 'Painel',
+    problema: 'Sem gráfico de candles interativo com ferramentas de desenho',
+    dias: 2,
+    rodadas: 3,
+    visitas: 8,
+    primeiraVez: pedidoHaHoras(47),
+    ultimaVez: pedidoHaHoras(4),
+    diarios: [47, 28, 4].map(rodadaHaHoras),
+    dataStatus: pedidoHaHoras(28),
+    dataCriacao: pedidoHaHoras(28),
+  }),
+  pedidoMock({
+    idPedidoAlteracao: '5b0e7c1a-3f2d-4e8a-9b6c-0d1e2f3a4b04',
+    chave: '9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2f1e0d',
+    tipo: 'confuso',
+    telas: 'Simulação',
+    problema: 'Significado do intervalo de confiança IC 95% não está claro',
+    trecho: 'IC 95%',
+    dias: 2,
+    rodadas: 2,
+    visitas: 6,
+    primeiraVez: pedidoHaHoras(50),
+    ultimaVez: pedidoHaHoras(28),
+    diarios: [50, 28].map(rodadaHaHoras),
+    dataHora: pedidoHaHoras(27.5),
+    status: STATUS.DESCARTADO,
+    dataStatus: pedidoHaHoras(20),
+    decididoPor: 'admin@teste.local',
+    motivoDecisao: 'Agora não: a simulação é para quem estuda regras, não para o day trade.',
+    dataCriacao: pedidoHaHoras(27),
+  }),
+]
+
+const erroDoPedido = (mensagem) => {
+  const err = new Error(mensagem)
+  err.status = 400
+  throw err
+}
+
+// A ordem da API: do mais grave ao menos grave e, no mesmo tipo, do visto em
+// mais dias, em mais rodadas e mais recentemente. Tipo novo vai para o fim.
+const posicaoDoTipo = (tipo) => {
+  const posicao = ORDEM_DOS_TIPOS.indexOf(tipo)
+  return posicao >= 0 ? posicao : ORDEM_DOS_TIPOS.length
+}
+
+const mockListarPedidos = (endpoint) => {
+  const q = treinoQuery(endpoint)
+  const status = (q.get('status') || '').trim().toLowerCase()
+  const tipo = (q.get('tipo') || '').trim().toLowerCase()
+  const agente = (q.get('agente') || '').trim().toLowerCase()
+  if (status && !Object.values(STATUS).includes(status)) {
+    erroDoPedido(`Status desconhecido: '${q.get('status')}'. Use ${Object.values(STATUS).join(', ')}.`)
+  }
+  const resultado = mockPedidos
+    .filter((p) => (!status || p.status === status) && (!tipo || p.tipo === tipo) && (!agente || p.agente.toLowerCase() === agente))
+    .sort((a, b) => posicaoDoTipo(a.tipo) - posicaoDoTipo(b.tipo)
+      || b.dias - a.dias
+      || b.rodadas - a.rodadas
+      || Date.parse(b.ultimaVez) - Date.parse(a.ultimaVez))
+  return { mensagem: resultado.length ? 'Operação realizada com sucesso' : 'Dados não encontrados', resultado }
+}
+
+const ROTA_DECISAO = /^\/api\/PedidoAlteracao\/([^/?]+)\/decisao$/
+
+// As mesmas regras e mensagens da FuncaoDecidirPedidoAlteracao.
+const mockDecidirPedido = (endpoint, body) => {
+  const id = endpoint.match(ROTA_DECISAO)?.[1]
+  const decisao = String(body?.decisao ?? '').trim().toLowerCase()
+  if (decisao !== DECISOES.APROVADO && decisao !== DECISOES.DESCARTADO) {
+    erroDoPedido(`Decisão desconhecida: '${body?.decisao ?? ''}'. Use ${DECISOES.APROVADO} ou ${DECISOES.DESCARTADO}.`)
+  }
+  const motivo = typeof body?.motivo === 'string' && body.motivo.trim() ? body.motivo.trim() : null
+  if (decisao === DECISOES.DESCARTADO && !motivo) erroDoPedido('Informe o motivo do descarte.')
+  if (motivo && motivo.length > TAMANHO_MOTIVO) erroDoPedido(`O motivo passa de ${TAMANHO_MOTIVO} caracteres.`)
+
+  const pedido = mockPedidos.find((p) => p.idPedidoAlteracao === id)
+  if (!pedido) erroDoPedido('Pedido não encontrado.')
+  if (!AGUARDANDO_DECISAO.includes(pedido.status)) {
+    erroDoPedido(`O pedido está ${pedido.status}: só se decide um pedido ${AGUARDANDO_DECISAO.join(' ou ')}.`)
+  }
+
+  const agora = treinoUtcNaive(Date.now())
+  mockPedidos = mockPedidos.map((p) => (p === pedido
+    ? {
+      ...p,
+      status: decisao,
+      dataStatus: agora,
+      decididoPor: decodeAuthenticationToken(getStoredToken())?.email || 'admin@teste.local',
+      motivoDecisao: motivo,
+    }
+    : p))
+  return { mensagem: 'Operação realizada com sucesso' }
+}
+
 const mockHandlers = [
+  {
+    method: 'GET',
+    match: (endpoint) => endpoint.split('?')[0] === '/api/PedidoAlteracao',
+    response: (endpoint) => mockListarPedidos(endpoint),
+  },
+  {
+    method: 'POST',
+    match: (endpoint) => ROTA_DECISAO.test(endpoint),
+    response: (endpoint, body) => mockDecidirPedido(endpoint, body),
+  },
   {
     method: 'GET',
     match: (endpoint) => endpoint.split('?')[0] === '/api/TreinamentoEpisodio/resumo',
@@ -1279,17 +1476,17 @@ const mockHandlers = [
     match: (endpoint) =>
       endpoint === '/ThinkBitcoin/gerarTokenBearer' ||
       endpoint === '/ThinkBitcoin/gerarTokenBearer/renovar',
-    response: () => {
+    response: (endpoint, body) => {
+      // Minerador, ou Administrador com e-mail "admin…" (sessaoMock).
+      const sessao = sessaoMock(endpoint, body)
       // Cria um payload mock no padrão JWT para o decode da aplicação
       const payload = {
         'idUsuarioTB': 'b282e124-4dd8-4ccd-a9c6-5b6b0c324a50',
         // Igual à API: o nome sai do banco na reemissão, então o que o usuário
         // salvou em /settings precisa aparecer aqui depois de renovar.
         'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name': readMockPrefs()?.nome || 'Usuário Teste',
-        'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress': 'teste@thinkbitcoin.com',
-        // O modo demo entra como Minerador para que os recursos de assinatura
-        // (alertas de preço) apareçam em vez de virarem cadeado.
-        'http://schemas.microsoft.com/ws/2008/06/identity/claims/role': 'Minerador'
+        'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress': sessao.email,
+        'http://schemas.microsoft.com/ws/2008/06/identity/claims/role': sessao.cargo,
       }
       const base64Payload = base64FromUtf8(JSON.stringify(payload))
       return {

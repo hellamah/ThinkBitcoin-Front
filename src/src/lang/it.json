@@ -74,7 +74,8 @@
     "heatmap": "Geopolitica",
     "training": "Addestramento IA",
     "simulation": "Simulazione",
-    "strategies": "Strategie"
+    "strategies": "Strategie",
+    "pregao": "Richieste del Pregão"
   },
   "dashboard": "Dashboard",
   "sequence": "Sequenza di rendimento",
@@ -1138,5 +1139,60 @@
       "media_50d_vol_alvo_40": "Media a 50 giorni + volatilità target del 40%",
       "agente_dqn": "Agente DQN (grezzo)"
     }
+  },
+  "pregao": {
+    "title": "Richieste del Pregão",
+    "intro": "Il Trader, utente sintetico del Team Pregão, usa la piattaforma tre volte al giorno come un day trader. Ciò che vede ripetersi in giorni diversi diventa una richiesta. Approvare invia la richiesta a chi la corregge; scartare chiede il motivo, che aiuta a regolare il Trader.",
+    "atualizar": "Aggiorna",
+    "filtroRotulo": "Filtra per stato",
+    "filtroComTotal": "{{filtro}} ({{total}})",
+    "filtros": {
+      "esperando": "In attesa di decisione",
+      "aprovado": "Approvate",
+      "em-correcao": "In correzione",
+      "corrigido": "Corrette",
+      "validado": "Convalidate",
+      "descartado": "Scartate",
+      "todos": "Tutte"
+    },
+    "tipos": {
+      "errado": "Errato o non torna",
+      "automatico": "Verifica automatica",
+      "confuso": "Confonde",
+      "falta": "Manca per il day trader"
+    },
+    "status": {
+      "aberto": "Aperta",
+      "aprovado": "Approvata",
+      "descartado": "Scartata",
+      "em-correcao": "In correzione",
+      "corrigido": "Corretta",
+      "validado": "Convalidata",
+      "reaberto": "Riaperta"
+    },
+    "trecho": "Sullo schermo:",
+    "vistoEm": "{{dias}}, {{rodadas}} su {{visitas}} giri passati dalla schermata",
+    "dias": "{{n}} giorni",
+    "diaUm": "1 giorno",
+    "ultimaVez": "vista l'ultima volta il {{data}}",
+    "reabertoDica": "È ricomparsa dopo essere stata segnata come corretta.",
+    "decididoPor": "Deciso da {{quem}}",
+    "motivoDecisao": "Motivo: {{motivo}}",
+    "aprovar": "Approva",
+    "descartar": "Scarta",
+    "motivoRotulo": "Motivo dello scarto",
+    "motivoAjuda": "Indica se è un falso allarme del Trader o un \"non ora\".",
+    "motivoObrigatorio": "Indica il motivo dello scarto.",
+    "motivoLongo": "Il motivo supera i {{max}} caratteri.",
+    "confirmarDescarte": "Conferma scarto",
+    "cancelar": "Annulla",
+    "enviando": "Invio…",
+    "erroDecisao": "Impossibile registrare la decisione. Riprova.",
+    "avisoAprovado": "Richiesta approvata: {{problema}}",
+    "avisoDescartado": "Richiesta scartata: {{problema}}",
+    "loadError": "Impossibile caricare le richieste del Pregão.",
+    "retry": "Riprova",
+    "vazio": "Nessuna richiesta con questo stato.",
+    "vazioEsperando": "Nessuna richiesta in attesa di decisione. Il Trader gira alle 9, alle 13 e alle 18; ciò che vede ripetersi in giorni diversi compare qui."
   }
 }

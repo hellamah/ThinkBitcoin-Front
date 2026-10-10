@@ -79,6 +79,13 @@ VITE_USE_MOCK=true
 - Quando o mock está ativo, endpoints usados pela interface retornam dados fake (incluindo sinal do robô no formato `btc`, `decision` e `confidence`) sem depender do backend.
 - `VITE_USE_MOCK=false`: força chamadas reais para a API (desativa o modo demo local).
 - Se `VITE_USE_MOCK` estiver ausente, o app usa mock automaticamente em desenvolvimento (`npm run dev`) e usa API real em produção (`npm run build`/deploy).
+- No modo demo qualquer credencial entra, como **Minerador** (os recursos de assinatura aparecem liberados). Um e-mail que começa com `admin` (ex.: `admin@teste.local`) entra como **Administrador** e vê as telas internas, como a de Pedidos do Pregão. O Trader da Equipe Pregão entra com `trader@teste.local` e continua vendo a plataforma como cliente.
+
+## Pedidos do Pregão (só administrador)
+- Rota `/pedidos-pregao`, no menu só para o cargo Administrador (ícone ao lado de Configurações no desktop, item na barra de baixo no celular). Quem não tem o cargo e abre o link volta ao painel; a API confere de novo.
+- É a primeira porta humana do ciclo da Equipe Pregão (repositório `ThinkBitcoin-Back-Python-Agents-Pregao`): o que o Trader, usuário sintético, viu se repetir em dias diferentes vira um pedido no `ThinkBitcoin-Back-DotNet` (`GET /api/PedidoAlteracao`), e o administrador aprova ou descarta (`POST /api/PedidoAlteracao/{id}/decisao`). Descartar pede motivo (até 500 caracteres).
+- A lista vem inteira e o filtro por status é feito na tela (padrão: esperando decisão, isto é, aberto e reaberto), com o total de cada status no chip. O filtro vai na URL (`?status=descartado`).
+- No modo demo há três pedidos esperando decisão e um descartado, em memória: decidir muda a fila na hora, e o reload volta ao início.
 
 ## Scripts Disponíveis (Executar dentro de /src)
 | Comando        | Descrição                                     |

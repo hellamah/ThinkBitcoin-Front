@@ -74,7 +74,8 @@
     "heatmap": "Geopolitics",
     "training": "AI Training",
     "simulation": "Simulation",
-    "strategies": "Strategies"
+    "strategies": "Strategies",
+    "pregao": "Pregão requests"
   },
   "dashboard": "Dashboard",
   "sequence": "Return Sequence",
@@ -1138,5 +1139,60 @@
       "media_50d_vol_alvo_40": "50-day average + 40% vol target",
       "agente_dqn": "DQN agent (raw)"
     }
+  },
+  "pregao": {
+    "title": "Pregão requests",
+    "intro": "The Trader, the synthetic user of the Pregão Team, uses the platform three times a day as a day trader. What he sees repeat on different days becomes a request. Approving sends the request to whoever fixes it; discarding asks for the reason, which helps tune the Trader.",
+    "atualizar": "Refresh",
+    "filtroRotulo": "Filter by status",
+    "filtroComTotal": "{{filtro}} ({{total}})",
+    "filtros": {
+      "esperando": "Awaiting decision",
+      "aprovado": "Approved",
+      "em-correcao": "Being fixed",
+      "corrigido": "Fixed",
+      "validado": "Validated",
+      "descartado": "Discarded",
+      "todos": "All"
+    },
+    "tipos": {
+      "errado": "Wrong or inconsistent",
+      "automatico": "Automatic check",
+      "confuso": "Confusing",
+      "falta": "Missing for a day trader"
+    },
+    "status": {
+      "aberto": "Open",
+      "aprovado": "Approved",
+      "descartado": "Discarded",
+      "em-correcao": "Being fixed",
+      "corrigido": "Fixed",
+      "validado": "Validated",
+      "reaberto": "Reopened"
+    },
+    "trecho": "On screen:",
+    "vistoEm": "{{dias}}, {{rodadas}} of {{visitas}} rounds that went through the screen",
+    "dias": "{{n}} days",
+    "diaUm": "1 day",
+    "ultimaVez": "last seen {{data}}",
+    "reabertoDica": "Showed up again after being marked as fixed.",
+    "decididoPor": "Decided by {{quem}}",
+    "motivoDecisao": "Reason: {{motivo}}",
+    "aprovar": "Approve",
+    "descartar": "Discard",
+    "motivoRotulo": "Reason for discarding",
+    "motivoAjuda": "Say whether it is a false alarm from the Trader or a \"not now\".",
+    "motivoObrigatorio": "Enter the reason for discarding.",
+    "motivoLongo": "The reason is longer than {{max}} characters.",
+    "confirmarDescarte": "Confirm discard",
+    "cancelar": "Cancel",
+    "enviando": "Sending…",
+    "erroDecisao": "Could not record the decision. Try again.",
+    "avisoAprovado": "Request approved: {{problema}}",
+    "avisoDescartado": "Request discarded: {{problema}}",
+    "loadError": "Could not load the Pregão requests.",
+    "retry": "Try again",
+    "vazio": "No requests with this status.",
+    "vazioEsperando": "No requests awaiting a decision. The Trader runs at 9 am, 1 pm and 6 pm; what he sees repeat on different days shows up here."
   }
 }

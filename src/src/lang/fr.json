@@ -74,7 +74,8 @@
     "heatmap": "Géopolitique",
     "training": "Entraînement IA",
     "simulation": "Simulation",
-    "strategies": "Stratégies"
+    "strategies": "Stratégies",
+    "pregao": "Demandes du Pregão"
   },
   "dashboard": "Tableau de bord",
   "sequence": "Séquence de rendement",
@@ -1138,5 +1139,60 @@
       "media_50d_vol_alvo_40": "Moyenne 50 jours + volatilité cible de 40 %",
       "agente_dqn": "Agent DQN (brut)"
     }
+  },
+  "pregao": {
+    "title": "Demandes du Pregão",
+    "intro": "Le Trader, utilisateur synthétique de l’Équipe Pregão, utilise la plateforme trois fois par jour comme un day trader. Ce qu’il voit se répéter sur des jours différents devient une demande. Approuver envoie la demande à qui la corrige ; écarter demande le motif, qui aide à ajuster le Trader.",
+    "atualizar": "Actualiser",
+    "filtroRotulo": "Filtrer par statut",
+    "filtroComTotal": "{{filtro}} ({{total}})",
+    "filtros": {
+      "esperando": "En attente de décision",
+      "aprovado": "Approuvées",
+      "em-correcao": "En correction",
+      "corrigido": "Corrigées",
+      "validado": "Validées",
+      "descartado": "Écartées",
+      "todos": "Toutes"
+    },
+    "tipos": {
+      "errado": "Faux ou incohérent",
+      "automatico": "Vérification automatique",
+      "confuso": "Prête à confusion",
+      "falta": "Manque pour le day trader"
+    },
+    "status": {
+      "aberto": "Ouverte",
+      "aprovado": "Approuvée",
+      "descartado": "Écartée",
+      "em-correcao": "En correction",
+      "corrigido": "Corrigée",
+      "validado": "Validée",
+      "reaberto": "Rouverte"
+    },
+    "trecho": "À l’écran :",
+    "vistoEm": "{{dias}}, {{rodadas}} sur {{visitas}} passages par l’écran",
+    "dias": "{{n}} jours",
+    "diaUm": "1 jour",
+    "ultimaVez": "vue pour la dernière fois le {{data}}",
+    "reabertoDica": "Réapparue après avoir été marquée comme corrigée.",
+    "decididoPor": "Décidé par {{quem}}",
+    "motivoDecisao": "Motif : {{motivo}}",
+    "aprovar": "Approuver",
+    "descartar": "Écarter",
+    "motivoRotulo": "Motif de l’écart",
+    "motivoAjuda": "Précisez s’il s’agit d’une fausse alerte du Trader ou d’un « pas maintenant ».",
+    "motivoObrigatorio": "Indiquez le motif de l’écart.",
+    "motivoLongo": "Le motif dépasse {{max}} caractères.",
+    "confirmarDescarte": "Confirmer l’écart",
+    "cancelar": "Annuler",
+    "enviando": "Envoi…",
+    "erroDecisao": "Impossible d’enregistrer la décision. Réessayez.",
+    "avisoAprovado": "Demande approuvée : {{problema}}",
+    "avisoDescartado": "Demande écartée : {{problema}}",
+    "loadError": "Impossible de charger les demandes du Pregão.",
+    "retry": "Réessayer",
+    "vazio": "Aucune demande avec ce statut.",
+    "vazioEsperando": "Aucune demande en attente de décision. Le Trader passe à 9 h, 13 h et 18 h ; ce qu’il voit se répéter sur des jours différents apparaît ici."
   }
 }

@@ -9,6 +9,7 @@ import Layout from './components/Layout.jsx'
 import { DashboardProvider } from './context/DashboardContext.jsx'
 import { ROTA_SIMULACAO, temParametrosDaSimulacao } from './utils/rotaSimulacao.js'
 import { iniciarCarregamento } from './utils/carregamentoGlobal.js'
+import { AuthRole } from './utils/authentication.js'
 
 // Páginas pesadas (chart.js, Google Charts) carregadas sob demanda
 // para não inflar o bundle inicial de quem entra em / ou /login.
@@ -23,6 +24,7 @@ const RedefinirSenha = lazy(() => import('./pages/RedefinirSenha.jsx'))
 const DocumentoLegal = lazy(() => import('./pages/DocumentoLegal.jsx'))
 const Simulacao = lazy(() => import('./pages/Simulacao.jsx'))
 const ZooEstrategias = lazy(() => import('./pages/ZooEstrategias.jsx'))
+const PedidosPregao = lazy(() => import('./pages/PedidosPregao.jsx'))
 
 // Link de antes da tela própria da simulação — `/dashboard?sim.sinal=…` —
 // continua abrindo a simulação, com a configuração inteira. Sem isto, quem
@@ -118,6 +120,16 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <ZooEstrategias />
+                  </ProtectedRoute>
+                }
+              />
+              {/* Só administrador: a fila de pedidos do usuário sintético da
+                  Equipe Pregão, que um humano aprova ou descarta. */}
+              <Route
+                path="/pedidos-pregao"
+                element={
+                  <ProtectedRoute cargos={[AuthRole.ADMINISTRADOR]}>
+                    <PedidosPregao />
                   </ProtectedRoute>
                 }
               />
