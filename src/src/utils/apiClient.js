@@ -14,7 +14,7 @@ export const HttpMethod = Object.freeze({
 export const ApiEndpoint = Object.freeze({
   AUTHENTICATION: Object.freeze({
     LOGIN: '/ThinkBitcoin/gerarTokenBearer',
-    // Reemite o token com os claims atuais (o cargo muda ao trocar de plano).
+    // Reemite o token com os claims atuais (o cargo muda ao trocar de plano)..
     RENOVAR: '/ThinkBitcoin/gerarTokenBearer/renovar',
   }),
   USER: Object.freeze({
