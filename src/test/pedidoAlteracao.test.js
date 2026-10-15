@@ -259,7 +259,7 @@ describe('pregão › modo demo', () => {
 
   const publicos = () => getMockResponse({ endpoint: PedidoAlteracaoEndpoint.PUBLICO, method: 'GET' }).resultado
   const CAMPOS_PUBLICOS = [
-    'dataStatus', 'dias', 'eventos', 'idPedidoAlteracao', 'primeiraVez', 'problema',
+    'ajuste', 'dataStatus', 'detalhe', 'dias', 'eventos', 'idPedidoAlteracao', 'primeiraVez', 'problema',
     'rodadas', 'status', 'telas', 'tipo', 'trecho', 'ultimaVez', 'visitas',
   ]
 

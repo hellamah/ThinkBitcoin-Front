@@ -1180,6 +1180,8 @@
       "reaberto": "Reopened"
     },
     "trecho": "On screen:",
+    "detalhe": "What happens:",
+    "ajuste": "What to change:",
     "vistoEm": "{{dias}}, {{rodadas}} of {{visitas}} rounds that went through the screen",
     "dias": "{{n}} days",
     "diaUm": "1 day",

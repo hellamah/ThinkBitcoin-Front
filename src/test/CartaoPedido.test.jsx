@@ -15,6 +15,8 @@ const PEDIDO = {
   telas: 'Alertas de preço · Geopolítica',
   problema: 'Atraso de até 1 hora no e-mail é inviável para day trade',
   trecho: 'avisamos por e-mail em até 1 hora',
+  detalhe: 'O e-mail chega até 1 hora depois de o preço bater no alvo.',
+  ajuste: 'Avisar na hora, por notificação no navegador.',
   dias: 3,
   rodadas: 5,
   visitas: 8,
@@ -37,6 +39,9 @@ describe('Cartão do pedido do Pregão', () => {
     expect(screen.getByRole('heading', { name: PEDIDO.problema })).toBeTruthy()
     expect(screen.getByText(PEDIDO.telas)).toBeTruthy()
     expect(screen.getByText(PEDIDO.trecho)).toBeTruthy()
+    // O que acontece e o que ajustar, cada um com o seu rótulo.
+    expect(screen.getByText(PEDIDO.detalhe).textContent).toBe(`pregao.detalhe ${PEDIDO.detalhe}`)
+    expect(screen.getByText(PEDIDO.ajuste).textContent).toBe(`pregao.ajuste ${PEDIDO.ajuste}`)
     // O artigo leva o nome do problema, para o leitor de tela anunciar qual é.
     expect(screen.getByRole('article', { name: PEDIDO.problema })).toBeTruthy()
     expect(botao('pregao.aprovar')).toBeTruthy()
@@ -93,6 +98,13 @@ describe('Cartão do pedido do Pregão', () => {
     renderizar({ ...PEDIDO, status: 'descartado', decididoPor: 'admin@teste.local', motivoDecisao: 'Agora não' })
     expect(screen.queryByRole('button', { name: 'pregao.aprovar' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'pregao.descartar' })).toBeNull()
+  })
+
+  it('pedido que o Pregão ainda não detalhou fica sem as duas linhas', () => {
+    renderizar({ ...PEDIDO, detalhe: null, ajuste: null })
+    expect(screen.queryByText('pregao.detalhe')).toBeNull()
+    expect(screen.queryByText('pregao.ajuste')).toBeNull()
+    expect(screen.getByText(PEDIDO.trecho)).toBeTruthy()
   })
 
   it('tipo que o dicionário não conhece aparece cru', () => {

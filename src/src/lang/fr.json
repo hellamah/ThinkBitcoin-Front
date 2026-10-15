@@ -1180,6 +1180,8 @@
       "reaberto": "Rouverte"
     },
     "trecho": "À l’écran :",
+    "detalhe": "Ce qui se passe :",
+    "ajuste": "Ce qu’il faut changer :",
     "vistoEm": "{{dias}}, {{rodadas}} sur {{visitas}} passages par l’écran",
     "dias": "{{n}} jours",
     "diaUm": "1 jour",

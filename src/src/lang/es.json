@@ -1180,6 +1180,8 @@
       "reaberto": "Reabierto"
     },
     "trecho": "En pantalla:",
+    "detalhe": "Qué pasa:",
+    "ajuste": "Qué ajustar:",
     "vistoEm": "{{dias}}, {{rodadas}} de {{visitas}} rondas que pasaron por la pantalla",
     "dias": "{{n}} días",
     "diaUm": "1 día",
