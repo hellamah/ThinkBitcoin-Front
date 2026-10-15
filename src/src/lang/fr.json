@@ -666,7 +666,7 @@
     "versionCurrent": "actuelle",
     "versionCurrentHint": "la version des épisodes les plus récents",
     "versionLive": "en production",
-    "versionLiveHint": "la version de la dernière session promue, qui opère en production",
+    "versionLiveHint": "la version qui opère en production : celle de la dernière session promue du modèle qui décide",
     "versionDetail": "{{periodo}} · {{episodios}} épisodes sur {{moedas}} cryptos",
     "olderVersions": "+{{n}} plus anciennes",
     "olderVersionsLabel": "Versions plus anciennes",

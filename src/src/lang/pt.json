@@ -666,7 +666,7 @@
     "versionCurrent": "atual",
     "versionCurrentHint": "a versão dos episódios mais recentes",
     "versionLive": "ao vivo",
-    "versionLiveHint": "a versão da última sessão promovida, que opera ao vivo",
+    "versionLiveHint": "a versão que opera ao vivo: a da última sessão promovida do modelo que decide",
     "versionDetail": "{{periodo}} · {{episodios}} episódios em {{moedas}} moedas",
     "olderVersions": "+{{n}} anteriores",
     "olderVersionsLabel": "Versões anteriores",

@@ -666,7 +666,7 @@
     "versionCurrent": "current",
     "versionCurrentHint": "the version of the most recent episodes",
     "versionLive": "live",
-    "versionLiveHint": "the version of the last promoted session, which trades live",
+    "versionLiveHint": "the version that trades live: the last promoted session of the model that makes the decisions",
     "versionDetail": "{{periodo}} · {{episodios}} episodes across {{moedas}} coins",
     "olderVersions": "+{{n}} older",
     "olderVersionsLabel": "Older versions",
