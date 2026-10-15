@@ -515,7 +515,10 @@
   gap: 1rem;
 }
 
-@media (min-width: 1024px) {
+/* O menu de cima entra onde a barra de baixo sai. Antes ele só aparecia em
+   1024px, e entre 768px e 1023px não havia caminho para Painel, Simulação e
+   o resto: o cabeçalho tinha só o logo, Configurações e Sair. */
+@media (min-width: 768px) {
   .desktop-nav {
     display: flex;
   }
@@ -585,6 +588,71 @@
   }
 }
 
+/* Header do 768px em diante, em faixas.
+   Com tudo à mostra ele pede ~1440px no pior caso medido: francês (rótulos
+   ~70px mais longos que em pt), administrador (com o menu do Pregão) e nome no
+   teto da pílula. Sem as faixas, transbordava: entre 1024px e ~1230px a
+   engrenagem e o Sair saíam do cartão. Cada faixa abre mão do que menos faz
+   falta, nesta ordem: a folga entre os itens; o rótulo do Pregão e um pouco
+   do logo; e, por último, os rótulos do menu, que seguem no title e no
+   aria-label. Os cortes têm alguns pixels de sobra sobre o medido. */
+@media (min-width: 768px) {
+  /* O teto do nome: sem ele, um nome comprido desfaz qualquer corte abaixo. */
+  .user-name {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1439.98px) {
+  .header-toolbar {
+    padding: 0 8px !important;
+  }
+
+  .header-left {
+    gap: 1rem;
+  }
+
+  .header-right {
+    gap: 0.75rem;
+  }
+
+  .desktop-nav {
+    gap: 0.375rem;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1359.98px) {
+  .header-right .menu-pregao .nav-label {
+    display: none;
+  }
+
+  .app-logo {
+    height: 40px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1269.98px) {
+  .desktop-nav .nav-label {
+    display: none;
+  }
+}
+
+/* Tablet: mesmo só com ícones, em 768px sobravam 6px com o nome de exemplo, e
+   um nome no teto de 120px passava da borda. O logo fica do tamanho do celular
+   e o nome encolhe. */
+@media (min-width: 768px) and (max-width: 1023.98px) {
+  .app-logo {
+    height: 36px;
+  }
+
+  .user-name {
+    max-width: 100px;
+  }
+}
+
 .top-nav {
   display: none;
   gap: 2rem;
@@ -651,6 +719,13 @@
 
 .nav-item:active {
   transform: scale(0.9);
+}
+
+/* A seta diz que o Pregão abre um menu, e não uma página. Abaixo de 1360px o
+   rótulo sai e ficam ícone, número e seta (as faixas do header, acima). */
+.menu-pregao-seta {
+  margin-left: 2px;
+  opacity: 0.7;
 }
 
 @media (max-width: 480px) {

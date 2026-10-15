@@ -75,7 +75,15 @@
     "training": "Treinamento IA",
     "simulation": "Simulação",
     "strategies": "Estratégias",
-    "pregao": "Pedidos do Pregão"
+    "pregao": "Pedidos do Pregão",
+    "pregaoMenu": "Pregão",
+    "pregaoDecidir": "Decidir pedidos",
+    "pregaoDecidirDica": "Aprovar ou descartar o que a Equipe Pregão pediu",
+    "pregaoEsperando": "{{n}} esperando decisão",
+    "pregaoUmEsperando": "1 esperando decisão",
+    "pregaoNenhumEsperando": "Nenhum esperando decisão",
+    "pregaoAberta": "Página aberta",
+    "pregaoAbertaDica": "O que o público vê: os pedidos aprovados"
   },
   "dashboard": "Dashboard",
   "sequence": "Sequência de Retorno",

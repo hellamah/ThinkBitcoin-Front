@@ -75,7 +75,15 @@
     "training": "AI Training",
     "simulation": "Simulation",
     "strategies": "Strategies",
-    "pregao": "Pregão requests"
+    "pregao": "Pregão requests",
+    "pregaoMenu": "Pregão",
+    "pregaoDecidir": "Decide requests",
+    "pregaoDecidirDica": "Approve or discard what the Pregão Team asked for",
+    "pregaoEsperando": "{{n}} awaiting decision",
+    "pregaoUmEsperando": "1 awaiting decision",
+    "pregaoNenhumEsperando": "None awaiting decision",
+    "pregaoAberta": "Public page",
+    "pregaoAbertaDica": "What the public sees: the approved requests"
   },
   "dashboard": "Dashboard",
   "sequence": "Return Sequence",

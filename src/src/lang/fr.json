@@ -75,7 +75,15 @@
     "training": "Entraînement IA",
     "simulation": "Simulation",
     "strategies": "Stratégies",
-    "pregao": "Demandes du Pregão"
+    "pregao": "Demandes du Pregão",
+    "pregaoMenu": "Pregão",
+    "pregaoDecidir": "Décider des demandes",
+    "pregaoDecidirDica": "Approuver ou écarter ce que l'Équipe Pregão a demandé",
+    "pregaoEsperando": "{{n}} en attente de décision",
+    "pregaoUmEsperando": "1 en attente de décision",
+    "pregaoNenhumEsperando": "Aucune en attente de décision",
+    "pregaoAberta": "Page publique",
+    "pregaoAbertaDica": "Ce que voit le public : les demandes approuvées"
   },
   "dashboard": "Tableau de bord",
   "sequence": "Séquence de rendement",

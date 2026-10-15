@@ -83,7 +83,8 @@ VITE_USE_MOCK=true
 
 ## Pedidos do Pregão
 ### Tela do administrador
-- Rota `/pedidos-pregao`, no menu só para o cargo Administrador (ícone ao lado de Configurações no desktop, item na barra de baixo no celular). Quem não tem o cargo e abre o link volta ao painel; a API confere de novo.
+- Rota `/pedidos-pregao`, no menu só para o cargo Administrador. Quem não tem o cargo e abre o link volta ao painel; a API confere de novo.
+- O caminho é o menu **Pregão** do cabeçalho (ao lado de Configurações no desktop, na barra de baixo no celular): abre as duas telas, "Decidir pedidos" (`/pedidos-pregao`) e "Página aberta" (`/pregao`). O número no ícone é quantos pedidos esperam decisão; o cabeçalho busca a lista uma vez ao entrar e, depois, a fila o avisa a cada lista que carrega ou muda (decidir, Atualizar), sem outra busca.
 - É a primeira porta humana do ciclo da Equipe Pregão (repositório `ThinkBitcoin-Back-Python-Agents-Pregao`): o que o Trader, usuário sintético, viu se repetir em dias diferentes vira um pedido no `ThinkBitcoin-Back-DotNet` (`GET /api/PedidoAlteracao`), e o administrador aprova ou descarta (`POST /api/PedidoAlteracao/{id}/decisao`). Descartar pede motivo (até 500 caracteres).
 - A lista vem inteira e o filtro por status é feito na tela (padrão: esperando decisão, isto é, aberto e reaberto), com o total de cada status no chip. O filtro vai na URL (`?status=descartado`).
 

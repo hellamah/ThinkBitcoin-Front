@@ -1,10 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { apiRequest, HttpMethod, PedidoAlteracaoEndpoint } from '../utils/apiClient'
-import { STATUS_PUBLICOS } from '../utils/pedidoAlteracao'
+import { AGUARDANDO_DECISAO, STATUS_PUBLICOS } from '../utils/pedidoAlteracao'
 
 // Os pedidos de alteração da Equipe Pregão. A lista vem inteira (são dezenas
 // de pedidos) e a tela filtra por status. O Pregão consolida três vezes por
 // dia: sem polling — quem quer o que chegou depois recarrega.
+
+// A fila avisa o cabeçalho de quantos esperam decisão a cada lista que ela
+// carrega ou muda (decidir, Atualizar): o número do menu do Pregão acompanha a
+// tela sem uma segunda busca.
+const EVENTO_ESPERANDO_DECISAO = 'pregao-esperando-decisao'
+
+const contarEsperando = (pedidos) => pedidos.filter((p) => AGUARDANDO_DECISAO.includes(p.status)).length
 
 // A busca comum às duas telas. `anonimo`: a chamada da página aberta, sem token
 // e sem os efeitos de 401/403 na sessão (ver apiRequest).
@@ -63,7 +70,41 @@ export default function usePedidosAlteracao() {
     recarregar()
   }, [setPedidos, recarregar])
 
+  useEffect(() => {
+    if (!Array.isArray(pedidos)) return
+    window.dispatchEvent(new CustomEvent(EVENTO_ESPERANDO_DECISAO, { detail: contarEsperando(pedidos) }))
+  }, [pedidos])
+
   return { pedidos, carregando, erro, recarregar, decidir }
+}
+
+/**
+ * Quantos pedidos esperam a decisão de um administrador, para o menu do Pregão
+ * no cabeçalho. Busca uma vez ao entrar; depois, segue o que a fila avisa.
+ * Nulo enquanto não sabe (ou sem `ativo`): o menu fica sem número.
+ */
+export function usePedidosEsperando(ativo) {
+  const [esperando, setEsperando] = useState(null)
+
+  useEffect(() => {
+    if (!ativo) return undefined
+    let cancelado = false
+    // Em segundo plano: ninguém pediu nada, a barra do topo não acende.
+    apiRequest(PedidoAlteracaoEndpoint.LIST(), { emSegundoPlano: true })
+      .then((resp) => {
+        if (!cancelado) setEsperando(contarEsperando(Array.isArray(resp?.resultado) ? resp.resultado : []))
+      })
+      // Sem o número o menu funciona igual; o erro aparece na própria fila.
+      .catch(() => {})
+    const aoMudar = (e) => setEsperando(e.detail)
+    window.addEventListener(EVENTO_ESPERANDO_DECISAO, aoMudar)
+    return () => {
+      cancelado = true
+      window.removeEventListener(EVENTO_ESPERANDO_DECISAO, aoMudar)
+    }
+  }, [ativo])
+
+  return ativo ? esperando : null
 }
 
 /**

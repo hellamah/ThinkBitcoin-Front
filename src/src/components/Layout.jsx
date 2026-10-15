@@ -1,5 +1,5 @@
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { MdHome, MdLogin, MdDashboard, MdLogout, MdSettings, MdPublic, MdPsychology, MdWorkspacePremium, MdClose, MdPlayCircleOutline, MdScience, MdFactCheck } from 'react-icons/md'
+import { MdHome, MdLogin, MdDashboard, MdLogout, MdSettings, MdPublic, MdPsychology, MdWorkspacePremium, MdClose, MdPlayCircleOutline, MdScience } from 'react-icons/md'
 import AppBar from '@mui/material/AppBar'
 import Toolbar from '@mui/material/Toolbar'
 import IconButton from '@mui/material/IconButton'
@@ -14,7 +14,9 @@ import useConsentimento from '../hooks/useConsentimento'
 import ConsentimentoLGPD from './ConsentimentoLGPD'
 import CookieBanner from './CookieBanner'
 import BarraCarregamento from './BarraCarregamento'
+import MenuPregao from './pregao/MenuPregao'
 import useTranslation from '../hooks/useTranslation'
+import { usePedidosEsperando } from '../hooks/usePedidosAlteracao'
 import { useRef, useState, useEffect } from 'react'
 
 // Nome acessível de cada rota, reaproveitando os rótulos que a própria
@@ -129,6 +131,8 @@ function Layout({ children }) {
   // A tela dos pedidos do Pregão é só de administrador: o item do menu também.
   // O Trader da Equipe Pregão entra como cliente e não o vê.
   const administrador = Boolean(token) && temCargo(user, AuthRole.ADMINISTRADOR)
+  const pedidosEsperando = usePedidosEsperando(administrador)
+  const nomeNaPilula = token ? (user?.nome || t('activeUser')) : t('greetingGuest')
 
   // `nav-item` vai como string literal, e não pela forma de função que o
   // NavLink aceita: o IconButton do MUI funde a className com a dele via clsx
@@ -211,18 +215,7 @@ function Layout({ children }) {
         <MdScience />
         <span className="nav-label">{t('nav.strategies')}</span>
       </IconButton>
-      {administrador && (
-        <IconButton
-          component={NavLink}
-          to="/pedidos-pregao"
-          className="nav-item"
-          title={t('nav.pregao')}
-          aria-label={t('nav.pregao')}
-        >
-          <MdFactCheck />
-          <span className="nav-label">{t('nav.pregao')}</span>
-        </IconButton>
-      )}
+      {administrador && <MenuPregao esperando={pedidosEsperando} naBarraDeBaixo />}
     </>
   )
 
@@ -294,6 +287,7 @@ function Layout({ children }) {
                     to="/dashboard"
                     className="nav-item"
                     title={t('nav.dashboard')}
+                    aria-label={t('nav.dashboard')}
                   >
                     <MdDashboard />
                     <span className="nav-label">{t('nav.dashboard')}</span>
@@ -303,6 +297,7 @@ function Layout({ children }) {
                     to="/simulacao"
                     className="nav-item"
                     title={t('nav.simulation')}
+                    aria-label={t('nav.simulation')}
                   >
                     <MdPlayCircleOutline />
                     <span className="nav-label">{t('nav.simulation')}</span>
@@ -312,6 +307,7 @@ function Layout({ children }) {
                     to="/heatmap"
                     className="nav-item"
                     title={t('nav.heatmap')}
+                    aria-label={t('nav.heatmap')}
                   >
                     <MdPublic />
                     <span className="nav-label">{t('nav.heatmap')}</span>
@@ -321,6 +317,7 @@ function Layout({ children }) {
                     to="/treinamento-episodios"
                     className="nav-item"
                     title={t('nav.training')}
+                    aria-label={t('nav.training')}
                   >
                     <MdPsychology />
                     <span className="nav-label">{t('nav.training')}</span>
@@ -330,6 +327,7 @@ function Layout({ children }) {
                     to="/estrategias"
                     className="nav-item"
                     title={t('nav.strategies')}
+                    aria-label={t('nav.strategies')}
                   >
                     <MdScience />
                     <span className="nav-label">{t('nav.strategies')}</span>
@@ -340,21 +338,12 @@ function Layout({ children }) {
 
             {!semNav && (
               <div className="header-right">
-                {/* Só ícone, ao lado de Configurações: com rótulo, a barra de
-                    cima não cabe entre 1024px e ~1230px. Abaixo de 768px o item
-                    vem com rótulo na barra de baixo, e o corte é o mesmo dela
-                    (App.css). */}
+                {/* Abaixo de 768px o menu do Pregão mora na barra de baixo, e o
+                    corte é o mesmo dela (App.css). */}
                 {administrador && (
-                  <IconButton
-                    component={NavLink}
-                    to="/pedidos-pregao"
-                    className="nav-item"
-                    title={t('nav.pregao')}
-                    aria-label={t('nav.pregao')}
-                    sx={{ display: 'none', '@media (min-width: 768px)': { display: 'flex' } }}
-                  >
-                    <MdFactCheck />
-                  </IconButton>
+                  <Box sx={{ display: 'none', '@media (min-width: 768px)': { display: 'flex' } }}>
+                    <MenuPregao esperando={pedidosEsperando} />
+                  </Box>
                 )}
                 <IconButton
                   component={NavLink}
@@ -366,8 +355,10 @@ function Layout({ children }) {
                 </IconButton>
                 
                 <div className="user-info-pill">
-                  <span className="user-name">
-                    {token ? (user?.nome || t('activeUser')) : t('greetingGuest')}
+                  {/* O title guarda o nome inteiro: a pílula tem teto e o
+                      nome longo vira reticências (App.css). */}
+                  <span className="user-name" title={nomeNaPilula}>
+                    {nomeNaPilula}
                   </span>
                   {token ? (
                     <IconButton onClick={logout} className="logout-btn" title={t('nav.logout')}>

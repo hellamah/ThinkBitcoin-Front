@@ -75,7 +75,15 @@
     "training": "Addestramento IA",
     "simulation": "Simulazione",
     "strategies": "Strategie",
-    "pregao": "Richieste del Pregão"
+    "pregao": "Richieste del Pregão",
+    "pregaoMenu": "Pregão",
+    "pregaoDecidir": "Decidere le richieste",
+    "pregaoDecidirDica": "Approvare o scartare ciò che il Team Pregão ha chiesto",
+    "pregaoEsperando": "{{n}} in attesa di decisione",
+    "pregaoUmEsperando": "1 in attesa di decisione",
+    "pregaoNenhumEsperando": "Nessuna in attesa di decisione",
+    "pregaoAberta": "Pagina pubblica",
+    "pregaoAbertaDica": "Ciò che vede il pubblico: le richieste approvate"
   },
   "dashboard": "Dashboard",
   "sequence": "Sequenza di rendimento",
