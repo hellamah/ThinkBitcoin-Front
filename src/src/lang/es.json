@@ -295,6 +295,7 @@
   "simulationSharpe": "Sharpe",
   "simulationVolatility": "Volatilidad",
   "simulationWinRate": "Tasa de acierto",
+  "simulationWinRateRange": "rango",
   "simulationProfitFactor": "Profit factor",
   "simulationTrades": "Operaciones",
   "simulationOpenAtEnd": "{{count}} operación(es) aún abierta(s) cuando terminó la ventana. Mueven la curva de capital, pero no son acierto ni error — las métricas cuentan las {{concluidas}} que tuvieron desenlace.",

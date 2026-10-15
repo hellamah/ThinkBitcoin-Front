@@ -295,6 +295,7 @@
   "simulationSharpe": "Sharpe",
   "simulationVolatility": "Volatilité",
   "simulationWinRate": "Taux de réussite",
+  "simulationWinRateRange": "plage",
   "simulationProfitFactor": "Profit factor",
   "simulationTrades": "Opérations",
   "simulationOpenAtEnd": "{{count}} opération(s) encore ouverte(s) à la fin de la fenêtre. Elles déplacent la courbe de capital, mais ne sont ni un gain ni une perte — les métriques comptent les {{concluidas}} qui ont abouti.",
