@@ -1450,8 +1450,8 @@ let mockPedidos = [
     eventos: [
       eventoMock('aberto', 120, { detalhe: detalheAberto(2, 3, 7) }),
       eventoMock('aprovado', 100, { anterior: 'aberto', autor: 'admin@teste.local' }),
-      eventoMock('em-correcao', 98, { anterior: 'aprovado', autor: 'agents-front' }),
-      eventoMock('corrigido', 80, { anterior: 'em-correcao', autor: 'agents-front' }),
+      eventoMock('em-correcao', 98, { anterior: 'aprovado', autor: 'agents-oficina' }),
+      eventoMock('corrigido', 80, { anterior: 'em-correcao', autor: 'agents-oficina' }),
     ],
   }),
   pedidoMock({
@@ -1475,8 +1475,8 @@ let mockPedidos = [
     eventos: [
       eventoMock('aberto', 204, { detalhe: detalheAberto(2, 3, 8) }),
       eventoMock('aprovado', 190, { anterior: 'aberto', autor: 'admin@teste.local' }),
-      eventoMock('em-correcao', 189, { anterior: 'aprovado', autor: 'agents-front' }),
-      eventoMock('corrigido', 180, { anterior: 'em-correcao', autor: 'agents-front' }),
+      eventoMock('em-correcao', 189, { anterior: 'aprovado', autor: 'agents-oficina' }),
+      eventoMock('corrigido', 180, { anterior: 'em-correcao', autor: 'agents-oficina' }),
       eventoMock('validado', 100, { anterior: 'corrigido', detalhe: DETALHE_VALIDADO }),
     ],
   }),
