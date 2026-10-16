@@ -124,7 +124,7 @@
   "initialInvestment": "Inversión inicial (USD)",
   "maxRiskPerTrade": "Riesgo máximo por operación (%)",
   "preferredCoin": "Moneda preferida",
-  "safetyBalance": "Saldo de seguridad (USD)",
+  "safetyBalance": "Saldo de seguridad (USDT)",
   "reviewFrequency": "Frecuencia de revisión",
   "daily": "Diaria",
   "weekly": "Semanal",
