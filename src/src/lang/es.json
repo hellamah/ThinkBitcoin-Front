@@ -1189,6 +1189,7 @@
     "reabertoDica": "Volvió a aparecer después de darse por corregido.",
     "decididoPor": "Decidido por {{quem}}",
     "motivoDecisao": "Motivo: {{motivo}}",
+    "correcao": "Corrección:",
     "aprovar": "Aprobar",
     "descartar": "Descartar",
     "motivoRotulo": "Motivo del descarte",

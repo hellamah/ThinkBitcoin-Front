@@ -137,3 +137,18 @@ export const autorDaAcao = (acao) => AUTOR_DA_ACAO[acao] ?? null
 export const eventosDoPedido = (pedido) =>
   [...(Array.isArray(pedido?.eventos) ? pedido.eventos : [])]
     .sort((a, b) => (Date.parse(a.dataHora) || 0) - (Date.parse(b.dataHora) || 0))
+
+/**
+ * O que o cartão mostra da referência da correção: o link do PR do Azure vira
+ * "PR 41"; outro endereço http(s) vira link com o próprio endereço; o resto
+ * (como o caminho do histórico, quando o merge não veio de um PR do agente)
+ * fica como texto. Só http(s) vira link: a referência vem da API, e um
+ * `javascript:` nunca chega ao href. Nulo sem referência.
+ */
+export const correcaoDoPedido = (referencia) => {
+  const texto = typeof referencia === 'string' ? referencia.trim() : ''
+  if (!texto) return null
+  if (!/^https?:\/\//i.test(texto)) return { href: null, texto }
+  const pr = texto.match(/\/pullrequest\/(\d+)\/?$/i)
+  return { href: texto, texto: pr ? `PR ${pr[1]}` : texto }
+}

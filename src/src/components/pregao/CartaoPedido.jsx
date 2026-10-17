@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
+import Link from '@mui/material/Link'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import { MdCheck, MdClose } from 'react-icons/md'
@@ -12,6 +13,7 @@ import {
   STATUS,
   TAMANHO_MOTIVO,
   conferirMotivo,
+  correcaoDoPedido,
   podeDecidir,
 } from '../../utils/pedidoAlteracao'
 
@@ -62,6 +64,7 @@ export default function CartaoPedido({ pedido, onDecidir }) {
     pedido.decididoPor ? t('pregao.decididoPor', { quem: pedido.decididoPor }) : null,
     pedido.motivoDecisao ? t('pregao.motivoDecisao', { motivo: pedido.motivoDecisao }) : null,
   ].filter(Boolean).join(' · ')
+  const correcao = correcaoDoPedido(pedido.referenciaCorrecao)
 
   return (
     <CartaoBase pedido={pedido}>
@@ -74,6 +77,24 @@ export default function CartaoPedido({ pedido, onDecidir }) {
       {decisao && (
         <Typography variant="caption" component="p" sx={{ color: 'var(--text-muted)' }}>
           {decisao}
+        </Typography>
+      )}
+
+      {/* O PR do Agents-Oficina: em correção, ele espera a revisão do dono;
+          corrigido, já entrou no Desenv. */}
+      {correcao && (
+        <Typography variant="caption" component="p" sx={{ color: 'var(--text-muted)' }}>
+          {t('pregao.correcao')}{' '}
+          {correcao.href ? (
+            <Link
+              href={correcao.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              sx={{ color: 'var(--accent-ink)', fontWeight: 600 }}
+            >
+              {correcao.texto}
+            </Link>
+          ) : correcao.texto}
         </Typography>
       )}
 

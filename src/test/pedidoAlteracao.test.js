@@ -12,6 +12,7 @@ import {
   autorDaAcao,
   conferirMotivo,
   contagemPorFiltro,
+  correcaoDoPedido,
   eventosDoPedido,
   filtroDaUrl,
   frequenciaDoPedido,
@@ -125,6 +126,25 @@ describe('pregão › motivo da decisão', () => {
   it('o motivo cabe na coluna da API', () => {
     expect(conferirMotivo('descartado', 'a'.repeat(TAMANHO_MOTIVO))).toEqual({ motivo: 'a'.repeat(TAMANHO_MOTIVO) })
     expect(conferirMotivo('descartado', 'a'.repeat(TAMANHO_MOTIVO + 1))).toEqual({ erro: 'pregao.motivoLongo' })
+  })
+})
+
+describe('pregão › correção', () => {
+  it('o PR do Azure vira "PR n", e outro endereço vira link com ele mesmo', () => {
+    const pr = 'https://dev.azure.com/helamaborges/ThinkBitcoin/_git/ThinkBitcoin-Front/pullrequest/41'
+    expect(correcaoDoPedido(pr)).toEqual({ href: pr, texto: 'PR 41' })
+    expect(correcaoDoPedido('https://exemplo.com/pr')).toEqual({ href: 'https://exemplo.com/pr', texto: 'https://exemplo.com/pr' })
+  })
+
+  it('o que não é http(s) fica como texto: o histórico e um javascript: não viram link', () => {
+    expect(correcaoDoPedido('Desenv do ThinkBitcoin-Front: docs/pedidos-pregao/2026-10-15-ffa169a7.md'))
+      .toEqual({ href: null, texto: 'Desenv do ThinkBitcoin-Front: docs/pedidos-pregao/2026-10-15-ffa169a7.md' })
+    expect(correcaoDoPedido('javascript:alert(1)')).toEqual({ href: null, texto: 'javascript:alert(1)' })
+  })
+
+  it('sem referência, nada', () => {
+    expect(correcaoDoPedido(null)).toBeNull()
+    expect(correcaoDoPedido('   ')).toBeNull()
   })
 })
 

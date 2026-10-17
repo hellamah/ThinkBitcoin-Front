@@ -107,6 +107,26 @@ describe('Cartão do pedido do Pregão', () => {
     expect(screen.getByText(PEDIDO.trecho)).toBeTruthy()
   })
 
+  it('em correção, o link do PR abre em outra aba', () => {
+    const pr = 'https://dev.azure.com/helamaborges/ThinkBitcoin/_git/ThinkBitcoin-Front/pullrequest/41'
+    renderizar({ ...PEDIDO, status: 'em-correcao', decididoPor: 'admin@teste.local', referenciaCorrecao: pr })
+    const link = screen.getByRole('link', { name: 'PR 41' })
+    expect(link.getAttribute('href')).toBe(pr)
+    expect(link.getAttribute('target')).toBe('_blank')
+    expect(link.closest('p').textContent).toBe('pregao.correcao PR 41')
+  })
+
+  it('referência que não é endereço fica como texto, sem link', () => {
+    renderizar({ ...PEDIDO, status: 'corrigido', referenciaCorrecao: 'javascript:alert(1)' })
+    expect(screen.queryByRole('link')).toBeNull()
+    expect(screen.getByText('pregao.correcao javascript:alert(1)')).toBeTruthy()
+  })
+
+  it('pedido sem correção não tem a linha', () => {
+    renderizar()
+    expect(screen.queryByText(/pregao\.correcao/)).toBeNull()
+  })
+
   it('tipo que o dicionário não conhece aparece cru', () => {
     renderizar({ ...PEDIDO, tipo: 'novo-tipo', trecho: null })
     expect(screen.getByText('novo-tipo')).toBeTruthy()

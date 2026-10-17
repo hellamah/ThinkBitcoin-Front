@@ -88,6 +88,7 @@ VITE_USE_MOCK=true
 - É a primeira porta humana do ciclo da Equipe Pregão (repositório `ThinkBitcoin-Back-Python-Agents-Pregao`): o que o Trader, usuário sintético, viu se repetir em dias diferentes vira um pedido no `ThinkBitcoin-Back-DotNet` (`GET /api/PedidoAlteracao`), e o administrador aprova ou descarta (`POST /api/PedidoAlteracao/{id}/decisao`). Descartar pede motivo (até 500 caracteres).
 - A lista vem inteira e o filtro por status é feito na tela (padrão: esperando decisão, isto é, aberto e reaberto), com o total de cada status no chip. O filtro vai na URL (`?status=descartado`).
 - Cada cartão (`CartaoBase`, o mesmo da página aberta) mostra o problema, o trecho da tela ("Na tela:") e, quando o Pregão os escreveu, o que acontece (`detalhe`: o que a tela mostra e por que atrapalha) e o que ajustar (`ajuste`). Os pedidos de antes de 15/10/2026 e as verificações automáticas vêm sem os dois, e as linhas não aparecem.
+- Em correção e corrigido, o cartão do administrador traz a linha "Correção:" com a `referenciaCorrecao` que o `ThinkBitcoin-Back-Python-Agents-Oficina` gravou (17/10/2026): o link do PR do Azure aparece como "PR 41" e abre em outra aba, para revisar sem procurar o PR. Só endereço `http(s)` vira link (`correcaoDoPedido`); o resto, como o caminho do histórico quando o merge não veio de um PR do agente, fica como texto. A página aberta não mostra a linha: a rota pública não traz o link.
 
 ### Página aberta
 - Rota `/pregao`, sem login e só leitura, no molde de `/privacidade` e `/termos`, com link no Início para visitante e para quem está logado. Explica o que é a Equipe Pregão e mostra cada pedido com tipo, telas, problema, trecho, o que acontece e o que ajustar, dias e rodadas, o status em linguagem simples e a linha do tempo ("a Equipe Pregão pediu → um administrador aprovou → … → a Equipe Pregão conferiu").
@@ -96,7 +97,7 @@ VITE_USE_MOCK=true
 - Filtro por status na URL (`?status=aprovado`), só com os status públicos; o padrão é ver todos, e um status que não é público cai nele.
 
 ### Modo demo
-- Sete pedidos em memória, compartilhados pelas duas telas: três esperando decisão, um aprovado, um corrigido (aberto → aprovado → em correção → corrigido), um validado (o ciclo inteiro) e um descartado. A página aberta mostra só os três aprovados; os outros ficam na tela do administrador. Aprovar ali põe o pedido na página aberta na mesma sessão (o passo entra na linha do tempo, sem o motivo); o reload volta ao início.
+- Sete pedidos em memória, compartilhados pelas duas telas: três esperando decisão, um aprovado, um corrigido (aberto → aprovado → em correção → corrigido), um validado (o ciclo inteiro) e um descartado; o corrigido e o validado trazem o link de um PR. A página aberta mostra só os três aprovados; os outros ficam na tela do administrador. Aprovar ali põe o pedido na página aberta na mesma sessão (o passo entra na linha do tempo, sem o motivo); o reload volta ao início.
 
 ## Scripts Disponíveis (Executar dentro de /src)
 | Comando        | Descrição                                     |

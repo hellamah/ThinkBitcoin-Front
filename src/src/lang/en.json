@@ -1189,6 +1189,7 @@
     "reabertoDica": "Showed up again after being marked as fixed.",
     "decididoPor": "Decided by {{quem}}",
     "motivoDecisao": "Reason: {{motivo}}",
+    "correcao": "Fix:",
     "aprovar": "Approve",
     "descartar": "Discard",
     "motivoRotulo": "Reason for discarding",
