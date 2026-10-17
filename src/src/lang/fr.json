@@ -1176,6 +1176,7 @@
       "descartado": "Écartée",
       "em-correcao": "En correction",
       "corrigido": "Corrigée",
+      "devolvido": "Renvoyée",
       "validado": "Validée",
       "reaberto": "Rouverte"
     },
@@ -1187,6 +1188,7 @@
     "diaUm": "1 jour",
     "ultimaVez": "vue pour la dernière fois le {{data}}",
     "reabertoDica": "Réapparue après avoir été marquée comme corrigée.",
+    "devolvidoDica": "Le correcteur n’a pas réussi et a renvoyé la demande : lisez le motif, puis approuvez-la à nouveau pour un autre essai, ou écartez-la.",
     "decididoPor": "Décidé par {{quem}}",
     "motivoDecisao": "Motif : {{motivo}}",
     "correcao": "Correction :",
@@ -1231,6 +1233,7 @@
       "aprovado": "Un administrateur a approuvé",
       "em-correcao": "Le correcteur a commencé la correction",
       "corrigido": "Le correcteur a livré la correction",
+      "devolvido": "Le correcteur n’a pas réussi et a renvoyé la demande à un administrateur",
       "validado": "L’Équipe Pregão a vérifié : le problème n’est pas revenu"
     }
   }

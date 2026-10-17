@@ -12,20 +12,23 @@ export const STATUS = Object.freeze({
   DESCARTADO: 'descartado',
   EM_CORRECAO: 'em-correcao',
   CORRIGIDO: 'corrigido',
+  DEVOLVIDO: 'devolvido',
   VALIDADO: 'validado',
   REABERTO: 'reaberto',
 })
 
 // Os que esperam a decisão de um administrador: só eles aceitam aprovar ou descartar.
-export const AGUARDANDO_DECISAO = Object.freeze([STATUS.ABERTO, STATUS.REABERTO])
+// O devolvido é o que quem corrige não conseguiu corrigir (17/10/2026): volta com o
+// motivo, e aprovar de novo é pedir outra tentativa.
+export const AGUARDANDO_DECISAO = Object.freeze([STATUS.ABERTO, STATUS.REABERTO, STATUS.DEVOLVIDO])
 
 export const DECISOES = Object.freeze({ APROVADO: STATUS.APROVADO, DESCARTADO: STATUS.DESCARTADO })
 
 // O tamanho da coluna do motivo (PedidoAlteracaoConfiguration.TamanhoMotivo).
 export const TAMANHO_MOTIVO = 500
 
-// Os filtros da tela, na ordem do ciclo. "Esperando decisão" junta aberto e
-// reaberto: é a fila de trabalho do administrador, e o padrão da tela.
+// Os filtros da tela, na ordem do ciclo. "Esperando decisão" junta aberto,
+// reaberto e devolvido: é a fila de trabalho do administrador, e o padrão da tela.
 export const FILTROS = Object.freeze([
   { id: 'esperando', status: AGUARDANDO_DECISAO },
   { id: STATUS.APROVADO, status: [STATUS.APROVADO] },
@@ -116,7 +119,7 @@ export const frequenciaDoPedido = (t, pedido) => {
 
 // Quem faz cada passo do ciclo. A API pública não traz o autor (o e-mail de
 // quem decidiu é privado): a ação diz quem foi. A Equipe Pregão abre, reabre e
-// valida; um administrador aprova; quem corrige começa e entrega a correção.
+// valida; um administrador aprova; quem corrige começa, entrega ou devolve.
 const AUTOR_DA_ACAO = Object.freeze({
   [STATUS.ABERTO]: 'pregao',
   [STATUS.REABERTO]: 'pregao',
@@ -124,6 +127,7 @@ const AUTOR_DA_ACAO = Object.freeze({
   [STATUS.APROVADO]: 'administrador',
   [STATUS.EM_CORRECAO]: 'correcao',
   [STATUS.CORRIGIDO]: 'correcao',
+  [STATUS.DEVOLVIDO]: 'correcao',
 })
 
 /** 'pregao', 'administrador' ou 'correcao'; nulo para ação que a tela não conhece. */

@@ -107,6 +107,19 @@ describe('Cartão do pedido do Pregão', () => {
     expect(screen.getByText(PEDIDO.trecho)).toBeTruthy()
   })
 
+  it('devolvido pela Oficina mostra o motivo e aceita decidir de novo', () => {
+    renderizar({
+      ...PEDIDO,
+      status: 'devolvido',
+      decididoPor: 'agents-oficina@thinkbitcoin.local',
+      motivoDecisao: 'Sem correção no front: a taxa vem da API.',
+    })
+    expect(screen.getByText('pregao.devolvidoDica')).toBeTruthy()
+    expect(screen.getByText(/pregao\.decididoPor/)).toBeTruthy()
+    expect(botao('pregao.aprovar')).toBeTruthy()
+    expect(botao('pregao.descartar')).toBeTruthy()
+  })
+
   it('em correção, o link do PR abre em outra aba', () => {
     const pr = 'https://dev.azure.com/helamaborges/ThinkBitcoin/_git/ThinkBitcoin-Front/pullrequest/41'
     renderizar({ ...PEDIDO, status: 'em-correcao', decididoPor: 'admin@teste.local', referenciaCorrecao: pr })

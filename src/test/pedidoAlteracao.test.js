@@ -68,12 +68,24 @@ describe('pregão › filtros', () => {
     })
   })
 
-  it('só aberto e reaberto aceitam decisão', () => {
+  it('só aberto, reaberto e devolvido aceitam decisão', () => {
     expect(podeDecidir(pedido(STATUS.ABERTO))).toBe(true)
     expect(podeDecidir(pedido(STATUS.REABERTO))).toBe(true)
+    expect(podeDecidir(pedido(STATUS.DEVOLVIDO))).toBe(true)
     expect(podeDecidir(pedido(STATUS.APROVADO))).toBe(false)
     expect(podeDecidir(pedido(STATUS.DESCARTADO))).toBe(false)
     expect(podeDecidir(undefined)).toBe(false)
+  })
+
+  it('o devolvido volta à fila do administrador e fica fora da página aberta', () => {
+    // Quem corrige não conseguiu: o pedido espera decisão de novo (17/10/2026).
+    const lista = [...LISTA, pedido(STATUS.DEVOLVIDO)]
+    expect(pedidosDoFiltro(lista, 'esperando').map((p) => p.status))
+      .toEqual([STATUS.ABERTO, STATUS.REABERTO, STATUS.DEVOLVIDO])
+    expect(STATUS_PUBLICOS).not.toContain(STATUS.DEVOLVIDO)
+    // Aprovado de novo, o pedido volta à página aberta com a devolução na linha do tempo.
+    expect(autorDaAcao(STATUS.DEVOLVIDO)).toBe('correcao')
+    expect(rotuloOuCru(t, 'pregao.status.devolvido', 'devolvido')).toBe('Devolvido')
   })
 })
 
@@ -249,7 +261,7 @@ describe('pregão › modo demo', () => {
   it('não decide de novo um pedido já decidido, nem decisão ou pedido desconhecidos', () => {
     const [descartado] = listar('?status=descartado')
     expect(erroDe(() => decidir(descartado.idPedidoAlteracao, { decisao: 'aprovado' })))
-      .toEqual({ status: 400, mensagem: 'O pedido está descartado: só se decide um pedido aberto ou reaberto.' })
+      .toEqual({ status: 400, mensagem: 'O pedido está descartado: só se decide um pedido aberto ou reaberto ou devolvido.' })
     const [aberto] = listar('?status=aberto')
     expect(erroDe(() => decidir(aberto.idPedidoAlteracao, { decisao: 'talvez' })))
       .toMatchObject({ status: 400, mensagem: expect.stringContaining('Decisão desconhecida') })

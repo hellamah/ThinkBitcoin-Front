@@ -1176,6 +1176,7 @@
       "descartado": "Discarded",
       "em-correcao": "Being fixed",
       "corrigido": "Fixed",
+      "devolvido": "Returned",
       "validado": "Validated",
       "reaberto": "Reopened"
     },
@@ -1187,6 +1188,7 @@
     "diaUm": "1 day",
     "ultimaVez": "last seen {{data}}",
     "reabertoDica": "Showed up again after being marked as fixed.",
+    "devolvidoDica": "Whoever fixes it could not and returned the request: read the reason, then approve it again for another try, or discard it.",
     "decididoPor": "Decided by {{quem}}",
     "motivoDecisao": "Reason: {{motivo}}",
     "correcao": "Fix:",
@@ -1231,6 +1233,7 @@
       "aprovado": "An administrator approved",
       "em-correcao": "Whoever fixes it started the fix",
       "corrigido": "Whoever fixes it delivered the fix",
+      "devolvido": "Whoever fixes it could not and returned the request to an administrator",
       "validado": "The Pregão Team checked: the problem did not come back"
     }
   }

@@ -1176,6 +1176,7 @@
       "descartado": "Descartado",
       "em-correcao": "Em correção",
       "corrigido": "Corrigido",
+      "devolvido": "Devolvido",
       "validado": "Validado",
       "reaberto": "Reaberto"
     },
@@ -1187,6 +1188,7 @@
     "diaUm": "1 dia",
     "ultimaVez": "última vez em {{data}}",
     "reabertoDica": "Voltou a aparecer depois de dado como corrigido.",
+    "devolvidoDica": "Quem corrige não conseguiu e devolveu o pedido: leia o motivo e aprove de novo para outra tentativa, ou descarte.",
     "decididoPor": "Decidido por {{quem}}",
     "motivoDecisao": "Motivo: {{motivo}}",
     "correcao": "Correção:",
@@ -1231,6 +1233,7 @@
       "aprovado": "Um administrador aprovou",
       "em-correcao": "Quem corrige começou a correção",
       "corrigido": "Quem corrige entregou a correção",
+      "devolvido": "Quem corrige não conseguiu e devolveu o pedido ao administrador",
       "validado": "A Equipe Pregão conferiu: o problema não voltou"
     }
   }

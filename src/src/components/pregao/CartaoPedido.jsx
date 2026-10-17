@@ -73,6 +73,11 @@ export default function CartaoPedido({ pedido, onDecidir }) {
           {t('pregao.reabertoDica')}
         </Typography>
       )}
+      {pedido.status === STATUS.DEVOLVIDO && (
+        <Typography variant="caption" component="p" sx={{ color: 'var(--perf-warn)' }}>
+          {t('pregao.devolvidoDica')}
+        </Typography>
+      )}
 
       {decisao && (
         <Typography variant="caption" component="p" sx={{ color: 'var(--text-muted)' }}>
