@@ -150,6 +150,9 @@ O projeto utiliza um fluxo de entrega contínua baseado em **Azure Pipelines** e
 1. Push para `develop` -> Deploy de Preview na Vercel.
 2. Merge para `main` -> Deploy de Produção em `minerthinkbitcoin.com`.
 
+### Validação de PR
+`devops/ThinkBitcoin.Front.Tests-PR.yml` roda o lint, a suíte e o build de um PR, sem publicar nada (17/10/2026). No Azure Repos o `pr:` do YAML é ignorado: o pipeline só roda pela política do ramo. Para ligar, crie o pipeline a partir desse YAML (Pipelines → New pipeline → Azure Repos Git → ThinkBitcoin-Front → Existing YAML) e adicione-o em Repos → Branches → `Desenv` → Branch policies → Build validation, como obrigatório. Os PRs do `ThinkBitcoin-Back-Python-Agents-Oficina` passam por ele antes da revisão do dono.
+
 ### Estrutura devops/
 Além do pipeline da Vercel, a pasta `devops/` contém recursos para deploy em containers:
 - `devops/deploy`: scripts para Docker e Kubernetes (Minikube).

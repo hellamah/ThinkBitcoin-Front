@@ -1,0 +1,38 @@
+# Validacao de PR do ThinkBitcoin-Front (17/10/2026): a suite, o lint e o build de
+# um PR contra o Desenv ou o Prod, sem publicar nada.
+#
+# No Azure Repos o `pr:` do YAML e' ignorado: quem dispara este pipeline e' a
+# politica do ramo (Repos > Branches > Desenv > Branch policies > Build
+# validation). Os PRs do ThinkBitcoin-Back-Python-Agents-Oficina passam por aqui
+# antes da revisao do dono. O pipeline da Vercel tambem roda os testes, mas
+# publica: nao serve para validar PR.
+trigger: none
+pr: none
+
+name: $(Build.BuildId)
+
+pool:
+  name: 'ThinkBitcoinDeploy'
+
+steps:
+# O mesmo Node do pipeline da Vercel: o Vite 7 exige ^20.19.0 || >=22.12.0.
+- task: NodeTool@0
+  inputs:
+    versionSpec: '20.x'
+  displayName: 'Install Node.js'
+
+- script: npm ci
+  workingDirectory: 'src'
+  displayName: 'Install Dependencies'
+
+- script: npm run lint
+  workingDirectory: 'src'
+  displayName: 'Lint'
+
+- script: npm test
+  workingDirectory: 'src'
+  displayName: 'Run Tests'
+
+- script: npm run build
+  workingDirectory: 'src'
+  displayName: 'Build'
