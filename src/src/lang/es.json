@@ -121,7 +121,7 @@
   "coinDataError": "No se pudieron cargar los datos de: {{moedas}}",
   "traderLabTitle": "Laboratorio del trader",
   "riskManagementTitle": "Gestión de riesgo",
-  "initialInvestment": "Inversión inicial (USD)",
+  "initialInvestment": "Inversión inicial (USD) y planes en R$",
   "maxRiskPerTrade": "Riesgo máximo por operación (%)",
   "preferredCoin": "Moneda preferida",
   "safetyBalance": "Saldo de seguridad (USDT)",

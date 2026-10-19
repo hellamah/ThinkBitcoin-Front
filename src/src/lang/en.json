@@ -121,7 +121,7 @@
   "coinDataError": "Could not load data for: {{moedas}}",
   "traderLabTitle": "Trader Laboratory",
   "riskManagementTitle": "Risk Management",
-  "initialInvestment": "Initial Investment (USD)",
+  "initialInvestment": "Initial Investment (USD) and Plans in BRL",
   "maxRiskPerTrade": "Max Risk Per Trade (%)",
   "preferredCoin": "Preferred Coin",
   "safetyBalance": "Safety Balance (USDT)",
