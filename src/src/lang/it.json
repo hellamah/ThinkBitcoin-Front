@@ -217,7 +217,7 @@
   "normalizationZScoreHint": "Volatilità — scostamenti rispetto alla media",
   "secondaryChart": "Pannello",
   "signalLab": "Laboratorio dei segnali",
-  "signalLabHint": "Cosa è successo DOPO ciascun segnale, confrontato con il tasso base. La riga attenuata è quella il cui intervallo di confidenza contiene la base: il numero esiste, ma non si distingue dal caso con questo campione.",
+  "signalLabHint": "Cosa è successo DOPO ciascun segnale, confrontato con il tasso base. Le righe attenuate indicano che il segnale non si distingue dal caso.",
   "signalLabHoldoutWarning": "La tabella ordina {{total}} segnali per scostamento maggiore, e questo porta in cima proprio ciò che il caso favorisce di più: al 95% di confidenza, ogni riga ha il 5% di probabilità di distinguersi da sola. Per questo il {{fracao}}% più recente della finestra resta riservato: la colonna di validazione è l’unica che non ha partecipato all’ordinamento. Entrambi gli scostamenti sono misurati sul tasso base del proprio tratto, riportato nella riga base.",
   "signalInterval": "Intervallo 95%",
   "signalNotSignificant": "L'intervallo di confidenza contiene il tasso base: indistinguibile dal caso con questo campione",
