@@ -3,7 +3,7 @@ import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import LinearProgress from '@mui/material/LinearProgress'
 import Tooltip from '@mui/material/Tooltip'
-import { MdTrendingUp, MdTrendingDown, MdAccessTime, MdWarningAmber } from 'react-icons/md'
+import { MdTrendingUp, MdTrendingDown, MdAccessTime, MdWarningAmber, MdInfo } from 'react-icons/md'
 
 // ---------------------------------------------------------------------------
 // Painel de insights do heatmap: consome o último registro de /variavel-externa/trend
@@ -203,9 +203,16 @@ export default function HeatmapInsights({ trend, fear, t, locale }) {
       {hhi !== null && (
         <BarraMedida
           label={t('heatmap.concentracaoGeo')}
-          valorLabel={hhi >= 0.25
-            ? `🎯 ${t('heatmap.concentrada')}`
-            : `🌍 ${t('heatmap.distribuida')}`}
+          valorLabel={hhi >= 0.25 ? (
+            <Tooltip title={t('heatmap.concentrada_tooltip')}>
+              <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+                🎯 {t('heatmap.concentrada')}
+                <MdInfo size={14} />
+              </Box>
+            </Tooltip>
+          ) : (
+            `🌍 ${t('heatmap.distribuida')}`
+          )}
           percent={hhi * 100}
           cor="var(--accent-ink)"
         />

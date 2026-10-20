@@ -548,6 +548,7 @@
     "rankBuscas": "Ranking de búsquedas",
     "concentracaoGeo": "Concentración geográfica",
     "concentrada": "Narrativa concentrada",
+    "concentrada_tooltip": "Narrativa concentrada cuando el índice HHI de concentración geográfica es igual o superior al 25%.",
     "distribuida": "Narrativa globalizada",
     "fearGreed": "Fear & Greed",
     "liderancaBuscas": "Liderazgo de búsquedas",
