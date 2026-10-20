@@ -300,7 +300,7 @@
   "simulationTrades": "Operaciones",
   "simulationOpenAtEnd": "{{count}} operación(es) aún abierta(s) cuando terminó la ventana. Mueven la curva de capital, pero no son acierto ni error — las métricas cuentan las {{concluidas}} que tuvieron desenlace.",
   "simulationExposure": "Exposición",
-  "simulationTotalCost": "Coste total",
+  "simulationTotalCost": "Coste total (USD)",
   "simulationEquity": "Curva de capital",
   "simulationTradeEntry": "Entrada",
   "simulationTradeExit": "Salida",
