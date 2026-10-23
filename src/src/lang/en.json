@@ -636,7 +636,7 @@
     "saldoMinimo": "Min Balance to Remain",
     "limiteDiario": "Daily Redemption Limit",
     "resgateParcial": "Allows Partial Redemption",
-    "yes": "Yes",
+    "yes": "Partial redemption allowed",
     "no": "No",
     "free": "Free",
     "active": "ACTIVE",

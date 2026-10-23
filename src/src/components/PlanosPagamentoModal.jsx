@@ -300,7 +300,7 @@ export default function PlanosPagamentoModal({ visible, onClose, token, user, on
               </div>
               <div className="pricing-feature-item">
                 <span className="pricing-feature-icon"><MdAccountBalance /></span>
-                <span>{t('planos.liquidacao')}: D+{plano.liquidacao} ({plano.permiteResgateParcial ? t('planos.yes') : t('planos.no')} resgate parcial)</span>
+                <span>{t('planos.liquidacao')}: D+{plano.liquidacao} ({plano.permiteResgateParcial ? t('planos.yes') : t('planos.no') + ' resgate parcial'})</span>
               </div>
               <div className="pricing-feature-item">
                 <span className="pricing-feature-icon"><MdCheck /></span>
