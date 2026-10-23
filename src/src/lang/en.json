@@ -217,7 +217,7 @@
   "normalizationZScoreHint": "Volatility — deviations from the mean",
   "secondaryChart": "Panel",
   "signalLab": "Signal Lab",
-  "signalLabHint": "What happened AFTER each signal, compared to the baseline rate. Dimmed rows indicate that the signal does not stand out from chance.",
+  "signalLabHint": "What happened AFTER each signal, compared to the baseline rate. Dimmed rows indicate signals with low prominence.",
   "signalLabHoldoutWarning": "The table ranks {{total}} signals by largest shift, and that pushes to the top exactly what chance favours most: at 95% confidence, every row has a 5% chance of standing out on its own. So the most recent {{fracao}}% of the window is held back — the validation column is the only one that took no part in the ranking. Both deltas are measured against the baseline rate of their own slice, shown in the baseline row.",
   "signalInterval": "95% interval",
   "signalNotSignificant": "The confidence interval contains the baseline rate: indistinguishable from chance at this sample size",

@@ -217,7 +217,7 @@
   "normalizationZScoreHint": "Volatilidade — desvios em relação à média",
   "secondaryChart": "Painel",
   "signalLab": "Laboratório de Sinais",
-  "signalLabHint": "O que aconteceu DEPOIS de cada sinal, comparado com a taxa base. Linhas esmaecidas indicam que o sinal não se destaca do acaso.",
+  "signalLabHint": "O que aconteceu DEPOIS de cada sinal, comparado com a taxa base. Linhas esmaecidas indicam sinais de baixo destaque.",
   "signalLabHoldoutWarning": "A tabela ordena {{total}} sinais pelo maior deslocamento, e isso leva ao topo justamente o que o acaso mais favorece: a 95% de confiança, cada linha tem 5% de chance de se destacar sozinha. Por isso os {{fracao}}% mais recentes da janela ficam reservados — a coluna de validação é a única que não participou da ordenação. Os dois deltas são medidos contra a taxa base do próprio trecho, que está na linha da base.",
   "signalInterval": "Intervalo 95%",
   "signalNotSignificant": "O intervalo de confiança contém a taxa base: indistinguível do acaso com esta amostra",
