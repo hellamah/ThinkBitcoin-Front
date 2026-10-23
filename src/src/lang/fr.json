@@ -217,7 +217,7 @@
   "normalizationZScoreHint": "Volatilité — écarts par rapport à la moyenne",
   "secondaryChart": "Panneau",
   "signalLab": "Laboratoire de signaux",
-  "signalLabHint": "Ce qui s'est passé APRÈS chaque signal, comparé au taux de base. Les lignes atténuées indiquent que le signal ne se distingue pas du hasard.",
+  "signalLabHint": "Ce qui s'est passé APRÈS chaque signal, comparé au taux de base. Les lignes atténuées indiquent des signaux avec peu de relief.",
   "signalLabHoldoutWarning": "Le tableau classe {{total}} signaux par plus grand écart, ce qui fait remonter précisément ce que le hasard favorise le plus : à 95% de confiance, chaque ligne a 5% de chance de ressortir toute seule. Les {{fracao}}% les plus récents de la fenêtre sont donc mis de côté — la colonne de validation est la seule à n’avoir pas servi au classement. Les deux écarts sont mesurés face au taux de base de leur propre tranche, indiqué sur la ligne de base.",
   "signalInterval": "Intervalle 95 %",
   "signalNotSignificant": "L'intervalle de confiance contient le taux de base : indiscernable du hasard avec cet échantillon",

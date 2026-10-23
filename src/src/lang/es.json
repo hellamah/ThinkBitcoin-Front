@@ -217,7 +217,7 @@
   "normalizationZScoreHint": "Volatilidad — desviaciones respecto a la media",
   "secondaryChart": "Panel",
   "signalLab": "Laboratorio de señales",
-  "signalLabHint": "Lo que ocurrió DESPUÉS de cada señal, comparado con la tasa base. Las filas atenuadas indican que la señal no se destaca del azar.",
+  "signalLabHint": "Lo que ocurrió DESPUÉS de cada señal, comparado con la tasa base. Las filas atenuadas indican señales con bajo destaque.",
   "signalLabHoldoutWarning": "La tabla ordena {{total}} señales por el mayor desplazamiento, y eso lleva arriba justo lo que el azar más favorece: con 95% de confianza, cada fila tiene 5% de probabilidad de destacar sola. Por eso el {{fracao}}% más reciente de la ventana queda reservado: la columna de validación es la única que no participó en el orden. Ambos deltas se miden contra la tasa base de su propio tramo, que aparece en la fila base.",
   "signalInterval": "Intervalo 95%",
   "signalNotSignificant": "El intervalo de confianza contiene la tasa base: indistinguible del azar con esta muestra",
