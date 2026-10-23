@@ -24,8 +24,8 @@ Todas as ferramentas abaixo derivam de campos que a resposta de
 ### Divergência de fluxo — `utils/flowDivergence.js`
 
 O delta acumulado (CVD) soma `volumeComprado - volumeVendido` ao longo do
-período. Quando o preço sobe e o CVD não acompanha, a alta não tem lastro de
-compra real.
+período, exibindo a unidade de medida correspondente. Quando o preço sobe e o 
+CVD não acompanha, a alta não tem lastro de compra real.
 
 É a de maior valor diferencial: exige `volumeComprado` e `volumeVendido`
 separados, que a maioria das fontes de varejo não expõe. O backend já entrega.
