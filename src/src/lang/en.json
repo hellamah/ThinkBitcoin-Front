@@ -639,7 +639,7 @@
     "limiteDiario": "Daily Redemption Limit",
     "resgateParcial": "Allows Partial Redemption",
     "yes": "Partial redemption allowed",
-    "no": "No",
+    "no": "No partial redemption",
     "free": "Free",
     "active": "ACTIVE",
     "upgrade": "Migrate",

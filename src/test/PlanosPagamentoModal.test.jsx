@@ -163,3 +163,31 @@ describe('PlanosPagamentoModal › polling da cobrança Pix', () => {
     await screen.findByText('planos.paymentSuccess')
   })
 })
+
+describe('PlanosPagamentoModal › a lista de planos', () => {
+  afterEach(() => {
+    cleanup()
+    vi.restoreAllMocks()
+  })
+
+  it('o resgate parcial sai inteiro da tradução, com ou sem permissão', async () => {
+    // O PR 57 (23/10/2026) trocou o "Sim"/"Não" pelo texto do resgate, mas o
+    // ramo do "não" seguiu colando ' resgate parcial' depois da tradução: "Não
+    // resgate parcial" em português e "No resgate parcial" em inglês.
+    apiRequest.mockImplementation(async (endpoint) => {
+      if (endpoint === PlanosPagamentoEndpoint.LIST) {
+        return { resultado: { planos: [
+          { ...PLANO_PAGO, liquidacao: 1, permiteResgateParcial: true },
+          { ...PLANO_PAGO, idPlanoPagamento: 3, nome: 'ThinkBase', liquidacao: 30, permiteResgateParcial: false },
+        ] } }
+      }
+      if (endpoint === PlanosPagamentoEndpoint.COBRANCA_PENDENTE) return { resultado: { cobranca: null } }
+      throw new Error(`endpoint inesperado no teste: ${endpoint}`)
+    })
+
+    render(<PlanosPagamentoModal visible {...props} />)
+
+    expect(await screen.findByText('planos.liquidacao: D+1 (planos.yes)')).toBeTruthy()
+    expect(screen.getByText('planos.liquidacao: D+30 (planos.no)')).toBeTruthy()
+  })
+})
