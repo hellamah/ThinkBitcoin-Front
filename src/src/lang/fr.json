@@ -131,6 +131,7 @@
   "monthly": "Mensuelle",
   "loadingCoins": "Chargement des cryptos...",
   "carregando": "Chargement",
+  "carrosselTitulo": "Sélectionnez les cryptos à analyser",
   "carrosselAnterior": "Cryptos précédentes",
   "carrosselProximo": "Cryptos suivantes",
   "startDate": "Date de début",

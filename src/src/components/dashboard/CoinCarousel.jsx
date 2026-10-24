@@ -236,6 +236,10 @@ export default function CoinCarousel({
         </div>
       </Box>
 
+      {/* Sem título, o carrossel com todas as moedas parecia continuar a lista
+          do Top 5 logo acima: o Pregão leu "Top 5" com 10 a 12 ativos e
+          duplicatas em 7 de 9 rodadas (21 a 24/10/2026). */}
+      <h2 className="carousel-titulo">{t('carrosselTitulo')}</h2>
       {carouselContent}
     </>
   )

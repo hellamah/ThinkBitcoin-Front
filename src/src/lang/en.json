@@ -131,6 +131,7 @@
   "monthly": "Monthly",
   "loadingCoins": "Loading coins...",
   "carregando": "Loading",
+  "carrosselTitulo": "Pick the coins to analyze",
   "carrosselAnterior": "Previous coins",
   "carrosselProximo": "Next coins",
   "startDate": "Start Date",
