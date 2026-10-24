@@ -208,7 +208,7 @@ export default function AnalyticsPanel({ analytics, t }) {
           {divergencia ? (
             <>
               <div className={`intel-value ${deltaPositivo ? 'up' : 'down'}`}>
-                {deltaPositivo ? '+' : ''}{mathUtils.formatCompact(fluxo.deltaAcumulado)} {analytics.moeda}
+                {deltaPositivo ? '+' : ''}{mathUtils.formatCompact(fluxo.deltaAcumulado)} {analytics.sigla}
               </div>
               <Sparkline valores={divergencia.serie} />
               {/* O que o número é, em palavras. Sem esta linha — que veio do

@@ -24,8 +24,9 @@ Todas as ferramentas abaixo derivam de campos que a resposta de
 ### Divergência de fluxo — `utils/flowDivergence.js`
 
 O delta acumulado (CVD) soma `volumeComprado - volumeVendido` ao longo do
-período, exibindo a unidade de medida correspondente. Quando o preço sobe e o 
-CVD não acompanha, a alta não tem lastro de compra real.
+período. O volume é o da própria moeda (o volume base da Binance: BTC no BTC,
+ETH no ETH), não em dólar, e o card mostra a sigla depois do número. Quando o
+preço sobe e o CVD não acompanha, a alta não tem lastro de compra real.
 
 É a de maior valor diferencial: exige `volumeComprado` e `volumeVendido`
 separados, que a maioria das fontes de varejo não expõe. O backend já entrega.
