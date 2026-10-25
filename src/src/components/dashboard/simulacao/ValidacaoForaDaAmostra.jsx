@@ -57,8 +57,8 @@ export default function ValidacaoForaDaAmostra({ ajuste, validacao, reservada = 
                     {operou ? pct(r.metricas.retornoTotal) : '—'}
                   </td>
                   <td>{r ? pct(r.metricas.buyAndHold) : '—'}</td>
-                  <td className={operou ? classeSinal(r.metricas.alfa) : undefined}>
-                    {operou ? pct(r.metricas.alfa) : '—'}
+                  <td className={operou ? classeSinal(r.metricas.retornoTotal - r.metricas.buyAndHold) : undefined}>
+                    {operou ? pct(r.metricas.retornoTotal - r.metricas.buyAndHold) : '—'}
                   </td>
                   <td>{r ? r.metricas.tradesConcluidos : '—'}</td>
                 </tr>
