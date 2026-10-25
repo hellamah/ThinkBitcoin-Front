@@ -390,7 +390,7 @@
   "simulationVerdictValidation": "No trecho reservado para validação, o alfa foi {{valor}}.",
   "simulationVerdictValidationNone": "Não houve operação no trecho reservado para validação: o resultado não foi testado fora da amostra.",
   "simulationChance": "Contra o acaso",
-  "simulationChanceSub": "Mediana dos sorteios: {{mediana}} · {{iteracoes}} sorteios",
+  "simulationChanceSub": "Mediana dos sorteios (Frequência): {{mediana}} · {{iteracoes}} sorteios (Ajuste ATR)",
   "simulationCalculating": "Calculando…",
   "simulationCi": "IC 95% do retorno",
   "simulationCiRange": "{{inferior}} a {{superior}}",

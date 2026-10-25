@@ -390,7 +390,7 @@
   "simulationVerdictValidation": "In the stretch reserved for validation, alpha was {{valor}}.",
   "simulationVerdictValidationNone": "There were no trades in the stretch reserved for validation: the result was not tested out of sample.",
   "simulationChance": "Against chance",
-  "simulationChanceSub": "Median of draws: {{mediana}} · {{iteracoes}} draws",
+  "simulationChanceSub": "Median of draws (Frequency): {{mediana}} · {{iteracoes}} draws (ATR adjustment)",
   "simulationCalculating": "Calculating…",
   "simulationCi": "95% CI of return",
   "simulationCiRange": "{{inferior}} to {{superior}}",
