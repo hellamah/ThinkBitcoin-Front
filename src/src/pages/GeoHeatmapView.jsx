@@ -835,7 +835,7 @@ export default function GeoHeatmapView() {
             <div className="interval-selector-mini" data-tour="intervalos" ref={refIntervalos}>
               {[
                 { label: '1H', value: '1h' },
-                { label: '1D', value: '24h' },
+                { label: '1D', value: '1d' },
                 { label: '1M', value: '1m' },
               ].map((opt) => (
                 <button
