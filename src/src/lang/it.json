@@ -83,7 +83,9 @@
     "pregaoUmEsperando": "1 in attesa di decisione",
     "pregaoNenhumEsperando": "Nessuna in attesa di decisione",
     "pregaoAberta": "Pagina pubblica",
-    "pregaoAbertaDica": "Ciò che vede il pubblico: le richieste approvate"
+    "pregaoAbertaDica": "Ciò che vede il pubblico: le richieste approvate",
+    "roboAoVivo": "Robot dal vivo",
+    "roboAoVivoDica": "Il motore di rischio che decide sul BTC, con denaro finto"
   },
   "dashboard": "Dashboard",
   "sequence": "Sequenza di rendimento",
@@ -1069,6 +1071,42 @@
   },
   "dialogo": {
     "generico": "Finestra di dialogo"
+  },
+  "robo": {
+    "title": "Robot dal vivo",
+    "intro": "Il motore di rischio decide una volta al giorno sul BTC, con 1.000 USDT finti e senza ordini reali. Questa pagina mostra cosa ha fatto da quando ha sostituito l'agente DQN e la curva su carta della stessa regola nello zoo, accanto al buy & hold.",
+    "atualizar": "Aggiorna",
+    "estadoTitle": "Stato di oggi",
+    "regra": "La regola: comprato solo con la chiusura giornaliera sopra la media di 50 giorni, con la dose della volatilità obiettivo del 40%. Sotto la media, fuori.",
+    "estado": "Adesso",
+    "dentro": "Nel mercato",
+    "fora": "Fuori dal mercato",
+    "dose": "Dose della regola (curva su carta)",
+    "moeda": "Moneta",
+    "desde": "Decide dal",
+    "ultima": "Ultima operazione",
+    "semOperacao": "Nessuna operazione dall'attivazione",
+    "operacoesTitle": "Operazioni",
+    "operacoesSub": "Ogni acquisto, vendita e aggiustamento di dose dall'attivazione, con la commissione pagata (USDT).",
+    "operacoesErro": "Impossibile caricare le operazioni del robot.",
+    "colData": "Data",
+    "colAcao": "Azione",
+    "colQuantidade": "Quantità (BTC)",
+    "colPreco": "Prezzo (USDT)",
+    "colValor": "Valore (USDT)",
+    "colTaxa": "Commissione (USDT)",
+    "acoes": {
+      "Manter": "Mantenere",
+      "ComprarTudo": "Comprare",
+      "ComprarParcial": "Aumentare la dose",
+      "VenderTudo": "Vendere tutto",
+      "VenderParcial": "Ridurre la dose"
+    },
+    "curvaTitle": "La regola su carta contro il buy & hold",
+    "curvaSub": "Dall'ultima chiusura prima dell'attivazione, entrambe da zero. È il riferimento del criterio di fedeltà: il robot dovrebbe restare vicino alla curva della regola.",
+    "curvaVazia": "Lo zoo non ha ancora punti dall'attivazione.",
+    "curvaErro": "Impossibile caricare la curva della regola.",
+    "curvaResumo": "Regola nel periodo: {{regra}}; buy & hold: {{bh}}"
   },
   "zoo": {
     "title": "Zoo di strategie",

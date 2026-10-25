@@ -26,6 +26,7 @@ const Simulacao = lazy(() => import('./pages/Simulacao.jsx'))
 const ZooEstrategias = lazy(() => import('./pages/ZooEstrategias.jsx'))
 const PedidosPregao = lazy(() => import('./pages/PedidosPregao.jsx'))
 const PregaoPublico = lazy(() => import('./pages/PregaoPublico.jsx'))
+const RoboAoVivo = lazy(() => import('./pages/RoboAoVivo.jsx'))
 
 // Link de antes da tela própria da simulação — `/dashboard?sim.sinal=…` —
 // continua abrindo a simulação, com a configuração inteira. Sem isto, quem
@@ -134,6 +135,16 @@ function App() {
                 element={
                   <ProtectedRoute cargos={[AuthRole.ADMINISTRADOR]}>
                     <PedidosPregao />
+                  </ProtectedRoute>
+                }
+              />
+              {/* Só administrador: o motor de risco decidindo ao vivo no BTC
+                  (proposta 2 do Estrategista, versão mínima). */}
+              <Route
+                path="/robo-ao-vivo"
+                element={
+                  <ProtectedRoute cargos={[AuthRole.ADMINISTRADOR]}>
+                    <RoboAoVivo />
                   </ProtectedRoute>
                 }
               />

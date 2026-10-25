@@ -2,6 +2,7 @@
 // import dinâmico e não viajar no bundle de produção.
 
 import { CURVAS_ZOO, RODADA_ZOO } from './mockZooEstrategia'
+import { CURVAS_ZOO_RECENTES, DECISOES_ROBO } from './mockRoboAoVivo'
 import { CURVAS_ZOO_JANELA, RODADA_ZOO_JANELA } from './mockZooJanelaAgente'
 import { AuthRole, decodeAuthenticationToken, temCargo } from './authentication'
 import { getStoredToken } from './preferences'
@@ -1221,24 +1222,74 @@ const mockZooCurva = (endpoint) => {
   const { rodada, curvas } = zooDaJanela(endpoint)
   const pedidas = (q.get('estrategias') || '').split(',').map((e) => e.trim()).filter(Boolean)
   const nomes = pedidas.length > 0 ? pedidas : rodada.estrategias.map((e) => e.estrategia)
+  // dataInicio/dataFim filtram como na API. Só a tela do robô ao vivo pede
+  // datas, e o período dela (desde 22/10) fica depois do fim da fixture do zoo:
+  // com data, entram também os pontos reais recentes (mockRoboAoVivo.js). Sem
+  // data, a curva é a de sempre, e a tela do zoo não muda.
+  const dataInicio = q.get('dataInicio') ? Date.parse(`${q.get('dataInicio').slice(0, 10)}T00:00:00Z`) : null
+  const dataFim = q.get('dataFim') ? Date.parse(`${q.get('dataFim').slice(0, 10)}T00:00:00Z`) : null
+  const comData = dataInicio !== null || dataFim !== null
+  const noPeriodo = (p) => {
+    const ms = Date.parse(p.data)
+    return (dataInicio === null || ms >= dataInicio) && (dataFim === null || ms <= dataFim)
+  }
   const resultado = [...new Set(nomes)]
     .sort()
     .map((estrategia) => ({ estrategia, curva: curvas[`${estrategia}|${moeda}`] }))
     .filter(({ curva }) => curva)
     .map(({ estrategia, curva }) => {
       const inicio = Date.parse(`${curva.inicio}T00:00:00Z`)
+      const pontos = curva.pontos.map(([dias, patrimonio, exposicao]) => ({
+        data: new Date(inicio + dias * DIA_MS).toISOString(),
+        patrimonio,
+        exposicao,
+      }))
+      const recentes = comData && curvas === CURVAS_ZOO
+        ? (CURVAS_ZOO_RECENTES[`${estrategia}|${moeda}`] ?? []).map(([dia, patrimonio, exposicao]) => ({
+          data: `${dia}T00:00:00.000Z`,
+          patrimonio,
+          exposicao,
+        }))
+        : []
       return {
         versaoZoo: rodada.versaoZoo,
         estrategia,
         moeda,
-        pontos: curva.pontos.map(([dias, patrimonio, exposicao]) => ({
-          data: new Date(inicio + dias * DIA_MS).toISOString(),
-          patrimonio,
-          exposicao,
-        })),
+        pontos: comData ? [...pontos, ...recentes].filter(noPeriodo) : pontos,
       }
     })
+    .filter((c) => c.pontos.length > 0)
   return { mensagem: resultado.length ? 'Curva do zoo (mock)' : 'Dados não encontrados', resultado }
+}
+
+// Operações do robô ao vivo (/ThinkBitcoin/historicoDecisoes): os filtros e a
+// paginação da FuncaoObterHistoricoDecisao, sobre as decisões reais guardadas
+// em mockRoboAoVivo.js. A data sem fuso é UTC, como no banco.
+const mockHistoricoDecisoes = (endpoint) => {
+  const q = treinoQuery(endpoint)
+  const sigla = (q.get('siglaMoeda') || '').trim().toUpperCase()
+  const status = (q.get('status') || '').trim().toUpperCase()
+  const utc = (v) => Date.parse(/([zZ]|[+-]\d{2}:?\d{2})$/.test(v) ? v : `${v}Z`)
+  const dataInicio = q.get('dataInicio') ? utc(q.get('dataInicio')) : null
+  const dataFim = q.get('dataFim') ? utc(q.get('dataFim')) : null
+  const pagina = Math.max(1, Number(q.get('pagina')) || 1)
+  const quantidade = Math.max(1, Number(q.get('quantidade')) || 10)
+  const asc = q.get('ordemAsc') === 'true'
+  const filtrados = DECISOES_ROBO
+    .filter((d) => !sigla || d.moedaSigla.toUpperCase() === sigla)
+    .filter((d) => !status || d.status.toUpperCase() === status)
+    .filter((d) => dataInicio === null || utc(d.dataHora) >= dataInicio)
+    .filter((d) => dataFim === null || utc(d.dataHora) <= dataFim)
+    .sort((a, b) => (asc ? 1 : -1) * (utc(a.dataHora) - utc(b.dataHora)))
+  return {
+    mensagem: 'Operação realizada com sucesso',
+    resultado: {
+      totalRegistros: filtrados.length,
+      totalPaginas: Math.ceil(filtrados.length / quantidade),
+      paginaAtual: pagina,
+      registros: filtrados.slice((pagina - 1) * quantidade, pagina * quantidade),
+    },
+  }
 }
 
 // Quem entra no modo demo. Qualquer credencial entra como Minerador, para que
@@ -1638,6 +1689,11 @@ const mockHandlers = [
     method: 'GET',
     match: (endpoint) => endpoint.split('?')[0] === '/api/ZooEstrategia/curva',
     response: (endpoint) => mockZooCurva(endpoint),
+  },
+  {
+    method: 'GET',
+    match: (endpoint) => endpoint.split('?')[0] === '/ThinkBitcoin/historicoDecisoes',
+    response: (endpoint) => mockHistoricoDecisoes(endpoint),
   },
   {
     method: 'GET',

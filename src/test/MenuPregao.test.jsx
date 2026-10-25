@@ -63,11 +63,11 @@ describe('Menu do Pregão no cabeçalho', () => {
     expect(screen.getByRole('button', { name: 'nav.pregaoMenu: nav.pregaoEsperando' })).toBeTruthy()
   })
 
-  it('abre as duas telas: a fila de decisão e a página aberta', async () => {
+  it('abre as três telas de administrador: a fila, a página aberta e o robô ao vivo', async () => {
     renderizar(<Cabecalho />)
     fireEvent.click(screen.getByRole('button', { name: /nav\.pregaoMenu/ }))
     const itens = await screen.findAllByRole('menuitem')
-    expect(itens.map((i) => i.getAttribute('href'))).toEqual(['/pedidos-pregao', '/pregao'])
+    expect(itens.map((i) => i.getAttribute('href'))).toEqual(['/pedidos-pregao', '/pregao', '/robo-ao-vivo'])
   })
 
   it('marca a tela em que se está, no botão e no item', async () => {

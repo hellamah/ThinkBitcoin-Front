@@ -83,7 +83,9 @@
     "pregaoUmEsperando": "1 awaiting decision",
     "pregaoNenhumEsperando": "None awaiting decision",
     "pregaoAberta": "Public page",
-    "pregaoAbertaDica": "What the public sees: the approved requests"
+    "pregaoAbertaDica": "What the public sees: the approved requests",
+    "roboAoVivo": "Live robot",
+    "roboAoVivoDica": "The risk engine deciding on BTC, with play money"
   },
   "dashboard": "Dashboard",
   "sequence": "Return Sequence",
@@ -1069,6 +1071,42 @@
   },
   "dialogo": {
     "generico": "Dialog"
+  },
+  "robo": {
+    "title": "Live robot",
+    "intro": "The risk engine decides once a day on BTC, with 1,000 play-money USDT and no real orders. This page shows what it has done since it replaced the DQN agent and the paper curve of the same rule in the zoo, next to buy & hold.",
+    "atualizar": "Refresh",
+    "estadoTitle": "Today's state",
+    "regra": "The rule: long only when the daily close is above the 50-day average, sized to a 40% volatility target. Below the average, out.",
+    "estado": "Now",
+    "dentro": "In the market",
+    "fora": "Out of the market",
+    "dose": "Rule's exposure (paper curve)",
+    "moeda": "Coin",
+    "desde": "Deciding since",
+    "ultima": "Last trade",
+    "semOperacao": "No trades since activation",
+    "operacoesTitle": "Trades",
+    "operacoesSub": "Every buy, sell and exposure adjustment since activation, with the fee paid (USDT).",
+    "operacoesErro": "Could not load the robot's trades.",
+    "colData": "Date",
+    "colAcao": "Action",
+    "colQuantidade": "Quantity (BTC)",
+    "colPreco": "Price (USDT)",
+    "colValor": "Value (USDT)",
+    "colTaxa": "Fee (USDT)",
+    "acoes": {
+      "Manter": "Hold",
+      "ComprarTudo": "Buy",
+      "ComprarParcial": "Increase exposure",
+      "VenderTudo": "Sell all",
+      "VenderParcial": "Reduce exposure"
+    },
+    "curvaTitle": "The rule on paper vs. buy & hold",
+    "curvaSub": "Since the last close before activation, both starting from zero. It is the reference for the fidelity criterion: the robot should stay close to the rule's curve.",
+    "curvaVazia": "The zoo has no points since activation yet.",
+    "curvaErro": "Could not load the rule's curve.",
+    "curvaResumo": "Rule in the period: {{regra}}; buy & hold: {{bh}}"
   },
   "zoo": {
     "title": "Strategy zoo",

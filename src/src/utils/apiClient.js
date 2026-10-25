@@ -159,6 +159,18 @@ export const ApiEndpoint = Object.freeze({
       return qs ? `/api/ZooEstrategia/curva?${qs}` : '/api/ZooEstrategia/curva'
     },
   }),
+  // Operações do robô ao vivo (TbHistoricoDecisao), da mais recente para a mais
+  // antiga. Cargo AcessoIA; a tela que as usa (/robo-ao-vivo) é de administrador.
+  HISTORICO_DECISAO: Object.freeze({
+    LIST: ({ siglaMoeda, dataInicio, quantidade } = {}) => {
+      const params = new URLSearchParams()
+      if (siglaMoeda) params.set('siglaMoeda', siglaMoeda)
+      if (dataInicio) params.set('dataInicio', dataInicio)
+      if (quantidade != null) params.set('quantidade', String(quantidade))
+      const qs = params.toString()
+      return qs ? `/ThinkBitcoin/historicoDecisoes?${qs}` : '/ThinkBitcoin/historicoDecisoes'
+    },
+  }),
   // Pedidos de alteração da Equipe Pregão (o usuário sintético que usa a
   // plataforma como um day trader). A leitura é do cargo interno (Sistema ou
   // Administrador); a decisão, só do administrador.
@@ -427,6 +439,7 @@ export const AlertaPrecoEndpoint = ApiEndpoint.ALERTA_PRECO
 export const PlanosPagamentoEndpoint = ApiEndpoint.PLANOS_PAGAMENTO
 export const TreinamentoEpisodioEndpoint = ApiEndpoint.TREINAMENTO_EPISODIO
 export const ZooEstrategiaEndpoint = ApiEndpoint.ZOO_ESTRATEGIA
+export const HistoricoDecisaoEndpoint = ApiEndpoint.HISTORICO_DECISAO
 export const PedidoAlteracaoEndpoint = ApiEndpoint.PEDIDO_ALTERACAO
 export const DocumentoLegalEndpoint = ApiEndpoint.DOCUMENTO_LEGAL
 export const ConsentimentoEndpoint = ApiEndpoint.CONSENTIMENTO

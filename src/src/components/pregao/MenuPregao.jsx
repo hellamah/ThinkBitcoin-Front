@@ -6,7 +6,7 @@ import IconButton from '@mui/material/IconButton'
 import Menu from '@mui/material/Menu'
 import MenuItem from '@mui/material/MenuItem'
 import Typography from '@mui/material/Typography'
-import { MdExpandMore, MdFactCheck, MdSmartToy, MdVisibility } from 'react-icons/md'
+import { MdExpandMore, MdFactCheck, MdShowChart, MdSmartToy, MdVisibility } from 'react-icons/md'
 import useTranslation from '../../hooks/useTranslation'
 
 // A entrada do Pregão no cabeçalho, só para administrador: um menu com as duas
@@ -19,6 +19,9 @@ import useTranslation from '../../hooks/useTranslation'
 
 const ROTA_FILA = '/pedidos-pregao'
 const ROTA_ABERTA = '/pregao'
+// O robô ao vivo também é tela de administrador, e este é o menu dele: um
+// terceiro item, em vez de mais um ícone num cabeçalho que já está cheio.
+const ROTA_ROBO = '/robo-ao-vivo'
 
 const textoEsperando = (t, n) => {
   if (n === 0) return t('nav.pregaoNenhumEsperando')
@@ -39,11 +42,12 @@ export default function MenuPregao({ esperando, naBarraDeBaixo = false }) {
 
   const contagem = esperando == null ? null : textoEsperando(t, esperando)
   const rotulo = contagem ? `${t('nav.pregaoMenu')}: ${contagem}` : t('nav.pregaoMenu')
-  const ativo = pathname === ROTA_FILA || pathname === ROTA_ABERTA
+  const ativo = pathname === ROTA_FILA || pathname === ROTA_ABERTA || pathname === ROTA_ROBO
 
   const itens = [
     { to: ROTA_FILA, Icone: MdFactCheck, titulo: t('nav.pregaoDecidir'), detalhe: contagem ?? t('nav.pregaoDecidirDica') },
     { to: ROTA_ABERTA, Icone: MdVisibility, titulo: t('nav.pregaoAberta'), detalhe: t('nav.pregaoAbertaDica') },
+    { to: ROTA_ROBO, Icone: MdShowChart, titulo: t('nav.roboAoVivo'), detalhe: t('nav.roboAoVivoDica') },
   ]
 
   return (
