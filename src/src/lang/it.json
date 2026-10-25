@@ -124,7 +124,7 @@
   "initialInvestment": "Investimento iniziale e piani in USD",
   "maxRiskPerTrade": "Rischio massimo per operazione (%)",
   "preferredCoin": "Criptovaluta preferita",
-  "safetyBalance": "Saldo di sicurezza (USDT)",
+  "safetyBalance": "Saldo di sicurezza (USDT) (Trattenuto)",
   "reviewFrequency": "Frequenza di revisione",
   "daily": "Giornaliera",
   "weekly": "Settimanale",

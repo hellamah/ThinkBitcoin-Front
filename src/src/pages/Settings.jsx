@@ -698,7 +698,7 @@ function Settings() {
               </Grid>
               <Grid size={{ xs: 12, md: 6 }}>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                  {renderField(t('safetyBalance'), (
+                  {renderField(t('safetyBalance'), ( // Clarifica se o saldo é retido ou apenas informativo
                     <Box sx={{ display: 'flex', gap: 1, width: '100%' }}>
                       <TextField
                         type="number"
