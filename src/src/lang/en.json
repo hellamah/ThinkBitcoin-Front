@@ -124,7 +124,7 @@
   "initialInvestment": "Initial Investment and Plans in USD",
   "maxRiskPerTrade": "Max Risk Per Trade (%)",
   "preferredCoin": "Preferred Coin",
-  "safetyBalance": "Safety Balance (USDT)",
+  "safetyBalance": "Safety Balance (USDT) (Retained)",
   "reviewFrequency": "Review Frequency",
   "daily": "Daily",
   "weekly": "Weekly",
