@@ -563,8 +563,9 @@ const criarMockCobranca = (body) => {
 //   · cada treino termina com a avaliação out-of-sample da sessão (validação,
 //     teste, campeão, promoção), em /api/TreinamentoEpisodio/avaliacoes;
 //   · três dias de histórico, para as janelas da análise terem o que mostrar;
-//   · o treino continua depois do load: um episódio a cada 20 s, o que deixa
-//     exercitar o polling, o status ao vivo e a virada de ciclo.
+//   · antes do encerramento (TREINO_ENCERRADO_MS), o treino continuava depois
+//     do load, um episódio a cada 20 s; com o relógio de teste antes dessa
+//     data, ainda dá para exercitar o polling, o status e a virada de ciclo.
 // O calendário dos treinos é contado de uma data fixa, e não do load: o mesmo
 // episódio tem o mesmo id, a mesma hora e os mesmos números em qualquer
 // recarga. Ancorado no load, tudo andava alguns minutos a cada F5, e o link de
@@ -579,6 +580,12 @@ const TREINO_RAJADA_A_CADA = 23
 const TREINO_HISTORICO_MS = 72 * 3600 * 1000
 const TREINO_FUTURO_MS = 24 * 3600 * 1000
 const TREINO_EPOCA = Date.UTC(2026, 0, 1)
+// O treino acabou: o agente foi encerrado em 22/10/2026 (docs/agente-v9.md do
+// Back-Python), e o último episódio do banco é das 12:20 UTC desse dia. O
+// relógio do mock do treino para aí, para o modo demo (o do Trader) mostrar o
+// que o cliente vê no cluster: o treino parado, e não andando na hora do load.
+export const TREINO_ENCERRADO_MS = Date.UTC(2026, 9, 22, 12, 20, 33)
+const treinoAgora = () => Math.min(Date.now(), TREINO_ENCERRADO_MS)
 const TREINO_DURACAO_CICLO_MS = (TREINO_EPISODIOS_POR_CICLO - 1) * TREINO_PASSO_MS
 // As pausas se repetem de quatro em quatro ciclos: um bloco tem duração fixa.
 const TREINO_BLOCO_MS = TREINO_PAUSAS_MIN.reduce((soma, p) => soma + TREINO_DURACAO_CICLO_MS + p * 60 * 1000, 0)
@@ -658,7 +665,7 @@ let treinoCache = null
 const buildTreinoEpisodios = () => {
   if (treinoCache) return treinoCache
   const N = TREINO_EPISODIOS_POR_CICLO
-  const agora = Date.now()
+  const agora = treinoAgora()
   const desde = agora - TREINO_HISTORICO_MS
   const ate = agora + TREINO_FUTURO_MS
   let c = Math.floor((desde - TREINO_EPOCA) / TREINO_BLOCO_MS) * TREINO_PAUSAS_MIN.length
@@ -759,7 +766,7 @@ const treinoInstante = (texto, padrao) => {
 const treinoFiltrar = (q) => {
   const todos = buildTreinoEpisodios()
   const inicio = treinoInstante(q.get('dataInicio'), -Infinity)
-  const fim = Math.min(treinoInstante(q.get('dataFim'), Infinity), Date.now())
+  const fim = Math.min(treinoInstante(q.get('dataFim'), Infinity), treinoAgora())
   let lista = todos.slice(treinoIndiceDepois(todos, inicio, false), treinoIndiceDepois(todos, fim, true))
   const moeda = q.get('moeda')?.toUpperCase()
   const versao = q.get('versaoModelo')?.toUpperCase()
@@ -916,7 +923,7 @@ const treinoAvaliacaoV9 = (c, campeao) => {
 let treinoAvaliacoesCache = null
 const buildTreinoAvaliacoes = () => {
   if (treinoAvaliacoesCache) return treinoAvaliacoesCache
-  const agora = Date.now()
+  const agora = treinoAgora()
   const ate = agora + TREINO_FUTURO_MS
   let c = Math.floor((agora - TREINO_HISTORICO_MS - TREINO_EPOCA) / TREINO_BLOCO_MS) * TREINO_PAUSAS_MIN.length
   const avaliacoes = []
@@ -1006,7 +1013,7 @@ const buildTreinoAvaliacoes = () => {
 const mockTreinoAvaliacoes = (endpoint) => {
   const q = treinoQuery(endpoint)
   const inicio = treinoInstante(q.get('dataInicio'), -Infinity)
-  const fim = Math.min(treinoInstante(q.get('dataFim'), Infinity), Date.now())
+  const fim = Math.min(treinoInstante(q.get('dataFim'), Infinity), treinoAgora())
   const versao = q.get('versaoModelo')?.toUpperCase()
   const quantidade = Math.min(1000, Math.max(1, parseInt(q.get('quantidade'), 10) || 200))
   const resultado = buildTreinoAvaliacoes()
@@ -1034,7 +1041,7 @@ const mockTreinoFiltros = () => {
     }
   }
   const atual = eps[eps.length - 1]?.versaoModelo ?? null
-  const agora = Date.now()
+  const agora = treinoAgora()
   // O _melhor da v9 não opera ao vivo: só o critério do v8 decide o "ao vivo".
   const aoVivo = buildTreinoAvaliacoes()
     .filter((a) => a._ms <= agora && a.promovido && a.criterio === 'mediana-vs-passivo-validacao')

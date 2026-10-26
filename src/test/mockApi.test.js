@@ -9,7 +9,7 @@
  * - Normalização de método (case-insensitive)
  */
 import { describe, expect, it, vi } from 'vitest'
-import { getMockResponse } from '../src/utils/mockApi'
+import { getMockResponse, TREINO_ENCERRADO_MS } from '../src/utils/mockApi'
 
 describe('utils/mockApi › getMockResponse', () => {
   describe('Autenticação', () => {
@@ -513,8 +513,10 @@ describe('utils/mockApi › getMockResponse', () => {
     const HORA = 3600 * 1000
     const listar = (params, mock = getMockResponse) =>
       mock({ endpoint: `/api/TreinamentoEpisodio?${new URLSearchParams(params)}`, method: 'GET' }).resultado
+    // O treino do mock para no encerramento do agente (22/10/2026): as 24h
+    // são as que terminam ali, ou no relógio, se ele vier antes.
     const ultimas24h = (mock) => {
-      const agora = Date.now()
+      const agora = Math.min(Date.now(), TREINO_ENCERRADO_MS)
       return listar({
         dataInicio: new Date(agora - 24 * HORA).toISOString(),
         dataFim: new Date(agora).toISOString(),
@@ -589,6 +591,24 @@ describe('utils/mockApi › getMockResponse', () => {
           method: 'GET',
         }).resultado
         expect(lista.find((r) => r.idTreinamentoEpisodio === antes.idTreinamentoEpisodio)).toEqual(antes)
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    // O agente foi encerrado em 22/10/2026: depois disso o treino não anda, e o
+    // modo demo mostra o que o cliente vê no cluster, o último episódio de lá.
+    it('o treino para no encerramento do agente, com o relógio depois dele', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] })
+      try {
+        vi.setSystemTime(new Date('2026-10-26T18:00:00Z'))
+        vi.resetModules()
+        const { getMockResponse: mockDepois } = await import('../src/utils/mockApi')
+        const [ultimo] = listar({ quantidade: 1, ordenarAscendente: false }, mockDepois).lista
+        expect(ms(ultimo)).toBeLessThanOrEqual(TREINO_ENCERRADO_MS)
+        expect(ms(ultimo)).toBeGreaterThan(TREINO_ENCERRADO_MS - 15 * 60 * 1000)
+        const { resultado: avaliacoes } = mockDepois({ endpoint: '/api/TreinamentoEpisodio/avaliacoes', method: 'GET' })
+        expect(ms(avaliacoes[0])).toBeLessThanOrEqual(TREINO_ENCERRADO_MS)
       } finally {
         vi.useRealTimers()
       }

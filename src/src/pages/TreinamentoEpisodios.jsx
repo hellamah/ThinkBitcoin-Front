@@ -5,7 +5,8 @@ import CircularProgress from '@mui/material/CircularProgress'
 import LinearProgress from '@mui/material/LinearProgress'
 import Tab from '@mui/material/Tab'
 import Tabs from '@mui/material/Tabs'
-import { MdFactCheck, MdQueryStats, MdSensors } from 'react-icons/md'
+import Typography from '@mui/material/Typography'
+import { MdFactCheck, MdInfoOutline, MdQueryStats, MdSensors } from 'react-icons/md'
 import ErrorMessage from '../components/ErrorMessage'
 import AbaAnalise from '../components/treinamento/AbaAnalise'
 import AbaAoVivo from '../components/treinamento/AbaAoVivo'
@@ -233,7 +234,23 @@ export default function TreinamentoEpisodios() {
           onAtualizar={atualizar}
         />
 
-        {dados.erro && <ErrorMessage message={dados.erro.message || t('treinamento.loadError')} />}
+        {/* O agente foi encerrado em 22/10/2026 (docs/agente-v9.md do
+            Back-Python), e desde 23/10 quem decide ao vivo é o motor de risco.
+            A tela continua, como histórico: sem este aviso, ela dizia a quem
+            paga que uma IA encerrada treinava e decidia ao vivo. */}
+        <Box
+          role="note"
+          data-testid="treino-encerrado"
+          sx={{
+            display: 'flex', alignItems: 'flex-start', gap: 1, px: 1.5, py: 1, mb: 2,
+            border: '1px solid var(--border-strong)', background: 'var(--surface-fill)', borderRadius: 1,
+          }}
+        >
+          <MdInfoOutline aria-hidden="true" style={{ color: 'var(--accent-ink)', fontSize: '1.25rem', flexShrink: 0, marginTop: 2 }} />
+          <Typography variant="body2" sx={{ color: 'var(--text-secondary)' }}>{t('treinamento.encerrado')}</Typography>
+        </Box>
+
+        {dados.erro &&<ErrorMessage message={dados.erro.message || t('treinamento.loadError')} />}
 
         <Filtros
           moedas={moedasDisponiveis}
