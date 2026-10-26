@@ -74,6 +74,18 @@ describe('Robô ao vivo', () => {
     expect(screen.getByTestId('robo-retornos').textContent).toMatch(/-0[.,]1\d%/)
   })
 
+  // Em 26/10/2026 a rota das operações falhava (500 da API), e o estado de hoje
+  // dizia "nenhuma operação desde a ativação", com o fechamento de 24/10 no banco.
+  it('a falha das operações não diz que não houve operação', async () => {
+    apiRequest.mockImplementation(async (endpoint) => {
+      if (endpoint.startsWith('/ThinkBitcoin/historicoDecisoes')) throw new Error('fora do ar')
+      return { resultado: [curva('media_50d_vol_alvo_40', [16.22, 16.2], [1, 0])] }
+    })
+    renderizar()
+    expect(await screen.findByText('robo.operacoesErro')).toBeTruthy()
+    expect(screen.queryByText('robo.semOperacao')).toBeNull()
+  })
+
   it('a falha da curva não esconde as operações', async () => {
     apiRequest.mockImplementation(async (endpoint) => {
       if (endpoint.startsWith('/ThinkBitcoin/historicoDecisoes')) {

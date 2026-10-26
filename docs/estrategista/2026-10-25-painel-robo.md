@@ -45,3 +45,13 @@ Duas escolhas de desenho:
 ## Outros PRs da mesma proposta
 
 Nenhum. É um PR só, no front.
+
+## Correção de 26/10/2026, depois de conferir no navegador do cluster
+
+- **A lista de operações não carregava** ("Não foi possível carregar as operações do robô.").
+  - A rota `historicoDecisoes` respondia 500, porque a função dela nunca entrou na lista de injeção da API.
+  - A correção está no Back-DotNet, commit 390b5035.
+  - Os testes desta tela imitavam a API e não pegaram isso.
+- **O estado de hoje dizia "Nenhuma operação desde a ativação" quando a busca falhava,** com o fechamento de 24/10 no banco.
+  - Agora, sem a lista, a linha mostra "–".
+  - O teste "a falha das operações não diz que não houve operação", em `test/RoboAoVivo.test.jsx`, falha com a página anterior e passa com a nova.

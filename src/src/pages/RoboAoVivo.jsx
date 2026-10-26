@@ -76,7 +76,12 @@ function nomeDaAcao(t, acao) {
   return chave ? t(chave) : (acao || '–')
 }
 
-function EstadoDeHoje({ estado, dose, ultima, carregando }) {
+// `operacoes`: undefined enquanto carrega ou quando a busca falhou. Só uma
+// lista vazia diz "nenhuma operação"; sem lista, não se sabe, e a linha mostra
+// "–" (em 26/10/2026 a rota falhava e a tela dizia que não houve operação,
+// com o fechamento de 24/10 no banco).
+function EstadoDeHoje({ estado, dose, operacoes, carregando }) {
+  const ultima = operacoes?.[0]
   const { t, idioma } = useTranslation()
   const texto = estado === 'dentro' ? t('robo.dentro') : estado === 'fora' ? t('robo.fora') : '–'
   return (
@@ -92,7 +97,9 @@ function EstadoDeHoje({ estado, dose, ultima, carregando }) {
           <Linha rotulo={t('robo.moeda')}>{MOEDA_MOTOR}</Linha>
           <Linha rotulo={t('robo.desde')}>{formatarInstante(ATIVACAO_MOTOR, idioma.intl)}</Linha>
           <Linha rotulo={t('robo.ultima')}>
-            {ultima ? `${nomeDaAcao(t, ultima.acao)} · ${formatarInstante(ultima.dataHora, idioma.intl)}` : t('robo.semOperacao')}
+            {ultima
+              ? `${nomeDaAcao(t, ultima.acao)} · ${formatarInstante(ultima.dataHora, idioma.intl)}`
+              : Array.isArray(operacoes) ? t('robo.semOperacao') : '–'}
           </Linha>
         </Box>
       )}
@@ -242,7 +249,7 @@ export default function RoboAoVivo() {
           </Button>
         </Box>
         <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: 'minmax(280px, 1fr) 2fr' }, alignItems: 'start' }}>
-          <EstadoDeHoje estado={hoje.estado} dose={hoje.dose} ultima={operacoes?.[0]} carregando={carregando} />
+          <EstadoDeHoje estado={hoje.estado} dose={hoje.dose} operacoes={operacoes} carregando={carregando} />
           <CurvaDaRegra curvas={curvas} erro={erroCurva} />
         </Box>
         <TabelaDeOperacoes operacoes={operacoes} erro={erroOperacoes} />
