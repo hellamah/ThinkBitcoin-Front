@@ -106,6 +106,12 @@ describe('utils/mockApi › getMockResponse', () => {
 
     // Trava a lista ao endpoint de valor: os dois já foram listas separadas, e
     // acrescentar moeda só numa delas a deixava sem série própria.
+    //
+    // É o primeiro teste a pedir o valor de cada moeda, e paga a montagem do
+    // histórico de todas no mock: cerca de 1,4 s numa máquina de desenvolvimento,
+    // de 2,1 a 3,7 s no agente de build. Em 26/10/2026, com o agente mais lento
+    // (a suíte inteira levou 65 s, contra uns 40), ele passou dos 5 s padrão e
+    // derrubou os builds 8614 e 8616 da imagem. O limite próprio é de 20 s.
     it('entrega série de valor para toda moeda listada', () => {
       listar().forEach((m) => {
         const resp = getMockResponse({
@@ -115,7 +121,7 @@ describe('utils/mockApi › getMockResponse', () => {
 
         expect(resp?.resultado?.registros?.length).toBeGreaterThan(0)
       })
-    })
+    }, 20000)
 
     // O fallback de 100 do gerador é o sintoma de uma moeda sem valor-base.
     // Com dez moedas caindo nele, todas abririam no mesmo preço.
