@@ -231,9 +231,9 @@ export default function HeatmapInsights({ trend, fear, t, locale }) {
             cor={corFearGreed(fearValor)}
           />
           {formatarContagem(segundosRestantes) && (
-            <Typography sx={{ fontSize: '0.68rem', color: 'var(--text-faint)', fontFamily: 'Share Tech Mono, monospace', alignSelf: 'flex-end' }}>
+            <Box sx={{ fontSize: '0.68rem', color: 'var(--text-faint)', fontFamily: 'Share Tech Mono, monospace', alignSelf: 'flex-end' }}>
               ⏳ {t('heatmap.proximaAtualizacao')} {formatarContagem(segundosRestantes)}
-            </Typography>
+            </Box>
           )}
         </Box>
       )}
