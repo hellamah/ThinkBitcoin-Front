@@ -45,7 +45,7 @@ export default function TabelaEpisodios({ itens, janela, onAbrir }) {
     { id: 'rewardMedio', rotulo: t('treinamento.colRewardAvg'), numerica: true },
     { id: 'rewardTotal', rotulo: t('treinamento.colRewardTotal'), numerica: true },
     { id: 'lossMedia', rotulo: t('treinamento.colLossAvg'), numerica: true },
-    { id: 'epsilon', rotulo: t('treinamento.colEpsilon'), numerica: true },
+    { id: 'epsilon', rotulo: t('treinamento.colEpsilon'), numerica: true, dica: t('treinamento.epsilonHint') },
     { id: 'acertoTrades', rotulo: t('treinamento.colTradeWinRate'), numerica: true, dica: t('treinamento.tradeWinRateHint') },
     { id: 'duracaoSegundos', rotulo: t('treinamento.colDuration'), numerica: true },
   ], [t])
