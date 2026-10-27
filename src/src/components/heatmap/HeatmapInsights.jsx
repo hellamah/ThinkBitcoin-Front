@@ -177,7 +177,8 @@ export default function HeatmapInsights({ trend, fear, t, locale }) {
           {valorAtual !== null && (
             <StatChip
               label={t('heatmap.interesseAtual')}
-              value={`${valorAtual}/100`}
+              // Garante que o denominador da escala seja sempre 100
+              value={`${valorAtual.toString().split('/')[0]}/100`}
               hint={mediaPeriodo !== null ? `${t('heatmap.mediaPeriodo')}: ${mediaPeriodo.toFixed(1)}` : undefined}
             />
           )}
