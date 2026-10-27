@@ -288,9 +288,9 @@ export default function DetalheEpisodio({ item, allItems, carregando, garantirPe
 
   const timeline = useMemo(() => ordenarPorData(allItems || []), [allItems])
   const daMoeda = useMemo(() => timeline.filter((r) => r.moeda === item.moeda), [timeline, item.moeda])
-  const idx = daMoeda.findIndex((r) => r.idTreinamentoEpisodio === item.idTreinamentoEpisodio)
-  const anterior = idx > 0 ? daMoeda[idx - 1] : null
-  const proximo = idx >= 0 && idx < daMoeda.length - 1 ? daMoeda[idx + 1] : null
+  const idx = timeline.findIndex((r) => r.idTreinamentoEpisodio === item.idTreinamentoEpisodio)
+  const anterior = idx > 0 ? timeline[idx - 1] : null
+  const proximo = idx >= 0 && idx < timeline.length - 1 ? timeline[idx + 1] : null
 
   const ciclo = useMemo(() => cicloDoEpisodio(timeline, item.idTreinamentoEpisodio), [timeline, item.idTreinamentoEpisodio])
 
