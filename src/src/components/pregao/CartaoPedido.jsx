@@ -15,11 +15,13 @@ import {
   conferirMotivo,
   correcaoDoPedido,
   podeDecidir,
+  podeDescartar,
 } from '../../utils/pedidoAlteracao'
 
 // Um pedido de alteração do Pregão na tela do administrador: o essencial para
 // decidir (CartaoBase) e os botões. Aprovar vai direto; descartar abre o campo
-// do motivo, que é obrigatório.
+// do motivo, que é obrigatório. Na nova tentativa, só descartar: quem corrige já
+// vai tentar de novo sozinho.
 
 const estiloDoBotao = { textTransform: 'none', fontWeight: 600 }
 
@@ -31,6 +33,7 @@ export default function CartaoPedido({ pedido, onDecidir }) {
   const [erro, setErro] = useState('')
 
   const decidivel = podeDecidir(pedido)
+  const descartavel = podeDescartar(pedido)
   const motivoValido = !conferirMotivo(DECISOES.DESCARTADO, motivo).erro
 
   const enviar = async (decisao) => {
@@ -78,6 +81,12 @@ export default function CartaoPedido({ pedido, onDecidir }) {
           {t('pregao.devolvidoDica')}
         </Typography>
       )}
+      {/* A falha foi de quem corrige: o motivo, com o número da tentativa, vem logo abaixo. */}
+      {pedido.status === STATUS.NOVA_TENTATIVA && (
+        <Typography variant="caption" component="p" sx={{ color: 'var(--text-muted)' }}>
+          {t('pregao.novaTentativaDica')}
+        </Typography>
+      )}
 
       {decisao && (
         <Typography variant="caption" component="p" sx={{ color: 'var(--text-muted)' }}>
@@ -103,18 +112,20 @@ export default function CartaoPedido({ pedido, onDecidir }) {
         </Typography>
       )}
 
-      {decidivel && !descartando && (
+      {descartavel && !descartando && (
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 0.5 }}>
-          <Button
-            variant="contained"
-            size="small"
-            startIcon={<MdCheck />}
-            disabled={enviando}
-            onClick={() => enviar(DECISOES.APROVADO)}
-            sx={estiloDoBotao}
-          >
-            {enviando ? t('pregao.enviando') : t('pregao.aprovar')}
-          </Button>
+          {decidivel && (
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<MdCheck />}
+              disabled={enviando}
+              onClick={() => enviar(DECISOES.APROVADO)}
+              sx={estiloDoBotao}
+            >
+              {enviando ? t('pregao.enviando') : t('pregao.aprovar')}
+            </Button>
+          )}
           <Button
             variant="outlined"
             size="small"
@@ -128,7 +139,7 @@ export default function CartaoPedido({ pedido, onDecidir }) {
         </Box>
       )}
 
-      {decidivel && descartando && (
+      {descartavel && descartando && (
         <Box
           component="form"
           noValidate

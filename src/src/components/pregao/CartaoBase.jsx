@@ -25,6 +25,7 @@ const COR_DO_STATUS = Object.freeze({
   [STATUS.EM_CORRECAO]: 'var(--success-ink)',
   [STATUS.CORRIGIDO]: 'var(--success-ink)',
   [STATUS.DEVOLVIDO]: 'var(--perf-warn)',
+  [STATUS.NOVA_TENTATIVA]: 'var(--accent-ink)',
   [STATUS.VALIDADO]: 'var(--success-ink)',
   [STATUS.DESCARTADO]: 'var(--text-muted)',
 })

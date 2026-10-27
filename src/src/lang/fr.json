@@ -1200,6 +1200,7 @@
     "filtros": {
       "esperando": "En attente de décision",
       "aprovado": "Approuvées",
+      "nova-tentativa": "Nouvel essai",
       "em-correcao": "En correction",
       "corrigido": "Corrigées",
       "validado": "Validées",
@@ -1219,6 +1220,7 @@
       "em-correcao": "En correction",
       "corrigido": "Corrigée",
       "devolvido": "Renvoyée",
+      "nova-tentativa": "Nouvel essai",
       "validado": "Validée",
       "reaberto": "Rouverte"
     },
@@ -1231,6 +1233,7 @@
     "ultimaVez": "vue pour la dernière fois le {{data}}",
     "reabertoDica": "Réapparue après avoir été marquée comme corrigée.",
     "devolvidoDica": "Le correcteur n’a pas réussi et a renvoyé la demande : lisez le motif, puis approuvez-la à nouveau pour un autre essai, ou écartez-la.",
+    "novaTentativaDica": "Le correcteur n’a pas réussi cette fois, par sa propre faute, et réessaiera seul à la prochaine exécution : inutile d’approuver. Si la demande ne vaut plus, écartez-la.",
     "decididoPor": "Décidé par {{quem}}",
     "motivoDecisao": "Motif : {{motivo}}",
     "correcao": "Correction :",
@@ -1265,6 +1268,7 @@
     "homeLink": "Voir les demandes approuvées",
     "statusExplicado": {
       "aprovado": "Approuvée par un administrateur ; en attente de correction.",
+      "nova-tentativa": "Approuvée ; le correcteur n’a pas réussi la dernière fois et va réessayer.",
       "em-correcao": "La correction est en cours.",
       "corrigido": "Corrigée ; le Pregão vérifie si le problème a disparu.",
       "validado": "Le Pregão a confirmé : le problème n’est pas revenu."
@@ -1276,6 +1280,7 @@
       "em-correcao": "Le correcteur a commencé la correction",
       "corrigido": "Le correcteur a livré la correction",
       "devolvido": "Le correcteur n’a pas réussi et a renvoyé la demande à un administrateur",
+      "nova-tentativa": "Le correcteur n’a pas réussi cette fois et va réessayer",
       "validado": "L’Équipe Pregão a vérifié : le problème n’est pas revenu"
     }
   }

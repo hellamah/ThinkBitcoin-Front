@@ -60,9 +60,10 @@ describe('Página aberta dos pedidos do Pregão', () => {
     renderizar()
     expect(await screen.findByText('Problema corrigido')).toBeTruthy()
     expect(screen.getByText('Problema aprovado')).toBeTruthy()
-    // Todos, aprovado, em correção, corrigido e validado: sem esperando decisão nem descartado.
+    // Todos, aprovado, nova tentativa, em correção, corrigido e validado: sem esperando
+    // decisão nem descartado.
     const filtros = screen.getByRole('group', { name: 'pregao.filtroRotulo' })
-    expect(filtros.querySelectorAll('[aria-pressed]')).toHaveLength(5)
+    expect(filtros.querySelectorAll('[aria-pressed]')).toHaveLength(6)
   })
 
   it('não mostra pedido sem revisão, mesmo que a API o devolva', async () => {

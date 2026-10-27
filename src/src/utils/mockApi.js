@@ -6,7 +6,7 @@ import { CURVAS_ZOO_RECENTES, DECISOES_ROBO } from './mockRoboAoVivo'
 import { CURVAS_ZOO_JANELA, RODADA_ZOO_JANELA } from './mockZooJanelaAgente'
 import { AuthRole, decodeAuthenticationToken, temCargo } from './authentication'
 import { getStoredToken } from './preferences'
-import { AGUARDANDO_DECISAO, DECISOES, STATUS, STATUS_PUBLICOS, TAMANHO_MOTIVO } from './pedidoAlteracao'
+import { AGUARDANDO_DECISAO, DECISOES, DESCARTAVEIS, STATUS, STATUS_PUBLICOS, TAMANHO_MOTIVO } from './pedidoAlteracao'
 
 // As preferências do modo demo vivem no localStorage: sem isso o GET devolve
 // sempre o mesmo objeto fixo e qualquer alteração do usuário (tema, idioma…)
@@ -1629,7 +1629,10 @@ const mockDecidirPedido = (endpoint, body) => {
 
   const pedido = mockPedidos.find((p) => p.idPedidoAlteracao === id)
   if (!pedido) erroDoPedido('Pedido não encontrado.')
-  if (!AGUARDANDO_DECISAO.includes(pedido.status)) {
+  // A nova tentativa só se descarta, como no backend (StatusPedidoAlteracao.Descartaveis).
+  const decidivel = AGUARDANDO_DECISAO.includes(pedido.status)
+    || (decisao === DECISOES.DESCARTADO && DESCARTAVEIS.includes(pedido.status))
+  if (!decidivel) {
     erroDoPedido(`O pedido está ${pedido.status}: só se decide um pedido ${AGUARDANDO_DECISAO.join(' ou ')}.`)
   }
 

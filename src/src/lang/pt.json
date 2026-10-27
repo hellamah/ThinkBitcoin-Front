@@ -1200,6 +1200,7 @@
     "filtros": {
       "esperando": "Esperando decisão",
       "aprovado": "Aprovados",
+      "nova-tentativa": "Nova tentativa",
       "em-correcao": "Em correção",
       "corrigido": "Corrigidos",
       "validado": "Validados",
@@ -1219,6 +1220,7 @@
       "em-correcao": "Em correção",
       "corrigido": "Corrigido",
       "devolvido": "Devolvido",
+      "nova-tentativa": "Nova tentativa",
       "validado": "Validado",
       "reaberto": "Reaberto"
     },
@@ -1231,6 +1233,7 @@
     "ultimaVez": "última vez em {{data}}",
     "reabertoDica": "Voltou a aparecer depois de dado como corrigido.",
     "devolvidoDica": "Quem corrige não conseguiu e devolveu o pedido: leia o motivo e aprove de novo para outra tentativa, ou descarte.",
+    "novaTentativaDica": "Quem corrige não conseguiu desta vez, por uma falha dele, e tenta de novo sozinho na próxima execução: não precisa aprovar. Se o pedido não vale mais, descarte.",
     "decididoPor": "Decidido por {{quem}}",
     "motivoDecisao": "Motivo: {{motivo}}",
     "correcao": "Correção:",
@@ -1265,6 +1268,7 @@
     "homeLink": "Ver os pedidos aprovados",
     "statusExplicado": {
       "aprovado": "Aprovado por um administrador; espera a correção.",
+      "nova-tentativa": "Aprovado; quem corrige não conseguiu na última vez e vai tentar de novo.",
       "em-correcao": "A correção está sendo feita.",
       "corrigido": "Corrigido; o Pregão está conferindo se o problema sumiu.",
       "validado": "O Pregão confirmou: o problema não voltou."
@@ -1276,6 +1280,7 @@
       "em-correcao": "Quem corrige começou a correção",
       "corrigido": "Quem corrige entregou a correção",
       "devolvido": "Quem corrige não conseguiu e devolveu o pedido ao administrador",
+      "nova-tentativa": "Quem corrige não conseguiu desta vez e vai tentar de novo",
       "validado": "A Equipe Pregão conferiu: o problema não voltou"
     }
   }

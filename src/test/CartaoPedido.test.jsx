@@ -120,6 +120,24 @@ describe('Cartão do pedido do Pregão', () => {
     expect(botao('pregao.descartar')).toBeTruthy()
   })
 
+  it('em nova tentativa, a Oficina tenta de novo sozinha: só descartar, sem aprovar', async () => {
+    // 27/10/2026: a falha foi de quem corrige, e aprovar de novo era só um clique para repetir.
+    const { onDecidir } = renderizar({
+      ...PEDIDO,
+      status: 'nova-tentativa',
+      decididoPor: 'agents-oficina@thinkbitcoin.local',
+      motivoDecisao: 'Tentativa 1 de 3: A troca do modelo não encaixou no código (src/src/lang/pt.json).',
+    })
+    expect(screen.getByText('pregao.novaTentativaDica')).toBeTruthy()
+    expect(screen.getByText(/pregao\.motivoDecisao/)).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'pregao.aprovar' })).toBeNull()
+
+    fireEvent.click(botao('pregao.descartar'))
+    fireEvent.change(screen.getByRole('textbox', { name: /pregao.motivoRotulo/ }), { target: { value: 'agora não' } })
+    fireEvent.click(botao('pregao.confirmarDescarte'))
+    await waitFor(() => expect(onDecidir).toHaveBeenCalledWith('descartado', 'agora não'))
+  })
+
   it('em correção, o link do PR abre em outra aba', () => {
     const pr = 'https://dev.azure.com/helamaborges/ThinkBitcoin/_git/ThinkBitcoin-Front/pullrequest/41'
     renderizar({ ...PEDIDO, status: 'em-correcao', decididoPor: 'admin@teste.local', referenciaCorrecao: pr })

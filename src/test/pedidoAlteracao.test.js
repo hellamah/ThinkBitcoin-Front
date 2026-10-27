@@ -18,6 +18,7 @@ import {
   frequenciaDoPedido,
   pedidosDoFiltro,
   podeDecidir,
+  podeDescartar,
   rotuloOuCru,
 } from '../src/utils/pedidoAlteracao'
 
@@ -64,7 +65,8 @@ describe('pregão › filtros', () => {
 
   it('conta os pedidos de cada filtro', () => {
     expect(contagemPorFiltro(LISTA)).toEqual({
-      esperando: 2, aprovado: 1, 'em-correcao': 0, corrigido: 0, validado: 0, descartado: 1, todos: 4,
+      esperando: 2, aprovado: 1, 'nova-tentativa': 0, 'em-correcao': 0, corrigido: 0, validado: 0, descartado: 1,
+      todos: 4,
     })
   })
 
@@ -87,12 +89,26 @@ describe('pregão › filtros', () => {
     expect(autorDaAcao(STATUS.DEVOLVIDO)).toBe('correcao')
     expect(rotuloOuCru(t, 'pregao.status.devolvido', 'devolvido')).toBe('Devolvido')
   })
+
+  it('a nova tentativa fica fora da fila do administrador, que só a descarta', () => {
+    // A falha foi de quem corrige, que tenta de novo sozinho (27/10/2026).
+    const lista = [...LISTA, pedido(STATUS.NOVA_TENTATIVA)]
+    expect(pedidosDoFiltro(lista, 'esperando').map((p) => p.status)).not.toContain(STATUS.NOVA_TENTATIVA)
+    expect(pedidosDoFiltro(lista, 'nova-tentativa').map((p) => p.status)).toEqual([STATUS.NOVA_TENTATIVA])
+    expect(podeDecidir(pedido(STATUS.NOVA_TENTATIVA))).toBe(false)
+    expect(podeDescartar(pedido(STATUS.NOVA_TENTATIVA))).toBe(true)
+    expect(podeDescartar(pedido(STATUS.DEVOLVIDO))).toBe(true)
+    expect(podeDescartar(pedido(STATUS.EM_CORRECAO))).toBe(false)
+    expect(autorDaAcao(STATUS.NOVA_TENTATIVA)).toBe('correcao')
+    expect(rotuloOuCru(t, 'pregao.status.nova-tentativa', 'nova-tentativa')).toBe('Nova tentativa')
+  })
 })
 
 describe('pregão › página aberta', () => {
   it('os filtros abertos são só do que um administrador aprovou, e o padrão é ver tudo', () => {
-    expect(STATUS_PUBLICOS).toEqual(['aprovado', 'em-correcao', 'corrigido', 'validado'])
-    expect(FILTROS_PUBLICOS.map((f) => f.id)).toEqual(['todos', 'aprovado', 'em-correcao', 'corrigido', 'validado'])
+    expect(STATUS_PUBLICOS).toEqual(['aprovado', 'nova-tentativa', 'em-correcao', 'corrigido', 'validado'])
+    expect(FILTROS_PUBLICOS.map((f) => f.id))
+      .toEqual(['todos', 'aprovado', 'nova-tentativa', 'em-correcao', 'corrigido', 'validado'])
     expect(FILTRO_PADRAO_PUBLICO).toBe('todos')
     expect(filtroDaUrl(null, FILTROS_PUBLICOS, FILTRO_PADRAO_PUBLICO)).toBe('todos')
     // Esperando decisão e descartado não são filtros da página aberta: caem no padrão.
@@ -101,7 +117,7 @@ describe('pregão › página aberta', () => {
     expect(filtroDaUrl('aprovado', FILTROS_PUBLICOS, FILTRO_PADRAO_PUBLICO)).toBe('aprovado')
     const publicos = [pedido(STATUS.APROVADO), pedido(STATUS.CORRIGIDO), pedido(STATUS.VALIDADO), pedido(STATUS.APROVADO)]
     expect(contagemPorFiltro(publicos, FILTROS_PUBLICOS)).toEqual({
-      todos: 4, aprovado: 2, 'em-correcao': 0, corrigido: 1, validado: 1,
+      todos: 4, aprovado: 2, 'nova-tentativa': 0, 'em-correcao': 0, corrigido: 1, validado: 1,
     })
   })
 

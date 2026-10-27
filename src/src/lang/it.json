@@ -1200,6 +1200,7 @@
     "filtros": {
       "esperando": "In attesa di decisione",
       "aprovado": "Approvate",
+      "nova-tentativa": "Nuovo tentativo",
       "em-correcao": "In correzione",
       "corrigido": "Corrette",
       "validado": "Convalidate",
@@ -1219,6 +1220,7 @@
       "em-correcao": "In correzione",
       "corrigido": "Corretta",
       "devolvido": "Restituita",
+      "nova-tentativa": "Nuovo tentativo",
       "validado": "Convalidata",
       "reaberto": "Riaperta"
     },
@@ -1231,6 +1233,7 @@
     "ultimaVez": "vista l'ultima volta il {{data}}",
     "reabertoDica": "È ricomparsa dopo essere stata segnata come corretta.",
     "devolvidoDica": "Chi corregge non ci è riuscito e ha restituito la richiesta: leggi il motivo e approvala di nuovo per un altro tentativo, oppure scartala.",
+    "novaTentativaDica": "Chi corregge non ci è riuscito questa volta, per un errore suo, e riproverà da solo alla prossima esecuzione: non serve approvare. Se la richiesta non vale più, scartala.",
     "decididoPor": "Deciso da {{quem}}",
     "motivoDecisao": "Motivo: {{motivo}}",
     "correcao": "Correzione:",
@@ -1265,6 +1268,7 @@
     "homeLink": "Vedi le richieste approvate",
     "statusExplicado": {
       "aprovado": "Approvata da un amministratore; in attesa di correzione.",
+      "nova-tentativa": "Approvata; chi corregge non ci è riuscito l’ultima volta e riproverà.",
       "em-correcao": "La correzione è in corso.",
       "corrigido": "Corretta; il Pregão sta verificando se il problema è sparito.",
       "validado": "Il Pregão ha confermato: il problema non è tornato."
@@ -1276,6 +1280,7 @@
       "em-correcao": "Chi corregge ha iniziato la correzione",
       "corrigido": "Chi corregge ha consegnato la correzione",
       "devolvido": "Chi corregge non ci è riuscito e ha restituito la richiesta a un amministratore",
+      "nova-tentativa": "Chi corregge non ci è riuscito questa volta e riproverà",
       "validado": "Il Team Pregão ha verificato: il problema non è tornato"
     }
   }

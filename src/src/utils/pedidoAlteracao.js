@@ -13,6 +13,7 @@ export const STATUS = Object.freeze({
   EM_CORRECAO: 'em-correcao',
   CORRIGIDO: 'corrigido',
   DEVOLVIDO: 'devolvido',
+  NOVA_TENTATIVA: 'nova-tentativa',
   VALIDADO: 'validado',
   REABERTO: 'reaberto',
 })
@@ -21,6 +22,11 @@ export const STATUS = Object.freeze({
 // O devolvido é o que quem corrige não conseguiu corrigir (17/10/2026): volta com o
 // motivo, e aprovar de novo é pedir outra tentativa.
 export const AGUARDANDO_DECISAO = Object.freeze([STATUS.ABERTO, STATUS.REABERTO, STATUS.DEVOLVIDO])
+
+// A nova tentativa (27/10/2026) é a falha de quem corrige, não uma decisão: ele
+// tenta de novo sozinho, sem esperar aprovação. O administrador só a descarta,
+// se o pedido não vale mais (StatusPedidoAlteracao.Descartaveis do backend).
+export const DESCARTAVEIS = Object.freeze([...AGUARDANDO_DECISAO, STATUS.NOVA_TENTATIVA])
 
 export const DECISOES = Object.freeze({ APROVADO: STATUS.APROVADO, DESCARTADO: STATUS.DESCARTADO })
 
@@ -32,6 +38,7 @@ export const TAMANHO_MOTIVO = 500
 export const FILTROS = Object.freeze([
   { id: 'esperando', status: AGUARDANDO_DECISAO },
   { id: STATUS.APROVADO, status: [STATUS.APROVADO] },
+  { id: STATUS.NOVA_TENTATIVA, status: [STATUS.NOVA_TENTATIVA] },
   { id: STATUS.EM_CORRECAO, status: [STATUS.EM_CORRECAO] },
   { id: STATUS.CORRIGIDO, status: [STATUS.CORRIGIDO] },
   { id: STATUS.VALIDADO, status: [STATUS.VALIDADO] },
@@ -44,8 +51,10 @@ export const FILTRO_PADRAO = 'esperando'
 // O que a página aberta (/pregao) mostra: só o que um administrador aprovou, e
 // o caminho até a correção. Esperando decisão (aberto, reaberto) e descartado
 // nunca saem dali — a API pública nem os traz: nenhum pedido do Pregão chega ao
-// público sem revisão.
-export const STATUS_PUBLICOS = Object.freeze([STATUS.APROVADO, STATUS.EM_CORRECAO, STATUS.CORRIGIDO, STATUS.VALIDADO])
+// público sem revisão. A nova tentativa continua aprovada: quem corrige tenta de novo.
+export const STATUS_PUBLICOS = Object.freeze([
+  STATUS.APROVADO, STATUS.NOVA_TENTATIVA, STATUS.EM_CORRECAO, STATUS.CORRIGIDO, STATUS.VALIDADO,
+])
 
 // Os filtros da página aberta, um por status público. O padrão é ver tudo —
 // quem chega de fora quer o quadro inteiro, e não a fila de trabalho do
@@ -79,6 +88,9 @@ export const contagemPorFiltro = (pedidos, filtros = FILTROS) =>
 
 /** Se o pedido ainda aceita aprovar ou descartar. */
 export const podeDecidir = (pedido) => AGUARDANDO_DECISAO.includes(pedido?.status)
+
+/** Se o pedido aceita descartar: os que esperam decisão e a nova tentativa. */
+export const podeDescartar = (pedido) => DESCARTAVEIS.includes(pedido?.status)
 
 /**
  * O motivo que vai para a API, ou a chave do texto que explica por que ele não
@@ -128,6 +140,7 @@ const AUTOR_DA_ACAO = Object.freeze({
   [STATUS.EM_CORRECAO]: 'correcao',
   [STATUS.CORRIGIDO]: 'correcao',
   [STATUS.DEVOLVIDO]: 'correcao',
+  [STATUS.NOVA_TENTATIVA]: 'correcao',
 })
 
 /** 'pregao', 'administrador' ou 'correcao'; nulo para ação que a tela não conhece. */

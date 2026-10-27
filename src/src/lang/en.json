@@ -1200,6 +1200,7 @@
     "filtros": {
       "esperando": "Awaiting decision",
       "aprovado": "Approved",
+      "nova-tentativa": "Retrying",
       "em-correcao": "Being fixed",
       "corrigido": "Fixed",
       "validado": "Validated",
@@ -1219,6 +1220,7 @@
       "em-correcao": "Being fixed",
       "corrigido": "Fixed",
       "devolvido": "Returned",
+      "nova-tentativa": "Retrying",
       "validado": "Validated",
       "reaberto": "Reopened"
     },
@@ -1231,6 +1233,7 @@
     "ultimaVez": "last seen {{data}}",
     "reabertoDica": "Showed up again after being marked as fixed.",
     "devolvidoDica": "Whoever fixes it could not and returned the request: read the reason, then approve it again for another try, or discard it.",
+    "novaTentativaDica": "Whoever fixes it could not this time, through its own failure, and will try again on its own in the next run: no need to approve. If the request no longer matters, discard it.",
     "decididoPor": "Decided by {{quem}}",
     "motivoDecisao": "Reason: {{motivo}}",
     "correcao": "Fix:",
@@ -1265,6 +1268,7 @@
     "homeLink": "See the approved requests",
     "statusExplicado": {
       "aprovado": "Approved by an administrator; waiting to be fixed.",
+      "nova-tentativa": "Approved; whoever fixes it did not manage last time and will try again.",
       "em-correcao": "The fix is in progress.",
       "corrigido": "Fixed; the Pregão is checking whether the problem is gone.",
       "validado": "The Pregão confirmed: the problem did not come back."
@@ -1276,6 +1280,7 @@
       "em-correcao": "Whoever fixes it started the fix",
       "corrigido": "Whoever fixes it delivered the fix",
       "devolvido": "Whoever fixes it could not and returned the request to an administrator",
+      "nova-tentativa": "Whoever fixes it could not this time and will try again",
       "validado": "The Pregão Team checked: the problem did not come back"
     }
   }
