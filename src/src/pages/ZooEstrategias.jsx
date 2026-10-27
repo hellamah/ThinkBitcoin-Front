@@ -307,7 +307,7 @@ function TabelaMoedas({ estrategia, nome, moedaSelecionada, onSelecionar }) {
               <TableCell>{t('zoo.colSince')}</TableCell>
               <TableCell align="right">{t('zoo.colCagr')}</TableCell>
               <TableCell align="right">{t('zoo.colCagrBh')}</TableCell>
-              <TableCell align="right">{t('zoo.colDrawdown')}</TableCell>
+              <TableCell align="right">{t('zoo.colDrawdownDetail')}</TableCell>
               <TableCell align="right">{t('zoo.colDrawdownBh')}</TableCell>
               <TableCell align="right" title={t('zoo.colCalmarHint')}>{t('zoo.colCalmar')}</TableCell>
               <TableCell align="right" title={t('zoo.colYearsOkHint')}>{t('zoo.colYearsOk')}</TableCell>
@@ -354,7 +354,7 @@ function TabelaAnos({ linha, moeda }) {
                 <TableCell>{t('zoo.colYear')}</TableCell>
                 <TableCell align="right">{t('zoo.colReturn')}</TableCell>
                 <TableCell align="right">{t('zoo.colReturnBh')}</TableCell>
-                <TableCell align="right">{t('zoo.colDrawdown')}</TableCell>
+                <TableCell align="right">{t('zoo.colDrawdownDetail')}</TableCell>
                 <TableCell align="right">{t('zoo.colDrawdownBh')}</TableCell>
                 <TableCell>{t('zoo.colResult')}</TableCell>
               </TableRow>
