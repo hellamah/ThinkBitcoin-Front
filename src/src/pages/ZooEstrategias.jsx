@@ -421,7 +421,7 @@ export default function ZooEstrategias() {
         </Box>
 
         <Tabs value={janela} onChange={(_, v) => trocarJanela(v)} aria-label={t('zoo.tabsLabel')} sx={estiloDasAbas}>
-          <Tab value={JANELAS.HISTORICO} id="aba-zoo-historico" aria-controls="painel-zoo" icon={<MdHistory size={18} />} iconPosition="start" label={t('zoo.tabHistory')} />
+          <Tab value={JANELAS.HISTORICO} id="aba-zoo-historico" aria-controls="painel-zoo" icon={<MdHistory size={18} />} iconPosition="start" label={t('zoo.tabHistory')} disabled />
           <Tab value={JANELAS.TESTE_AGENTE} id="aba-zoo-teste-agente" aria-controls="painel-zoo" icon={<MdSmartToy size={18} />} iconPosition="start" label={t('zoo.tabAgentWindow')} />
         </Tabs>
 
