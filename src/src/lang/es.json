@@ -1131,7 +1131,7 @@
     "rankingSub": "Mediana entre las monedas. Elige una estrategia para ver las curvas, las monedas y los años.",
     "colStrategy": "Estrategia",
     "colApproved": "Aprobación",
-    "colApprovedHint": "Monedas en las que pasa el criterio en todo el período y en todos los años",
+    "colApprovedHint": "Monedas en las que pasa el criterio en todo el período y en todos los años. Puntuación basada en la consistencia anual (fallos en años específicos) y no en el rendimiento del período macro.",
     "colPeriodOk": "Período ok",
     "colPeriodOkHint": "Monedas en las que pasa las dos condiciones en todo el período, sin el corte año a año",
     "colCagr": "Retorno/año",
