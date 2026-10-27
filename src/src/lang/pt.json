@@ -262,7 +262,7 @@
   "divergenciaAltista": "Queda sem lastro de venda",
   "signal_divergenciaBaixista": "Divergência Baixista",
   "signal_divergenciaAltista": "Divergência Altista",
-  "avgTicket": "Ticket Médio",
+  "avgTicket": "Ticket Médio (Mercado)",
   "tradeCount": "~{{count}} trades",
   "signal_ticketAlto": "Ticket Alto",
   "signal_volumeAtipico": "Volume Atípico",
