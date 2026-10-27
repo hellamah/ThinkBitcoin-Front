@@ -51,7 +51,7 @@ export default function VereditoSimulacao({ metricas, veredito, ressalvas, fraco
           </span>
           <span>
             {t('simulationAlpha')}{' '}
-            <strong className={classeSinal(metricas.retornoTotal - metricas.buyAndHold)}>{pct(metricas.retornoTotal - metricas.buyAndHold)}</strong>
+            <strong className={classeSinal(Math.round(metricas.retornoTotal * 100) / 100 - Math.round(metricas.buyAndHold * 100) / 100)}>{pct(Math.round(metricas.retornoTotal * 100) / 100 - Math.round(metricas.buyAndHold * 100) / 100)}</strong>
           </span>
           <span>
             <RotuloComAjuda texto={t('simulationTotalCost')} ajuda={t('ajuda.simCustoTotal')} />{' '}
