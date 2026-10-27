@@ -1133,7 +1133,7 @@
     "rankingSub": "Median across coins. Pick a strategy to see its curves, coins and years.",
     "colStrategy": "Strategy",
     "colApproved": "Approval",
-    "colApprovedHint": "Coins where it passes the criterion over the whole period and in every year",
+    "colApprovedHint": "Coins where it passes the criterion over the whole period and in every year. Score based on annual consistency (failures in specific years) and not on macro period performance.",
     "colPeriodOk": "Period ok",
     "colPeriodOkHint": "Coins where it passes both conditions over the whole period, without the year-by-year cut",
     "colCagr": "Return/yr",

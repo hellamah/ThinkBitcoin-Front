@@ -1133,7 +1133,7 @@
     "rankingSub": "Mediana tra le monete. Scegli una strategia per vedere le curve, le monete e gli anni.",
     "colStrategy": "Strategia",
     "colApproved": "Approvazione",
-    "colApprovedHint": "Monete in cui supera il criterio sull'intero periodo e in tutti gli anni",
+    "colApprovedHint": "Monete in cui supera il criterio sull'intero periodo e in tutti gli anni. Punteggio basato sulla consistenza annuale (fallimenti in anni specifici) e non sulle prestazioni del periodo macro.",
     "colPeriodOk": "Periodo ok",
     "colPeriodOkHint": "Monete in cui supera entrambe le condizioni sull'intero periodo, senza il taglio anno per anno",
     "colCagr": "Rendimento/anno",

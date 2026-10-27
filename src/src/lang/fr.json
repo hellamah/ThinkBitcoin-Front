@@ -1133,7 +1133,7 @@
     "rankingSub": "Médiane entre les cryptos. Choisissez une stratégie pour voir les courbes, les cryptos et les années.",
     "colStrategy": "Stratégie",
     "colApproved": "Approbation",
-    "colApprovedHint": "Cryptos où elle remplit le critère sur toute la période et chaque année",
+    "colApprovedHint": "Cryptos où elle remplit le critère sur toute la période et chaque année. Score basé sur la consistance annuelle (échecs dans des années spécifiques) et non sur la performance de la période macro.",
     "colPeriodOk": "Période ok",
     "colPeriodOkHint": "Cryptos où elle remplit les deux conditions sur toute la période, sans la coupe année par année",
     "colCagr": "Rendement/an",
