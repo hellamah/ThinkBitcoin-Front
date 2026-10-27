@@ -1697,7 +1697,7 @@ do mercado a maior parte do tempo.
 
 Ou seja, a tabela de ranking convida a uma escolha que o dado diz não
 funcionar, e nem o alerta de sobreajuste nem o ▲ da sorte dizem isso. O ▲ julga
-cada linha contra o acaso **na mesma janela**; não diz se o topo da tabela
+cada linha contra o acaso (Limiar de Confiança) **na mesma janela**; não diz se o topo da tabela
 continua no topo no mês seguinte, que é a pergunta de quem escolhe por ela.
 
 ### 13.2 Opções
