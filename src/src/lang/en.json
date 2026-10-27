@@ -1167,6 +1167,7 @@
     "colYearsOk": "Years ok",
     "colYearsOkHint": "Years in which both conditions of the criterion held",
     "yes": "yes",
+    "planos.yes": "Partial redemption allowed",
     "no": "no",
     "yearsTitle": "Year by year on {{moeda}}",
     "yearsSub": "Each year is a regime. For a year to count, both conditions must hold in it. Green marks a condition that passes; red, one that fails.",

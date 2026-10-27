@@ -1167,6 +1167,7 @@
     "colYearsOk": "Anni ok",
     "colYearsOkHint": "Anni in cui sono valse entrambe le condizioni del criterio",
     "yes": "sì",
+    "planos.yes": "Riscatto parziale consentito",
     "no": "no",
     "yearsTitle": "Anno per anno su {{moeda}}",
     "yearsSub": "Ogni anno è un regime. Perché l'anno conti, entrambe le condizioni devono valere. In verde la condizione superata, in rosso quella fallita.",
