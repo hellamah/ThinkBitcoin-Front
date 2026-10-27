@@ -104,7 +104,7 @@ export default function TabelaEpisodios({ itens, janela, onAbrir }) {
             </TableRow>
           </TableHead>
           <TableBody>
-            {visiveis.map((r) => (
+            {visiveis.map((r, idx) => (
               <TableRow
                 key={r.idTreinamentoEpisodio}
                 hover
@@ -137,7 +137,12 @@ export default function TabelaEpisodios({ itens, janela, onAbrir }) {
                 <TableCell align="right">{formatarNumero(r.rewardMedio, 3)}</TableCell>
                 <TableCell align="right">{formatarNumero(r.rewardTotal, 2)}</TableCell>
                 <TableCell align="right">{formatarNumero(r.lossMedia, 3)}</TableCell>
-                <TableCell align="right">{formatarNumero(r.epsilon, 3)}</TableCell>
+                <TableCell align="right">
+                  {formatarNumero(r.epsilon, 3)}
+                  {idx > 0 && visiveis[idx - 1].epsilon > r.epsilon && (
+                    <span style={{ color: 'green', marginLeft: 4 }}>↓</span>
+                  )}
+                </TableCell>
                 <TableCell align="right">{formatarPercentual(r.acertoTrades, 1)}</TableCell>
                 <TableCell align="right">{formatarNumero(r.duracaoSegundos, 1)}</TableCell>
               </TableRow>
