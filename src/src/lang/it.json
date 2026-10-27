@@ -611,6 +611,7 @@
     "title": "Patrimonio totale",
     "valueBRL": "Saldo (BRL)",
     "valueUSD": "Saldo (USD)",
+    "cambio": "Cambio: ",
     "manage": "Gestisci patrimonio",
     "history": "Storico dei movimenti",
     "observation": "Nota",

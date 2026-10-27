@@ -611,6 +611,7 @@
     "title": "Patrimoine total",
     "valueBRL": "Solde (BRL)",
     "valueUSD": "Solde (USD)",
+    "cambio": "Taux: ",
     "manage": "Gérer le patrimoine",
     "history": "Historique des écritures",
     "observation": "Observation",

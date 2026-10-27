@@ -611,6 +611,7 @@
     "title": "Total Equity",
     "valueBRL": "Balance (BRL)",
     "valueUSD": "Balance (USD)",
+    "cambio": "Exchange: ",
     "manage": "Manage Equity",
     "history": "Equity Entries",
     "observation": "Observation",
