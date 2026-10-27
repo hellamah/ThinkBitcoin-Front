@@ -128,6 +128,7 @@
   "preferredCoin": "Moeda Preferida",
   "safetyBalance": "Saldo de Segurança (USDT) (Retido)",
   "reviewFrequency": "Frequência de Review",
+  "reviewFrequencyDescription": "Define a periodicidade de atualização de dados na interface.",
   "daily": "Diária",
   "weekly": "Semanal",
   "monthly": "Mensal",

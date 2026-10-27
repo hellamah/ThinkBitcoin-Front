@@ -679,20 +679,25 @@ function Settings() {
                   ))}
 
                   {renderField(t('reviewFrequency'), (
-                    <Select
-                      value={localPrefs?.frequenciaReview || ReviewFrequency.DAILY}
-                      onChange={(e) => {
-                        const val = e.target.value
-                        setLocalPrefs(p => ({ ...p, frequenciaReview: val }))
-                        salvarPreferencia({ frequenciaReview: val })
-                      }}
-                      size="small"
-                      sx={selectSx}
-                    >
-                      <MenuItem value={ReviewFrequency.DAILY}><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><MdHistory /> {t('daily')}</Box></MenuItem>
-                      <MenuItem value={ReviewFrequency.WEEKLY}><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><MdHistory /> {t('weekly')}</Box></MenuItem>
-                      <MenuItem value={ReviewFrequency.MONTHLY}><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><MdHistory /> {t('monthly')}</Box></MenuItem>
-                    </Select>
+                    <Box>
+                      <Select
+                        value={localPrefs?.frequenciaReview || ReviewFrequency.DAILY}
+                        onChange={(e) => {
+                          const val = e.target.value
+                          setLocalPrefs(p => ({ ...p, frequenciaReview: val }))
+                          salvarPreferencia({ frequenciaReview: val })
+                        }}
+                        size="small"
+                        sx={selectSx}
+                      >
+                        <MenuItem value={ReviewFrequency.DAILY}><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><MdHistory /> {t('daily')}</Box></MenuItem>
+                        <MenuItem value={ReviewFrequency.WEEKLY}><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><MdHistory /> {t('weekly')}</Box></MenuItem>
+                        <MenuItem value={ReviewFrequency.MONTHLY}><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><MdHistory /> {t('monthly')}</Box></MenuItem>
+                      </Select>
+                      <Typography variant="caption" color="textSecondary" sx={{ mt: 0.5 }}>
+                        {t('reviewFrequencyDescription')}
+                      </Typography>
+                    </Box>
                   ))}
                 </Box>
               </Grid>
