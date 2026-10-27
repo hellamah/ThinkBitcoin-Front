@@ -206,12 +206,12 @@ export default function HeatmapInsights({ trend, fear, t, locale }) {
         <BarraMedida
           label={t('heatmap.concentracaoGeo')}
           valorLabel={hhi >= 0.25 ? (
-            <Tooltip title={t('heatmap.concentrada_tooltip')}>
-              <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
-                🎯 {t('heatmap.concentrada')}
+            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+              🎯 {t('heatmap.concentrada')}
+              <Tooltip title={t('heatmap.concentrada_tooltip')}>
                 <MdInfo size={14} />
-              </Box>
-            </Tooltip>
+              </Tooltip>
+            </Box>
           ) : (
             `🌍 ${t('heatmap.distribuida')}`
           )}
