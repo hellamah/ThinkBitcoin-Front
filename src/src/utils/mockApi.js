@@ -2164,7 +2164,7 @@ const mockHandlers = [
           tipoPrazoLiquidacao: 0,
           prazoCotizacao: 0,
           horarioLimiteSolicitacao: { ticks: 648000000000 },
-          taxaSaqueAntecipado: 0.5,
+          taxaSaqueAntecipado: 0.0,
           taxaResgate: 0.0,
           valorMinimoResgate: 50,
           saldoMinimoPermanencia: 10,
