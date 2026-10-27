@@ -1162,10 +1162,10 @@ export default function GeoHeatmapView() {
                     '&:hover': { transform: 'translateY(-4px)', borderColor: 'var(--color-primary)', boxShadow: '0 18px 48px var(--scrim-strong), 0 0 20px var(--accent-a08)' }
                   }}
                 >
-                  <Typography variant="h6" sx={{ color: 'var(--accent-ink)', fontWeight: 800, fontFamily: 'Outfit, sans-serif', fontSize: '1.05rem', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
+                  <Typography variant="h6" component="div" sx={{ color: 'var(--accent-ink)', fontWeight: 800, fontFamily: 'Outfit, sans-serif', fontSize: '1.05rem', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
                     {t('heatmap.centralInteligencia')}
                   </Typography>
-                  <Typography variant="body2" sx={{ opacity: 0.6, fontSize: '0.85rem', lineHeight: 1.4 }}>
+                  <Typography variant="body2" component="div" sx={{ opacity: 0.6, fontSize: '0.85rem', lineHeight: 1.4 }}>
                     {t('heatmap.centralDescricao')} ({moedaSelecionada}).
                   </Typography>
 
