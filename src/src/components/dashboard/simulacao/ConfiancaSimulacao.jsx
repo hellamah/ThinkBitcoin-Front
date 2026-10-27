@@ -145,7 +145,8 @@ export default function ConfiancaSimulacao({
               <Par
                 rotulo={t('simulationTotalCost')}
                 ajuda={t('ajuda.simCustoTotal')}
-                valor={mathUtils.formatCurrency(m.custoTotal)}
+                // Adiciona a porcentagem do custo em relação ao capital inicial
+                valor={`${mathUtils.formatCurrency(m.custoTotal)} (${mathUtils.formatPercent((m.custoTotal / resultado.parametros.capitalInicial) * 100)})`}
                 classe="down"
               />
               <Par rotulo={t('simulationExposure')} valor={`${m.exposicao.toFixed(0)}%`} />

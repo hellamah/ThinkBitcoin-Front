@@ -55,7 +55,8 @@ export default function VereditoSimulacao({ metricas, veredito, ressalvas, fraco
           </span>
           <span>
             <RotuloComAjuda texto={t('simulationTotalCost')} ajuda={t('ajuda.simCustoTotal')} />{' '}
-            <strong className="down">{mathUtils.formatCurrency(metricas.custoTotal)}</strong>
+            {/* Adiciona a porcentagem do custo em relação ao capital inicial */}
+            <strong className="down">{mathUtils.formatCurrency(metricas.custoTotal)} ({mathUtils.formatPercent((metricas.custoTotal / metricas.capitalInicial) * 100)})</strong>
           </span>
         </div>
       </div>
