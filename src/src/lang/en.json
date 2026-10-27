@@ -263,7 +263,7 @@
   "divergenciaAltista": "Selloff without selling behind it",
   "signal_divergenciaBaixista": "Bearish Divergence",
   "signal_divergenciaAltista": "Bullish Divergence",
-  "avgTicket": "Avg Ticket",
+  "avgTicket": "Avg Ticket (Market)",
   "tradeCount": "~{{count}} trades",
   "signal_ticketAlto": "Large Ticket",
   "signal_volumeAtipico": "Unusual Volume",
