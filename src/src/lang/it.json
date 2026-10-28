@@ -923,7 +923,7 @@
     "colRetornoMedio": "Rendimento medio del prezzo nell'orizzonte scelto, contando solo le volte in cui questo segnale è comparso.",
     "colTaxaAlta": "Delle volte in cui il segnale è comparso, in quante il prezzo è salito entro l'orizzonte scelto.",
     "colVsBase": "Di quanto il segnale sposta il tasso di rialzo rispetto al non filtrare nulla. È il numero che dice se serve a qualcosa.",
-    "colAjusteSinal": "Scostamento del segnale nel tratto con cui la tabella è stata ordinata, rispetto al tasso base di quello stesso tratto. Tra parentesi, quante volte il segnale si è verificato lì.",
+    "colAjusteSinal": "Mostra la deviazione del segnale rispetto al tasso medio del periodo di taratura. È un calcolo statistico semplice (senza pesi). Il numero tra parentesi indica quante volte il segnale si è verificato.",
     "colValidacaoSinal": "Lo stesso calcolo sul tratto riservato, che non ha partecipato all’ordinamento né alimentato gli indicatori dell’aggiustamento. Se lo scostamento si riduce o cambia segno qui, la riga descrive il pezzo di passato in cui è stata scelta, non il mercato.",
     "deltaAcumulado": "Somma del volume acquistato meno quello venduto lungo il periodo scelto. Positivo significa che è entrato più acquisto che vendita. Quando il prezzo sale e questa linea non lo segue, il rialzo non è sostenuto da acquisti reali.",
     "drawdown": "Se avessi comprato nel momento peggiore del periodo, questa sarebbe la discesa massima fino al minimo. Misura il colpo da sopportare, non il risultato finale.",
