@@ -1077,7 +1077,7 @@
   },
   "robo": {
     "title": "Robô ao vivo",
-    "intro": "O motor de risco decide uma vez por dia no BTC, com 1.000 USDT de mentira e sem ordem real. Esta tela mostra o que ele fez desde que substituiu o agente DQN e a curva de papel da mesma regra no zoo, ao lado do buy & hold.",
+    "intro": "O motor de risco decide uma vez por dia no BTC, com 1.000 USDT de mentira e sem ordem real. Esta tela mostra o que ele fez, noite a noite, desde que substituiu o agente DQN, e mede o critério registrado antes de ligá-lo: o robô contra a curva de papel da mesma regra no zoo e contra o buy & hold.",
     "atualizar": "Atualizar",
     "estadoTitle": "Estado de hoje",
     "regra": "A regra: comprado só com o fechamento diário acima da média de 50 dias, na dose da volatilidade-alvo de 40%. Abaixo da média, fora.",
@@ -1087,6 +1087,7 @@
     "dose": "Dose da regra (curva de papel)",
     "moeda": "Moeda",
     "desde": "Decide desde",
+    "ultimaDecisao": "Última decisão",
     "ultima": "Última operação",
     "semOperacao": "Nenhuma operação desde a ativação",
     "operacoesTitle": "Operações",
@@ -1105,11 +1106,43 @@
       "VenderTudo": "Vender tudo",
       "VenderParcial": "Reduzir a dose"
     },
-    "curvaTitle": "A regra no papel contra o buy & hold",
-    "curvaSub": "Desde o último fechamento antes da ativação, as duas a partir de zero. É a referência do critério de fidelidade: o robô deveria ficar perto da curva da regra.",
+    "nomeRobo": "Robô ao vivo",
+    "curvaTitle": "O robô, a regra no papel e o buy & hold",
+    "curvaSub": "Desde o último fechamento antes da ativação, as três a partir de zero. O robô é refeito pelas operações: o caixa depois de cada uma e a posição ao fechamento das 23h UTC. Ele deveria ficar em cima da regra.",
     "curvaVazia": "O zoo ainda não tem pontos desde a ativação.",
     "curvaErro": "Não foi possível carregar a curva da regra.",
-    "curvaResumo": "Regra no período: {{regra}}; buy & hold: {{bh}}"
+    "curvaResumo": "Robô no período: {{robo}}; regra: {{regra}}; buy & hold: {{bh}}",
+    "criterio": {
+      "title": "O critério registrado em 22/10",
+      "sub": "As regras escritas antes de ligar o motor (docs/motor-de-risco.md), medidas desde o último fechamento antes da ativação. A tela só mede: desligar o motor é decisão sua.",
+      "fidelidade": "Distância para a regra no zoo",
+      "fidelidadeLimite": "O retorno do robô menos o da regra no papel. Limite: {{limite}} pontos, conferido todo mês.",
+      "queda": "Maior queda do robô",
+      "quedaLimite": "Do topo ao fundo, desde a ativação. Acima de {{limite}}, o motor é desligado e reavaliado.",
+      "relativa": "Queda do robô diante da do BTC",
+      "relativaLimite": "Com o buy & hold {{gatilho}} ou mais abaixo do topo, o robô não pode cair mais que {{fracao}} da queda dele. A maior queda do buy & hold no período foi de {{queda}}.",
+      "naoSeAplica": "Não se aplica",
+      "dentro": "Dentro do limite",
+      "fora": "Fora do limite",
+      "pontos": "{{valor}} p.p.",
+      "semDados": "Ainda não há dados para medir o critério."
+    },
+    "noites": {
+      "title": "As noites do robô",
+      "sub": "A decisão de cada vela das 23h UTC, tomada às 21h02 de Brasília, e a operação que a executou. Manter não vira operação. Uma noite sem decisão é uma noite em que o robô não rodou nessa hora, como com o PC do cluster desligado.",
+      "colDia": "Fechamento",
+      "colDecisao": "Decisão",
+      "colOperacao": "Operação",
+      "manter": "Manter",
+      "comprar": "Comprar ou aumentar a dose",
+      "vender": "Vender ou reduzir a dose",
+      "naoRodou": "O robô não rodou nesta vela",
+      "pendente": "Executa na próxima ativação",
+      "naoExecutada": "Não executada",
+      "aoReligar": "ao religar, ao preço das 23h",
+      "erro": "Não foi possível carregar as decisões do robô.",
+      "vazio": "Nenhuma noite desde a ativação."
+    }
   },
   "zoo": {
     "title": "Zoo de estratégias",

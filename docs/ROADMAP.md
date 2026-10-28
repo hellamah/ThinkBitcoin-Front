@@ -51,6 +51,15 @@ Este roadmap organiza a evolução do frontend do ThinkBitcoin em quatro fases, 
 
 **Objetivo:** criar a interface operacional do sistema.
 
+**Em 28/10/2026**, a tela Robô ao vivo (`/robo-ao-vivo`, só administrador) cobre parte desta fase:
+- o estado do robô e a última decisão;
+- a curva dele, refeita pelas operações, contra a regra no papel e o buy & hold;
+- o critério registrado do motor de risco (`docs/motor-de-risco.md` do Back-Python);
+- a decisão de cada noite;
+- as operações, com a taxa.
+
+O robô é o motor de risco, que opera só o BTC e com dinheiro de mentira.
+
 ### Dashboard
 - Visão geral do robô.
 - Saldo total.

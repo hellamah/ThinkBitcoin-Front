@@ -1077,7 +1077,7 @@
   },
   "robo": {
     "title": "Robot en vivo",
-    "intro": "El motor de riesgo decide una vez al día en BTC, con 1.000 USDT ficticios y sin órdenes reales. Esta pantalla muestra lo que hizo desde que reemplazó al agente DQN y la curva en papel de la misma regla en el zoo, junto al buy & hold.",
+    "intro": "El motor de riesgo decide una vez al día en BTC, con 1.000 USDT de mentira y sin órdenes reales. Esta pantalla muestra lo que hizo, noche a noche, desde que reemplazó al agente DQN, y mide el criterio registrado antes de encenderlo: el robot frente a la curva en papel de la misma regla en el zoo y frente al buy & hold.",
     "atualizar": "Actualizar",
     "estadoTitle": "Estado de hoy",
     "regra": "La regla: comprado solo con el cierre diario por encima de la media de 50 días, con la dosis de la volatilidad objetivo de 40%. Por debajo de la media, fuera.",
@@ -1087,6 +1087,7 @@
     "dose": "Dosis de la regla (curva en papel)",
     "moeda": "Moneda",
     "desde": "Decide desde",
+    "ultimaDecisao": "Última decisión",
     "ultima": "Última operación",
     "semOperacao": "Ninguna operación desde la activación",
     "operacoesTitle": "Operaciones",
@@ -1105,11 +1106,43 @@
       "VenderTudo": "Vender todo",
       "VenderParcial": "Reducir la dosis"
     },
-    "curvaTitle": "La regla en papel frente al buy & hold",
-    "curvaSub": "Desde el último cierre antes de la activación, las dos desde cero. Es la referencia del criterio de fidelidad: el robot debería quedar cerca de la curva de la regla.",
+    "nomeRobo": "Robot en vivo",
+    "curvaTitle": "El robot, la regla en papel y el buy & hold",
+    "curvaSub": "Desde el último cierre antes de la activación, las tres desde cero. El robot se reconstruye con sus operaciones: la caja después de cada una y la posición al cierre de las 23h UTC. Debería quedar encima de la regla.",
     "curvaVazia": "El zoo todavía no tiene puntos desde la activación.",
     "curvaErro": "No fue posible cargar la curva de la regla.",
-    "curvaResumo": "Regla en el período: {{regra}}; buy & hold: {{bh}}"
+    "curvaResumo": "Robot en el período: {{robo}}; regla: {{regra}}; buy & hold: {{bh}}",
+    "criterio": {
+      "title": "El criterio registrado el 22/10",
+      "sub": "Las reglas escritas antes de encender el motor (docs/motor-de-risco.md), medidas desde el último cierre antes de la activación. La pantalla solo mide: apagar el motor es decisión tuya.",
+      "fidelidade": "Distancia a la regla en el zoo",
+      "fidelidadeLimite": "El retorno del robot menos el de la regla en papel. Límite: {{limite}} puntos, revisado cada mes.",
+      "queda": "Mayor caída del robot",
+      "quedaLimite": "De máximo a mínimo, desde la activación. Por encima de {{limite}}, el motor se apaga y se reevalúa.",
+      "relativa": "Caída del robot frente a la del BTC",
+      "relativaLimite": "Con el buy & hold {{gatilho}} o más por debajo de su máximo, el robot no puede caer más del {{fracao}} de su caída. La mayor caída del buy & hold en el período fue de {{queda}}.",
+      "naoSeAplica": "No se aplica",
+      "dentro": "Dentro del límite",
+      "fora": "Fuera del límite",
+      "pontos": "{{valor}} p.p.",
+      "semDados": "Aún no hay datos para medir el criterio."
+    },
+    "noites": {
+      "title": "Las noches del robot",
+      "sub": "La decisión de cada vela de las 23h UTC, tomada a las 21:02 de Brasilia, y la operación que la ejecutó. Mantener no se convierte en operación. Una noche sin decisión es una noche en que el robot no corrió a esa hora, como con el PC del clúster apagado.",
+      "colDia": "Cierre",
+      "colDecisao": "Decisión",
+      "colOperacao": "Operación",
+      "manter": "Mantener",
+      "comprar": "Comprar o subir la dosis",
+      "vender": "Vender o bajar la dosis",
+      "naoRodou": "El robot no corrió en esta vela",
+      "pendente": "Se ejecuta en la próxima activación",
+      "naoExecutada": "No ejecutada",
+      "aoReligar": "al reiniciar, al precio de las 23h",
+      "erro": "No se pudieron cargar las decisiones del robot.",
+      "vazio": "Ninguna noche desde la activación."
+    }
   },
   "zoo": {
     "title": "Zoo de estrategias",

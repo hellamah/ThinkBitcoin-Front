@@ -1077,7 +1077,7 @@
   },
   "robo": {
     "title": "Live robot",
-    "intro": "The risk engine decides once a day on BTC, with 1,000 play-money USDT and no real orders. This page shows what it has done since it replaced the DQN agent and the paper curve of the same rule in the zoo, next to buy & hold.",
+    "intro": "The risk engine decides once a day on BTC, with 1,000 USDT of play money and no real orders. This screen shows what it has done, night by night, since it replaced the DQN agent, and measures the criterion recorded before it was switched on: the robot against the paper curve of the same rule in the zoo and against buy & hold.",
     "atualizar": "Refresh",
     "estadoTitle": "Today's state",
     "regra": "The rule: long only when the daily close is above the 50-day average, sized to a 40% volatility target. Below the average, out.",
@@ -1087,6 +1087,7 @@
     "dose": "Rule's exposure (paper curve)",
     "moeda": "Coin",
     "desde": "Deciding since",
+    "ultimaDecisao": "Last decision",
     "ultima": "Last trade",
     "semOperacao": "No trades since activation",
     "operacoesTitle": "Trades",
@@ -1105,11 +1106,43 @@
       "VenderTudo": "Sell all",
       "VenderParcial": "Reduce exposure"
     },
-    "curvaTitle": "The rule on paper vs. buy & hold",
-    "curvaSub": "Since the last close before activation, both starting from zero. It is the reference for the fidelity criterion: the robot should stay close to the rule's curve.",
+    "nomeRobo": "Live robot",
+    "curvaTitle": "The robot, the rule on paper and buy & hold",
+    "curvaSub": "Since the last close before activation, all three starting from zero. The robot is rebuilt from its trades: the cash after each one and the position at the 23:00 UTC close. It should sit on top of the rule.",
     "curvaVazia": "The zoo has no points since activation yet.",
     "curvaErro": "Could not load the rule's curve.",
-    "curvaResumo": "Rule in the period: {{regra}}; buy & hold: {{bh}}"
+    "curvaResumo": "Robot in the period: {{robo}}; rule: {{regra}}; buy & hold: {{bh}}",
+    "criterio": {
+      "title": "The criterion recorded on 10/22",
+      "sub": "The rules written before the engine was switched on (docs/motor-de-risco.md), measured since the last close before activation. This screen only measures: switching the engine off is your call.",
+      "fidelidade": "Distance to the rule in the zoo",
+      "fidelidadeLimite": "The robot's return minus the paper rule's. Limit: {{limite}} points, checked every month.",
+      "queda": "Robot's largest drawdown",
+      "quedaLimite": "Peak to trough, since activation. Above {{limite}}, the engine is switched off and reassessed.",
+      "relativa": "Robot's drawdown against BTC's",
+      "relativaLimite": "With buy & hold {{gatilho}} or more below its peak, the robot may not fall more than {{fracao}} of its drawdown. Buy & hold's largest drawdown in the period was {{queda}}.",
+      "naoSeAplica": "Does not apply",
+      "dentro": "Within limit",
+      "fora": "Out of limit",
+      "pontos": "{{valor}} pp",
+      "semDados": "There is no data to measure the criterion yet."
+    },
+    "noites": {
+      "title": "The robot's nights",
+      "sub": "The decision at each 23:00 UTC candle, made at 21:02 Brasília time, and the trade that carried it out. Holding does not become a trade. A night with no decision is a night when the robot did not run at that hour, such as with the cluster PC switched off.",
+      "colDia": "Close",
+      "colDecisao": "Decision",
+      "colOperacao": "Trade",
+      "manter": "Hold",
+      "comprar": "Buy or raise the dose",
+      "vender": "Sell or cut the dose",
+      "naoRodou": "The robot did not run on this candle",
+      "pendente": "Runs at the next activation",
+      "naoExecutada": "Not carried out",
+      "aoReligar": "on restart, at the 23:00 price",
+      "erro": "Could not load the robot's decisions.",
+      "vazio": "No nights since activation."
+    }
   },
   "zoo": {
     "title": "Strategy zoo",

@@ -1077,7 +1077,7 @@
   },
   "robo": {
     "title": "Robot en direct",
-    "intro": "Le moteur de risque décide une fois par jour sur le BTC, avec 1 000 USDT fictifs et sans ordre réel. Cette page montre ce qu'il a fait depuis qu'il a remplacé l'agent DQN et la courbe papier de la même règle dans le zoo, à côté du buy & hold.",
+    "intro": "Le moteur de risque décide une fois par jour sur le BTC, avec 1 000 USDT fictifs et sans ordre réel. Cet écran montre ce qu'il a fait, nuit après nuit, depuis qu'il a remplacé l'agent DQN, et mesure le critère enregistré avant sa mise en marche : le robot face à la courbe sur papier de la même règle dans le zoo et face au buy & hold.",
     "atualizar": "Actualiser",
     "estadoTitle": "État du jour",
     "regra": "La règle : acheteur seulement quand la clôture quotidienne est au-dessus de la moyenne de 50 jours, avec la dose de la volatilité cible de 40 %. Sous la moyenne, dehors.",
@@ -1087,6 +1087,7 @@
     "dose": "Dose de la règle (courbe papier)",
     "moeda": "Monnaie",
     "desde": "Décide depuis",
+    "ultimaDecisao": "Dernière décision",
     "ultima": "Dernière opération",
     "semOperacao": "Aucune opération depuis l'activation",
     "operacoesTitle": "Opérations",
@@ -1105,11 +1106,43 @@
       "VenderTudo": "Tout vendre",
       "VenderParcial": "Réduire la dose"
     },
-    "curvaTitle": "La règle sur papier face au buy & hold",
-    "curvaSub": "Depuis la dernière clôture avant l'activation, les deux à partir de zéro. C'est la référence du critère de fidélité : le robot devrait rester proche de la courbe de la règle.",
+    "nomeRobo": "Robot en direct",
+    "curvaTitle": "Le robot, la règle sur papier et le buy & hold",
+    "curvaSub": "Depuis la dernière clôture avant l'activation, les trois à partir de zéro. Le robot est reconstitué à partir de ses opérations : la trésorerie après chacune et la position à la clôture de 23 h UTC. Il devrait se superposer à la règle.",
     "curvaVazia": "Le zoo n'a pas encore de points depuis l'activation.",
     "curvaErro": "Impossible de charger la courbe de la règle.",
-    "curvaResumo": "Règle sur la période : {{regra}} ; buy & hold : {{bh}}"
+    "curvaResumo": "Robot sur la période : {{robo}} ; règle : {{regra}} ; buy & hold : {{bh}}",
+    "criterio": {
+      "title": "Le critère enregistré le 22/10",
+      "sub": "Les règles écrites avant la mise en marche du moteur (docs/motor-de-risco.md), mesurées depuis la dernière clôture avant l'activation. L'écran ne fait que mesurer : arrêter le moteur est votre décision.",
+      "fidelidade": "Écart avec la règle du zoo",
+      "fidelidadeLimite": "Le rendement du robot moins celui de la règle sur papier. Limite : {{limite}} points, vérifiée chaque mois.",
+      "queda": "Plus forte baisse du robot",
+      "quedaLimite": "Du sommet au creux, depuis l'activation. Au-delà de {{limite}}, le moteur est arrêté et réévalué.",
+      "relativa": "Baisse du robot face à celle du BTC",
+      "relativaLimite": "Avec le buy & hold à {{gatilho}} ou plus sous son sommet, le robot ne peut pas baisser de plus de {{fracao}} de sa baisse. La plus forte baisse du buy & hold sur la période a été de {{queda}}.",
+      "naoSeAplica": "Ne s'applique pas",
+      "dentro": "Dans la limite",
+      "fora": "Hors limite",
+      "pontos": "{{valor}} pts",
+      "semDados": "Pas encore de données pour mesurer le critère."
+    },
+    "noites": {
+      "title": "Les nuits du robot",
+      "sub": "La décision de chaque bougie de 23 h UTC, prise à 21 h 02 heure de Brasília, et l'opération qui l'a exécutée. Conserver ne devient pas une opération. Une nuit sans décision est une nuit où le robot n'a pas tourné à cette heure, par exemple avec le PC du cluster éteint.",
+      "colDia": "Clôture",
+      "colDecisao": "Décision",
+      "colOperacao": "Opération",
+      "manter": "Conserver",
+      "comprar": "Acheter ou augmenter la dose",
+      "vender": "Vendre ou réduire la dose",
+      "naoRodou": "Le robot n'a pas tourné sur cette bougie",
+      "pendente": "S'exécute à la prochaine activation",
+      "naoExecutada": "Non exécutée",
+      "aoReligar": "au redémarrage, au prix de 23 h",
+      "erro": "Impossible de charger les décisions du robot.",
+      "vazio": "Aucune nuit depuis l'activation."
+    }
   },
   "zoo": {
     "title": "Zoo de stratégies",

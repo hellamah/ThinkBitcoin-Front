@@ -2,7 +2,7 @@
 // import dinâmico e não viajar no bundle de produção.
 
 import { CURVAS_ZOO, RODADA_ZOO } from './mockZooEstrategia'
-import { CURVAS_ZOO_RECENTES, DECISOES_ROBO } from './mockRoboAoVivo'
+import { CURVAS_ZOO_RECENTES, DECISOES_ROBO, SEQUENCIAS_ROBO } from './mockRoboAoVivo'
 import { CURVAS_ZOO_JANELA, RODADA_ZOO_JANELA } from './mockZooJanelaAgente'
 import { AuthRole, decodeAuthenticationToken, temCargo } from './authentication'
 import { getStoredToken } from './preferences'
@@ -1269,6 +1269,35 @@ const mockZooCurva = (endpoint) => {
   return { mensagem: resultado.length ? 'Curva do zoo (mock)' : 'Dados não encontrados', resultado }
 }
 
+// As decisões do robô por vela (/ThinkBitcoin/sequenciasRetorno, sem a barra
+// final): os filtros e a paginação da FuncaoObterSequenciaRetorno, sobre as
+// velas das 23h reais de mockRoboAoVivo.js. Com a barra final, a rota segue no
+// mock antigo (buildSequenceResponse), que nenhuma tela usa.
+const mockSequenciasDoRobo = (endpoint) => {
+  const q = treinoQuery(endpoint)
+  const sigla = (q.get('siglaMoeda') || '').trim().toUpperCase()
+  const utc = (v) => Date.parse(/([zZ]|[+-]\d{2}:?\d{2})$/.test(v) ? v : `${v}Z`)
+  const dataInicio = q.get('dataInicio') ? utc(q.get('dataInicio')) : null
+  const dataFim = q.get('dataFim') ? utc(q.get('dataFim')) : null
+  const pagina = Math.max(1, Number(q.get('pagina')) || 1)
+  const quantidade = Math.max(1, Number(q.get('quantidade')) || 10)
+  const asc = q.get('ordemAsc') === 'true'
+  const filtrados = SEQUENCIAS_ROBO
+    .filter((s) => !sigla || s.moeda.toUpperCase() === sigla)
+    .filter((s) => dataInicio === null || utc(s.dataHora) >= dataInicio)
+    .filter((s) => dataFim === null || utc(s.dataHora) <= dataFim)
+    .sort((a, b) => (asc ? 1 : -1) * (utc(a.dataHora) - utc(b.dataHora)))
+  return {
+    mensagem: 'Operação realizada com sucesso',
+    resultado: {
+      totalRegistros: filtrados.length,
+      totalPaginas: Math.ceil(filtrados.length / quantidade),
+      paginaAtual: pagina,
+      registros: filtrados.slice((pagina - 1) * quantidade, pagina * quantidade),
+    },
+  }
+}
+
 // Operações do robô ao vivo (/ThinkBitcoin/historicoDecisoes): os filtros e a
 // paginação da FuncaoObterHistoricoDecisao, sobre as decisões reais guardadas
 // em mockRoboAoVivo.js. A data sem fuso é UTC, como no banco.
@@ -1704,6 +1733,11 @@ const mockHandlers = [
     method: 'GET',
     match: (endpoint) => endpoint.split('?')[0] === '/ThinkBitcoin/historicoDecisoes',
     response: (endpoint) => mockHistoricoDecisoes(endpoint),
+  },
+  {
+    method: 'GET',
+    match: (endpoint) => endpoint.split('?')[0] === '/ThinkBitcoin/sequenciasRetorno',
+    response: (endpoint) => mockSequenciasDoRobo(endpoint),
   },
   {
     method: 'GET',

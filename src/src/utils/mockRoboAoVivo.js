@@ -8,7 +8,12 @@
 //   que fechou a posição que o DQN deixou.
 // - CURVAS_ZOO_RECENTES: TbCurvaZooEstrategia (janela historico) depois do fim da
 //   fixture do zoo (mockZooEstrategia.js termina em 05/10), na mesma escala.
-//   Pontos: [dia 'AAAA-MM-DD', patrimônio, exposição].
+//   Pontos: [dia 'AAAA-MM-DD', patrimônio, exposição]. De 25 a 27/10, lidos
+//   em 28/10/2026.
+// - SEQUENCIAS_ROBO: as linhas da vela das 23h de TbSequenciaRetorno do BTC
+//   desde a ativação, lidas em 28/10/2026: a decisão de cada noite (o Tipo: 0
+//   mantém, 1 compra, 2 vende). A API devolve todas as horas; a tela só lê a
+//   das 23h, e o modo demo traz só ela.
 
 const BTC = '4fbfec54-ec8a-4d0e-aaf8-095102896310'
 
@@ -48,6 +53,8 @@ export const CURVAS_ZOO_RECENTES = {
     ['2026-10-17', 16.237012841098167, 1], ['2026-10-18', 16.361535531508952, 1], ['2026-10-19', 16.326148899057348, 1],
     ['2026-10-20', 16.543280558483794, 1], ['2026-10-21', 16.755534601004747, 1], ['2026-10-22', 16.222079124306237, 1],
     ['2026-10-23', 16.205857045181929, 0], ['2026-10-24', 16.205857045181929, 0],
+    ['2026-10-25', 16.205857045181929, 0], ['2026-10-26', 16.205857045181929, 0],
+    ['2026-10-27', 16.205857045181929, 0],
   ],
   'buy_hold|BTC': [
     ['2026-10-07', 7.2287006678245698, 1], ['2026-10-08', 7.0927221493703803, 1], ['2026-10-09', 7.169163217542331, 1],
@@ -56,5 +63,24 @@ export const CURVAS_ZOO_RECENTES = {
     ['2026-10-17', 7.0698696448111109, 1], ['2026-10-18', 7.1240889274858841, 1], ['2026-10-19', 7.1086809900130223, 1],
     ['2026-10-20', 7.2032237820234437, 1], ['2026-10-21', 7.2956427772470658, 1], ['2026-10-22', 7.0633672522796322, 1],
     ['2026-10-23', 7.0437030455927019, 1], ['2026-10-24', 7.0175659435518867, 1],
+    ['2026-10-25', 6.953880669561439, 1], ['2026-10-26', 6.9535744194528846, 1],
+    ['2026-10-27', 7.0194407494572273, 1],
   ],
 }
+
+const vela = (idSequenciaRetorno, dataHora, tipo, precoFechamento) => ({
+  idSequenciaRetorno,
+  moeda: 'BTC',
+  moedaPai: 'USDT',
+  dataHora,
+  tipo,
+  precoFechamento,
+})
+
+export const SEQUENCIAS_ROBO = [
+  vela('d958f6ca-51a5-4acc-af4e-1485bcbf3875', '2026-10-27T23:00:00', 0, 80909.77),
+  vela('1ff56e19-57f4-4d3e-b1ea-b5895634ca71', '2026-10-26T23:00:00', 0, 80150.56),
+  vela('f793bd72-f0e2-4dd4-be6d-5f14b4538f2f', '2026-10-25T23:00:00', 0, 80154.09),
+  vela('7c9cee27-b5da-48c1-978c-14cb7d11550f', '2026-10-24T23:00:00', 0, 80888.16),
+  vela('73051a14-ff90-47aa-a378-6713c5bec968', '2026-10-23T23:00:00', 2, 81189.43),
+]
