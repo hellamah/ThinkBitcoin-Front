@@ -311,6 +311,11 @@ function TabelaMoedas({ estrategia, nome, moedaSelecionada, onSelecionar }) {
               <TableCell align="right">{t('zoo.colDrawdownBh')}</TableCell>
               <TableCell align="right" title={t('zoo.colCalmarHint')}>{t('zoo.colCalmar')}</TableCell>
               <TableCell align="right" title={t('zoo.colYearsOkHint')}>{t('zoo.colYearsOk')}</TableCell>
+              <TableCell align="center">
+                <Button variant="outlined" size="small" onClick={() => {}}>
+                  {t('zoo.btnViewCoins')}
+                </Button>
+              </TableCell>
               <TableCell align="right">{t('zoo.colApproved')}</TableCell>
             </TableRow>
           </TableHead>
