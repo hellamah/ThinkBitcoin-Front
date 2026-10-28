@@ -1,30 +1,29 @@
 import { describe, expect, it } from 'vitest'
-import { HistoricoDecisaoEndpoint, SequenciaRetornoEndpoint } from '../src/utils/apiClient'
+import { HistoricoDecisaoEndpoint, RoboAoVivoEndpoint, SequenciaRetornoEndpoint } from '../src/utils/apiClient'
 import { getMockResponse } from '../src/utils/mockApi'
-import { CURVAS_ZOO_RECENTES, DECISOES_ROBO, SEQUENCIAS_ROBO } from '../src/utils/mockRoboAoVivo'
+import { DECISOES_ROBO, PLACAR_ROBO, SEQUENCIAS_ROBO } from '../src/utils/mockRoboAoVivo'
 import {
   ATIVACAO_MOTOR,
   carteirasDoRobo,
   chaveDaAcao,
-  criterioDoMotor,
-  curvaDoRobo,
-  curvaNoPeriodo,
   diaDaDecisao,
-  doseDaRegra,
   estadoDeHoje,
   executouAoReligar,
   instanteUtc,
   noitesDoRobo,
   operacoesDoMotor,
-  quedaMaxima,
-  retornoDoPeriodo,
   sequenciasDaBusca,
-  ultimoDiaDaCurva,
+  seriesDoPlacar,
+  ultimoDiaDoPlacar,
 } from '../src/utils/roboAoVivo'
 
 // As contas da tela do robô ao vivo (/robo-ao-vivo) e o modo demo dela. O
 // robô é o motor de risco, que decide no BTC desde 23/10/2026 às 11:49 UTC;
 // as operações de antes são do DQN encerrado e não entram.
+//
+// A conta do placar (a curva do robô, as do zoo e o critério) saiu daqui em
+// 28/10/2026 e foi para o .NET; os casos dela, com os mesmos números reais,
+// estão em RoboAoVivo/CalculoPlacarRoboTests.cs daquele repositório.
 
 const op = (acao, dataHora) => ({ idHistoricoDecisao: dataHora, acao, dataHora })
 
@@ -43,28 +42,11 @@ describe('utils/roboAoVivo', () => {
     expect(ops.map((o) => o.dataHora)).toEqual(['2026-10-26T00:00:00', '2026-10-24T00:00:00'])
   })
 
-  it('diz dentro ou fora pela última operação, e pela dose da curva quando não há operação', () => {
-    const curvaFora = { pontos: [{ exposicao: 1 }, { exposicao: 0 }] }
-    expect(estadoDeHoje([op('VenderTudo', '2026-10-24T00:00:00')], curvaFora)).toEqual({ estado: 'fora', dose: 0 })
-    expect(estadoDeHoje([op('ComprarParcial', '2026-10-26T00:00:00')], curvaFora).estado).toBe('dentro')
-    expect(estadoDeHoje([], { pontos: [{ exposicao: 0.62 }] })).toEqual({ estado: 'dentro', dose: 0.62 })
+  it('diz dentro ou fora pela última operação, e pela dose da regra quando não há operação', () => {
+    expect(estadoDeHoje([op('VenderTudo', '2026-10-24T00:00:00')], 0)).toEqual({ estado: 'fora', dose: 0 })
+    expect(estadoDeHoje([op('ComprarParcial', '2026-10-26T00:00:00')], 0).estado).toBe('dentro')
+    expect(estadoDeHoje([], 0.62)).toEqual({ estado: 'dentro', dose: 0.62 })
     expect(estadoDeHoje([], null)).toEqual({ estado: null, dose: null })
-  })
-
-  it('a dose é a última exposição conhecida da curva', () => {
-    expect(doseDaRegra({ pontos: [{ exposicao: 0.5 }, { exposicao: null }] })).toBe(0.5)
-    expect(doseDaRegra(undefined)).toBeNull()
-  })
-
-  it('a curva do período começa em 1,0, e o retorno é o último ponto sobre o primeiro', () => {
-    const pontos = curvaNoPeriodo({ pontos: [
-      { data: '2026-10-22T00:00:00Z', patrimonio: 16.222079124306237 },
-      { data: '2026-10-23T00:00:00Z', patrimonio: 16.205857045181929 },
-      { data: '2026-10-24T00:00:00Z', patrimonio: 16.205857045181929 },
-    ] })
-    expect(pontos[0].y).toBe(1)
-    expect(retornoDoPeriodo(pontos)).toBeCloseTo(-0.001, 4)
-    expect(retornoDoPeriodo(pontos.slice(0, 1))).toBeNull()
   })
 
   it('traduz as ações do enum do .NET e deixa a desconhecida crua', () => {
@@ -73,28 +55,33 @@ describe('utils/roboAoVivo', () => {
   })
 })
 
-// Os dados reais do banco (lidos em 25 e 28/10/2026, mockRoboAoVivo.js): a
-// venda de 24/10 às 00h, que fechou a posição que o DQN deixou, e o zoo de 22
-// a 27/10. A curva buy & hold do zoo é o fechamento das 23h sobre uma
-// constante; o das 23h de 22/10 no banco é 81.416,09.
-const DIA = 24 * 60 * 60 * 1000
-const opsReais = operacoesDoMotor(DECISOES_ROBO)
-const curvaReal = (estrategia) => ({
-  estrategia,
-  pontos: CURVAS_ZOO_RECENTES[`${estrategia}|BTC`]
-    .filter(([dia]) => dia >= '2026-10-22')
-    .map(([dia, patrimonio, exposicao]) => ({ data: `${dia}T00:00:00.000Z`, patrimonio, exposicao })),
+describe('o placar do .NET na tela', () => {
+  it('vira três séries para o gráfico, cada uma só nos dias em que existe', () => {
+    const series = seriesDoPlacar({ pontos: [
+      { data: '2026-10-22T00:00:00', robo: null, regra: 1, buyHold: 1 },
+      { data: '2026-10-23T00:00:00', robo: 1, regra: 0.999, buyHold: 0.997 },
+    ] })
+    expect(series.robo).toEqual([{ x: Date.UTC(2026, 9, 23), y: 1 }])
+    expect(series.regra.map((p) => p.y)).toEqual([1, 0.999])
+    expect(series.bh.map((p) => p.x)).toEqual([Date.UTC(2026, 9, 22), Date.UTC(2026, 9, 23)])
+    expect(seriesDoPlacar(undefined)).toEqual({ robo: [], regra: [], bh: [] })
+  })
+
+  it('o último fechamento do placar estende as noites', () => {
+    expect(ultimoDiaDoPlacar(PLACAR_ROBO)).toBe(Date.UTC(2026, 9, 27))
+    expect(ultimoDiaDoPlacar(null)).toBeNull()
+  })
 })
-const bhReal = curvaReal('buy_hold')
+
+// As operações reais do banco (lidas em 25/10/2026, mockRoboAoVivo.js): a venda
+// de 24/10 às 00h, que fechou a posição que o DQN deixou.
+const opsReais = operacoesDoMotor(DECISOES_ROBO)
 
 const operacao = (acao, dataHora, quantidade, preco, saldoAnterior, saldoPosterior, precoCompra = preco) => ({
   idHistoricoDecisao: `${acao}-${dataHora}`, acao, dataHora, quantidade, precoMercado: preco, precoCompra, saldoAnterior, saldoPosterior,
 })
-const bh = (valores, inicio = '2026-11-01') => ({
-  pontos: valores.map((patrimonio, i) => ({ data: new Date(Date.parse(`${inicio}T00:00:00Z`) + i * DIA).toISOString(), patrimonio })),
-})
 
-describe('o placar do robô', () => {
+describe('a carteira e o dia de cada operação', () => {
   it('a operação executa a decisão da última vela das 23h antes dela', () => {
     expect(diaDaDecisao('2026-10-24T00:00:00')).toBe(Date.UTC(2026, 9, 23))
     // O PC desligado: o pod que subiu às 09h executou a decisão da noite.
@@ -119,74 +106,13 @@ describe('o placar do robô', () => {
     expect(sequencia.inicial).toEqual({ caixa: 1000, quantidade: 0, precoMedio: 0 })
     expect(sequencia.depois.map((c) => c.quantidade)).toEqual([10, 12, 7, 0])
   })
-
-  it('sem saber a posição de antes de um ajuste parcial, a curva começa na venda de tudo seguinte', () => {
-    const ops = [
-      operacao('VenderParcial', '2026-11-03T00:00:00', 5, 110, 1000, 1000.5),
-      operacao('VenderTudo', '2026-11-05T00:00:00', 5, 130, 1000.5, 1100),
-    ]
-    expect(carteirasDoRobo(ops).inicial).toBeNull()
-    const curva = curvaDoRobo(ops, bh([1, 1.1, 1.2, 1.3, 1.4]))
-    expect(curva.map((p) => p.x)).toEqual([Date.UTC(2026, 10, 4), Date.UTC(2026, 10, 5)])
-    expect(curva.map((p) => p.y)).toEqual([1, 1])
-  })
-
-  it('refaz o robô de 22 a 27/10 com o preço das 23h tirado da curva buy & hold', () => {
-    const curva = curvaDoRobo(opsReais, bhReal)
-    expect(curva.map((p) => new Date(p.x).toISOString().slice(0, 10)))
-      .toEqual(['2026-10-22', '2026-10-23', '2026-10-24', '2026-10-25', '2026-10-26', '2026-10-27'])
-    // Em 22/10, a posição do DQN ao fechamento das 23h (81.416,09 no banco);
-    // em 23/10, vendida a 81.189,43, e o caixa de 997,03 até o fim.
-    const inicio = 1000 + 0.01222 * (81416.09 - 81351.37)
-    expect(curva[0].y).toBe(1)
-    expect(curva[1].y).toBeCloseTo(997.02895837 / inicio, 6)
-    expect(curva.at(-1).y).toBeCloseTo(997.02895837 / inicio, 6)
-  })
-
-  it('com a posição aberta, o patrimônio anda com o preço das 23h', () => {
-    // Compra de 10 a 110 decidida no 2º dia: a escala dá 100 no 1º e 121 no 3º.
-    const ops = [operacao('ComprarTudo', '2026-11-03T00:00:00', 10, 110, 1000, 999)]
-    const curva = curvaDoRobo(ops, bh([1, 1.1, 1.21]))
-    expect(curva.map((p) => p.y)).toEqual([1, 0.999, expect.closeTo(1.109, 9)])
-  })
-
-  it('sem operação, o robô fica fora com a banca, e sem buy & hold não há curva', () => {
-    expect(curvaDoRobo([], bh([1, 0.5])).map((p) => p.y)).toEqual([1, 1])
-    expect(curvaDoRobo(opsReais, null)).toEqual([])
-  })
-
-  it('a queda máxima é a do topo ao fundo', () => {
-    const pontos = [1, 1.2, 0.9, 1.1].map((y, x) => ({ x, y }))
-    expect(quedaMaxima(pontos)).toBeCloseTo(0.25, 12)
-    expect(quedaMaxima([])).toBeNull()
-  })
-
-  it('o critério nos dados reais: 0,28 ponto abaixo da regra, dentro de tudo', () => {
-    const robo = curvaDoRobo(opsReais, bhReal)
-    const regra = curvaNoPeriodo(curvaReal('media_50d_vol_alvo_40'))
-    const c = criterioDoMotor(robo, regra, curvaNoPeriodo(bhReal))
-    expect(c.distancia).toBeCloseTo(-0.00276, 4)
-    expect(c).toMatchObject({ fidelidadeOk: true, quedaOk: true, relativaOk: null })
-    expect(c.quedaBh).toBeLessThan(0.2)
-  })
-
-  it('o critério acusa a distância, a queda e a queda diante da do BTC', () => {
-    const serie = (ys) => ys.map((y, x) => ({ x, y }))
-    const longe = criterioDoMotor(serie([1, 1.0]), serie([1, 1.05]), serie([1, 1]))
-    expect(longe.fidelidadeOk).toBe(false)
-    // O buy & hold caiu 40%: o robô pode cair até 32%, e caiu 35%.
-    const queda = criterioDoMotor(serie([1, 0.65]), serie([1, 0.65]), serie([1, 0.6]))
-    expect(queda).toMatchObject({ quedaOk: true, relativaOk: false })
-    expect(queda.limiteRelativo).toBeCloseTo(0.32, 12)
-    expect(criterioDoMotor(serie([1, 0.45]), serie([1, 0.45]), serie([1, 0.4])).quedaOk).toBe(false)
-  })
 })
 
 describe('as noites do robô', () => {
   const agora = Date.parse('2026-10-28T19:30:00Z')
 
   it('nos dados reais: a venda de 23/10 e quatro noites de manter, fora do mercado', () => {
-    const noites = noitesDoRobo(SEQUENCIAS_ROBO, opsReais, { ultimoDiaDoZoo: ultimoDiaDaCurva(bhReal), agora })
+    const noites = noitesDoRobo(SEQUENCIAS_ROBO, opsReais, { ultimoDiaDoZoo: ultimoDiaDoPlacar(PLACAR_ROBO), agora })
     expect(noites.map((n) => new Date(n.dia).toISOString().slice(0, 10)))
       .toEqual(['2026-10-27', '2026-10-26', '2026-10-25', '2026-10-24', '2026-10-23'])
     expect(noites[0]).toMatchObject({ decisao: 'manter', rodou: true, operacoes: [], execucao: null, depois: 'fora' })
@@ -200,7 +126,7 @@ describe('as noites do robô', () => {
     expect(noites.find((n) => n.dia === Date.UTC(2026, 9, 25))).toMatchObject({ rodou: false, decisao: null })
   })
 
-  it('o zoo estende as noites até o dia dele, e a busca cortada não inventa noite perdida', () => {
+  it('o placar estende as noites até o dia dele, e a busca cortada não inventa noite perdida', () => {
     const noites = noitesDoRobo(SEQUENCIAS_ROBO, opsReais, { ultimoDiaDoZoo: Date.UTC(2026, 9, 28), agora })
     expect(noites[0]).toMatchObject({ dia: Date.UTC(2026, 9, 28), rodou: false })
     const cortada = noitesDoRobo(SEQUENCIAS_ROBO, opsReais, { desde: Date.UTC(2026, 9, 26), agora })
@@ -237,15 +163,13 @@ describe('modo demo do robô ao vivo', () => {
     expect(resp.resultado.registros[0]).toMatchObject({ acao: 'VenderTudo', dataHora: '2026-10-24T00:00:00', moedaSigla: 'BTC' })
   })
 
-  it('a curva do zoo pedida com data traz os pontos reais do período', () => {
-    const resp = getMockResponse({
-      endpoint: '/api/ZooEstrategia/curva?moeda=BTC&estrategias=media_50d_vol_alvo_40,buy_hold&dataInicio=2026-10-22',
-      method: 'GET',
-    })
-    const regra = resp.resultado.find((c) => c.estrategia === 'media_50d_vol_alvo_40')
-    expect(regra.pontos.map((p) => p.data.slice(0, 10)))
-      .toEqual(['2026-10-22', '2026-10-23', '2026-10-24', '2026-10-25', '2026-10-26', '2026-10-27'])
-    expect(regra.pontos.at(-1).exposicao).toBe(0)
+  it('o placar vem pronto, com os números do .NET nos dados reais', () => {
+    const resp = getMockResponse({ endpoint: RoboAoVivoEndpoint.PLACAR, method: 'GET' })
+    expect(resp.resultado.pontos).toHaveLength(6)
+    expect(resp.resultado.criterio).toMatchObject({ situacao: 'dentro', fidelidadeOk: true, relativaOk: null })
+    // Os mesmos de CalculoPlacarRoboTests.cs: robô 0,28 ponto abaixo da regra.
+    expect(resp.resultado.criterio.distancia).toBeCloseTo(-0.00276, 4)
+    expect(resp.resultado.ultimaConferencia).toBeNull()
   })
 
   it('sequenciasRetorno do robô filtra pela moeda e pela data, como a API, da mais recente para a mais antiga', () => {

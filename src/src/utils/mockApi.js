@@ -2,7 +2,7 @@
 // import dinâmico e não viajar no bundle de produção.
 
 import { CURVAS_ZOO, RODADA_ZOO } from './mockZooEstrategia'
-import { CURVAS_ZOO_RECENTES, DECISOES_ROBO, SEQUENCIAS_ROBO } from './mockRoboAoVivo'
+import { DECISOES_ROBO, PLACAR_ROBO, SEQUENCIAS_ROBO } from './mockRoboAoVivo'
 import { CURVAS_ZOO_JANELA, RODADA_ZOO_JANELA } from './mockZooJanelaAgente'
 import { AuthRole, decodeAuthenticationToken, temCargo } from './authentication'
 import { getStoredToken } from './preferences'
@@ -1229,10 +1229,8 @@ const mockZooCurva = (endpoint) => {
   const { rodada, curvas } = zooDaJanela(endpoint)
   const pedidas = (q.get('estrategias') || '').split(',').map((e) => e.trim()).filter(Boolean)
   const nomes = pedidas.length > 0 ? pedidas : rodada.estrategias.map((e) => e.estrategia)
-  // dataInicio/dataFim filtram como na API. Só a tela do robô ao vivo pede
-  // datas, e o período dela (desde 22/10) fica depois do fim da fixture do zoo:
-  // com data, entram também os pontos reais recentes (mockRoboAoVivo.js). Sem
-  // data, a curva é a de sempre, e a tela do zoo não muda.
+  // dataInicio/dataFim filtram como na API. A tela do robô ao vivo pedia datas
+  // até 28/10/2026, quando passou a ler o placar pronto (PLACAR_ROBO).
   const dataInicio = q.get('dataInicio') ? Date.parse(`${q.get('dataInicio').slice(0, 10)}T00:00:00Z`) : null
   const dataFim = q.get('dataFim') ? Date.parse(`${q.get('dataFim').slice(0, 10)}T00:00:00Z`) : null
   const comData = dataInicio !== null || dataFim !== null
@@ -1251,18 +1249,11 @@ const mockZooCurva = (endpoint) => {
         patrimonio,
         exposicao,
       }))
-      const recentes = comData && curvas === CURVAS_ZOO
-        ? (CURVAS_ZOO_RECENTES[`${estrategia}|${moeda}`] ?? []).map(([dia, patrimonio, exposicao]) => ({
-          data: `${dia}T00:00:00.000Z`,
-          patrimonio,
-          exposicao,
-        }))
-        : []
       return {
         versaoZoo: rodada.versaoZoo,
         estrategia,
         moeda,
-        pontos: comData ? [...pontos, ...recentes].filter(noPeriodo) : pontos,
+        pontos: comData ? pontos.filter(noPeriodo) : pontos,
       }
     })
     .filter((c) => c.pontos.length > 0)
@@ -1738,6 +1729,12 @@ const mockHandlers = [
     method: 'GET',
     match: (endpoint) => endpoint.split('?')[0] === '/ThinkBitcoin/sequenciasRetorno',
     response: (endpoint) => mockSequenciasDoRobo(endpoint),
+  },
+  // O placar do robô ao vivo, pronto como o .NET o devolve (mockRoboAoVivo.js).
+  {
+    method: 'GET',
+    match: (endpoint) => endpoint.split('?')[0] === '/api/RoboAoVivo/placar',
+    response: () => ({ mensagem: 'Operação realizada com sucesso', resultado: PLACAR_ROBO }),
   },
   {
     method: 'GET',

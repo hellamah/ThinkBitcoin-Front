@@ -1125,7 +1125,9 @@
       "dentro": "Within limit",
       "fora": "Out of limit",
       "pontos": "{{valor}} pp",
-      "semDados": "There is no data to measure the criterion yet."
+      "semDados": "There is no data to measure the criterion yet.",
+      "conferencia": "The server checks the criterion every day at 01:30 UTC and emails the administrators when it changes. Last close checked: {{data}}, {{situacao}}.",
+      "semConferencia": "The server checks the criterion every day at 01:30 UTC and emails the administrators when it changes. No check has run yet."
     },
     "noites": {
       "title": "The robot's nights",

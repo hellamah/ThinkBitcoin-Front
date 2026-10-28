@@ -6,10 +6,9 @@
 //   historicoDecisoes os devolve (ação e direção pelo nome do enum, data sem
 //   fuso). As de 22/10 são do DQN; a de 24/10 é a primeira do motor de risco,
 //   que fechou a posição que o DQN deixou.
-// - CURVAS_ZOO_RECENTES: TbCurvaZooEstrategia (janela historico) depois do fim da
-//   fixture do zoo (mockZooEstrategia.js termina em 05/10), na mesma escala.
-//   Pontos: [dia 'AAAA-MM-DD', patrimônio, exposição]. De 25 a 27/10, lidos
-//   em 28/10/2026.
+// - PLACAR_ROBO: o placar das operações e das curvas do zoo reais de 22 a
+//   27/10 (TbCurvaZooEstrategia, lidas em 25 e 28/10/2026), como a rota do
+//   .NET o devolve.
 // - SEQUENCIAS_ROBO: as linhas da vela das 23h de TbSequenciaRetorno do BTC
 //   desde a ativação, lidas em 28/10/2026: a decisão de cada noite (o Tipo: 0
 //   mantém, 1 compra, 2 vende). A API devolve todas as horas; a tela só lê a
@@ -45,29 +44,46 @@ export const DECISOES_ROBO = [
   decisao('85cdc9f2-b280-46b1-b83e-b82da66a0b99', 'd854ee85-a945-4e09-8d50-bbc526482dbf', '8b661def-d010-4419-92ed-feb275f558c0', 'ComprarTudo', 0.01211966, 81861.24, 81861.24, 0.99213041, 992.13041311, 992.13041311, 991.1382827, '2026-10-22T09:00:00', 'Aberto'),
 ]
 
-export const CURVAS_ZOO_RECENTES = {
-  'media_50d_vol_alvo_40|BTC': [
-    ['2026-10-07', 16.601792036444031, 1], ['2026-10-08', 16.289497035096353, 1], ['2026-10-09', 16.465055378863863, 1],
-    ['2026-10-10', 16.535352438521805, 1], ['2026-10-11', 16.691715128176767, 1], ['2026-10-12', 16.308535282454187, 1],
-    ['2026-10-14', 16.275063433436475, 1], ['2026-10-15', 16.387423961432585, 1], ['2026-10-16', 16.261839273550141, 1],
-    ['2026-10-17', 16.237012841098167, 1], ['2026-10-18', 16.361535531508952, 1], ['2026-10-19', 16.326148899057348, 1],
-    ['2026-10-20', 16.543280558483794, 1], ['2026-10-21', 16.755534601004747, 1], ['2026-10-22', 16.222079124306237, 1],
-    ['2026-10-23', 16.205857045181929, 0], ['2026-10-24', 16.205857045181929, 0],
-    ['2026-10-25', 16.205857045181929, 0], ['2026-10-26', 16.205857045181929, 0],
-    ['2026-10-27', 16.205857045181929, 0],
-  ],
-  'buy_hold|BTC': [
-    ['2026-10-07', 7.2287006678245698, 1], ['2026-10-08', 7.0927221493703803, 1], ['2026-10-09', 7.169163217542331, 1],
-    ['2026-10-10', 7.199771744680846, 1], ['2026-10-11', 7.267854700825005, 1], ['2026-10-12', 7.1010117238384662, 1],
-    ['2026-10-14', 7.086437515414671, 1], ['2026-10-15', 7.1353611871471943, 1], ['2026-10-16', 7.0806794928354275, 1],
-    ['2026-10-17', 7.0698696448111109, 1], ['2026-10-18', 7.1240889274858841, 1], ['2026-10-19', 7.1086809900130223, 1],
-    ['2026-10-20', 7.2032237820234437, 1], ['2026-10-21', 7.2956427772470658, 1], ['2026-10-22', 7.0633672522796322, 1],
-    ['2026-10-23', 7.0437030455927019, 1], ['2026-10-24', 7.0175659435518867, 1],
-    ['2026-10-25', 6.953880669561439, 1], ['2026-10-26', 6.9535744194528846, 1],
-    ['2026-10-27', 7.0194407494572273, 1],
-  ],
-}
+// O placar como GET api/RoboAoVivo/placar o devolve: as três curvas a partir de
+// 1,0 no fechamento de 22/10, calculadas pela mesma conta do .NET
+// (CalculoPlacarRobo) sobre as operações e as curvas do zoo reais de 22 a
+// 27/10. A conferência diária ainda não rodou no cluster: a última é nula.
+const ponto = (dia, robo, regra, buyHold) => ({ data: `${dia}T00:00:00`, robo, regra, buyHold })
 
+export const PLACAR_ROBO = {
+  moeda: 'BTC',
+  estrategia: 'media_50d_vol_alvo_40',
+  ativacao: '2026-10-23T11:49:00Z',
+  inicioDaCurva: '2026-10-22T00:00:00',
+  pontos: [
+    ponto('2026-10-22', 1, 1, 1),
+    ponto('2026-10-23', 0.9962410528401155, 0.9989999999999999, 0.9972160294113853),
+    ponto('2026-10-24', 0.9962410528401155, 0.9989999999999999, 0.9935156551978854),
+    ponto('2026-10-25', 0.9962410528401155, 0.9989999999999999, 0.9844993784398146),
+    ponto('2026-10-26', 0.9962410528401155, 0.9989999999999999, 0.98445602091675),
+    ponto('2026-10-27', 0.9962410528401155, 0.9989999999999999, 0.9937810818475808),
+  ],
+  retornoRobo: -0.0037589471598844515,
+  retornoRegra: -0.001000000000000112,
+  retornoBuyHold: -0.006218918152419151,
+  doseRegra: 0,
+  criterio: {
+    data: '2026-10-27T00:00:00',
+    distancia: -0.0027589471598843396,
+    fidelidadeOk: true,
+    quedaRobo: 0.0037589471598844515,
+    quedaOk: true,
+    quedaBuyHold: 0.015543979083250004,
+    limiteRelativo: 0.012435183266600003,
+    relativaOk: null,
+    limiteFidelidade: 0.03,
+    limiteQueda: 0.5,
+    gatilhoQuedaBuyHold: 0.2,
+    fracaoDaQuedaBuyHold: 0.8,
+    situacao: 'dentro',
+  },
+  ultimaConferencia: null,
+}
 const vela = (idSequenciaRetorno, dataHora, tipo, precoFechamento) => ({
   idSequenciaRetorno,
   moeda: 'BTC',

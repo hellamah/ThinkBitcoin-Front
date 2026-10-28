@@ -28,19 +28,15 @@ import { padraoDeDataCurta } from '../utils/dateUtils'
 import { readToken } from '../utils/themeTokens'
 import {
   ATIVACAO_MOTOR,
-  CRITERIO,
   ESTRATEGIA_MOTOR,
   MOEDA_MOTOR,
   chaveDaAcao,
-  criterioDoMotor,
-  curvaDoRobo,
-  curvaNoPeriodo,
   estadoDeHoje,
   executouAoReligar,
   instanteUtc,
   noitesDoRobo,
-  retornoDoPeriodo,
-  ultimoDiaDaCurva,
+  seriesDoPlacar,
+  ultimoDiaDoPlacar,
 } from '../utils/roboAoVivo'
 import { BUY_HOLD } from '../utils/zooEstrategia'
 
@@ -50,8 +46,10 @@ import { BUY_HOLD } from '../utils/zooEstrategia'
 // historicoDecisoes existia e nenhum componente a chamava. Primeiro veio a
 // versão mínima da proposta 2 do Estrategista (ronda de 25/10/2026); em
 // 28/10 entraram a curva do robô refeita pelas operações, o critério
-// registrado antes de ligar e o diário das noites, ainda só com o que a API
-// já serve. A conta do critério no backend, com aviso, ficou para depois.
+// registrado antes de ligar e o diário das noites. No mesmo dia a conta foi
+// para o .NET (GET api/RoboAoVivo/placar), que a confere todo dia às 01:30
+// UTC, grava cada fechamento e avisa os administradores por email quando o
+// critério muda.
 //
 // A curva do robô usa o caixa gravado depois de cada operação. Até o
 // Back-Python e523b78c (28/10), esse caixa voltava a 1.000 quando o worker
@@ -180,7 +178,7 @@ function TabelaDeOperacoes({ operacoes, erro }) {
   )
 }
 
-function CurvaDoPlacar({ series, curvas, erro }) {
+function CurvaDoPlacar({ series, placar, erro }) {
   const { t, idioma } = useTranslation()
   const escuro = useTheme().palette.mode === 'dark'
   const dataCurta = useMemo(() => padraoDeDataCurta(idioma.intl), [idioma.intl])
@@ -226,9 +224,9 @@ function CurvaDoPlacar({ series, curvas, erro }) {
   }, [escuro, idioma, dataCurta])
 
   if (erro) return <ErrorMessage message={t('robo.curvaErro')} />
-  const retornoRobo = retornoDoPeriodo(series.robo)
-  const retornoRegra = retornoDoPeriodo(series.regra)
-  const retornoBh = retornoDoPeriodo(series.bh)
+  const retornoRobo = placar?.retornoRobo ?? null
+  const retornoRegra = placar?.retornoRegra ?? null
+  const retornoBh = placar?.retornoBuyHold ?? null
   const retorno = (nome, valor) => (
     <Typography variant="body2">
       {`${nome}: `}
@@ -243,7 +241,7 @@ function CurvaDoPlacar({ series, curvas, erro }) {
       // O gráfico ocupa a altura que sobra do painel.
       corpoSx={{ display: 'flex', flexDirection: 'column' }}
     >
-      {curvas === undefined ? (
+      {placar === undefined ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress sx={{ color: 'var(--accent-ink)' }} /></Box>
       ) : series.regra.length === 0 ? (
         <EstadoVazio mensagem={t('robo.curvaVazia')} />
@@ -290,29 +288,47 @@ function ItemDoCriterio({ rotulo, valor, detalhe, ok, testId }) {
   )
 }
 
-function Criterio({ criterio, carregando }) {
+// A conferência diária do servidor: o último fechamento conferido e como ficou.
+function UltimaConferencia({ conferencia }) {
+  const { t, idioma } = useTranslation()
+  const texto = conferencia
+    ? t('robo.criterio.conferencia', {
+      data: formatarDia(instanteUtc(conferencia.data), idioma.intl),
+      situacao: t(conferencia.situacao === 'fora' ? 'robo.criterio.fora' : 'robo.criterio.dentro'),
+    })
+    : t('robo.criterio.semConferencia')
+  return (
+    <Typography variant="caption" component="p" data-testid="robo-conferencia" sx={{ color: 'var(--text-muted)', mt: 1 }}>
+      {texto}
+    </Typography>
+  )
+}
+
+function Criterio({ criterio, conferencia, carregando }) {
   const { t } = useTranslation()
-  const pontos = (d) => (d === null ? '–' : t('robo.criterio.pontos', { valor: comSinal(formatarNumero(d * 100, 2), d) }))
-  const relativaAplica = criterio && criterio.quedaBh !== null && criterio.quedaBh >= CRITERIO.QUEDA_DO_BH
+  const vazio = (v) => v === null || v === undefined
+  const pontos = (d) => (vazio(d) ? '–' : t('robo.criterio.pontos', { valor: comSinal(formatarNumero(d * 100, 2), d) }))
+  // Os limites vêm do .NET com o critério: a tela não repete os números.
+  const relativaAplica = criterio && !vazio(criterio.quedaBuyHold) && criterio.quedaBuyHold >= criterio.gatilhoQuedaBuyHold
   return (
     <Painel titulo={t('robo.criterio.title')} subtitulo={t('robo.criterio.sub')}>
       {carregando && !criterio ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}><CircularProgress size={28} sx={{ color: 'var(--accent-ink)' }} /></Box>
-      ) : !criterio || criterio.distancia === null ? (
+      ) : !criterio || vazio(criterio.distancia) ? (
         <EstadoVazio mensagem={t('robo.criterio.semDados')} />
       ) : (
         <Box>
           <ItemDoCriterio
             rotulo={t('robo.criterio.fidelidade')}
             valor={pontos(criterio.distancia)}
-            detalhe={t('robo.criterio.fidelidadeLimite', { limite: formatarNumero(CRITERIO.FIDELIDADE * 100, 0) })}
+            detalhe={t('robo.criterio.fidelidadeLimite', { limite: formatarNumero(criterio.limiteFidelidade * 100, 0) })}
             ok={criterio.fidelidadeOk}
             testId="robo-criterio-fidelidade"
           />
           <ItemDoCriterio
             rotulo={t('robo.criterio.queda')}
             valor={pctSemSinal(criterio.quedaRobo)}
-            detalhe={t('robo.criterio.quedaLimite', { limite: pctSemSinal(CRITERIO.QUEDA_MAXIMA, 0) })}
+            detalhe={t('robo.criterio.quedaLimite', { limite: pctSemSinal(criterio.limiteQueda, 0) })}
             ok={criterio.quedaOk}
             testId="robo-criterio-queda"
           />
@@ -322,15 +338,16 @@ function Criterio({ criterio, carregando }) {
               ? `${pctSemSinal(criterio.quedaRobo)} / ${pctSemSinal(criterio.limiteRelativo)}`
               : t('robo.criterio.naoSeAplica')}
             detalhe={t('robo.criterio.relativaLimite', {
-              queda: pctSemSinal(criterio.quedaBh),
-              gatilho: pctSemSinal(CRITERIO.QUEDA_DO_BH, 0),
-              fracao: pctSemSinal(CRITERIO.FRACAO_DA_QUEDA_DO_BH, 0),
+              queda: pctSemSinal(criterio.quedaBuyHold),
+              gatilho: pctSemSinal(criterio.gatilhoQuedaBuyHold, 0),
+              fracao: pctSemSinal(criterio.fracaoDaQuedaBuyHold, 0),
             })}
             ok={criterio.relativaOk}
             testId="robo-criterio-relativa"
           />
         </Box>
       )}
+      {criterio !== undefined && <UltimaConferencia conferencia={conferencia} />}
     </Painel>
   )
 }
@@ -389,36 +406,21 @@ export default function RoboAoVivo() {
   const { t, idioma } = useTranslation()
   definirIdiomaDosNumeros(idioma.intl)
   const {
-    operacoes, curvas, sequencias, erroOperacoes, erroCurva, erroSequencias, carregando, recarregar,
+    operacoes, placar, sequencias, erroOperacoes, erroPlacar, erroSequencias, carregando, recarregar,
   } = useRoboAoVivo()
 
   const hoje = useMemo(() => {
-    const curvaDaRegra = (curvas ?? []).find((c) => c.estrategia === ESTRATEGIA_MOTOR)
-    if (operacoes === undefined && curvas === undefined) return { estado: undefined, dose: null }
-    return estadoDeHoje(operacoes ?? [], curvaDaRegra)
-  }, [operacoes, curvas])
+    if (operacoes === undefined && placar === undefined) return { estado: undefined, dose: null }
+    return estadoDeHoje(operacoes ?? [], placar?.doseRegra ?? null)
+  }, [operacoes, placar])
 
-  // As três curvas do período. A do robô só sai com a lista de operações: sem
-  // ela, não se sabe o caixa nem a posição.
-  const series = useMemo(() => {
-    const da = (nome) => (curvas ?? []).find((c) => c.estrategia === nome)
-    return {
-      robo: Array.isArray(operacoes) ? curvaDoRobo(operacoes, da(BUY_HOLD)) : [],
-      regra: curvaNoPeriodo(da(ESTRATEGIA_MOTOR)),
-      bh: curvaNoPeriodo(da(BUY_HOLD)),
-    }
-  }, [operacoes, curvas])
-
-  const criterio = useMemo(
-    () => (series.robo.length && series.regra.length ? criterioDoMotor(series.robo, series.regra, series.bh) : null),
-    [series],
-  )
+  // As três curvas do período, prontas no .NET (GET api/RoboAoVivo/placar).
+  const series = useMemo(() => seriesDoPlacar(placar), [placar])
 
   const noites = useMemo(() => {
     if (sequencias === undefined) return undefined
-    const bh = (curvas ?? []).find((c) => c.estrategia === BUY_HOLD)
-    return noitesDoRobo(sequencias.registros, operacoes, { ultimoDiaDoZoo: ultimoDiaDaCurva(bh), desde: sequencias.desde })
-  }, [sequencias, operacoes, curvas])
+    return noitesDoRobo(sequencias.registros, operacoes, { ultimoDiaDoZoo: ultimoDiaDoPlacar(placar), desde: sequencias.desde })
+  }, [sequencias, operacoes, placar])
 
   return (
     <div className="dashboard-container">
@@ -434,10 +436,14 @@ export default function RoboAoVivo() {
         </Box>
         <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: 'minmax(280px, 1fr) 2fr' }, alignItems: 'start' }}>
           <EstadoDeHoje estado={hoje.estado} dose={hoje.dose} operacoes={operacoes} noites={noites} carregando={carregando} />
-          <CurvaDoPlacar series={series} curvas={curvas} erro={erroCurva} />
+          <CurvaDoPlacar series={series} placar={placar} erro={erroPlacar} />
         </Box>
         <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: 'minmax(280px, 1fr) 2fr' }, alignItems: 'start' }}>
-          <Criterio criterio={criterio} carregando={carregando} />
+          <Criterio
+            criterio={placar === undefined ? undefined : (placar?.criterio ?? null)}
+            conferencia={placar?.ultimaConferencia ?? null}
+            carregando={carregando}
+          />
           <Noites noites={noites} erro={erroSequencias} />
         </Box>
         <TabelaDeOperacoes operacoes={operacoes} erro={erroOperacoes} />

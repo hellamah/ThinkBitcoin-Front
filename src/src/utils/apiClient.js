@@ -171,6 +171,12 @@ export const ApiEndpoint = Object.freeze({
       return qs ? `/ThinkBitcoin/historicoDecisoes?${qs}` : '/ThinkBitcoin/historicoDecisoes'
     },
   }),
+  // O placar do robô ao vivo: a curva dele refeita pelas operações, a da regra no
+  // zoo, a do buy & hold, o critério do motor e a última conferência diária
+  // (CalculoPlacarRobo no .NET). Cargo AcessoIA.
+  ROBO_AO_VIVO: Object.freeze({
+    PLACAR: '/api/RoboAoVivo/placar',
+  }),
   // A decisão do robô em cada vela (TbSequenciaRetorno), da mais recente para a
   // mais antiga. O Tipo da vela das 23h é a decisão do dia. Cargo AcessoIA.
   SEQUENCIA_RETORNO: Object.freeze({
@@ -453,6 +459,7 @@ export const TreinamentoEpisodioEndpoint = ApiEndpoint.TREINAMENTO_EPISODIO
 export const ZooEstrategiaEndpoint = ApiEndpoint.ZOO_ESTRATEGIA
 export const HistoricoDecisaoEndpoint = ApiEndpoint.HISTORICO_DECISAO
 export const SequenciaRetornoEndpoint = ApiEndpoint.SEQUENCIA_RETORNO
+export const RoboAoVivoEndpoint = ApiEndpoint.ROBO_AO_VIVO
 export const PedidoAlteracaoEndpoint = ApiEndpoint.PEDIDO_ALTERACAO
 export const DocumentoLegalEndpoint = ApiEndpoint.DOCUMENTO_LEGAL
 export const ConsentimentoEndpoint = ApiEndpoint.CONSENTIMENTO

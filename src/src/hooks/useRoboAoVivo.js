@@ -1,18 +1,16 @@
 import { useCallback, useEffect, useState } from 'react'
-import { apiRequest, HistoricoDecisaoEndpoint, SequenciaRetornoEndpoint, ZooEstrategiaEndpoint } from '../utils/apiClient'
+import { apiRequest, HistoricoDecisaoEndpoint, RoboAoVivoEndpoint, SequenciaRetornoEndpoint } from '../utils/apiClient'
 import {
   ATIVACAO_MOTOR,
-  ESTRATEGIAS_DA_CURVA,
-  INICIO_DA_CURVA,
   MOEDA_MOTOR,
   operacoesDoMotor,
   sequenciasDaBusca,
 } from '../utils/roboAoVivo'
 
-// O robô ao vivo: as operações do motor desde a ativação, a curva de papel da
-// mesma regra ao lado do buy & hold, desde o fechamento anterior, e as decisões
-// de cada vela. As três buscas são independentes: a falha de uma não apaga as
-// outras da tela.
+// O robô ao vivo: as operações do motor desde a ativação, o placar (a curva do
+// robô, a da mesma regra no zoo, a do buy & hold e o critério, prontos no .NET)
+// e as decisões de cada vela. As três buscas são independentes: a falha de uma
+// não apaga as outras da tela.
 
 // A API pagina de 10 em 10; 27 operações por ano (docs/motor-de-risco.md)
 // cabem com folga em 200 por muito tempo.
@@ -25,10 +23,10 @@ const QUANTIDADE_DE_VELAS = 400
 export default function useRoboAoVivo() {
   // undefined = ainda não carregou.
   const [operacoes, setOperacoes] = useState(undefined)
-  const [curvas, setCurvas] = useState(undefined)
+  const [placar, setPlacar] = useState(undefined)
   const [sequencias, setSequencias] = useState(undefined)
   const [erroOperacoes, setErroOperacoes] = useState(null)
-  const [erroCurva, setErroCurva] = useState(null)
+  const [erroPlacar, setErroPlacar] = useState(null)
   const [erroSequencias, setErroSequencias] = useState(null)
   const [carregando, setCarregando] = useState(false)
   const [recarga, setRecarga] = useState(0)
@@ -38,9 +36,9 @@ export default function useRoboAoVivo() {
     const comoErro = (e) => (e instanceof Error ? e : new Error(String(e ?? '')))
     const buscar = async () => {
       setCarregando(true)
-      const [ops, curva, velas] = await Promise.allSettled([
+      const [ops, resposta, velas] = await Promise.allSettled([
         apiRequest(HistoricoDecisaoEndpoint.LIST({ siglaMoeda: MOEDA_MOTOR, dataInicio: ATIVACAO_MOTOR, quantidade: QUANTIDADE })),
-        apiRequest(ZooEstrategiaEndpoint.CURVA({ moeda: MOEDA_MOTOR, estrategias: ESTRATEGIAS_DA_CURVA, dataInicio: INICIO_DA_CURVA })),
+        apiRequest(RoboAoVivoEndpoint.PLACAR),
         apiRequest(SequenciaRetornoEndpoint.LIST({ siglaMoeda: MOEDA_MOTOR, dataInicio: ATIVACAO_MOTOR, quantidade: QUANTIDADE_DE_VELAS })),
       ])
       if (cancelado) return
@@ -50,11 +48,11 @@ export default function useRoboAoVivo() {
       } else {
         setErroOperacoes(comoErro(ops.reason))
       }
-      if (curva.status === 'fulfilled') {
-        setCurvas(Array.isArray(curva.value?.resultado) ? curva.value.resultado : [])
-        setErroCurva(null)
+      if (resposta.status === 'fulfilled') {
+        setPlacar(resposta.value?.resultado ?? null)
+        setErroPlacar(null)
       } else {
-        setErroCurva(comoErro(curva.reason))
+        setErroPlacar(comoErro(resposta.reason))
       }
       if (velas.status === 'fulfilled') {
         setSequencias(sequenciasDaBusca(velas.value?.resultado))
@@ -70,5 +68,5 @@ export default function useRoboAoVivo() {
 
   const recarregar = useCallback(() => setRecarga((n) => n + 1), [])
 
-  return { operacoes, curvas, sequencias, erroOperacoes, erroCurva, erroSequencias, carregando, recarregar }
+  return { operacoes, placar, sequencias, erroOperacoes, erroPlacar, erroSequencias, carregando, recarregar }
 }

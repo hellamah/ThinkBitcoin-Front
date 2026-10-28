@@ -1125,7 +1125,9 @@
       "dentro": "Dentro del límite",
       "fora": "Fuera del límite",
       "pontos": "{{valor}} p.p.",
-      "semDados": "Aún no hay datos para medir el criterio."
+      "semDados": "Aún no hay datos para medir el criterio.",
+      "conferencia": "El servidor revisa el criterio todos los días a las 01:30 UTC y avisa a los administradores por correo cuando cambia. Último cierre revisado: {{data}}, {{situacao}}.",
+      "semConferencia": "El servidor revisa el criterio todos los días a las 01:30 UTC y avisa a los administradores por correo cuando cambia. Todavía no hubo revisión."
     },
     "noites": {
       "title": "Las noches del robot",

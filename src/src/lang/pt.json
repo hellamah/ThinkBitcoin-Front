@@ -1125,7 +1125,9 @@
       "dentro": "Dentro do limite",
       "fora": "Fora do limite",
       "pontos": "{{valor}} p.p.",
-      "semDados": "Ainda não há dados para medir o critério."
+      "semDados": "Ainda não há dados para medir o critério.",
+      "conferencia": "O servidor confere o critério todo dia às 01:30 UTC e avisa os administradores por email quando ele muda. Último fechamento conferido: {{data}}, {{situacao}}.",
+      "semConferencia": "O servidor confere o critério todo dia às 01:30 UTC e avisa os administradores por email quando ele muda. Ainda não houve conferência."
     },
     "noites": {
       "title": "As noites do robô",

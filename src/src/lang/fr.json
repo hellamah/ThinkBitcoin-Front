@@ -1125,7 +1125,9 @@
       "dentro": "Dans la limite",
       "fora": "Hors limite",
       "pontos": "{{valor}} pts",
-      "semDados": "Pas encore de données pour mesurer le critère."
+      "semDados": "Pas encore de données pour mesurer le critère.",
+      "conferencia": "Le serveur vérifie le critère chaque jour à 01 h 30 UTC et prévient les administrateurs par e-mail quand il change. Dernière clôture vérifiée : {{data}}, {{situacao}}.",
+      "semConferencia": "Le serveur vérifie le critère chaque jour à 01 h 30 UTC et prévient les administrateurs par e-mail quand il change. Aucune vérification n'a encore eu lieu."
     },
     "noites": {
       "title": "Les nuits du robot",

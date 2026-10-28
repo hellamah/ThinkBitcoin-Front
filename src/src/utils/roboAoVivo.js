@@ -1,17 +1,17 @@
 // O robô ao vivo: o motor de risco do Back-Python (docs/motor-de-risco.md),
 // que decide no BTC, com dinheiro de mentira, desde que substituiu o DQN.
 // Aqui ficam as contas puras da tela /robo-ao-vivo (só administrador). A tela
-// usa só o que a API já serve: as operações (historicoDecisoes), a curva de
-// papel da mesma regra no zoo (ZooEstrategia/curva) e as decisões de cada
-// vela (sequenciasRetorno).
-
-import { BUY_HOLD } from './zooEstrategia'
+// lê as operações (historicoDecisoes), o placar (RoboAoVivo/placar) e as
+// decisões de cada vela (sequenciasRetorno).
+//
+// O placar (a curva do robô refeita pelas operações, a da regra no zoo, a do
+// buy & hold e o critério) era calculado aqui até 28/10/2026; agora vem pronto
+// do .NET (CalculoPlacarRobo), que também o confere todo dia e avisa por email.
 
 // A regra é a do zoo, sem mudança, e só no BTC: o .NET guarda uma posição
 // aberta por vez (TbPosicaoDecisao).
 export const ESTRATEGIA_MOTOR = 'media_50d_vol_alvo_40'
 export const MOEDA_MOTOR = 'BTC'
-export const ESTRATEGIAS_DA_CURVA = Object.freeze([ESTRATEGIA_MOTOR, BUY_HOLD])
 
 // A primeira decisão do motor no cluster: TB_DECISOR=motor-risco na réplica
 // do activation-dqn criada em 23/10/2026 às 11:49 UTC. Antes disso, quem
@@ -21,11 +21,6 @@ export const ATIVACAO_MOTOR = '2026-10-23T11:49:00Z'
 
 // A banca de papel com que a simulação ao vivo parte (USDT).
 export const BANCA_INICIAL = 1000
-
-// A curva começa no último fechamento antes da ativação (o do dia 22), para
-// que o primeiro dia do motor já apareça como variação. O zoo grava um ponto
-// por dia, com a data do dia do fechamento.
-export const INICIO_DA_CURVA = '2026-10-22'
 
 // Acao chega como o nome do ActionTypeEnum do .NET (FuncaoObterHistoricoDecisao).
 export const ACOES = Object.freeze({
@@ -74,43 +69,28 @@ export const estadoPelasOperacoes = (operacoes) => {
   return ACOES_QUE_FECHAM.includes(ultima.acao) ? 'fora' : 'dentro'
 }
 
-/** A dose da regra no último ponto da curva de papel (0 a 1), ou nulo. */
-export const doseDaRegra = (curva) => {
-  const pontos = curva?.pontos ?? []
-  for (let i = pontos.length - 1; i >= 0; i -= 1) {
-    const exposicao = pontos[i]?.exposicao
-    if (exposicao !== null && exposicao !== undefined) return Number(exposicao)
-  }
-  return null
-}
-
 /**
- * O estado de hoje. A curva diz a dose da regra; as operações dizem o que o
- * robô fez. Quando as duas existem e discordam (dose zero com posição aberta),
- * vale a operação, que é o que está no banco, e a tela mostra as duas.
+ * O estado de hoje. A dose da regra vem do placar (a última exposição dela no
+ * zoo); as operações dizem o que o robô fez. Quando as duas existem e discordam
+ * (dose zero com posição aberta), vale a operação, que é o que está no banco, e
+ * a tela mostra as duas.
  */
-export const estadoDeHoje = (operacoes, curvaDaRegra) => {
-  const dose = doseDaRegra(curvaDaRegra)
+export const estadoDeHoje = (operacoes, dose = null) => {
   const pelasOperacoes = estadoPelasOperacoes(operacoes)
-  const pelaDose = dose === null ? null : dose > 0 ? 'dentro' : 'fora'
-  return { estado: pelasOperacoes ?? pelaDose, dose }
+  const pelaDose = dose === null || dose === undefined ? null : dose > 0 ? 'dentro' : 'fora'
+  return { estado: pelasOperacoes ?? pelaDose, dose: dose ?? null }
 }
 
 /**
- * Os pontos da curva para o gráfico, a partir de 1,0 no primeiro ponto: as
- * curvas do zoo começam em 1,0 no início do histórico, e aqui o que interessa
- * é o período do robô.
+ * As três curvas do placar para o gráfico ({x, y}, a partir de 1,0 no
+ * fechamento antes da ativação), cada uma só nos dias em que existe.
  */
-export const curvaNoPeriodo = (curva) => {
-  const pontos = (curva?.pontos ?? []).filter((p) => p.patrimonio !== null && p.patrimonio !== undefined)
-  if (pontos.length === 0) return []
-  const base = Number(pontos[0].patrimonio)
-  if (!(base > 0)) return []
-  return pontos.map((p) => ({ x: instanteUtc(p.data), y: Number(p.patrimonio) / base }))
+export const seriesDoPlacar = (placar) => {
+  const serie = (campo) => (placar?.pontos ?? [])
+    .filter((p) => p[campo] !== null && p[campo] !== undefined)
+    .map((p) => ({ x: instanteUtc(p.data), y: Number(p[campo]) }))
+  return { robo: serie('robo'), regra: serie('regra'), bh: serie('buyHold') }
 }
-
-/** O retorno do período (último ponto / primeiro − 1), ou nulo sem dois pontos. */
-export const retornoDoPeriodo = (pontos) => (pontos.length < 2 ? null : pontos.at(-1).y - 1)
 
 const DIA_MS = 24 * 60 * 60 * 1000
 const HORA_DA_DECISAO = 23
@@ -177,95 +157,6 @@ const carteiraNoDia = ({ inicial, depois }, dia) => {
   return atual
 }
 
-/**
- * A curva do robô, refeita pelas operações, nas datas da curva buy & hold do
- * zoo e a partir de 1,0 no primeiro ponto, como as outras duas.
- *
- * O patrimônio é o caixa mais a posição ao preço de fechamento do dia. O
- * preço vem da própria curva buy & hold, que é o fechamento das 23h UTC
- * dividido pelo do primeiro dia do histórico: medido em 28/10/2026, a razão
- * ficou igual de 18 a 27/10. A escala sai de uma operação, que executa ao
- * preço da vela das 23h do dia da decisão.
- */
-export const curvaDoRobo = (operacoes, curvaBh) => {
-  const pontosBh = (curvaBh?.pontos ?? []).filter((p) => p.patrimonio !== null && p.patrimonio !== undefined)
-  if (pontosBh.length === 0) return []
-  const carteiras = carteirasDoRobo(operacoes)
-  const bhNoDia = new Map(pontosBh.map((p) => [diaUtc(instanteUtc(p.data)), Number(p.patrimonio)]))
-  const ancora = carteiras.depois.find((c) => bhNoDia.get(c.dia) > 0 && c.precoMercado > 0)
-  const escala = ancora ? ancora.precoMercado / bhNoDia.get(ancora.dia) : null
-
-  const patrimonios = pontosBh.map((p) => {
-    const x = instanteUtc(p.data)
-    const carteira = carteiraNoDia(carteiras, diaUtc(x))
-    if (!carteira || carteira.quantidade === null) return { x, valor: null }
-    if (carteira.quantidade === 0) return { x, valor: carteira.caixa }
-    if (escala === null) return { x, valor: null }
-    const preco = Number(p.patrimonio) * escala
-    return { x, valor: carteira.caixa + carteira.quantidade * (preco - carteira.precoMedio) }
-  }).filter((p) => p.valor !== null && Number.isFinite(p.valor))
-  if (patrimonios.length === 0 || !(patrimonios[0].valor > 0)) return []
-  const base = patrimonios[0].valor
-  return patrimonios.map((p) => ({ x: p.x, y: p.valor / base }))
-}
-
-/** A maior queda de um topo, na curva (0,25 = 25%), ou nulo sem pontos. */
-export const quedaMaxima = (pontos) => {
-  if (!pontos?.length) return null
-  let topo = -Infinity
-  let pior = 0
-  for (const { y } of pontos) {
-    topo = Math.max(topo, y)
-    if (topo > 0) pior = Math.max(pior, 1 - y / topo)
-  }
-  return pior
-}
-
-// O critério registrado em 22/10/2026, antes de ligar o motor
-// (docs/motor-de-risco.md, "Critério"). A tela mede; desligar é decisão do dono.
-export const CRITERIO = Object.freeze({
-  // Fidelidade: o retorno ao vivo a no máximo 3 pontos do da regra no zoo.
-  FIDELIDADE: 0.03,
-  // Risco: a queda ao vivo não passa de 50%...
-  QUEDA_MAXIMA: 0.5,
-  // ...e, com o buy & hold 20% ou mais abaixo do topo, não passa de 80% da dele.
-  QUEDA_DO_BH: 0.2,
-  FRACAO_DA_QUEDA_DO_BH: 0.8,
-})
-
-/**
- * O critério nas três curvas do período (todas a partir de 1,0 no mesmo dia).
- *
- * - `distancia`: o retorno do robô menos o da regra, no último dia que as duas
- *   têm, a partir do primeiro dia em comum (0,004 = 0,4 ponto).
- * - `quedaRobo` e `quedaBh`: as maiores quedas desde o início do período. A
- *   regra 2b lida aqui: com o buy & hold 20% ou mais abaixo do topo no
- *   período, a maior queda do robô não passa de 80% da maior dele.
- *
- * Cada `...Ok` é verdadeiro, falso ou nulo (sem dados, ou a regra não se aplica).
- */
-export const criterioDoMotor = (robo, regra, bh) => {
-  const naRegra = new Map((regra ?? []).map((p) => [p.x, p.y]))
-  const comuns = (robo ?? []).filter((p) => naRegra.has(p.x))
-  let distancia = null
-  if (comuns.length >= 2) {
-    const [primeiro, ultimo] = [comuns[0], comuns.at(-1)]
-    distancia = (ultimo.y / primeiro.y) - (naRegra.get(ultimo.x) / naRegra.get(primeiro.x))
-  }
-  const quedaRobo = quedaMaxima(robo)
-  const quedaBh = quedaMaxima(bh)
-  const relativaAplica = quedaBh !== null && quedaBh >= CRITERIO.QUEDA_DO_BH
-  return {
-    distancia,
-    fidelidadeOk: distancia === null ? null : Math.abs(distancia) <= CRITERIO.FIDELIDADE,
-    quedaRobo,
-    quedaOk: quedaRobo === null ? null : quedaRobo <= CRITERIO.QUEDA_MAXIMA,
-    quedaBh,
-    limiteRelativo: quedaBh === null ? null : quedaBh * CRITERIO.FRACAO_DA_QUEDA_DO_BH,
-    relativaOk: !relativaAplica || quedaRobo === null ? null : quedaRobo <= quedaBh * CRITERIO.FRACAO_DA_QUEDA_DO_BH,
-  }
-}
-
 // O Tipo de TbSequenciaRetorno na vela das 23h: o lado da decisão do dia
 // (core/publisher.py e o _decidir do motor).
 export const DECISOES = Object.freeze({ 0: 'manter', 1: 'comprar', 2: 'vender' })
@@ -327,9 +218,9 @@ export const noitesDoRobo = (sequencias, operacoes, {
   return noites
 }
 
-/** O dia (meia-noite UTC) do último ponto da curva, ou nulo. */
-export const ultimoDiaDaCurva = (curva) => {
-  const ultimo = curva?.pontos?.at(-1)
+/** O dia (meia-noite UTC) do último fechamento do placar, ou nulo. */
+export const ultimoDiaDoPlacar = (placar) => {
+  const ultimo = placar?.pontos?.at(-1)
   const ms = ultimo ? instanteUtc(ultimo.data) : NaN
   return Number.isNaN(ms) ? null : diaUtc(ms)
 }
