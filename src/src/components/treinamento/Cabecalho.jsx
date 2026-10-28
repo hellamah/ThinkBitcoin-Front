@@ -34,7 +34,9 @@ function StatusDoTreino({ ultimoMs, cadenciaMs, terminouTreino, versaoFiltrada }
     ? t('treinamento.statusRunning')
     : status.entreTreinos
       ? t('treinamento.statusBetweenRuns')
-      : versaoFiltrada ? t('treinamento.statusVersionIdle', { versao: versaoFiltrada }) : t('treinamento.statusStopped')
+      : terminouTreino
+        ? (versaoFiltrada ? t('treinamento.statusCompleted', { versao: versaoFiltrada }) : t('treinamento.statusCompleted'))
+        : (versaoFiltrada ? t('treinamento.statusVersionIdle', { versao: versaoFiltrada }) : t('treinamento.statusStopped'))
   return (
     <Box
       sx={{
