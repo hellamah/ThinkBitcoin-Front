@@ -189,7 +189,9 @@ export default function HeatmapInsights({ trend, fear, t, locale }) {
             <StatChip label={t('heatmap.momentum15')} value="" delta={delta15} />
           )}
           {volatilidade !== null && (
-            <StatChip label={t('heatmap.volatilidade')} value={volatilidade.toFixed(1)} />
+            <Tooltip title={t('heatmap.volatilidadeTooltip')}>
+              <StatChip label={t('heatmap.volatilidade')} value={volatilidade.toFixed(1)} />
+            </Tooltip>
           )}
           {pico !== null && (
             <Tooltip title={t('heatmap.picoTooltip')}>

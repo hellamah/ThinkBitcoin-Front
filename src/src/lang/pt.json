@@ -550,6 +550,7 @@
     "volatilidade": "Volatilidade 15min",
     "picoHa": "Pico de buscas BTC",
     "picoTooltip": "Tempo desde que o pico de buscas ocorreu",
+    "volatilidadeTooltip": "Volatilidade de preço",
     "rankBuscas": "Rank de buscas",
     "concentracaoGeo": "Concentração geográfica",
     "concentrada": "Narrativa concentrada",
