@@ -168,7 +168,7 @@ export default function ContextoDeMercado({ item }) {
   const corDoMedo = (v) => (v >= 55 ? 'var(--perf-up)' : v >= 45 ? 'var(--perf-warn)' : 'var(--perf-down)')
 
   const indicadores = resumo ? [
-    { rotulo: t('treinamento.periodVariation'), valor: cheio(resumo.variacao), cor: resumo.variacao >= 0 ? 'var(--perf-up)' : 'var(--perf-down)' },
+    { rotulo: t('treinamento.periodVariation'), valor: cheio(resumo.min !== 0 ? (resumo.max - resumo.min) / resumo.min : 0), cor: (resumo.min !== 0 && (resumo.max - resumo.min) / resumo.min >= 0) ? 'var(--perf-up)' : 'var(--perf-down)' },
     { rotulo: t('treinamento.priceRange'), valor: `${formatarNumero(resumo.min, resumo.casas)} – ${formatarNumero(resumo.max, resumo.casas)}` },
     ...(resumo.dominancia !== null
       ? [{ rotulo: t('treinamento.buyerDominance'), valor: `${formatarNumero(resumo.dominancia, 1)}%`, cor: resumo.dominancia >= 50 ? 'var(--perf-up)' : 'var(--perf-down)' }]
