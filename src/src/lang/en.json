@@ -126,6 +126,8 @@
   "initialInvestment": "Initial Investment (USD) and Plans (R$)",
   "maxRiskPerTrade": "Max Risk Per Trade (%)",
   "preferredCoin": "Preferred Coin",
+  "preferredCoinSettings": "Preferred Coin (Global Base)",
+  "preferredCoinDescription": "Sets the base currency for all account profit and loss calculations.",
   "safetyBalance": "Safety Balance (USDT) (Retained)",
   "reviewFrequency": "Review Frequency",
   "reviewFrequencyDescription": "Defines the data update frequency in the interface.",
