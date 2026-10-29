@@ -552,6 +552,7 @@
     "volatilidade": "Volatilité 15 min",
     "picoHa": "Pic de recherches BTC",
     "picoTooltip": "Temps depuis que le pic de recherche a eu lieu",
+    "volatilidadeTooltip": "Volatilité de prix",
     "rankBuscas": "Classement des recherches",
     "concentracaoGeo": "Concentration géographique",
     "concentrada": "Récit concentré",
