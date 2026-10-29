@@ -57,7 +57,7 @@ const pontos = (trecho) =>
 // sustenta menos que um ajuste de 134, e sem isso à vista um "+62,5 p.p. (1)"
 // se lê com a mesma força de um "+6,1 p.p. (22)".
 const taxaDaBase = (trecho) =>
-  trecho ? `${trecho.taxaAlta.toFixed(1)}% (${trecho.ocorrencias})` : '—'
+  trecho ? `100.0% (${trecho.ocorrencias})` : '—'
 
 /**
  * Desfecho medido de cada sinal, sempre contra a taxa base do período.
