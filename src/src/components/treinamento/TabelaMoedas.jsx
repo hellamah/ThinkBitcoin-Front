@@ -38,7 +38,7 @@ export default function TabelaMoedas({ linhas, resumo, onSelecionarMoeda, onAbri
   const colunas = [
     { id: 'moeda', rotulo: t('treinamento.colCoin'), ordenavel: true },
     { id: 'total', rotulo: t('treinamento.colEpisodes'), ordenavel: true, numerica: true },
-    { id: 'rewardMedio', rotulo: t('treinamento.colRewardAvg'), ordenavel: true, numerica: true },
+    { id: 'rewardMedio', rotulo: t('treinamento.colRewardAvg'), ordenavel: true, numerica: true, dica: t('treinamento.rewardHint') },
     { id: 'tendencia', rotulo: t('treinamento.colTrend'), ordenavel: true, numerica: true, dica: t('treinamento.trendHint') },
     { id: 'curva', rotulo: t('treinamento.colCurve'), dica: t('treinamento.curveHint') },
     { id: 'acertoTrades', rotulo: t('treinamento.colTradeWinRate'), ordenavel: true, numerica: true, dica: t('treinamento.tradeWinRateHint') },
