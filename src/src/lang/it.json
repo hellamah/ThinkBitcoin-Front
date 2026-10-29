@@ -3,7 +3,7 @@
     "titulo": "Avvisi di prezzo",
     "botao": "Avvisi",
     "recursoPago": "Gli avvisi di prezzo fanno parte del piano Minatore",
-    "explicacaoLatencia": "Ricevi notifiche istantanee non appena la moneta raggiunge il valore che scegli.",
+    "explicacaoLatencia": "I prezzi chiudono ogni ora nella nostra raccolta, quindi confrontiamo il tuo valore con la chiusura di ogni ora e ti avvisiamo via e-mail entro 1 ora. Se il prezzo tocca il valore e torna indietro prima che l'ora chiuda, l'avviso non scatta.",
     "notificacoesDesligadas": "Le tue notifiche via e-mail sono disattivate. L'avviso verrà salvato, ma nessuna e-mail parte finché non le attivi in Impostazioni.",
     "moeda": "Moneta",
     "valorAlvo": "Avvisami quando arriva a",

@@ -3,7 +3,7 @@
     "titulo": "Alertes de prix",
     "botao": "Alertes",
     "recursoPago": "Les alertes de prix font partie du forfait Mineur",
-    "explicacaoLatencia": "Recevez des notifications instantanées dès que la monnaie atteint la valeur choisie.",
+    "explicacaoLatencia": "Les prix clôturent toutes les heures dans notre collecte : nous comparons votre valeur à la clôture de chaque heure et vous prévenons par e-mail dans l'heure. Si le prix touche la valeur puis repart avant la clôture de l'heure, l'alerte ne se déclenche pas.",
     "notificacoesDesligadas": "Vos notifications par e-mail sont désactivées. L'alerte sera enregistrée, mais aucun e-mail ne partira tant que vous ne les activez pas dans Paramètres.",
     "moeda": "Monnaie",
     "valorAlvo": "Me prévenir quand elle atteint",

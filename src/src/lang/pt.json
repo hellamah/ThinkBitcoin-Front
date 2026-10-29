@@ -3,7 +3,7 @@
     "titulo": "Alertas de preço",
     "botao": "Alertas",
     "recursoPago": "Alertas de preço fazem parte do plano Minerador",
-    "explicacaoLatencia": "Receba notificações instantâneas assim que a moeda atingir o valor que você escolher.",
+    "explicacaoLatencia": "Os preços fecham de hora em hora na nossa coleta, então comparamos o seu valor com o fechamento de cada hora e avisamos por e-mail em até 1 hora. Se o preço tocar o valor e voltar antes de a hora fechar, o alerta não dispara.",
     "notificacoesDesligadas": "Suas notificações por e-mail estão desligadas. O alerta será registrado, mas nenhum e-mail sai até você ligar em Configurações.",
     "moeda": "Moeda",
     "valorAlvo": "Avisar quando chegar em",

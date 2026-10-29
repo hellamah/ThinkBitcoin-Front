@@ -3,7 +3,7 @@
     "titulo": "Price alerts",
     "botao": "Alerts",
     "recursoPago": "Price alerts are part of the Miner plan",
-    "explicacaoLatencia": "Receive instant notifications as soon as the coin reaches the value you pick.",
+    "explicacaoLatencia": "Prices close hourly in our collection, so we compare your value with each hourly close and email you within 1 hour. If the price touches your value and pulls back before the hour closes, the alert does not fire.",
     "notificacoesDesligadas": "Your email notifications are off. The alert will be saved, but no email goes out until you turn them on in Settings.",
     "moeda": "Coin",
     "valorAlvo": "Notify me when it reaches",

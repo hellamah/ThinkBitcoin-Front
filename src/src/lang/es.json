@@ -3,7 +3,7 @@
     "titulo": "Alertas de precio",
     "botao": "Alertas",
     "recursoPago": "Las alertas de precio forman parte del plan Minero",
-    "explicacaoLatencia": "Recibe notificaciones instantáneas en cuanto la moneda alcance el valor que elijas.",
+    "explicacaoLatencia": "Los precios cierran cada hora en nuestra recolección, así que comparamos tu valor con el cierre de cada hora y te avisamos por correo en hasta 1 hora. Si el precio toca el valor y vuelve antes de que cierre la hora, la alerta no se dispara.",
     "notificacoesDesligadas": "Tus notificaciones por correo están desactivadas. La alerta se guardará, pero no sale ningún correo hasta que las actives en Configuración.",
     "moeda": "Moneda",
     "valorAlvo": "Avisarme cuando llegue a",
