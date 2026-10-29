@@ -27,7 +27,7 @@ vi.mock('../hooks/useZooEstrategia', () => ({
 }))
 
 describe('ZooEstrategias', () => {
-  it('exibe a aba de histórico desativada', () => {
+  it('exibe a aba de histórico habilitada', () => {
     render(
       <MemoryRouter>
         <ZooEstrategias />
@@ -38,6 +38,6 @@ describe('ZooEstrategias', () => {
     expect(tabHistorico).toBeTruthy()
     // O atributo 'disabled' ou 'aria-disabled' depende da implementação do MUI, 
     // mas o componente Tab com a prop disabled reflete isso no DOM.
-    expect(tabHistorico.getAttribute('aria-disabled') === 'true' || tabHistorico.disabled).toBeTruthy()
+    expect(tabHistorico.getAttribute('aria-disabled') !== 'true' && !tabHistorico.disabled).toBeTruthy()
   })
 })
