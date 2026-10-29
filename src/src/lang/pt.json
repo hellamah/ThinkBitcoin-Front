@@ -926,7 +926,7 @@
     "colRetornoMedio": "Retorno médio do preço no horizonte escolhido, contando só as vezes em que este sinal apareceu.",
     "colTaxaAlta": "Das vezes em que o sinal apareceu, em quantas o preço subiu dentro do horizonte escolhido.",
     "colVsBase": "Quanto o sinal desloca a taxa de alta em relação a não filtrar nada. É o número que responde se ele serve para alguma coisa.",
-    "colAjusteSinal": "Deslocamento do sinal no trecho em que a tabela foi ordenada, contra a taxa base desse mesmo trecho. Entre parênteses, quantas vezes o sinal ocorreu ali.",
+    "colAjusteSinal": "Mostra o desvio do sinal em relação à taxa média do período de ajuste. É um cálculo estatístico simples (sem pesos). O número entre parênteses indica quantas vezes o sinal ocorreu.",
     "colValidacaoSinal": "A mesma conta no trecho reservado, que não participou da ordenação nem alimentou os indicadores do ajuste. Se o deslocamento encolhe ou troca de sinal aqui, a linha descreve o pedaço de passado em que foi escolhida, e não o mercado.",
     "deltaAcumulado": "Soma do volume comprado menos o vendido ao longo do período escolhido. Positivo significa que entrou mais compra do que venda. Quando o preço sobe e esta linha não acompanha, a alta não está sendo sustentada por compra real.",
     "drawdown": "Se você tivesse comprado no pior momento do período, esta seria a maior queda até o fundo. Mede o tranco que precisaria aguentar, não o resultado final.",
