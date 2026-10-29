@@ -96,13 +96,16 @@ function Veredito({ veredito, posicao, moeda }) {
   )
 }
 
-function MetricaDoEpisodio({ id, valor, faixa }) {
+function MetricaDoEpisodio({ id, valor, faixa, onClick }) {
   const { t } = useTranslation()
   const escuro = useTheme().palette.mode === 'dark'
   const cor = corDaMetrica(id, escuro)
   const d = faixa ? variacao(valor ?? null, faixa.media) : null
   return (
     <Box
+      onClick={onClick}
+      onMouseDown={(e) => (e.currentTarget.style.filter = 'brightness(0.9)')}
+      onMouseUp={(e) => (e.currentTarget.style.filter = 'brightness(1)')}
       sx={{
         p: 1.75,
         height: '100%',
@@ -112,6 +115,8 @@ function MetricaDoEpisodio({ id, valor, faixa }) {
         display: 'flex',
         flexDirection: 'column',
         gap: 0.75,
+        cursor: 'pointer',
+        transition: 'filter 0.1s',
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
@@ -414,7 +419,12 @@ export default function DetalheEpisodio({ item, allItems, carregando, garantirPe
           <Grid container spacing={1.5}>
             {METRICAS.map((id, i) => (
               <Grid key={id} size={tamanhoDoCartao(i)}>
-                <MetricaDoEpisodio id={id} valor={item[id]} faixa={faixas[id]} />
+                <MetricaDoEpisodio 
+                  id={id} 
+                  valor={item[id]} 
+                  faixa={faixas[id]} 
+                  onClick={() => console.log(`Métrica ${id} clicada`)} 
+                />
               </Grid>
             ))}
           </Grid>
