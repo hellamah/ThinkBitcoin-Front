@@ -444,7 +444,7 @@ const generateMockPatrimonio = () => {
     for (let i = 0; i < numPontosMes; i++) {
       const dataPonto = new Date(dataMes.getFullYear(), dataMes.getMonth(), 5 + i * 10, 10 + i, 0, 0)
       const valorBRL = 2000 + Math.random() * 8000
-      const cotacao = 5.0 + Math.random() * 0.5
+      const cotacao = 5.24
       const valorUSD = valorBRL / cotacao
       
       saldoTotalBRL += valorBRL
