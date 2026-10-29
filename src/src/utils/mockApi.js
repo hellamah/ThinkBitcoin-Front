@@ -812,7 +812,7 @@ const mockTreinoResumo = (endpoint) => {
         moeda,
         episodios: eps.length,
         rewardInicial: primeiro.rewardMedio,
-        rewardAtual: ultimo.rewardMedio,
+        rewardAtual: eps.reduce((s, r) => s + r.rewardMedio, 0) / eps.length,
         winRateInicial: primeiro.winRate,
         winRateAtual: ultimo.winRate,
         epsilonAtual: ultimo.epsilon,
