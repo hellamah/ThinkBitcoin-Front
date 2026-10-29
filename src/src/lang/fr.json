@@ -349,7 +349,7 @@
   "simulationOutOfSample": "Hors échantillon",
   "simulationOutOfSampleSub": "alpha sur les {{fracao}}% les plus récents de la fenêtre",
   "simulationOutOfSampleShort": "seulement {{count}} opération(s) : échantillon court",
-  "simulationOutOfSampleNone": "aucune opération sur la portion réservée",
+  "simulationOutOfSampleNone": "aucune opération dans l'Out-of-sample",
   "simulationReservedValue": "Réservée",
   "simulationReservedSub": "les {{fracao}}% les plus récents, gardés jusqu'à ce que vous figiez la règle",
   "simulationReveal": "Figer la règle et révéler",
