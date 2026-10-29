@@ -1208,6 +1208,7 @@
     "colYearsOk": "Années ok",
     "colYearsOkHint": "Années où les deux conditions du critère ont tenu",
     "yes": "oui",
+    "planos.yes": "Rachat partiel autorisé",
     "no": "non",
     "yearsTitle": "Année par année sur {{moeda}}",
     "yearsSub": "Chaque année est un régime. Pour qu'une année compte, les deux conditions doivent y tenir. En vert, la condition remplie ; en rouge, celle qui échoue.",

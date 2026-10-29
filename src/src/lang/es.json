@@ -1208,6 +1208,7 @@
     "colYearsOk": "Años ok",
     "colYearsOkHint": "Años en los que valieron las dos condiciones del criterio",
     "yes": "sí",
+    "planos.yes": "Rescate parcial permitido",
     "no": "no",
     "yearsTitle": "Año a año en {{moeda}}",
     "yearsSub": "Cada año es un régimen. Para que el año cuente, las dos condiciones deben valer en él. En verde, la condición que pasa; en rojo, la que falla.",
