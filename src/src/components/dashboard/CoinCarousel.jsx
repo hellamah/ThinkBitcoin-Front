@@ -164,7 +164,7 @@ export default function CoinCarousel({
                   </span>
                   <div className={`carousel-mini-var ${isUp ? 'up' : 'down'}`}>
                     {isUp ? <MdTrendingUp /> : <MdTrendingDown />}
-                    {mathUtils.formatPercent(m.variacao, 1)}
+                    {mathUtils.formatPercent(m.variacao)}
                   </div>
                 </div>
 
