@@ -42,7 +42,7 @@ export default function TabelaEpisodios({ itens, janela, onAbrir }) {
     { id: 'dataHora', rotulo: t('treinamento.colDateTime') },
     { id: 'moeda', rotulo: t('treinamento.colCoin') },
     { id: 'versaoModelo', rotulo: t('treinamento.colVersion') },
-    { id: 'rewardMedio', rotulo: t('treinamento.colRewardAvg'), numerica: true },
+    { id: 'rewardMedio', rotulo: t('treinamento.colRewardAvg'), numerica: true, dica: t('treinamento.rewardHint') },
     { id: 'rewardTotal', rotulo: t('treinamento.colRewardTotal'), numerica: true },
     { id: 'lossMedia', rotulo: t('treinamento.colLossAvg'), numerica: true },
     { id: 'epsilon', rotulo: t('treinamento.colEpsilon'), numerica: true, dica: t('treinamento.epsilonHint') },
