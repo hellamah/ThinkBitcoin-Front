@@ -331,9 +331,9 @@ function TabelaMoedas({ estrategia, nome, moedaSelecionada, onSelecionar }) {
                 <TableCell align="right">{num(m.calmar)}</TableCell>
                 <TableCell align="right">{`${m.anosOk}/${m.anosAvaliados}`}</TableCell>
                 <TableCell align="right">
-                  {m.aprovada
-                    ? <Box component="span" sx={{ color: 'var(--perf-up)', fontWeight: 700 }}>{t('zoo.yes')}</Box>
-                    : <Box component="span" sx={{ color: 'var(--text-muted)' }}>{t('zoo.no')}</Box>}
+                  <Box component="span" sx={{ color: m.aprovada ? 'var(--perf-up)' : 'var(--text-muted)', fontWeight: m.aprovada ? 700 : 400 }}>
+                    {t(m.aprovada ? 'zoo.yes' : 'zoo.no')} ({m.anosOk}/{m.anosAvaliados})
+                  </Box>
                 </TableCell>
               </TableRow>
             ))}
