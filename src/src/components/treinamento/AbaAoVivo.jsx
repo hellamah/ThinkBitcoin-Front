@@ -112,12 +112,17 @@ function CartaoMetrica({ id, valor, delta, serie, selecionado, onSelecionar, rot
   )
 }
 
-function UltimosEpisodios({ itens, onAbrir }) {
+function UltimosEpisodios({ itens, janela, onAbrir }) {
   const { t, idioma } = useTranslation()
+  const filteredItens = useMemo(() => {
+    if (!janela) return itens
+    return itens.filter(r => r.dataHora >= janela.inicio && r.dataHora < janela.fim)
+  }, [itens, janela])
+
   return (
     <Painel titulo={t('treinamento.latestEpisodes')} subtitulo={t('treinamento.latestEpisodesSub')} sx={{ height: '100%' }} corpoSx={{ overflowY: 'auto', mx: -1, px: 1 }}>
       <Box component="ol" sx={{ listStyle: 'none', m: 0, p: 0, display: 'flex', flexDirection: 'column', gap: 0.25 }}>
-        {itens.map((r) => (
+        {filteredItens.map((r) => (
           <li key={r.idTreinamentoEpisodio}>
             <Box
               component="button"
@@ -490,7 +495,7 @@ export default function AbaAoVivo({ timeline, periodo, onPeriodo, maisRecenteMs,
               </Painel>
             </Grid>
             <Grid size={{ xs: 12, md: 4 }} sx={{ height: { xs: 'auto', md: 400 }, maxHeight: { xs: 420, md: 'none' } }}>
-              <UltimosEpisodios itens={ultimos} onAbrir={onAbrir} />
+              <UltimosEpisodios itens={ultimos} janela={janela} onAbrir={onAbrir} />
             </Grid>
           </Grid>
 
