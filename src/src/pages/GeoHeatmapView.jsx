@@ -559,7 +559,7 @@ export default function GeoHeatmapView() {
     }
   }, [token, moedaSelecionada, moedaId, moedasCarousel?.length, intervaloMapa, t])
 
-  useEffect(() => { carregarHeatmap() }, [carregarHeatmap, refreshTrigger])
+  useEffect(() => { carregarHeatmap(true) }, [carregarHeatmap, refreshTrigger])
 
   // Auto-refresh: quando o cache de 5 min expira com a aba visível, recarrega
   // silenciosamente (sem skeleton) para manter o mapa vivo.
