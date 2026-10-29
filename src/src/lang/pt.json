@@ -614,6 +614,7 @@
     "title": "Patrimônio Total",
     "valueBRL": "Saldo (BRL)",
     "valueUSD": "Saldo (USD)",
+    "cambio": "Câmbio: ",
     "manage": "Gerenciar Patrimônio",
     "history": "Histórico de Lançamentos",
     "observation": "Observação",

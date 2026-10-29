@@ -44,6 +44,7 @@ export default function PatrimonioCard({ token, user }) {
 
   const saldoBRL = patrimonio?.saldoTotalBRL ?? 0
   const saldoUSD = patrimonio?.saldoTotalUSD ?? 0
+  const cambio = saldoUSD > 0 ? (saldoBRL / saldoUSD).toFixed(2) : '0.00'
 
   return (
     <Box className="patrimonio-summary-card">
@@ -67,6 +68,9 @@ export default function PatrimonioCard({ token, user }) {
             </Typography>
             <Typography className="patrimonio-value-usd">
               / $ {saldoUSD.toLocaleString(idioma.intl, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </Typography>
+            <Typography sx={{ fontSize: '0.7rem', color: 'gray', mt: { xs: 0.5, sm: 0 } }}>
+              {t('patrimonio.cambio')} R$ {cambio}
             </Typography>
           </Box>
         </Grid>
