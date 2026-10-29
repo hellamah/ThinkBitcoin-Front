@@ -394,7 +394,7 @@
   "simulationVerdictCiZero": "Mas o intervalo de confiança do retorno inclui zero.",
   "simulationVerdictValidation": "No trecho reservado para validação, o alfa foi {{valor}}.",
   "simulationVerdictValidationNone": "Não houve operação no trecho reservado para validação: o resultado não foi testado fora da amostra.",
-  "simulationChance": "Contra o acaso",
+  "simulationChance": "Contra o acaso (Limiar de Confiança)",
   "simulationChanceSub": "Mediana dos sorteios (Frequência): {{mediana}} · {{iteracoes}} sorteios (Ajuste ATR)",
   "simulationCalculating": "Calculando…",
   "simulationCi": "Intervalo de Confiança (IC) 95% do retorno final",
