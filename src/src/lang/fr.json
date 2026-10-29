@@ -126,6 +126,8 @@
   "initialInvestment": "Investissement initial (USD) et plans (R$)",
   "maxRiskPerTrade": "Risque maximal par transaction (%)",
   "preferredCoin": "Crypto préférée",
+  "preferredCoinSettings": "Crypto préférée (Base globale)",
+  "preferredCoinDescription": "Définit la devise de base pour tous les calculs de profits et pertes du compte.",
   "safetyBalance": "Solde de sécurité (USDT) (Retenu)",
   "reviewFrequency": "Fréquence de révision",
   "reviewFrequencyDescription": "Définit la fréquence de mise à jour des données dans l'interface.",
