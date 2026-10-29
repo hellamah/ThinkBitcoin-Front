@@ -1,35 +1,63 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import Box from '@mui/material/Box'
 import CircularProgress from '@mui/material/CircularProgress'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import Home from './pages/Home.jsx'
-import Login from './pages/Login.jsx'
 import Layout from './components/Layout.jsx'
 import { DashboardProvider } from './context/DashboardContext.jsx'
+import { ROTA_SIMULACAO, temParametrosDaSimulacao } from './utils/rotaSimulacao.js'
+import { iniciarCarregamento } from './utils/carregamentoGlobal.js'
+import { AuthRole } from './utils/authentication.js'
 
-// Páginas pesadas (chart.js, react-google-charts) carregadas sob demanda
+// Páginas pesadas (chart.js, Google Charts) carregadas sob demanda
 // para não inflar o bundle inicial de quem entra em / ou /login.
 const Dashboard = lazy(() => import('./pages/Dashboard.jsx'))
+// O Login também: quem entra por / ou volta com a sessão guardada nunca o vê,
+// e ele trazia para o bundle inicial o TextField do MUI e o que vem junto.
+const Login = lazy(() => import('./pages/Login.jsx'))
 const Settings = lazy(() => import('./pages/Settings.jsx'))
 const GeoHeatmapView = lazy(() => import('./pages/GeoHeatmapView.jsx'))
 const TreinamentoEpisodios = lazy(() => import('./pages/TreinamentoEpisodios.jsx'))
 const RedefinirSenha = lazy(() => import('./pages/RedefinirSenha.jsx'))
 const DocumentoLegal = lazy(() => import('./pages/DocumentoLegal.jsx'))
+const Simulacao = lazy(() => import('./pages/Simulacao.jsx'))
+const ZooEstrategias = lazy(() => import('./pages/ZooEstrategias.jsx'))
+const PedidosPregao = lazy(() => import('./pages/PedidosPregao.jsx'))
+const PregaoPublico = lazy(() => import('./pages/PregaoPublico.jsx'))
+const RoboAoVivo = lazy(() => import('./pages/RoboAoVivo.jsx'))
 
-const PageLoader = () => (
-  <Box
-    sx={{
-      minHeight: '60vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-    }}
-  >
-    <CircularProgress sx={{ color: 'var(--accent-ink)' }} />
-  </Box>
-)
+// Link de antes da tela própria da simulação — `/dashboard?sim.sinal=…` —
+// continua abrindo a simulação, com a configuração inteira. Sem isto, quem
+// recebeu um link compartilhado cairia num dashboard que não a tem mais.
+function RotaDashboard() {
+  const { search } = useLocation()
+  if (temParametrosDaSimulacao(search)) {
+    return <Navigate to={`${ROTA_SIMULACAO}${search}`} replace />
+  }
+  return <Dashboard />
+}
+
+const PageLoader = () => {
+  // O código da página ainda está chegando: é espera como qualquer requisição,
+  // e a barra do topo acende junto com o spinner. A função que inicia devolve
+  // a que encerra, que serve direto de cleanup.
+  useEffect(() => iniciarCarregamento(), [])
+
+  return (
+    <Box
+      sx={{
+        minHeight: '60vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <CircularProgress sx={{ color: 'var(--accent-ink)' }} />
+    </Box>
+  )
+}
 
 function App() {
   const location = useLocation()
@@ -49,11 +77,22 @@ function App() {
                   seria o avesso do consentimento informado. */}
               <Route path="/privacidade" element={<DocumentoLegal documento="privacidade" />} />
               <Route path="/termos" element={<DocumentoLegal documento="termos" />} />
+              {/* Pública também: os pedidos da Equipe Pregão, só leitura. A
+                  decisão fica em /pedidos-pregao, só para administrador. */}
+              <Route path="/pregao" element={<PregaoPublico />} />
               <Route
                 path="/dashboard"
                 element={
                   <ProtectedRoute>
-                    <Dashboard />
+                    <RotaDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path={ROTA_SIMULACAO}
+                element={
+                  <ProtectedRoute>
+                    <Simulacao />
                   </ProtectedRoute>
                 }
               />
@@ -78,6 +117,34 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <TreinamentoEpisodios />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/estrategias"
+                element={
+                  <ProtectedRoute>
+                    <ZooEstrategias />
+                  </ProtectedRoute>
+                }
+              />
+              {/* Só administrador: a fila de pedidos do usuário sintético da
+                  Equipe Pregão, que um humano aprova ou descarta. */}
+              <Route
+                path="/pedidos-pregao"
+                element={
+                  <ProtectedRoute cargos={[AuthRole.ADMINISTRADOR]}>
+                    <PedidosPregao />
+                  </ProtectedRoute>
+                }
+              />
+              {/* Só administrador: o motor de risco decidindo ao vivo no BTC
+                  (proposta 2 do Estrategista, versão mínima). */}
+              <Route
+                path="/robo-ao-vivo"
+                element={
+                  <ProtectedRoute cargos={[AuthRole.ADMINISTRADOR]}>
+                    <RoboAoVivo />
                   </ProtectedRoute>
                 }
               />

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { compararMoedas, derivarAnalytics } from '../src/utils/marketAnalytics'
+import { compararMoedas, derivarAnalytics, recortarJanela } from '../src/utils/marketAnalytics'
 
 // A API entrega do mais recente ao mais antigo (ordemAsc=false).
 const registro = (over = {}) => ({
@@ -22,6 +22,99 @@ const entrada = (historico, fg = []) => ({
   historicosPorMoeda: { BTC: historico },
   fearGreedPorMoeda: { BTC: fg },
   moedasFiltro: ['BTC'],
+})
+
+describe('utils/marketAnalytics › recortarJanela', () => {
+  // A série carregada traz alguns dias ANTES do período escolhido para que
+  // Bollinger e RSI cheguem aquecidos. Esses candles alimentam indicador, mas
+  // não são período de análise: contá-los faz o painel anunciar mais candles do
+  // que o filtro da tela pediu.
+  const comHora = (hora) => registro({ horaReferencia: hora })
+
+  const SERIE = [
+    comHora('2026-01-01T05:00:00Z'),
+    comHora('2026-01-01T04:00:00Z'),
+    comHora('2026-01-01T03:00:00Z'),
+    comHora('2026-01-01T02:00:00Z'), // aquecimento
+    comHora('2026-01-01T01:00:00Z'), // aquecimento
+  ]
+
+  it('deve manter apenas o que está dentro da janela', () => {
+    expect(recortarJanela(SERIE, '2026-01-01T03:00:00Z')).toHaveLength(3)
+  })
+
+  it('deve devolver a série inteira sem recorte pedido', () => {
+    expect(recortarJanela(SERIE, null)).toHaveLength(5)
+    expect(recortarJanela(SERIE, undefined)).toHaveLength(5)
+  })
+
+  it('deve degradar para a série inteira com recorte inutilizável', () => {
+    // Carimbo em formato inesperado quase nunca significa "janela vazia";
+    // significa que a leitura falhou. Apagar o painel seria pior do que voltar
+    // ao comportamento anterior.
+    expect(recortarJanela(SERIE, 'nao e data')).toHaveLength(5)
+    expect(recortarJanela(SERIE, '2027-01-01T00:00:00Z')).toHaveLength(5)
+  })
+
+  it('deve recusar entrada que não é série', () => {
+    expect(recortarJanela(null, '2026-01-01T03:00:00Z')).toEqual([])
+  })
+})
+
+describe('utils/marketAnalytics › janela do desempenho', () => {
+  const comPreco = (hora, preco) =>
+    registro({ horaReferencia: hora, precoFechamento: preco })
+
+  // Cronologicamente: 50 → 100 no aquecimento, depois 100 → 110 na janela.
+  const SERIE = [
+    comPreco('2026-01-01T04:00:00Z', 110),
+    comPreco('2026-01-01T03:00:00Z', 100),
+    comPreco('2026-01-01T02:00:00Z', 50),
+  ]
+
+  it('deve medir o retorno só do período escolhido', () => {
+    const semRecorte = derivarAnalytics({
+      historicosPorMoeda: { BTC: SERIE },
+      fearGreedPorMoeda: { BTC: [] },
+      moedasFiltro: ['BTC'],
+    })
+    // Sem recorte, o retorno pega o salto do aquecimento: 50 → 110.
+    expect(semRecorte.desempenho.retorno).toBeCloseTo(120, 6)
+    expect(semRecorte.desempenho.amostras).toBe(3)
+
+    const comRecorte = derivarAnalytics({
+      historicosPorMoeda: { BTC: SERIE },
+      fearGreedPorMoeda: { BTC: [] },
+      moedasFiltro: ['BTC'],
+      aPartirDe: '2026-01-01T03:00:00Z',
+    })
+    // Com recorte, só 100 → 110.
+    expect(comRecorte.desempenho.retorno).toBeCloseTo(10, 6)
+    expect(comRecorte.desempenho.amostras).toBe(2)
+  })
+
+  it('deve manter as leituras de estado sobre a série inteira', () => {
+    // ATR, VWAP e osciladores precisam do aquecimento; só o desempenho é
+    // recortado.
+    const r = derivarAnalytics({
+      historicosPorMoeda: { BTC: SERIE },
+      fearGreedPorMoeda: { BTC: [] },
+      moedasFiltro: ['BTC'],
+      aPartirDe: '2026-01-01T03:00:00Z',
+    })
+    // O VWAP percorre os três candles mesmo com a janela pedindo dois.
+    expect(r.desempenho.amostras).toBe(2)
+    expect(r.vwap.serie).toHaveLength(3)
+  })
+
+  it('deve recortar também o comparativo entre moedas', () => {
+    const c = compararMoedas(
+      { BTC: SERIE, ETH: SERIE },
+      ['BTC', 'ETH'],
+      '2026-01-01T03:00:00Z'
+    )
+    c.forEach((linha) => expect(linha.retorno).toBeCloseTo(10, 6))
+  })
 })
 
 describe('utils/marketAnalytics › derivarAnalytics', () => {
@@ -189,5 +282,71 @@ describe('utils/marketAnalytics › compararMoedas', () => {
 
   it('deve devolver null quando nenhuma moeda tem histórico', () => {
     expect(compararMoedas({ BTC: [], ETH: [] }, ['BTC', 'ETH'])).toBeNull()
+  })
+})
+
+describe('utils/marketAnalytics › fluxo do período contra fluxo de estado', () => {
+  // O bloco de fluxo mistura dois tipos de leitura. Dominância atual, ratio e
+  // delta do candle corrente são ESTADO. Acumulado e dominância do período
+  // SOMAM candle a candle — e a soma tinha a margem de aquecimento dentro,
+  // apesar de a tela chamar o número de "no período".
+
+  const HORA = 3600e3
+  const INICIO = Date.UTC(2026, 2, 1)
+  const horaDe = (i) => new Date(INICIO + i * HORA).toISOString()
+
+  const candle = (i, comprado, vendido) =>
+    registro({
+      horaReferencia: horaDe(i),
+      volumeComprado: comprado,
+      volumeVendido: vendido,
+      volumeDelta: comprado - vendido,
+    })
+
+  // Dez candles: os seis de aquecimento vendem, os quatro da janela compram.
+  // Montados em ordem cronológica e invertidos, que é como a API entrega.
+  const SERIE = [
+    ...Array.from({ length: 6 }, (_, i) => candle(i, 20, 80)),
+    ...Array.from({ length: 4 }, (_, i) => candle(6 + i, 80, 20)),
+  ].reverse()
+
+  const PRIMEIRO_DA_JANELA = horaDe(6)
+
+  it('deve acumular o delta só dentro da janela, invertendo o sinal', () => {
+    const semJanela = derivarAnalytics(entrada(SERIE))
+    const comJanela = derivarAnalytics({ ...entrada(SERIE), aPartirDe: PRIMEIRO_DA_JANELA })
+
+    // 6 x (-60) + 4 x (+60) = -120: o aquecimento decidia o sinal sozinho.
+    expect(semJanela.fluxo.deltaAcumulado).toBe(-120)
+    expect(comJanela.fluxo.deltaAcumulado).toBe(240)
+  })
+
+  it('deve medir a dominância do período pedido, não da série carregada', () => {
+    const semJanela = derivarAnalytics(entrada(SERIE))
+    const comJanela = derivarAnalytics({ ...entrada(SERIE), aPartirDe: PRIMEIRO_DA_JANELA })
+
+    // 440/1000 contra 320/400: "média do período" e o período são coisas
+    // diferentes enquanto o aquecimento entra na conta.
+    expect(semJanela.fluxo.dominanciaCompradoraPeriodo).toBeCloseTo(44, 6)
+    expect(comJanela.fluxo.dominanciaCompradoraPeriodo).toBeCloseTo(80, 6)
+  })
+
+  it('não deve mexer nas leituras de estado', () => {
+    // O que descreve "agora" sai do candle mais recente e independe da janela.
+    const semJanela = derivarAnalytics(entrada(SERIE))
+    const comJanela = derivarAnalytics({ ...entrada(SERIE), aPartirDe: PRIMEIRO_DA_JANELA })
+
+    expect(comJanela.fluxo.deltaAtual).toBe(semJanela.fluxo.deltaAtual)
+    expect(comJanela.fluxo.dominanciaCompradora).toBe(semJanela.fluxo.dominanciaCompradora)
+    expect(comJanela.fluxo.ratioCompraVenda).toBe(semJanela.fluxo.ratioCompraVenda)
+    expect(comJanela.volatilidade.mediana).toBe(semJanela.volatilidade.mediana)
+    expect(comJanela.ticket.mediana).toBe(semJanela.ticket.mediana)
+  })
+
+  it('deve manter os dois cards de acumulado com o mesmo número', () => {
+    // "Delta de Volume" e "Delta Acumulado" exibem a mesma soma em cards
+    // vizinhos. Eram duas contas independentes; agora saem da mesma.
+    const r = derivarAnalytics({ ...entrada(SERIE), aPartirDe: PRIMEIRO_DA_JANELA })
+    expect(r.fluxo.deltaAcumulado).toBe(r.fluxo.divergencia.cvd)
   })
 })

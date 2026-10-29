@@ -29,6 +29,24 @@ describe('utils/apiClient › Enums & Endpoints', () => {
     expect(ApiEndpoint.USER.ME('U001')).toBe('/ThinkBitcoin/usuariosTB/U001')
     expect(ApiEndpoint.MARKET.COIN_VALUE('BTC')).toBe('/ThinkBitcoin/moeda/BTC/valor')
   })
+
+  // O carrossel lê `registros[0]` como cotação atual, o que só é verdade com
+  // ordemAsc=false. Enquanto ele omitia os parâmetros e ficava no default do
+  // servidor, uma mudança de default do lado da API teria virado preço antigo
+  // exibido como atual — sem erro, sem log, sem ninguém perceber.
+  it('deve serializar os parâmetros de COIN_VALUE na query', () => {
+    expect(
+      ApiEndpoint.MARKET.COIN_VALUE('btc', { pagina: 1, quantidade: 1, ordemAsc: false })
+    ).toBe('/ThinkBitcoin/moeda/btc/valor?pagina=1&quantidade=1&ordemAsc=false')
+  })
+
+  // `ordemAsc: false` e `quantidade: 0` são falsy, e um `if (valor)` os
+  // descartaria em silêncio — justamente os dois que precisam chegar.
+  it('não descarta parâmetro de COIN_VALUE por ser falsy', () => {
+    const url = ApiEndpoint.MARKET.COIN_VALUE('btc', { ordemAsc: false })
+
+    expect(url).toContain('ordemAsc=false')
+  })
 })
 
 describe('utils/apiClient › normalizeApiKeys (Normalização PascalCase → camelCase)', () => {
@@ -55,6 +73,46 @@ describe('utils/apiClient › normalizeApiKeys (Normalização PascalCase → ca
   it('não deve alterar chaves-código como siglas de moeda ou país', () => {
     const bruto = { BTC: 1, US: 2, MA5: 3 }
     expect(normalizeApiKeys(bruto)).toEqual({ BTC: 1, US: 2, MA5: 3 })
+  })
+
+  // A API .NET serializa DateTime sem sufixo de fuso quando o Kind é
+  // Unspecified — que é o que o EF Core devolve lendo datetime2. Os valores são
+  // UTC, mas sem a marca o `new Date()` os lê como hora local, deslocando todo
+  // instante do produto pelo fuso do usuário.
+  it('deve marcar como UTC o carimbo que chega sem fuso', () => {
+    expect(normalizeApiKeys({ horaReferencia: '2026-08-14T11:00:00' }))
+      .toEqual({ horaReferencia: '2026-08-14T11:00:00Z' })
+  })
+
+  it('deve marcar também o carimbo com fração de segundo', () => {
+    expect(normalizeApiKeys({ criadoEm: '2026-08-14T11:00:00.123' }))
+      .toEqual({ criadoEm: '2026-08-14T11:00:00.123Z' })
+  })
+
+  it('não deve mexer no carimbo que já traz fuso', () => {
+    const comFuso = {
+      a: '2026-08-14T11:00:00Z',
+      b: '2026-08-14T11:00:00-03:00',
+      c: '2026-08-14T11:00:00+0000',
+    }
+    expect(normalizeApiKeys(comFuso)).toEqual(comFuso)
+  })
+
+  it('não deve confundir texto comum com carimbo', () => {
+    // O `$` da expressão é o que impede isto: sem ele, qualquer string que
+    // COMECE com uma data ganharia um Z no fim.
+    const texto = {
+      sigla: 'BTC',
+      descricao: '2026-08-14 foi um bom dia',
+      soData: '2026-08-14',
+      quase: '2026-08-14T11:00:00 (aprox)',
+    }
+    expect(normalizeApiKeys(texto)).toEqual(texto)
+  })
+
+  it('deve marcar carimbos dentro de arrays e de objetos aninhados', () => {
+    expect(normalizeApiKeys({ Registros: [{ HoraReferencia: '2026-08-14T11:00:00' }] }))
+      .toEqual({ registros: [{ horaReferencia: '2026-08-14T11:00:00Z' }] })
   })
 
   it('deve manter a variante camelCase quando a resposta trouxer as duas', () => {
@@ -187,6 +245,41 @@ describe('utils/apiClient › apiRequest (Comunicação com API)', () => {
       expect(fetch).toHaveBeenCalledWith(`${API_URL}/custom`, expect.objectContaining({
         headers: { Authorization: 'Bearer explicito' },
       }))
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  // Página aberta (/pregao): o endpoint é público, e quem está logado não
+  // manda o token para ele — nem leva logout ou convite de plano por causa dele.
+  it('chamada anônima não leva o token guardado', async () => {
+    vi.stubGlobal('window', {
+      localStorage: {
+        getItem: (k) => (k === 'token' ? 'token-armazenado' : null),
+      },
+    })
+    fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({}),
+    })
+
+    try {
+      await apiRequest('/aberto', { anonimo: true })
+      expect(fetch).toHaveBeenCalledWith(`${API_URL}/aberto`, expect.objectContaining({ headers: {} }))
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it.each([401, 403])('chamada anônima com %i não dispara fim de sessão nem convite de assinatura', async (status) => {
+    const dispatchEvent = vi.fn()
+    vi.stubGlobal('window', { dispatchEvent, localStorage: { getItem: () => 'token-armazenado' } })
+    fetch.mockResolvedValue({ ok: false, status, json: () => Promise.reject(new Error('sem corpo')) })
+
+    try {
+      await expect(apiRequest('/aberto', { anonimo: true })).rejects.toMatchObject({ status })
+      expect(dispatchEvent).not.toHaveBeenCalled()
     } finally {
       vi.unstubAllGlobals()
     }

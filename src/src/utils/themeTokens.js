@@ -13,6 +13,7 @@ const FALLBACKS = {
   '--text-muted': 'rgba(255,255,255,0.6)',
   '--text-faint': 'rgba(255,255,255,0.4)',
   '--border-subtle': 'rgba(255,255,255,0.03)',
+  '--border-strong': 'rgba(255,255,255,0.15)',
   '--accent': '#ffd700',
   '--accent-ink': '#ffd700',
   '--surface-overlay': 'rgba(15,15,15,0.9)',
@@ -42,6 +43,10 @@ export const chartPalette = () => ({
   tick: readToken('--text-muted'),
   tickSubtle: readToken('--text-faint'),
   grid: readToken('--border-subtle'),
+  // Linha do próprio eixo (`scales.*.border`), que o Chart.js desenha separada
+  // do grid. Mais forte que a grade de propósito: é a moldura do gráfico, não
+  // uma das divisões internas.
+  borda: readToken('--border-strong'),
   accent: readToken('--accent-ink'),
   tooltipBg: readToken('--surface-overlay'),
   alta: readToken('--success'),

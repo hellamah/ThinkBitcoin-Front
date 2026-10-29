@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react'
+import { comportamentoDeRolagem } from '../../utils/movimento'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import Card from '@mui/material/Card'
@@ -62,24 +63,31 @@ export default function CoinCarousel({
     const selecionado = carrosselRef.current?.querySelector('.carousel-item.selected')
     if (!selecionado) return
     centralizouSelecaoRef.current = true
-    selecionado.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+    // `behavior` vem de quem sabe da preferência de movimento reduzido: um
+    // `'smooth'` fixo aqui venceria o `scroll-behavior` do CSS, porque a
+    // especificação só consulta o CSS quando o argumento é `auto`.
+    selecionado.scrollIntoView({
+      behavior: comportamentoDeRolagem(),
+      block: 'nearest',
+      inline: 'center',
+    })
   }, [moedasFiltro])
 
   const rolar = (direcao) => {
     const el = carrosselRef.current
     if (!el) return
-    el.scrollBy({ left: direcao * el.clientWidth * 0.7, behavior: 'smooth' })
+    el.scrollBy({ left: direcao * el.clientWidth * 0.7, behavior: comportamentoDeRolagem() })
   }
 
   const carouselContent = (
     <div className={`crypto-carousel-wrapper ${podeRolarEsquerda ? 'can-left' : ''} ${podeRolarDireita ? 'can-right' : ''}`}>
       {podeRolarEsquerda && (
-        <button type="button" className="carousel-nav prev" onClick={() => rolar(-1)} aria-label={t('carrosselAnterior') || 'Moedas anteriores'}>
+        <button type="button" className="carousel-nav prev" onClick={() => rolar(-1)} aria-label={t('carrosselAnterior')}>
           <MdChevronLeft />
         </button>
       )}
       {podeRolarDireita && (
-        <button type="button" className="carousel-nav next" onClick={() => rolar(1)} aria-label={t('carrosselProximo') || 'Próximas moedas'}>
+        <button type="button" className="carousel-nav next" onClick={() => rolar(1)} aria-label={t('carrosselProximo')}>
           <MdChevronRight />
         </button>
       )}
@@ -180,7 +188,7 @@ export default function CoinCarousel({
       <Box className="panel top-coins" sx={{ mb: '20px' }}>
         <h2>
           <MdTrendingUp style={{ verticalAlign: 'middle', marginRight: '10px' }} /> 
-          {t('selectAssetHeatmap') || 'Selecione o Ativo para Análise Geopolítica'}
+          {t('selectAssetHeatmap')}
         </h2>
         {carouselContent}
       </Box>
@@ -194,7 +202,9 @@ export default function CoinCarousel({
         <div className="top-list">
           {moedasCarousel.length === 0 ? (
             <Box sx={{ p: 4, textAlign: 'center', opacity: 0.6 }}>
-              <Typography variant="body2" sx={{ fontStyle: 'italic' }}>{t('loadingCoins')}...</Typography>
+              {/* Sem os três pontos extras: as cinco traduções de `loadingCoins`
+                  já terminam em reticências, e o texto saía com seis. */}
+              <Typography variant="body2" sx={{ fontStyle: 'italic' }}>{t('loadingCoins')}</Typography>
             </Box>
           ) : (
             moedasCarousel
@@ -226,6 +236,10 @@ export default function CoinCarousel({
         </div>
       </Box>
 
+      {/* Sem título, o carrossel com todas as moedas parecia continuar a lista
+          do Top 5 logo acima: o Pregão leu "Top 5" com 10 a 12 ativos e
+          duplicatas em 7 de 9 rodadas (21 a 24/10/2026). */}
+      <h2 className="carousel-titulo">{t('carrosselTitulo')}</h2>
       {carouselContent}
     </>
   )

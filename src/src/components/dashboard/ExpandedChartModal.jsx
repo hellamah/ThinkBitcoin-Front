@@ -1,8 +1,9 @@
-import React, { useMemo, useState, useRef } from 'react';
+import React, { useMemo, useState, useRef, useCallback } from 'react';
 import { Bar, Line, getElementAtEvent } from 'react-chartjs-2';
 import { MdClose, MdAnalytics, MdTimeline, MdSpeed, MdUpdate, MdPublic } from 'react-icons/md';
 import { ChartType } from '../../utils/enums';
 import { readToken } from '../../utils/themeTokens';
+import { useDialogoAcessivel, useFecharComEsc } from '../../hooks/useDialogoAcessivel';
 
 /**
  * Modal expandido para exibir o gráfico selecionado junto a um painel de inteligência
@@ -17,7 +18,8 @@ import { readToken } from '../../utils/themeTokens';
  *   opcoesPreco: object,
  *   opcoesVariacao: object,
  *   trendAtual?: object,
- *   t: (key: string, options?: object) => string
+ *   t: (key: string, options?: object) => string,
+ *   locale?: string
  * }} props
  */
 const ExpandedChartModal = ({
@@ -32,9 +34,8 @@ const ExpandedChartModal = ({
   trendAtual,
   mostraVolume,
   t,
+  locale,
 }) => {
-  if (!expandedChart) return null;
-
   const isTraded = expandedChart === ChartType.TRADED_VALUE;
   // O assunto do segundo painel vem do seletor "Painel", igual à versão
   // reduzida — abrir o modal não muda o que está sendo mostrado.
@@ -79,7 +80,7 @@ const ExpandedChartModal = ({
 
       return {
         label: dataset.label || 'Moeda',
-        color: dataset.borderColor || dataset.backgroundColor || '#fff',
+        color: dataset.borderColor,
         lastValue: last !== undefined ? last : null,
         changePercent: Number.isFinite(changePercent) ? changePercent : null,
       };
@@ -123,7 +124,7 @@ const ExpandedChartModal = ({
         hitRadius: 25, // Área generosa para facilitar o clique
       })),
     };
-  }, [chartData, selectedIndex]);
+  }, [chartData, isBarra, selectedIndex]);
 
   const handleChartClick = (event) => {
     if (!chartRef.current) return;
@@ -140,15 +141,50 @@ const ExpandedChartModal = ({
     }
   };
 
-  const handleClose = () => setExpandedChart(null);
+  const handleClose = useCallback(() => setExpandedChart(null), [setExpandedChart]);
+
+  // Os dois hooks ficam ACIMA da guarda, pelo mesmo motivo que os useMemo: o
+  // componente vive sempre montado e trocar a contagem de hooks entre os
+  // renders quebraria a ordem que o React exige. Ambos recebem o estado de
+  // aberto e não fazem nada enquanto ele é falso.
+  const abertoComoDialogo = Boolean(expandedChart);
+
+  // Esc fechava todos os outros diálogos do app, menos este: o gráfico
+  // expandido cobre a tela inteira e só saía pelo ✕ ou clicando no fundo.
+  useFecharComEsc(abertoComoDialogo, handleClose);
+
+  const refDialogo = useDialogoAcessivel(abertoComoDialogo);
+
+  // A guarda fica DEPOIS dos hooks, e nao no topo. Com ela la em cima, o
+  // componente — que o DashboardCharts mantem sempre montado — renderizava com
+  // zero hooks enquanto nenhum grafico estava expandido e com quatro depois de
+  // abrir. React exige a mesma ordem em todo render, e o que segurava isso de pe
+  // era sorte, nao desenho.
+  //
+  // Nada acima depende de `expandedChart` estar preenchido: `isTraded` vira
+  // false, os dados vem das props, e os dois useMemo ja se protegem sozinhos.
+  if (!expandedChart) return null;
 
   return (
     <div className="expanded-chart-overlay" onClick={handleClose}>
-      <div className="expanded-chart-content" onClick={(e) => e.stopPropagation()}>
+      {/* Era uma <div> de overlay e nada mais: sem `role`, o leitor de tela
+          seguia lendo o dashboard atrás dela como se nada tivesse aberto, e o
+          Tab passeava pela página coberta. `aria-labelledby` aponta para o
+          <h2> que já existia, então o nome anunciado é exatamente o título na
+          tela e acompanha a troca de gráfico sozinho. */}
+      <div
+        ref={refDialogo}
+        className="expanded-chart-content"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="titulo-grafico-expandido"
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+      >
         <button className="btn-close-premium" onClick={handleClose} aria-label={t('close')}>
           <MdClose size={32} />
         </button>
-        <h2>{isTraded ? t('tradedValue') : (isBarra ? t('volume') : t('percentVariation'))}</h2>
+        <h2 id="titulo-grafico-expandido">{isTraded ? t('tradedValue') : (isBarra ? t('volume') : t('percentVariation'))}</h2>
         <div className="chart-container">
           <ChartComp
             ref={chartRef}
@@ -212,7 +248,7 @@ const ExpandedChartModal = ({
                           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <div style={{ width: '10px', height: '10px', borderRadius: '2px', backgroundColor: ds.color }}></div>
                             <span style={{ color: 'var(--text-muted)', minWidth: '40px' }}>{ds.label}:</span>
-                            <span>{ds.lastValue != null ? Number(ds.lastValue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 }) : '-'}</span>
+                            <span>{ds.lastValue != null ? Number(ds.lastValue).toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 6 }) : '-'}</span>
                           </div>
                         ))}
                       </div>
@@ -221,7 +257,11 @@ const ExpandedChartModal = ({
                   <div className="chart-intel-tooltip-item">
                     <MdSpeed className="chart-intel-tip-icon" />
                     <div>
-                      <div className="chart-intel-tip-label">{t('percentChange')}</div>
+                      {/* `percentChange` não existia em dicionário nenhum: a
+                          tooltip do gráfico expandido exibia o nome da chave.
+                          `percentVariation` é a mesma leitura, já traduzida
+                          nos cinco idiomas e usada no título do painel. */}
+                      <div className="chart-intel-tip-label">{t('percentVariation')}</div>
                       <div className="chart-intel-tip-value" style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px', fontSize: '0.9em' }}>
                         {intelFromChart.datasets.map((ds, i) => (
                           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -243,13 +283,14 @@ const ExpandedChartModal = ({
                   <div className="chart-intel-tooltip-item">
                     <MdTimeline className="chart-intel-tip-icon" />
                     <div>
-                      <div className="chart-intel-tip-label">{t('movingAverages')}</div>
+                      {/* trendAtual é interesse de busca, não preço: ver IntelligencePanel. */}
+                      <div className="chart-intel-tip-label">{t('searchMovingAverages')}</div>
                       <div className={`chart-intel-tip-value ${
                         (trendAtual.mA5 || trendAtual.MA5) >= (trendAtual.mA15 || trendAtual.MA15) ? 'up' : 'down'
                       }`}>
                         {(trendAtual.mA5 || trendAtual.MA5) >= (trendAtual.mA15 || trendAtual.MA15)
-                          ? t('bullishTrend')
-                          : t('bearishTrend')}
+                          ? t('searchRising')
+                          : t('searchFalling')}
                       </div>
                       <div className="chart-intel-tip-sub">MA5 vs MA15</div>
                     </div>
@@ -257,7 +298,7 @@ const ExpandedChartModal = ({
                   <div className="chart-intel-tooltip-item">
                     <MdSpeed className="chart-intel-tip-icon" />
                     <div>
-                      <div className="chart-intel-tip-label">{t('momentum')}</div>
+                      <div className="chart-intel-tip-label">{t('searchMomentum')}</div>
                       <div className={`chart-intel-tip-value ${
                         (trendAtual.delta5 || trendAtual.Delta5) >= 0 ? 'up' : 'down'
                       }`}>
@@ -269,7 +310,7 @@ const ExpandedChartModal = ({
                   <div className="chart-intel-tooltip-item">
                     <MdUpdate className="chart-intel-tip-icon" />
                     <div>
-                      <div className="chart-intel-tip-label">{t('trendVolatility')}</div>
+                      <div className="chart-intel-tip-label">{t('searchVolatility')}</div>
                       <div className="chart-intel-tip-value">
                         {(trendAtual.volatilidade15 || trendAtual.Volatilidade15 || 0).toFixed(2)}
                       </div>

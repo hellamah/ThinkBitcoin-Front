@@ -30,7 +30,12 @@ export default function useDashboardCharts({
   fearGreedPorMoeda,
   trendPorMoeda,
   modoPreco = PriceChartMode.LINE,
-  t = (chave) => chave
+  t = (chave) => chave,
+  // Etiqueta BCP 47 do idioma escolhido (`idioma.intl`). Entra como argumento e
+  // como dependência do memo: os rótulos do eixo são calculados aqui dentro, e
+  // sem ele na lista trocar de idioma deixaria o gráfico com as datas do idioma
+  // anterior até a próxima mudança de filtro.
+  locale = undefined
 }) {
   const { palette } = useTheme()
 
@@ -67,7 +72,7 @@ export default function useDashboardCharts({
       console.error('Erro ao processar timestamps:', err)
     }
     const timestampsUnicos = Array.from(allTimestampsSet).sort()
-    const labels = timestampsUnicos.map(t => toLocalChartLabel(t))
+    const labels = timestampsUnicos.map((ts) => toLocalChartLabel(ts, locale))
 
     const moedasOrdenadas = Object.keys(historicosPorMoeda).filter(sig => historicosPorMoeda[sig]?.length > 0)
     const multi = moedasOrdenadas.length > 1
@@ -172,7 +177,7 @@ export default function useDashboardCharts({
     // sem dado simplesmente não exibe a linha no tooltip — antes daqui saía um
     // valor aleatório, indistinguível de sentimento medido de verdade.
     timestampsUnicos.forEach(ts => {
-      const label = toLocalChartLabel(ts)
+      const label = toLocalChartLabel(ts, locale)
 
       moedasOrdenadas.forEach(sigla => {
         const fg = realFGMap.get(sigla)?.get(ts)
@@ -305,7 +310,7 @@ export default function useDashboardCharts({
       correlacao,
       sentimentMap
     }
-  }, [historicosPorMoeda, dataInicio, dataFim, resultadoFiltro, normalizacao, fearGreedPorMoeda, trendPorMoeda, t])
+  }, [historicosPorMoeda, dataInicio, dataFim, resultadoFiltro, normalizacao, fearGreedPorMoeda, trendPorMoeda, t, locale])
 
   const sentimentFooter = (context) => {
     const label = context[0].label;
@@ -330,6 +335,9 @@ export default function useDashboardCharts({
 
   // Cores lidas dos tokens a cada troca de tema: o canvas não resolve var(),
   // então sem isto a legenda (#ccc) e o grid (branco a 3%) sumiam no claro.
+  // `palette.mode` e gatilho, nao dependencia lida: ver o comentario acima. A
+  // regra o aponta como desnecessario porque nao aparece dentro do callback.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const cores = useMemo(() => chartPalette(), [palette.mode])
 
   const modoVela =
@@ -408,10 +416,15 @@ export default function useDashboardCharts({
       x: {
         display: true,
         grid: { display: false },
+        // A linha do eixo é desenhada à parte do grid, e sem cor explícita o
+        // Chart.js cai no `defaults.borderColor` global — que vinha cravado em
+        // '#333' no Dashboard e não acompanhava o tema.
+        border: { color: cores.borda },
         ticks: { color: cores.tickSubtle, font: { size: 10 } }
       },
       y: {
         grid: { color: cores.grid, borderDash: [5, 5] },
+        border: { color: cores.borda },
         ticks: { color: cores.tick, font: { family: "'Share Tech Mono', monospace" } }
       }
     }

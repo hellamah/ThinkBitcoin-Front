@@ -34,7 +34,7 @@ Mesmo com backend privado, a experiência visual do produto pode ser avaliada po
 ## Visão Geral
 - Interface responsiva com Material UI e gráficos em tempo real fornecidos pelo Chart.js.
 - Suporte a autenticação com persistência de token e preferências armazenadas no navegador.
-- Internacionalização com suporte para português e inglês.
+- Internacionalização em cinco idiomas — inglês, português, espanhol, francês e italiano —, com o idioma inicial seguindo o do navegador.
 - Utilização de *hooks* customizados para preços (`useCoinPrices`) e tradução (`useTranslation`).
 - Planejamento evolutivo documentado no arquivo `ROADMAP.md`.
 
@@ -42,7 +42,8 @@ Mesmo com backend privado, a experiência visual do produto pode ser avaliada po
 - O contrato entre o front e o backend para pagamento de planos via Pix (checkout, polling, webhook e regras de segurança) está documentado em [`PAGAMENTOS.md`](./PAGAMENTOS.md). No modo demo os endpoints são mockados e a cobrança se confirma sozinha em ~10s.
 
 ## Privacidade e Termos de Uso
-- O texto da Política de Privacidade e dos Termos de Uso vive em `src/components/ConsentimentoLGPD.jsx` e é publicado nas rotas `/privacidade` e `/termos`.
+- O texto da Política de Privacidade e dos Termos de Uso é **versionado no banco** e servido pela API; as rotas `/privacidade` e `/termos` o exibem com número de versão, vigência e histórico de alterações. Até agosto de 2026 ele vivia em JSX, sem versão e sem data.
+- O aceite de cada usuário é registrado com data, versão do documento, origem, IP e user-agent, e pode ser consultado e revogado em Configurações. O fluxo do lado do front está em [`CONSENTIMENTO.md`](./CONSENTIMENTO.md); o modelo de dados e as regras, no backend.
 - [`ThinkBitcoin-Privacidade-e-Termos-revisao-juridica.docx`](./ThinkBitcoin-Privacidade-e-Termos-revisao-juridica.docx) reúne a transcrição literal dos dois documentos, 17 notas técnicas comparando o texto com o comportamento real do sistema e dois anexos (dados tratados e terceiros envolvidos). Preparado para revisão por advogado; o levantamento cobre os três repositórios do projeto.
 
 ## Roadmap
@@ -78,6 +79,27 @@ VITE_USE_MOCK=true
 - Quando o mock está ativo, endpoints usados pela interface retornam dados fake (incluindo sinal do robô no formato `btc`, `decision` e `confidence`) sem depender do backend.
 - `VITE_USE_MOCK=false`: força chamadas reais para a API (desativa o modo demo local).
 - Se `VITE_USE_MOCK` estiver ausente, o app usa mock automaticamente em desenvolvimento (`npm run dev`) e usa API real em produção (`npm run build`/deploy).
+- No modo demo qualquer credencial entra, como **Minerador** (os recursos de assinatura aparecem liberados). Um e-mail que começa com `admin` (ex.: `admin@teste.local`) entra como **Administrador** e vê as telas internas, como a de Pedidos do Pregão. O Trader da Equipe Pregão entra com `trader@teste.local` e continua vendo a plataforma como cliente.
+
+## Pedidos do Pregão
+### Tela do administrador
+- Rota `/pedidos-pregao`, no menu só para o cargo Administrador. Quem não tem o cargo e abre o link volta ao painel; a API confere de novo.
+- O caminho é o menu **Pregão** do cabeçalho (ao lado de Configurações no desktop, na barra de baixo no celular): abre as duas telas, "Decidir pedidos" (`/pedidos-pregao`) e "Página aberta" (`/pregao`). O número no ícone é quantos pedidos esperam decisão; o cabeçalho busca a lista uma vez ao entrar e, depois, a fila o avisa a cada lista que carrega ou muda (decidir, Atualizar), sem outra busca.
+- É a primeira porta humana do ciclo da Equipe Pregão (repositório `ThinkBitcoin-Back-Python-Agents-Pregao`): o que o Trader, usuário sintético, viu se repetir em dias diferentes vira um pedido no `ThinkBitcoin-Back-DotNet` (`GET /api/PedidoAlteracao`), e o administrador aprova ou descarta (`POST /api/PedidoAlteracao/{id}/decisao`). Descartar pede motivo (até 500 caracteres).
+- A lista vem inteira e o filtro por status é feito na tela (padrão: esperando decisão, isto é, aberto, reaberto e devolvido), com o total de cada status no chip. O filtro vai na URL (`?status=descartado`).
+- Cada cartão (`CartaoBase`, o mesmo da página aberta) mostra o problema, o trecho da tela ("Na tela:") e, quando o Pregão os escreveu, o que acontece (`detalhe`: o que a tela mostra e por que atrapalha) e o que ajustar (`ajuste`). Os pedidos de antes de 15/10/2026 e as verificações automáticas vêm sem os dois, e as linhas não aparecem.
+- Devolvido (17/10/2026): quem corrige não conseguiu (sem correção no front, a resposta do modelo não encaixou, a correção falhou nas checagens, o PR foi fechado sem entrar) e devolveu o pedido. Ele volta a esperar decisão, com a dica em laranja, e o "Decidido por · Motivo" do cartão é o da devolução. Aprovar de novo pede outra tentativa; descartar encerra. Não aparece na página aberta, e na linha do tempo de um pedido aprovado de novo a devolução conta como passo de quem corrige.
+- Nova tentativa (27/10/2026): a falha foi de quem corrige (a troca não encaixou, a checagem barrou, a resposta veio sem troca ou cortada), não uma decisão do administrador. Quem corrige tenta de novo sozinho na execução seguinte, até 3 vezes, e só depois devolve. O pedido fica fora de "Esperando decisão", com filtro próprio, a dica em cinza e o motivo no cartão ("Tentativa 1 de 3: ..."). O único botão é Descartar, para parar as tentativas: aprovar seria pedir o que já vai acontecer. Aparece na página aberta, sem o motivo, porque continua aprovado. Na execução de 27/10/2026, 35 dos 49 pedidos tinham sido devolvidos, e a maior parte era falha de quem corrige.
+- Em correção e corrigido, o cartão do administrador traz a linha "Correção:" com a `referenciaCorrecao` que o `ThinkBitcoin-Back-Python-Agents-Oficina` gravou (17/10/2026): o link do PR do Azure aparece como "PR 41" e abre em outra aba, para revisar sem procurar o PR. Só endereço `http(s)` vira link (`correcaoDoPedido`); o resto, como o caminho do histórico quando o merge não veio de um PR do agente, fica como texto. A página aberta não mostra a linha: a rota pública não traz o link.
+
+### Página aberta
+- Rota `/pregao`, sem login e só leitura, no molde de `/privacidade` e `/termos`, com link no Início para visitante e para quem está logado. Explica o que é a Equipe Pregão e mostra cada pedido com tipo, telas, problema, trecho, o que acontece e o que ajustar, dias e rodadas, o status em linguagem simples e a linha do tempo ("a Equipe Pregão pediu → um administrador aprovou → … → a Equipe Pregão conferiu").
+- Mostra só o que um administrador aprovou: nenhum pedido do Pregão chega ao público sem revisão. Lê `GET /api/PedidoAlteracao/publico` (AllowAnonymous), que devolve só os status aprovado, em-correcao, corrigido e validado (esperando decisão e descartado nunca vêm), sem quem decidiu, motivo, link do PR, ambiente, diários, chave ou agente. Até o primeiro aprovado a lista fica vazia, e o estado vazio diz "nenhum pedido aprovado ainda". A linha do tempo não traz autor: a tela diz quem fez pela ação (aberto, reaberto e validado = Equipe Pregão; aprovado = um administrador; em correção e corrigido = quem corrige). O detalhe de cada passo vem do backend, em português.
+- A chamada usa `apiRequest(..., { anonimo: true })`: vai sem o token, e um 401 ou 403 não desloga nem abre o convite de assinatura (que o apiClient dispara em todo 403).
+- Filtro por status na URL (`?status=aprovado`), só com os status públicos; o padrão é ver todos, e um status que não é público cai nele.
+
+### Modo demo
+- Sete pedidos em memória, compartilhados pelas duas telas: três esperando decisão, um aprovado, um corrigido (aberto → aprovado → em correção → corrigido), um validado (o ciclo inteiro) e um descartado; o corrigido e o validado trazem o link de um PR. A página aberta mostra só os três aprovados; os outros ficam na tela do administrador. Aprovar ali põe o pedido na página aberta na mesma sessão (o passo entra na linha do tempo, sem o motivo); o reload volta ao início.
 
 ## Scripts Disponíveis (Executar dentro de /src)
 | Comando        | Descrição                                     |
@@ -129,6 +151,9 @@ O projeto utiliza um fluxo de entrega contínua baseado em **Azure Pipelines** e
 ### Fluxo de Deploy
 1. Push para `develop` -> Deploy de Preview na Vercel.
 2. Merge para `main` -> Deploy de Produção em `minerthinkbitcoin.com`.
+
+### Validação de PR
+`devops/ThinkBitcoin.Front.Tests-PR.yml` roda o lint, a suíte e o build de um PR, sem publicar nada (17/10/2026). No Azure Repos o `pr:` do YAML é ignorado: o pipeline só roda pela política do ramo. Para ligar, crie o pipeline a partir desse YAML (Pipelines → New pipeline → Azure Repos Git → ThinkBitcoin-Front → Existing YAML) e adicione-o em Repos → Branches → `Desenv` → Branch policies → Build validation, como obrigatório. Os PRs do `ThinkBitcoin-Back-Python-Agents-Oficina` passam por ele antes da revisão do dono.
 
 ### Estrutura devops/
 Além do pipeline da Vercel, a pasta `devops/` contém recursos para deploy em containers:

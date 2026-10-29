@@ -1,4 +1,3 @@
-import { API_URL } from '../api'
 
 export const WorkflowStatus = Object.freeze({
   SUCCESS: 'success',
@@ -28,11 +27,8 @@ const NotificationMessageKey = Object.freeze({
 
 export const executeNotificationWorkflow = async ({
   enabled,
-  token,
   isNotificationSupported,
   notificationApi,
-  fetchImpl = fetch,
-  baseUrl = API_URL,
 }) => {
   if (!enabled) {
     return {

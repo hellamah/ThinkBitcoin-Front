@@ -167,6 +167,55 @@ export const intervaloWilson = (sucessos, total, z = Z_95) => {
 }
 
 /**
+ * Quantil de uma série JÁ ORDENADA, com interpolação linear entre vizinhos.
+ *
+ * Recebe a série ordenada em vez de ordenar por conta própria porque quem pede
+ * um quantil quase sempre pede três ou quatro da mesma distribuição — ordenar
+ * a cada chamada seria trabalho repetido sobre os mesmos números.
+ *
+ * @param {number[]} ordenados - Crescente, sem null.
+ * @param {number} p - Em [0, 1].
+ * @returns {number|null} - null com série vazia.
+ */
+export const quantil = (ordenados, p) => {
+  if (!Array.isArray(ordenados) || ordenados.length === 0) return null
+  if (!(p >= 0 && p <= 1)) return null
+  const posicao = (ordenados.length - 1) * p
+  const base = Math.floor(posicao)
+  const resto = posicao - base
+  const proximo = ordenados[base + 1]
+  return proximo === undefined
+    ? ordenados[base]
+    : ordenados[base] + resto * (proximo - ordenados[base])
+}
+
+/**
+ * Gerador pseudoaleatório com semente (mulberry32).
+ *
+ * `Math.random` não serve para o que a plataforma sorteia: a régua aleatória e
+ * o bootstrap são desenhados na tela, e com `Math.random` cada render sortearia
+ * de novo — o percentil pularia de 91 para 88 sem que nada tivesse mudado, e
+ * quem olhasse concluiria que o número é instável quando o que mudou foi só o
+ * sorteio. Com semente, a mesma entrada produz sempre a mesma saída, e os
+ * testes conseguem cravar o resultado.
+ *
+ * Qualidade estatística de sobra para reamostragem; não é criptográfico.
+ *
+ * @param {number} semente - Inteiro; o mesmo valor reproduz a mesma sequência.
+ * @returns {() => number} - Cada chamada devolve um número em [0, 1).
+ */
+export const geradorAleatorio = (semente = 1) => {
+  let estado = semente >>> 0
+  return () => {
+    estado = (estado + 0x6d2b79f5) >>> 0
+    let t = estado
+    t = Math.imul(t ^ (t >>> 15), t | 1)
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+/**
  * Formata um valor numérico para moeda (USD por padrão).
  * 
  * @param {number|string} value - Valor a ser formatado.

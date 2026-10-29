@@ -3,8 +3,10 @@ import {
   ATR_PERIOD,
   avaliarAnomalia,
   calcularAtr,
+  calcularAtrSerie,
   calcularDesempenho,
   calcularLimites,
+  calcularLimitesMoveis,
 } from '../src/utils/marketStats'
 
 // A API entrega do mais recente ao mais antigo (ordemAsc=false); os helpers
@@ -102,6 +104,60 @@ describe('utils/marketStats › calcularLimites', () => {
   it('deve devolver null quando nenhuma variação é utilizável', () => {
     const semDado = Array.from({ length: 10 }, () => ({ precoPercentualVariacao: null }))
     expect(calcularLimites(semDado)).toBeNull()
+  })
+})
+
+describe('utils/marketStats › calcularLimitesMoveis', () => {
+  // Valores irregulares, com ausentes no meio: é onde uma janela que anda
+  // (entra um, sai outro) mais facilmente discorda de recalcular do zero.
+  const cronologico = Array.from({ length: 40 }, (_, i) => ({
+    precoPercentualVariacao: i % 7 === 3 ? null : Math.sin(i * 1.7) * 3 + (i % 5),
+    precoVolume: i % 11 === 6 ? null : 100 + ((i * 37) % 53) + (i > 25 ? 400 : 0),
+    precoFinanceiroPorTrade: 10 + ((i * 13) % 17),
+  }))
+
+  it('deve devolver em cada candle a régua dos últimos N até ele', () => {
+    const janela = 12
+    const moveis = calcularLimitesMoveis(cronologico, janela)
+    moveis.forEach((limites, i) => {
+      // `calcularLimites` recebe na ordem da API, do mais recente ao mais antigo.
+      const esperado = calcularLimites(cronologico.slice(Math.max(0, i - janela + 1), i + 1).reverse())
+      if (esperado === null) {
+        expect(limites).toBeNull()
+        return
+      }
+      expect(limites.mediaVariacao).toBeCloseTo(esperado.mediaVariacao, 10)
+      expect(limites.desvioVariacao).toBeCloseTo(esperado.desvioVariacao, 10)
+      expect(limites.medianaVolume).toBe(esperado.medianaVolume)
+      expect(limites.medianaTicket).toBe(esperado.medianaTicket)
+      expect(limites.amostras).toBe(esperado.amostras)
+    })
+  })
+
+  it('não deve ter régua antes de haver candles para medi-la', () => {
+    const moveis = calcularLimitesMoveis(cronologico, 12)
+    expect(moveis.slice(0, 7)).toEqual(Array(7).fill(null))
+    expect(moveis[7]).not.toBeNull()
+  })
+
+  it('não deve chamar de atípico um candle igual a todos os da janela', () => {
+    // 0,3 não é representável exatamente: a média sai 0,30000000000000004 e o
+    // desvio, 5e-17 em vez de zero. O candle fica a ±1σ desse desvio de
+    // arredondamento — abaixo do limiar de 2, e é isso que precisa continuar.
+    const constante = Array.from({ length: 30 }, () => ({
+      precoPercentualVariacao: 0.3,
+      precoVolume: 100,
+      precoFinanceiroPorTrade: 10,
+    }))
+    const moveis = calcularLimitesMoveis(constante, 10)
+    constante.slice(7).forEach((r, k) => {
+      expect(avaliarAnomalia(r, moveis[k + 7])).toMatchObject({ variacao: false, volume: false, ticket: false })
+    })
+  })
+
+  it('deve tolerar entrada vazia', () => {
+    expect(calcularLimitesMoveis([])).toEqual([])
+    expect(calcularLimitesMoveis(null)).toEqual([])
   })
 })
 
@@ -208,5 +264,107 @@ describe('utils/marketStats › calcularAtr', () => {
   it('deve devolver percentual nulo sem preço para comparar', () => {
     const registros = new Array(ATR_PERIOD).fill(null).map(() => ({ precoAmplitude: 50 }))
     expect(calcularAtr(registros).percentual).toBeNull()
+  })
+})
+
+describe('utils/marketStats › calcularAtrSerie', () => {
+  const serie = (amplitudes) =>
+    [...amplitudes].reverse().map((precoAmplitude) => ({ precoAmplitude, precoFechamento: 1000 }))
+
+  it('deve preservar a posição de cada candle', () => {
+    // O alinhamento é o motivo de esta função existir: quem dimensiona um stop
+    // no instante da entrada precisa do ATR daquele candle, não do último.
+    const s = calcularAtrSerie(serie(new Array(ATR_PERIOD + 5).fill(50)))
+    expect(s).toHaveLength(ATR_PERIOD + 5)
+  })
+
+  it('deve ficar null enquanto não houver histórico para semear', () => {
+    const s = calcularAtrSerie(serie(new Array(ATR_PERIOD + 3).fill(50)))
+    // A média simples só fecha no candle de índice ATR_PERIOD - 1.
+    expect(s.slice(0, ATR_PERIOD - 1).every((v) => v === null)).toBe(true)
+    expect(s[ATR_PERIOD - 1]).toBeCloseTo(50, 10)
+  })
+
+  it('deve concordar com calcularAtr no último candle', () => {
+    // As duas funções descrevem a mesma grandeza; divergir aqui significaria
+    // que o card e o stop da simulação leem volatilidades diferentes.
+    const amplitudes = [...new Array(ATR_PERIOD).fill(50), 500, 60, 40]
+    const registros = serie(amplitudes)
+    const s = calcularAtrSerie(registros)
+    expect(s[s.length - 1]).toBeCloseTo(calcularAtr(registros).valor, 8)
+  })
+
+  it('deve suavizar ao longo da série, não acompanhar o candle', () => {
+    const amplitudes = [...new Array(ATR_PERIOD).fill(50), 500]
+    const s = calcularAtrSerie(serie(amplitudes))
+    expect(s[ATR_PERIOD]).toBeCloseTo((50 * 13 + 500) / 14, 6)
+  })
+
+  it('deve carregar o valor anterior quando a amplitude falta', () => {
+    // Amplitude ausente não é amplitude zero. Tratá-la como zero puxaria o ATR
+    // para baixo por uma medição que ninguém fez — e é justamente num buraco de
+    // coleta que o stop não pode encolher sem motivo.
+    const amplitudes = [...new Array(ATR_PERIOD).fill(50), null, null]
+    const s = calcularAtrSerie(serie(amplitudes))
+    expect(s[ATR_PERIOD]).toBeCloseTo(50, 10)
+    expect(s[ATR_PERIOD + 1]).toBeCloseTo(50, 10)
+  })
+
+  it('deve recusar série sem amplitude válida suficiente', () => {
+    expect(calcularAtrSerie(serie(new Array(ATR_PERIOD - 1).fill(50))).every((v) => v === null)).toBe(true)
+    expect(calcularAtrSerie([])).toEqual([])
+    expect(calcularAtrSerie(null)).toEqual([])
+  })
+})
+
+describe('utils/marketStats › desempenho sem variação medida', () => {
+  // Zero é uma afirmação, não uma ausência. Enquanto a falta de variação virava
+  // zero, o painel anunciava "0,0% dos candles fecharam em alta" e "o melhor
+  // candle do período fez 0%" — leituras que existem de verdade, e que a tela
+  // não tinha como separar de "não há o que medir".
+
+  const soFechamentos = (precos) => precos.map((precoFechamento) => ({ precoFechamento }))
+
+  it('deve devolver null onde não há variação para medir', () => {
+    const r = calcularDesempenho(soFechamentos([110, 105, 100]))
+
+    expect(r.winRate).toBeNull()
+    expect(r.melhor).toBeNull()
+    expect(r.pior).toBeNull()
+  })
+
+  it('deve seguir medindo o que os fechamentos sustentam', () => {
+    // Retorno e drawdown saem dos fechamentos, não das variações: a ausência de
+    // uma leitura não pode apagar a outra.
+    const r = calcularDesempenho(soFechamentos([110, 120, 100]))
+
+    expect(r.retorno).toBeCloseTo(10, 5)
+    expect(r.drawdown).toBeCloseTo(-8.3333, 3)
+    expect(r.amostras).toBe(3)
+  })
+
+  it('deve distinguir ausência de um período realmente parado', () => {
+    // É esta a leitura que o null protege: variação medida e igual a zero
+    // continua sendo zero, e agora não se confunde mais com a falta dela.
+    const parado = calcularDesempenho(serieDecrescente([100, 100, 100], [0, 0, 0]))
+
+    expect(parado.winRate).toBe(0)
+    expect(parado.melhor).toBe(0)
+    expect(parado.pior).toBe(0)
+  })
+
+  it('deve contar apenas as variações medidas quando faltam algumas', () => {
+    const r = calcularDesempenho([
+      { precoFechamento: 103, precoPercentualVariacao: 2 },
+      { precoFechamento: 102 },
+      { precoFechamento: 101, precoPercentualVariacao: -1 },
+      { precoFechamento: 100 },
+    ])
+
+    // Duas variações medidas, uma positiva.
+    expect(r.winRate).toBeCloseTo(50, 5)
+    // `amostras` conta FECHAMENTOS, que é o que sustenta retorno e drawdown —
+    // e pode divergir do número de variações, como aqui.
+    expect(r.amostras).toBe(4)
   })
 })

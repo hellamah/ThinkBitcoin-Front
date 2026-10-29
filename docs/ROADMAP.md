@@ -11,16 +11,31 @@ Este roadmap organiza a evolução do frontend do ThinkBitcoin em quatro fases, 
 - [x] Organizar estrutura do projeto.
 - [x] Criar e manter README do projeto.
 - [x] Definir padrão de versionamento.
-- [x] Configurar ESLint e Prettier.
+- [x] Configurar ESLint. *(Corrigido em 2026-08-16: o `eslint.config.js` existia
+  desde o primeiro commit, mas nenhuma das suas 5 dependências estava declarada
+  no `package.json` e não havia script — a config nunca foi executável a partir
+  de um checkout limpo. Agora `npm run lint` roda.)*
+- [ ] Configurar Prettier. *(Estava marcado como feito; não há config nem
+  dependência de Prettier no repositório.)*
 - [x] Configurar variáveis de ambiente.
 - [x] Preparar build de produção.
 
 ### Build Pipeline
 - [x] Pipeline de build automático (Vercel + Azure).
 - [x] Instalação de dependências.
-- [x] Execução de lint.
-- [x] Execução de testes.
+- [x] Execução de lint. *(Aceso em 2026-08-16, depois de zerar o passivo: eram 58
+  erros de quando a config não podia rodar. `npm run lint` roda no `Dockerfile`
+  antes dos testes e aborta a imagem se falhar. Restam 30 avisos, que não travam
+  o gate de propósito — são dívidas conhecidas, não defeitos.)*
+- [x] Execução de testes. *(Corrigido em 2026-08-16: estava marcado como feito e
+  não acontecia. O pipeline builda a imagem, e o `Dockerfile` fazia só
+  `npm install` + `npm run build` — 507 testes que nenhuma etapa cobrava. Agora
+  `npm test` roda antes do build e aborta a imagem se falhar.)*
 - [x] Geração do build (`dist`).
+
+> **Resolvido:** o `Dockerfile` usava `node:18` enquanto o Vite 7.0.4 declara
+> `engines: ^20.19.0 || >=22.12.0`. Subiu para `node:22`, e um `.dockerignore`
+> entrou junto.
 
 ### Release Pipeline
 - [x] Integração com Vercel.
@@ -35,6 +50,15 @@ Este roadmap organiza a evolução do frontend do ThinkBitcoin em quatro fases, 
 ## Fase 2 — Painel do Robô Trader
 
 **Objetivo:** criar a interface operacional do sistema.
+
+**Em 28/10/2026**, a tela Robô ao vivo (`/robo-ao-vivo`, só administrador) cobre parte desta fase:
+- o estado do robô e a última decisão;
+- a curva dele, refeita pelas operações, contra a regra no papel e o buy & hold;
+- o critério registrado do motor de risco (`docs/motor-de-risco.md` do Back-Python);
+- a decisão de cada noite;
+- as operações, com a taxa.
+
+O robô é o motor de risco, que opera só o BTC e com dinheiro de mentira.
 
 ### Dashboard
 - Visão geral do robô.
@@ -88,11 +112,11 @@ Este roadmap organiza a evolução do frontend do ThinkBitcoin em quatro fases, 
 - Executar simulação.
 
 **Resultados exibidos:**
-- Lucro.
-- Drawdown.
-- Win rate.
-- Sharpe ratio.
-- Curva de capital.
+- [x] Lucro.
+- [x] Drawdown.
+- [x] Win rate.
+- [x] Sharpe ratio.
+- [x] Curva de capital.
 
 ### Simulador de Portfólio
 - Seleção de múltiplos ativos.

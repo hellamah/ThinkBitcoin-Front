@@ -1,14 +1,17 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { NavLink } from 'react-router-dom'
-import { MdArrowForward, MdBolt, MdAutoGraph, MdShield } from 'react-icons/md'
+import { MdArrowForward, MdBolt, MdAutoGraph, MdShield, MdSmartToy } from 'react-icons/md'
 import useTranslation from '../hooks/useTranslation'
 import { useAuth } from '../context/AuthContext'
-import CadastroConviteOverlay from '../components/CadastroConviteOverlay'
-import CookieBanner from '../components/CookieBanner' 
 import '../App.css'
+
+// O overlay de convite só abre por clique no selo, e só para quem está logado.
+// Com import estático, todo visitante da Home baixava o formulário inteiro.
+const CadastroConviteOverlay = lazy(() => import('../components/CadastroConviteOverlay'))
 
 // Componente para contagem animada de números
 const AnimatedNumber = ({ end, duration = 2000, suffix = '', decimals = 0 }) => {
+  const { idioma } = useTranslation()
   const [current, setCurrent] = useState(0)
   const countRef = useRef(null)
 
@@ -29,7 +32,7 @@ const AnimatedNumber = ({ end, duration = 2000, suffix = '', decimals = 0 }) => 
 
   return (
     <span>
-      {current.toLocaleString(undefined, {
+      {current.toLocaleString(idioma.intl, {
         minimumFractionDigits: decimals,
         maximumFractionDigits: decimals,
       })}
@@ -64,26 +67,31 @@ function Home() {
       {/* Hero Section */}
       <section className="home-section hero-v3">
         <div className="hero-tag">ThinkBitcoin OS // Neural Network v4.0</div>
+        {/* Duas chaves, e não uma com <br /> embutido: a quebra cai em pontos
+            diferentes conforme o idioma, e marcação dentro do dicionário é o
+            começo de um problema pior. */}
         <h1 className="hero-title-v3">
-          A Inteligência Que<br />Domina o Mercado.
+          {t('heroTitleLine1')}<br />{t('heroTitleLine2')}
         </h1>
         <p className="hero-desc-v3">
-          Acesse a plataforma de elite que utiliza inteligência artificial avançada para antecipar movimentos e maximizar seus resultados no universo Bitcoin.
+          {t('heroDescription')}
         </p>
         
         <div className="cta-group">
-          <NavLink to="/login" className="btn-premium btn-primary-v3">
-            Acessar Terminal <MdArrowForward />
+          {/* Logado, o "Acessar terminal" leva ao painel: apontava sempre para
+              /login e devolvia o formulário a quem já tinha entrado. */}
+          <NavLink to={token ? '/dashboard' : '/login'} className="btn-premium btn-primary-v3">
+            {t('heroCta')} <MdArrowForward />
           </NavLink>
           <span
             className={`exclusive-tag${token ? ' exclusive-tag-logado' : ''}`}
             onClick={abrirOverlay}
-            title={token ? 'Cadastrar novo usuário por convite' : undefined}
+            title={token ? t('inviteOverlayAria') : undefined}
             role={token ? 'button' : undefined}
             tabIndex={token ? 0 : undefined}
             onKeyDown={token ? (e) => e.key === 'Enter' && abrirOverlay() : undefined}
           >
-            ⚡ Acesso exclusivo por convite
+            {t('heroInviteBadge')}
           </span>
         </div>
       </section>
@@ -95,31 +103,50 @@ function Home() {
             <div className="stat-num-v3">
               <AnimatedNumber end={94.8} decimals={1} suffix="%" />
             </div>
-            <div className="stat-label-v3">Precisão da IA</div>
+            <div className="stat-label-v3">{t('statAiAccuracy')}</div>
           </div>
           <div className="stat-item-v3">
             <div className="stat-num-v3">
               <AnimatedNumber end={1.5} decimals={1} suffix="M+" />
             </div>
-            <div className="stat-label-v3">Dados/Seg</div>
+            <div className="stat-label-v3">{t('statDataPerSecond')}</div>
           </div>
           <div className="stat-item-v3">
             <div className="stat-num-v3">
               <AnimatedNumber end={99.9} decimals={1} suffix="%" />
             </div>
-            <div className="stat-label-v3">Uptime do Core</div>
+            <div className="stat-label-v3">{t('statCoreUptime')}</div>
           </div>
         </div>
+      </section>
+
+      {/* Equipe Pregão: o link para a página aberta /pregao, para visitante e
+          para quem está logado. Os usuários de IA pedem o que precisa
+          melhorar, e o andamento de cada pedido fica à vista. */}
+      <section className="home-section" style={{ paddingTop: 0 }}>
+        <h2 className="terminal-text" style={{ fontSize: '1.5rem', color: 'var(--text-primary)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <MdSmartToy aria-hidden="true" style={{ color: 'var(--accent-ink)' }} />
+          {t('pregaoPublico.homeTitulo')}
+        </h2>
+        <p style={{ color: 'var(--text-muted)', maxWidth: '560px', marginBottom: '24px' }}>
+          {t('pregaoPublico.homeDescricao')}
+        </p>
+        <NavLink
+          to="/pregao"
+          style={{ color: 'var(--accent-ink)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}
+        >
+          {t('pregaoPublico.homeLink')} <MdArrowForward aria-hidden="true" />
+        </NavLink>
       </section>
 
       {/* AI Showcase Section */}
       <section className="home-section">
         <div style={{ marginBottom: '40px' }}>
           <h2 className="terminal-text" style={{ fontSize: '1.5rem', color: 'var(--text-primary)', marginBottom: '16px' }}>
-            Powered by Deep Learning
+            {t('aiShowcaseTitle')}
           </h2>
           <p style={{ color: 'var(--text-muted)', maxWidth: '500px' }}>
-            Nossa plataforma é construída sobre uma infraestrutura de IA total, processando sentimentos, tendências e fluxos em tempo real.
+            {t('aiShowcaseDescription')}
           </p>
         </div>
 
@@ -151,11 +178,13 @@ function Home() {
       <div style={{ height: '100px' }}></div>
 
       {/* Overlay de cadastro por convite */}
+      {/* Suspense próprio, com fallback nulo: sem ele a espera pelo chunk
+          subiria até o Suspense do App e trocaria a Home pelo spinner. */}
       {overlayAberto && (
-        <CadastroConviteOverlay onFechar={() => setOverlayAberto(false)} />
+        <Suspense fallback={null}>
+          <CadastroConviteOverlay onFechar={() => setOverlayAberto(false)} />
+        </Suspense>
       )}
-
-      <CookieBanner />
     </div>
   )
 }

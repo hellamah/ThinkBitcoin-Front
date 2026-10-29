@@ -11,22 +11,23 @@ import {
   Legend,
   Filler,
 } from 'chart.js'
-import Box from '@mui/material/Box'
 import useMediaQuery from '@mui/material/useMediaQuery'
-import { Joyride, STATUS } from 'react-joyride'
 
 import { useAuth } from '../context/AuthContext'
 import { useDashboard } from '../context/DashboardContext'
 import useTranslation from '../hooks/useTranslation'
 import useCoinPrices from '../hooks/useCoinPrices'
+import useAlertasPreco from '../hooks/useAlertasPreco'
 import useDashboardData from '../hooks/useDashboardData'
 import useDashboardCharts from '../hooks/useDashboardCharts'
+import useHistoryPage from '../hooks/useHistoryPage'
 import useMarketAnalytics from '../hooks/useMarketAnalytics'
 import * as mathUtils from '../utils/mathUtils'
 import { calcularLimites } from '../utils/marketStats'
 import { compararMoedas } from '../utils/marketAnalytics'
 import { analisarSinais } from '../utils/signalLab'
-import { getTourVisto, setTourVisto } from '../utils/preferences'
+import { acharMoedaPreferida, getTourVisto, setTourVisto } from '../utils/preferences'
+import { contarAtivos } from '../utils/alertaPreco'
 import { candlestickPlugin } from '../utils/candlestickChart'
 import { Normalization, PriceChartMode, SecondaryChart } from '../utils/enums'
 
@@ -34,6 +35,7 @@ import { Normalization, PriceChartMode, SecondaryChart } from '../utils/enums'
 import DashboardHeader from '../components/dashboard/DashboardHeader'
 import PatrimonioCard from '../components/dashboard/PatrimonioCard'
 import CoinCarousel from '../components/dashboard/CoinCarousel'
+import AlertaPrecoModal from '../components/dashboard/AlertaPrecoModal'
 import DashboardFilters from '../components/dashboard/DashboardFilters'
 import IntelligencePanel from '../components/dashboard/IntelligencePanel'
 import AnalyticsPanel from '../components/dashboard/AnalyticsPanel'
@@ -41,9 +43,11 @@ import PeriodStatsPanel from '../components/dashboard/PeriodStatsPanel'
 import CorrelationMatrix from '../components/dashboard/CorrelationMatrix'
 import CoinComparisonPanel from '../components/dashboard/CoinComparisonPanel'
 import SignalLabPanel from '../components/dashboard/SignalLabPanel'
+import SimulacaoAtalho from '../components/dashboard/SimulacaoAtalho'
 import DashboardCharts from '../components/dashboard/DashboardCharts'
 import HistoryTable from '../components/dashboard/HistoryTable'
 import ErrorMessage from '../components/ErrorMessage'
+import TourGuiado from '../components/TourGuiadoSobDemanda'
 
 ChartJS.register(
   CategoryScale,
@@ -61,24 +65,48 @@ ChartJS.register(
   candlestickPlugin,
 )
 
-ChartJS.defaults.color = '#e0e0e0'
-ChartJS.defaults.borderColor = '#333'
+// Aqui havia duas linhas mexendo no `ChartJS.defaults` global, no import.
+//
+// `defaults.color` era morto: todo gráfico do produto já define a cor dos
+// ticks e da legenda a partir do `chartPalette()`. Verificado trocando o valor
+// por magenta e contando os pixels — nenhum.
+//
+// `defaults.borderColor` NÃO era: ele desenhava a linha dos eixos de todos os
+// gráficos, em '#333' cravado, enquanto o resto do desenho seguia o tema. E o
+// alcance dependia da navegação, porque este módulo é carregado sob demanda:
+// a tela de treinamento desenhava os eixos de uma cor quando aberta direto e
+// de outra depois de alguém passar por aqui. Estado global mutado no import de
+// uma rota preguiçosa não fica na rota.
+//
+// A cor do eixo agora sai do `chartPalette().borda` junto das demais, no
+// `scales.*.border` de cada gráfico.
 
 export default function Dashboard() {
   const { token, user: usuario, prefs } = useAuth()
   const { moedas: moedasCarousel, erro: erroMoedas, setErro: setErroMoedas } = useCoinPrices()
-  const { t } = useTranslation()
+  const { t, idioma } = useTranslation()
   const isMobile = useMediaQuery('(max-width:600px)')
 
   const {
-    dataInicio, setDataInicio,
-    dataFim, setDataFim,
-    resultadoFiltro, setResultadoFiltro,
-    intervalo, setIntervalo,
+    dataInicio,
+    dataFim,
+    resultadoFiltro,
+    intervalo,
     pagina, setPagina,
-    quantidade, setQuantidade,
-    moedaSelecionada, setMoedaSelecionada
+    quantidade,
+    moedaSelecionada,
+    setMoedaSelecionada
   } = useDashboard()
+
+  const {
+    alertas,
+    carregando: carregandoAlertas,
+    erro: erroAlertas,
+    temAcesso: temAcessoAlertas,
+    criar: criarAlerta,
+    excluir: excluirAlerta,
+  } = useAlertasPreco(usuario)
+  const [modalAlertasAberto, setModalAlertasAberto] = useState(false)
 
   const [moedasFiltro, setMoedasFiltro] = useState([]) 
 
@@ -91,40 +119,52 @@ export default function Dashboard() {
 
   const hasInitializedPref = useRef(false)
 
-  // ------ tour onboarding (react-joyride v3) ------
+  // ------ tour onboarding (moldura em components/TourGuiado) ------
   const [tourRodando, setTourRodando] = useState(false)
 
-  // Nota: react-joyride v3 — `skipBeacon`, `showProgress`, cores e ações dos
-  // botões são configurados via prop `options` (não existem `showSkipButton`,
-  // `showProgress` nem `styles.options` de nível superior como na v2), e o
-  // handler de eventos é `onEvent` (não `callback`).
   const passosTour = useMemo(() => [
     {
       target: '[data-tour="dash-patrimonio"]',
-      title: t('dashboardTour.passo1Titulo') || 'Patrimônio Total',
-      content: t('dashboardTour.passo1Descricao') || 'Acompanhe e gerencie seu saldo consolidado.',
+      title: t('dashboardTour.passo1Titulo'),
+      content: t('dashboardTour.passo1Descricao'),
     },
     {
       target: '[data-tour="dash-carrossel"]',
-      title: t('dashboardTour.passo2Titulo') || 'Carrossel de Ativos',
-      content: t('dashboardTour.passo2Descricao') || 'Selecione uma ou mais moedas para analisar.',
+      title: t('dashboardTour.passo2Titulo'),
+      content: t('dashboardTour.passo2Descricao'),
     },
     {
       target: '[data-tour="dash-filtros"]',
-      title: t('dashboardTour.passo3Titulo') || 'Filtros',
-      content: t('dashboardTour.passo3Descricao') || 'Refine por período, intervalo e resultado.',
+      title: t('dashboardTour.passo3Titulo'),
+      content: t('dashboardTour.passo3Descricao'),
     },
     {
       target: '[data-tour="dash-graficos"]',
-      title: t('dashboardTour.passo4Titulo') || 'Gráficos',
-      content: t('dashboardTour.passo4Descricao') || 'Compare preço e variação e expanda para ver em detalhe.',
+      title: t('dashboardTour.passo4Titulo'),
+      content: t('dashboardTour.passo4Descricao'),
     },
+    // A simulação vem antes do histórico porque é essa a ordem na tela — o
+    // Joyride rola até cada alvo, e um passo fora de ordem faria a página
+    // saltar para trás no meio do tour. O alvo é o atalho para a tela própria
+    // dela: o passo continua existindo para apresentar a ferramenta a quem só
+    // conhece o dashboard.
+    //
+    // Só entra com uma moeda selecionada, que é a condição de o atalho existir.
+    // A verificação é sobre o ESTADO, não sobre o DOM: no primeiro render nada
+    // está montado ainda, e um `querySelector` aqui filtraria o tour inteiro.
+    ...(moedasFiltro.length === 1
+      ? [{
+          target: '[data-tour="dash-simulacao"]',
+          title: t('dashboardTour.passo5Titulo'),
+          content: t('dashboardTour.passo5Descricao'),
+        }]
+      : []),
     {
       target: '[data-tour="dash-historico"]',
-      title: t('dashboardTour.passo5Titulo') || 'Histórico',
-      content: t('dashboardTour.passo5Descricao') || 'Veja o histórico de operações filtrado.',
+      title: t('dashboardTour.passo6Titulo'),
+      content: t('dashboardTour.passo6Descricao'),
     },
-  ], [t])
+  ], [t, moedasFiltro.length])
 
   // Inicia o tour automaticamente na primeira visita, após os dados carregarem.
   useEffect(() => {
@@ -133,12 +173,9 @@ export default function Dashboard() {
     return () => clearTimeout(timer)
   }, [token, moedasCarousel])
 
-  const handleTourCallback = (data) => {
-    const { status } = data
-    if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
-      setTourRodando(false)
-      setTourVisto('dashboard')
-    }
+  const encerrarTour = () => {
+    setTourRodando(false)
+    setTourVisto('dashboard')
   }
 
   // Fechar modal com a tecla Esc
@@ -150,45 +187,15 @@ export default function Dashboard() {
     return () => window.removeEventListener('keydown', handleEsc)
   }, [])
 
-  // Inicializa a moeda preferida
+  // Inicializa a moeda preferida. A busca mora em utils/preferences, porque a
+  // tela da simulação precisa da mesma escolha.
   useEffect(() => {
-    try {
-      if (!token || hasInitializedPref.current || !moedasCarousel?.length) return
-
-      const moedaProp =
-        prefs?.siglaMoedaPreferida ||
-        prefs?.SiglaMoedaPreferida ||
-        prefs?.idMoedaPreferida ||
-        prefs?.IdMoedaPreferida ||
-        prefs?.moedaPreferida ||
-        prefs?.MoedaPreferida
-
-      let initialized = false
-      if (moedaProp) {
-        const match = moedasCarousel.find(m =>
-          (m.id && String(m.id) === String(moedaProp)) ||
-          (m.simbolo && String(m.simbolo).toUpperCase() === String(moedaProp).toUpperCase().trim())
-        )
-        if (match) {
-          setMoedasFiltro([match.simbolo])
-          setMoedaSelecionada(match.simbolo)
-          initialized = true
-        }
-      }
-
-      if (!initialized && moedasCarousel.length > 0) {
-        const btc = moedasCarousel.find(m => m.simbolo === 'BTC') || moedasCarousel[0]
-        if (btc) {
-          setMoedasFiltro([btc.simbolo])
-          setMoedaSelecionada(btc.simbolo)
-          initialized = true
-        }
-      }
-
-      if (initialized) hasInitializedPref.current = true
-    } catch (err) {
-      console.error('Erro na inicialização:', err)
-    }
+    if (!token || hasInitializedPref.current || !moedasCarousel?.length) return
+    const sigla = acharMoedaPreferida(prefs, moedasCarousel)
+    if (!sigla) return
+    setMoedasFiltro([sigla])
+    setMoedaSelecionada(sigla)
+    hasInitializedPref.current = true
   }, [prefs, token, moedasCarousel, setMoedaSelecionada])
 
   // Hook customizado para carregar os dados
@@ -196,8 +203,6 @@ export default function Dashboard() {
     historicosPorMoeda,
     fearGreedPorMoeda,
     trendPorMoeda,
-    totalPaginas,
-    historicoMoeda,
     cobertura,
     erro,
     setErro
@@ -208,8 +213,25 @@ export default function Dashboard() {
     dataInicio,
     dataFim,
     intervalo,
-    pagina,
     quantidade
+  })
+
+  // A página da tabela tem busca própria. Enquanto ela saía da mesma requisição
+  // dos painéis, navegar no histórico trocava a série analisada por gráficos,
+  // laboratório de sinais e matriz de correlação. Ver utils/useHistoryPage.js.
+  //
+  // Só no modo de moeda única, que é a única condição em que o controle de
+  // paginação aparece.
+  const {
+    registros: paginaHistorico,
+    totalPaginas,
+  } = useHistoryPage({
+    token,
+    sigla: moedasFiltro.length === 1 ? moedasFiltro[0] : null,
+    dataInicio,
+    dataFim,
+    pagina,
+    quantidade,
   })
 
   const selecionarMoeda = (simbolo) => {
@@ -225,7 +247,7 @@ export default function Dashboard() {
     let registros = []
 
     if (moedasFiltro.length === 1) {
-      registros = (historicoMoeda?.registros || []).map(r => ({ ...r, sigla: moedasFiltro[0] }))
+      registros = paginaHistorico.map(r => ({ ...r, sigla: moedasFiltro[0] }))
     } else if (moedasFiltro.length > 1) {
       moedasFiltro.forEach(sigla => {
         const hist = historicosPorMoeda[sigla] || []
@@ -257,7 +279,7 @@ export default function Dashboard() {
       })
     }
     return registros
-  }, [historicoMoeda, historicosPorMoeda, moedasFiltro, dataInicio, dataFim, resultadoFiltro])
+  }, [paginaHistorico, historicosPorMoeda, moedasFiltro, dataInicio, dataFim, resultadoFiltro])
 
   const trendAtual = useMemo(() => {
     const sigla = moedasFiltro[0]
@@ -272,7 +294,11 @@ export default function Dashboard() {
   const analytics = useMarketAnalytics({
     historicosPorMoeda,
     fearGreedPorMoeda,
-    moedasFiltro
+    moedasFiltro,
+    // Recorta as leituras de PERÍODO à janela escolhida. As de estado — fluxo,
+    // volatilidade, ATR, VWAP — seguem usando a série inteira, que é onde a
+    // margem de aquecimento serve.
+    aPartirDe: dataInicio || null
   })
 
   // Régua de anomalia por moeda. Sai da série completa (historicosPorMoeda), e
@@ -291,8 +317,20 @@ export default function Dashboard() {
   // ativos diferentes numa mesma taxa não descreve nenhum deles.
   const analiseSinais = useMemo(() => {
     if (moedasFiltro.length !== 1) return null
-    return analisarSinais(historicosPorMoeda?.[moedasFiltro[0]], { horizonte: horizonteSinal })
-  }, [historicosPorMoeda, moedasFiltro, horizonteSinal])
+    // `aPartirDe` recorta o período ANALISADO. A série carregada traz alguns
+    // dias a mais só para aquecer Bollinger e RSI; sem o recorte, o painel
+    // media esses candles junto e anunciava mais amostras do que o filtro da
+    // tela pediu.
+    return analisarSinais(historicosPorMoeda?.[moedasFiltro[0]], {
+      horizonte: horizonteSinal,
+      aPartirDe: dataInicio || null,
+    })
+  }, [historicosPorMoeda, moedasFiltro, horizonteSinal, dataInicio])
+
+  // A simulação de estratégia tem tela própria (pages/Simulacao.jsx). Aqui fica
+  // só o atalho, restrito a uma moeda como o laboratório: misturar ativos numa
+  // única curva de capital não descreve carteira nenhuma.
+  const siglaUnica = moedasFiltro.length === 1 ? moedasFiltro[0] : null
 
   // Processamento de Gráficos (Hook Customizado)
   const chartConfig = useDashboardCharts({
@@ -304,12 +342,14 @@ export default function Dashboard() {
     fearGreedPorMoeda,
     trendPorMoeda,
     modoPreco,
-    t
+    t,
+    // As datas do eixo seguem o idioma escolhido, como o texto ao lado delas.
+    locale: idioma.intl
   })
 
   const comparativo = useMemo(
-    () => compararMoedas(historicosPorMoeda, moedasFiltro),
-    [historicosPorMoeda, moedasFiltro]
+    () => compararMoedas(historicosPorMoeda, moedasFiltro, dataInicio || null),
+    [historicosPorMoeda, moedasFiltro, dataInicio]
   )
 
   // As consultas usam ordemAsc=false, então o backend devolve da leitura mais
@@ -336,67 +376,46 @@ export default function Dashboard() {
     return mathUtils.formatPercent(val)
   }, [historicosPorMoeda, moedasFiltro])
 
-  if (!token) return <Box sx={{ p: 5 }}>Redirecting to login...</Box>
-
   // Erros de renderização são capturados pelo ErrorBoundary montado no App.
   return (
       <div className="dashboard-container">
         {/* Tour onboarding — montado apenas enquanto roda para não deixar
             o portal/beacon residual da react-joyride no DOM. */}
-        {tourRodando && (
-          <Joyride
-            steps={passosTour}
-            run={tourRodando}
-            continuous
-            onEvent={handleTourCallback}
-            locale={{
-              back: 'Voltar',
-              close: t('dashboardTour.fechar') || 'Entendi!',
-              last: t('dashboardTour.fechar') || 'Entendi!',
-              next: 'Próximo',
-              nextWithProgress: 'Próximo ({current} de {total})',
-              skip: 'Pular',
-            }}
-            options={{
-              // Sem beacon: o tooltip abre direto em cada passo.
-              skipBeacon: true,
-              buttons: ['back', 'close', 'skip', 'primary'],
-              showProgress: true,
-              // O ✕ dispensa o tour inteiro (status "skipped" marca como visto);
-              // o default 'close' da v3 avançaria para o próximo passo.
-              closeButtonAction: 'skip',
-              // Clique no overlay e tecla ESC não avançam por acidente.
-              overlayClickAction: false,
-              dismissKeyAction: false,
-              primaryColor: '#ffd700',
-              textColor: '#fff',
-              backgroundColor: 'var(--surface-overlay)',
-              arrowColor: 'rgba(15,15,15,0.97)',
-              zIndex: 9999,
-            }}
-            styles={{
-              tooltip: {
-                border: '1px solid var(--accent-a30)',
-                borderRadius: 16,
-                boxShadow: '0 20px 60px var(--scrim-strong)',
-              },
-              tooltipTitle: { color: 'var(--accent-ink)', fontWeight: 800, fontSize: '1rem' },
-              tooltipContent: { color: 'var(--text-secondary)', fontSize: '0.88rem' },
-              buttonPrimary: { backgroundColor: 'var(--accent)', color: 'var(--text-on-accent)', fontWeight: 700, borderRadius: '8px' },
-              buttonBack: { color: 'var(--text-muted)' },
-              buttonSkip: { color: 'var(--text-faint)', fontSize: '0.78rem' },
-            }}
-          />
-        )}
+        {tourRodando && <TourGuiado passos={passosTour} onEncerrar={encerrarTour} />}
 
-        <DashboardHeader t={t} prefs={prefs} usuario={usuario} />
+        <DashboardHeader
+          t={t}
+          prefs={prefs}
+          usuario={usuario}
+          onAbrirAlertas={() => setModalAlertasAberto(true)}
+          alertasAtivos={contarAtivos(alertas)}
+          alertasBloqueados={!temAcessoAlertas}
+        />
+
+        <AlertaPrecoModal
+          visible={modalAlertasAberto}
+          onClose={() => setModalAlertasAberto(false)}
+          moedas={moedasCarousel}
+          moedaInicial={moedasFiltro[0] || moedaSelecionada}
+          alertas={alertas}
+          carregando={carregandoAlertas}
+          erro={erroAlertas}
+          onCriar={criarAlerta}
+          onExcluir={excluirAlerta}
+          notificacoesLigadas={!!prefs?.notificacoes}
+        />
 
         <div data-tour="dash-patrimonio">
           <PatrimonioCard token={token} user={usuario} />
         </div>
 
-        <ErrorMessage message={erro} onClose={() => setErro('')} />
-        <ErrorMessage message={erroMoedas} onClose={() => setErroMoedas('')} />
+        {/* Os hooks guardam a chave; a tradução acontece aqui, que é onde o `t`
+            existe. O de dados vem com valores para interpolar. */}
+        <ErrorMessage
+          message={erro ? t(erro.chave, erro.valores) : ''}
+          onClose={() => setErro('')}
+        />
+        <ErrorMessage message={t(erroMoedas)} onClose={() => setErroMoedas('')} />
 
         <div data-tour="dash-carrossel">
           <CoinCarousel
@@ -414,6 +433,7 @@ export default function Dashboard() {
 
         <div data-tour="dash-graficos">
         <DashboardCharts
+          locale={idioma.intl}
           multiMoeda={chartConfig.multiMoeda}
           normalizacao={normalizacao}
           setNormalizacao={setNormalizacao}
@@ -452,8 +472,15 @@ export default function Dashboard() {
           analise={analiseSinais}
           horizonte={horizonteSinal}
           setHorizonte={setHorizonteSinal}
+          sigla={siglaUnica}
           t={t}
         />
+
+        {siglaUnica && (
+          <div data-tour="dash-simulacao">
+            <SimulacaoAtalho sigla={siglaUnica} t={t} />
+          </div>
+        )}
 
         {moedasFiltro.length === 1 && trendAtual && (
           <IntelligencePanel trendAtual={trendAtual} t={t} />
@@ -461,7 +488,6 @@ export default function Dashboard() {
 
         <div data-tour="dash-historico">
           <HistoryTable
-            historicoMoeda={historicoMoeda}
             historicoFiltrado={historicoFiltrado}
             moedasFiltro={moedasFiltro}
             limitesPorMoeda={limitesPorMoeda}
@@ -469,6 +495,7 @@ export default function Dashboard() {
             pagina={pagina}
             setPagina={setPagina}
             t={t}
+            locale={idioma.intl}
           />
         </div>
       </div>

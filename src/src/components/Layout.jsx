@@ -1,5 +1,5 @@
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { MdHome, MdLogin, MdDashboard, MdLogout, MdSettings, MdPublic, MdPsychology, MdWorkspacePremium, MdClose } from 'react-icons/md'
+import { MdHome, MdLogin, MdDashboard, MdLogout, MdSettings, MdPublic, MdPsychology, MdWorkspacePremium, MdClose, MdPlayCircleOutline, MdScience } from 'react-icons/md'
 import AppBar from '@mui/material/AppBar'
 import Toolbar from '@mui/material/Toolbar'
 import IconButton from '@mui/material/IconButton'
@@ -9,15 +9,78 @@ import Container from '@mui/material/Container'
 import logoLight from '../../logo-light.svg'
 import '../App.css'
 import { useAuth } from '../context/AuthContext'
+import { AuthRole, temCargo } from '../utils/authentication'
+import useConsentimento from '../hooks/useConsentimento'
+import ConsentimentoLGPD from './ConsentimentoLGPD'
+import CookieBanner from './CookieBanner'
+import BarraCarregamento from './BarraCarregamento'
+import MenuPregao from './pregao/MenuPregao'
 import useTranslation from '../hooks/useTranslation'
+import { usePedidosEsperando } from '../hooks/usePedidosAlteracao'
 import { useRef, useState, useEffect } from 'react'
+
+// Nome acessível de cada rota, reaproveitando os rótulos que a própria
+// navegação já usa — assim não existe um segundo lugar para traduzir.
+// Prefixo, e não igualdade: /treinamento-episodios/:id é a mesma página.
+const ROTULO_DA_ROTA = [
+  ['/dashboard', 'nav.dashboard'],
+  ['/simulacao', 'nav.simulation'],
+  ['/settings', 'nav.settings'],
+  ['/heatmap', 'nav.heatmap'],
+  ['/treinamento-episodios', 'nav.training'],
+  ['/estrategias', 'nav.strategies'],
+  ['/pedidos-pregao', 'nav.pregao'],
+  ['/pregao', 'pregaoPublico.title'],
+  ['/login', 'nav.login'],
+  ['/redefinir-senha', 'senha.redefinirTitulo'],
+  ['/privacidade', 'consentimento.tipos.privacidade'],
+  ['/termos', 'consentimento.tipos.termos'],
+]
 function Layout({ children }) {
   const { token, user, logout } = useAuth()
   const { t } = useTranslation()
   const location = useLocation()
   const navigate = useNavigate()
-  const containerRef = useRef(null)
+  const spotlightRef = useRef(null)
+  const refConteudo = useRef(null)
+  const rotaAnterior = useRef(location.pathname)
+
+  // Numa SPA, trocar de rota não recarrega nada: o foco do teclado fica
+  // exatamente onde estava — medido como `document.activeElement === body`
+  // depois de navegar para /dashboard — e o leitor de tela não tem como
+  // saber que a página mudou, porque para ele nada mudou. Quem navega por
+  // teclado precisava tabular de volta pelo cabeçalho inteiro a cada
+  // troca de página.
+  //
+  // Mover o foco para o <main> resolve os dois de uma vez: o leitor anuncia
+  // a região e seu `aria-label` (o nome da rota), e o próximo Tab começa no
+  // conteúdo novo.
+  useEffect(() => {
+    // A primeira rota não conta. No carregamento inicial o foco pertence ao
+    // navegador — barra de endereço, aba restaurada — e tomá-lo dali é
+    // justamente o tipo de sequestro de foco que esta mudança combate.
+    //
+    // A guarda compara a rota, e não "já rodei uma vez": sob StrictMode o
+    // React executa o efeito duas vezes no mount, e uma marca de primeira
+    // execução era consumida na primeira passagem — a segunda roubava o foco
+    // no carregamento, justamente o que este código evita. Comparar a rota dá
+    // o mesmo resultado nas duas passagens.
+    if (rotaAnterior.current === location.pathname) return
+    rotaAnterior.current = location.pathname
+    refConteudo.current?.focus()
+  }, [location.pathname])
+  const ponteiroRef = useRef({ x: 0, y: 0, quadro: 0 })
   const [upsellVisivel, setUpsellVisivel] = useState(false)
+
+  // Documentos que o usuário ainda precisa aceitar. Vem da API, e não de
+  // uma marca no navegador: limpar o localStorage não pode apagar a dúvida
+  // sobre o consentimento, e trocar de dispositivo não pode recriá-la.
+  const { pendencias, registrar } = useConsentimento(token)
+
+  // O modal não cobre as próprias páginas dos documentos: cobrar o aceite
+  // por cima do texto impediria a leitura calma do que se está aceitando.
+  const rotaDeLeituraLegal = location.pathname === '/privacidade' || location.pathname === '/termos'
+  const consentimentoPendente = !!token && !rotaDeLeituraLegal && pendencias.length > 0
 
   // Um 403 da API significa "autenticado, mas sem o cargo exigido" — recurso
   // de assinatura paga. Em vez de cada página tratar o erro, o convite para
@@ -35,24 +98,57 @@ function Layout({ children }) {
     setUpsellVisivel(false)
   }, [location.pathname])
   
+  // O spotlight vive dentro de um container `position: fixed`, então a posição
+  // dele é a do cursor na VIEWPORT — clientX/clientY puros. Antes a conta era
+  // relativa ao `.portfolio-screen`, que rola com a página: bastava descer a
+  // tela para o brilho ficar deslocado pela distância rolada, fora da vista.
+  // Medido no dashboard: com ~2.000px rolados, o centro dele ficava ~1.900px
+  // abaixo do cursor.
+  //
+  // A posição vai por `transform` direto no elemento, no máximo uma vez por
+  // quadro. Antes eram as variáveis --mouse-x/y gravadas na raiz da página, e
+  // variável CSS é herdada: cada movimento do mouse invalidava o estilo da
+  // árvore inteira, e o `top`/`left` animado ainda pedia layout a cada passo.
   const handleMouseMove = (e) => {
-    if (!containerRef.current) return
-    const { left, top } = containerRef.current.getBoundingClientRect()
-    const x = e.clientX - left
-    const y = e.clientY - top
-    containerRef.current.style.setProperty('--mouse-x', `${x}px`)
-    containerRef.current.style.setProperty('--mouse-y', `${y}px`)
+    const ponteiro = ponteiroRef.current
+    ponteiro.x = e.clientX
+    ponteiro.y = e.clientY
+    if (ponteiro.quadro) return
+    ponteiro.quadro = requestAnimationFrame(() => {
+      ponteiro.quadro = 0
+      if (spotlightRef.current) {
+        spotlightRef.current.style.transform =
+          `translate3d(${ponteiro.x}px, ${ponteiro.y}px, 0) translate(-50%, -50%)`
+      }
+    })
   }
-  const semNav = false /* Padronizado para manter Header/Footer em todas as telas */
 
-  const linkClass = ({ isActive }) => `nav-item${isActive ? ' active' : ''}`
+  useEffect(() => {
+    const ponteiro = ponteiroRef.current
+    return () => cancelAnimationFrame(ponteiro.quadro)
+  }, [])
+  const semNav = false /* Padronizado para manter Header/Footer em todas as telas */
+  // A tela dos pedidos do Pregão é só de administrador: o item do menu também.
+  // O Trader da Equipe Pregão entra como cliente e não o vê.
+  const administrador = Boolean(token) && temCargo(user, AuthRole.ADMINISTRADOR)
+  const pedidosEsperando = usePedidosEsperando(administrador)
+  const nomeNaPilula = token ? (user?.nome || t('activeUser')) : t('greetingGuest')
+
+  // `nav-item` vai como string literal, e não pela forma de função que o
+  // NavLink aceita: o IconButton do MUI funde a className com a dele via clsx
+  // antes de repassá-la, e clsx descarta funções. A classe se perdia no
+  // caminho — a regra `.nav-item` existia na folha de estilo e não chegava a
+  // elemento nenhum, deixando a navegação inteira sem o estilo dela.
+  //
+  // Com string, o NavLink acrescenta o `active` por conta própria, que era a
+  // única coisa que a versão em função ainda conseguia entregar ao DOM.
 
   const comum = (
     <>
       <IconButton
         component={NavLink}
         to="/"
-        className={linkClass}
+        className="nav-item"
         title={t('nav.home')}
         aria-label={t('nav.home')}
       >
@@ -62,7 +158,7 @@ function Layout({ children }) {
       <IconButton
         component={NavLink}
         to="/dashboard"
-        className={linkClass}
+        className="nav-item"
         title={t('nav.dashboard')}
         aria-label={t('nav.dashboard')}
       >
@@ -71,8 +167,18 @@ function Layout({ children }) {
       </IconButton>
       <IconButton
         component={NavLink}
+        to="/simulacao"
+        className="nav-item"
+        title={t('nav.simulation')}
+        aria-label={t('nav.simulation')}
+      >
+        <MdPlayCircleOutline />
+        <span className="nav-label">{t('nav.simulation')}</span>
+      </IconButton>
+      <IconButton
+        component={NavLink}
         to="/settings"
-        className={linkClass}
+        className="nav-item"
         title={t('nav.settings')}
         aria-label={t('nav.settings')}
       >
@@ -82,23 +188,34 @@ function Layout({ children }) {
       <IconButton
         component={NavLink}
         to="/heatmap"
-        className={linkClass}
-        title={t('nav.heatmap') || 'Geopolítica'}
-        aria-label={t('nav.heatmap') || 'Geopolítica'}
+        className="nav-item"
+        title={t('nav.heatmap')}
+        aria-label={t('nav.heatmap')}
       >
         <MdPublic />
-        <span className="nav-label">{t('nav.heatmap') || 'Geopolítica'}</span>
+        <span className="nav-label">{t('nav.heatmap')}</span>
       </IconButton>
       <IconButton
         component={NavLink}
         to="/treinamento-episodios"
-        className={linkClass}
-        title={t('nav.training') || 'Treinamento IA'}
-        aria-label={t('nav.training') || 'Treinamento IA'}
+        className="nav-item"
+        title={t('nav.training')}
+        aria-label={t('nav.training')}
       >
         <MdPsychology />
-        <span className="nav-label">{t('nav.training') || 'Treinamento IA'}</span>
+        <span className="nav-label">{t('nav.training')}</span>
       </IconButton>
+      <IconButton
+        component={NavLink}
+        to="/estrategias"
+        className="nav-item"
+        title={t('nav.strategies')}
+        aria-label={t('nav.strategies')}
+      >
+        <MdScience />
+        <span className="nav-label">{t('nav.strategies')}</span>
+      </IconButton>
+      {administrador && <MenuPregao esperando={pedidosEsperando} naBarraDeBaixo />}
     </>
   )
 
@@ -107,7 +224,7 @@ function Layout({ children }) {
       <IconButton
         component={NavLink}
         to="/login"
-        className={linkClass}
+        className="nav-item"
         title={t('nav.login')}
         aria-label={t('nav.login')}
       >
@@ -144,17 +261,17 @@ function Layout({ children }) {
   return (
     <div 
       className={`portfolio-screen${semNav ? ' no-nav' : ''}`}
-      ref={containerRef}
       onMouseMove={handleMouseMove}
     >
       <div className="liquid-mesh-container">
         <div className="blob blob-1"></div>
         <div className="blob blob-2"></div>
         <div className="blob blob-3"></div>
-        <div className="mouse-spotlight"></div>
+        <div className="mouse-spotlight" ref={spotlightRef}></div>
       </div>
       <div className="ambient-glow-aura"></div>
       <div className="grain-overlay-main"></div>
+      <BarraCarregamento />
 
       <AppBar position="fixed" className="app-header-floating" sx={{ width: '100%', left: 0 }}>
         <Container maxWidth="xl">
@@ -168,29 +285,52 @@ function Layout({ children }) {
                   <IconButton
                     component={NavLink}
                     to="/dashboard"
-                    className={linkClass}
+                    className="nav-item"
                     title={t('nav.dashboard')}
+                    aria-label={t('nav.dashboard')}
                   >
                     <MdDashboard />
                     <span className="nav-label">{t('nav.dashboard')}</span>
                   </IconButton>
                   <IconButton
                     component={NavLink}
+                    to="/simulacao"
+                    className="nav-item"
+                    title={t('nav.simulation')}
+                    aria-label={t('nav.simulation')}
+                  >
+                    <MdPlayCircleOutline />
+                    <span className="nav-label">{t('nav.simulation')}</span>
+                  </IconButton>
+                  <IconButton
+                    component={NavLink}
                     to="/heatmap"
-                    className={linkClass}
-                    title={t('nav.heatmap') || 'Geopolítica'}
+                    className="nav-item"
+                    title={t('nav.heatmap')}
+                    aria-label={t('nav.heatmap')}
                   >
                     <MdPublic />
-                    <span className="nav-label">{t('nav.heatmap') || 'Geopolítica'}</span>
+                    <span className="nav-label">{t('nav.heatmap')}</span>
                   </IconButton>
                   <IconButton
                     component={NavLink}
                     to="/treinamento-episodios"
-                    className={linkClass}
-                    title={t('nav.training') || 'Treinamento IA'}
+                    className="nav-item"
+                    title={t('nav.training')}
+                    aria-label={t('nav.training')}
                   >
                     <MdPsychology />
-                    <span className="nav-label">{t('nav.training') || 'Treinamento IA'}</span>
+                    <span className="nav-label">{t('nav.training')}</span>
+                  </IconButton>
+                  <IconButton
+                    component={NavLink}
+                    to="/estrategias"
+                    className="nav-item"
+                    title={t('nav.strategies')}
+                    aria-label={t('nav.strategies')}
+                  >
+                    <MdScience />
+                    <span className="nav-label">{t('nav.strategies')}</span>
                   </IconButton>
                 </Box>
               )}
@@ -198,18 +338,27 @@ function Layout({ children }) {
 
             {!semNav && (
               <div className="header-right">
+                {/* Abaixo de 768px o menu do Pregão mora na barra de baixo, e o
+                    corte é o mesmo dela (App.css). */}
+                {administrador && (
+                  <Box sx={{ display: 'none', '@media (min-width: 768px)': { display: 'flex' } }}>
+                    <MenuPregao esperando={pedidosEsperando} />
+                  </Box>
+                )}
                 <IconButton
                   component={NavLink}
                   to="/settings"
-                  className={linkClass}
+                  className="nav-item"
                   title={t('nav.settings')}
                 >
                   <MdSettings />
                 </IconButton>
                 
                 <div className="user-info-pill">
-                  <span className="user-name">
-                    {token ? (user?.nome || t('activeUser')) : t('greetingGuest')}
+                  {/* O title guarda o nome inteiro: a pílula tem teto e o
+                      nome longo vira reticências (App.css). */}
+                  <span className="user-name" title={nomeNaPilula}>
+                    {nomeNaPilula}
                   </span>
                   {token ? (
                     <IconButton onClick={logout} className="logout-btn" title={t('nav.logout')}>
@@ -217,7 +366,12 @@ function Layout({ children }) {
                     </IconButton>
                   ) : (
                     <div className="guest-actions">
-                      <Button component={NavLink} to="/login" variant="text" size="small" sx={{ color: 'white' }}>
+                      {/* O branco estava literal aqui. A pílula que envolve o
+                          botão é `--surface-fill`, que no claro é quase branca:
+                          o único jeito de sair do produto sem conta — "Entrar" —
+                          ficava invisível para quem tinha o tema claro guardado
+                          no navegador. */}
+                      <Button component={NavLink} to="/login" variant="text" size="small" sx={{ color: 'var(--text-primary)' }}>
                         {t('nav.login')}
                       </Button>
                     </div>
@@ -229,7 +383,17 @@ function Layout({ children }) {
         </Container>
       </AppBar>
       
-      <main className="main-content-premium" key={location.pathname}>
+      {/* `tabIndex={-1}` existe só para o efeito acima poder focar esta
+          região: focável por código, fora do ciclo do Tab. O `aria-label`
+          é o que o leitor de tela anuncia ao chegar aqui — sem ele, a troca
+          de rota seria anunciada como "main", sem dizer qual página. */}
+      <main
+        ref={refConteudo}
+        className="main-content-premium"
+        key={location.pathname}
+        tabIndex={-1}
+        aria-label={t(ROTULO_DA_ROTA.find(([rota]) => location.pathname.startsWith(rota))?.[1] ?? 'nav.home')}
+      >
         {upsellVisivel && (
           <Box
             role="status"
@@ -271,6 +435,19 @@ function Layout({ children }) {
         )}
         {children}
       </main>
+      {consentimentoPendente && (
+        <ConsentimentoLGPD
+          pendencias={pendencias}
+          onConcluir={(itens, origem) => registrar({ itens, origem })}
+        />
+      )}
+      {/* No Layout, e não na Home: quem entra por um link direto para /login,
+          /dashboard ou /privacidade nunca passava pela Home e por isso nunca
+          via o banner — nem tinha a escolha guardada no navegador sincronizada
+          com a trilha do titular, porque o efeito que faz isso mora aqui
+          dentro. O banner é a primeira pergunta do produto; não podia depender
+          de qual porta a pessoa usou para entrar. */}
+      <CookieBanner />
       <nav className="bottom-nav">{links}</nav>
       <footer className="app-footer">
         <p>{t('copyRight')}</p>

@@ -1,10 +1,34 @@
-FROM node:18 AS build
+# node:22 porque o vite 7 declara engines `^20.19.0 || >=22.12.0`. Em node:18 o
+# `npm install` so avisava (EBADENGINE) e seguia: a imagem buildava sobre um
+# runtime que a toolchain nao suporta, e o desenvolvimento local ja usa 22.
+FROM node:22 AS build
 WORKDIR /app
 ARG VITE_API_URL=https://localhost:13501
 ENV VITE_API_URL=$VITE_API_URL
 COPY package*.json ./
-RUN npm install
+# `ci`, e nao `install`: instala exatamente o que o package-lock.json trava e
+# falha se ele estiver fora de sincronia com o package.json. Com `install`, cada
+# build resolvia os ranges `^` de novo, e a imagem publicada podia carregar
+# versoes que nenhum dev testou — inclusive voltar a uma com vulnerabilidade
+# que o lock ja tinha corrigido.
+RUN npm ci
 COPY . .
+
+# A suite roda ANTES do build, e falhar aqui aborta a imagem. Ate agora nada
+# executava os testes no caminho de release: o pipeline builda a imagem e a
+# imagem so fazia `npm install` + `npm run build`. Existiam centenas de testes
+# que nenhuma etapa cobrava — rede de seguranca que so protegia quem lembrasse
+# de rodar na mao.
+#
+# O lint entra junto, e antes dos testes: ele e mais rapido e pega a classe de
+# erro mais barata de corrigir. Ficou de fora ate agora porque o repositorio
+# carregava 58 erros de quando a config existia sem poder rodar; hoje sao zero.
+# Os avisos que restam nao travam o gate de proposito — sao dividas conhecidas
+# (`exhaustive-deps` e `only-export-components`), nao defeitos.
+RUN npm run lint
+
+RUN npm test
+
 RUN npm run build
 
 FROM nginx:stable-alpine

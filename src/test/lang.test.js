@@ -1,14 +1,26 @@
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import pt from '../src/lang/pt.json'
 import en from '../src/lang/en.json'
+import es from '../src/lang/es.json'
+import fr from '../src/lang/fr.json'
+// Importado como `italiano`, e não `it`: o nome curto sombrearia o `it()` do
+// vitest e a suíte inteira falha ao coletar, com um "is not a function" que não
+// aponta para o import.
+import italiano from '../src/lang/it.json'
+import { LANGUAGE_CODES, IDIOMA_PADRAO } from '../src/lang'
 
 // Guarda os arquivos de idioma. Divergência entre eles não quebra build nem
 // aparece em tela: a chave ausente simplesmente cai no fallback e a interface
 // exibe o nome da chave, que passa despercebido em revisão.
 
-const IDIOMAS = { pt, en }
+const IDIOMAS = { pt, en, es, fr, it: italiano }
+
+// A referência acompanha o idioma padrão, e não fica cravada: é o dicionário
+// estático, o que preenche a lacuna quando uma chave falta em outro idioma.
+// Comparar contra ele é comparar contra o que o usuário realmente veria.
+const REFERENCIA = IDIOMA_PADRAO
 
 // Marcador de que o teste está olhando o arquivo inteiro, e não só a superfície.
 const MINIMO_CHAVES = 150
@@ -49,23 +61,44 @@ const achatar = (objeto, prefixo = '') =>
       : { ...acc, [caminho]: valor }
   }, {})
 
-const planoPt = achatar(pt)
-const planoEn = achatar(en)
+const planos = Object.fromEntries(
+  Object.entries(IDIOMAS).map(([nome, dicionario]) => [nome, achatar(dicionario)])
+)
+const planoReferencia = planos[REFERENCIA]
 
-describe('lang › paridade entre idiomas', () => {
+const OUTROS = Object.keys(IDIOMAS).filter((nome) => nome !== REFERENCIA)
+
+describe('lang › registro de idiomas', () => {
+  it('deve ter um arquivo para cada código declarado em lang/index.js', () => {
+    // O registro é o que a interface percorre para montar o seletor. Um código
+    // listado sem arquivo correspondente vira uma opção que, ao ser escolhida,
+    // deixa a tela inteira no idioma de fallback.
+    expect([...LANGUAGE_CODES].sort()).toEqual(Object.keys(IDIOMAS).sort())
+  })
+})
+
+describe.each(OUTROS)(`lang › paridade de %s com ${REFERENCIA}`, (nome) => {
+  const plano = planos[nome]
+
   it('deve ter exatamente o mesmo conjunto de chaves, em qualquer nível', () => {
     // toEqual em vez de comparar tamanhos: a mensagem de falha aponta qual
     // chave está sobrando ou faltando.
-    expect(Object.keys(planoEn).sort()).toEqual(Object.keys(planoPt).sort())
+    expect(Object.keys(plano).sort()).toEqual(Object.keys(planoReferencia).sort())
   })
 
-  it('deve usar os mesmos marcadores de interpolação nos dois idiomas', () => {
-    // Um {{razao}} que existe só em pt faz a versão em inglês exibir o texto
-    // sem o número, sem erro nenhum no console.
-    const divergentes = Object.keys(planoPt)
-      .filter((chave) => chave in planoEn)
-      .filter((chave) => marcadores(planoPt[chave]).join() !== marcadores(planoEn[chave]).join())
-      .map((chave) => ({ chave, pt: marcadores(planoPt[chave]), en: marcadores(planoEn[chave]) }))
+  it('deve usar os mesmos marcadores de interpolação que o idioma de referência', () => {
+    // Um {{razao}} que existe só na referência faz a outra versão exibir o
+    // texto sem o número, sem erro nenhum no console.
+    const divergentes = Object.keys(planoReferencia)
+      .filter((chave) => chave in plano)
+      .filter(
+        (chave) => marcadores(planoReferencia[chave]).join() !== marcadores(plano[chave]).join()
+      )
+      .map((chave) => ({
+        chave,
+        [REFERENCIA]: marcadores(planoReferencia[chave]),
+        [nome]: marcadores(plano[chave]),
+      }))
 
     expect(divergentes).toEqual([])
   })
@@ -94,5 +127,98 @@ describe.each(Object.entries(IDIOMAS))('lang › %s.json', (nome, dicionario) =>
     const repetidos = caminhos.filter((c, i) => caminhos.indexOf(c) !== i)
 
     expect([...new Set(repetidos)]).toEqual([])
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Cobertura no sentido inverso: do código para o dicionário.
+//
+// Os testes acima garantem que os cinco arquivos combinam entre si. Não diziam
+// nada sobre uma chave que o código pede e que não existe em arquivo nenhum —
+// e `t` devolve a própria chave quando não acha tradução, então a tela exibe
+// "enabled" ou "percentChange" em letra crua, nos cinco idiomas, sem erro no
+// console e sem build vermelho. Foi assim que cinco delas chegaram à produção.
+// ---------------------------------------------------------------------------
+
+const DIRETORIO_FONTE = fileURLToPath(new URL('../src', import.meta.url))
+
+const arquivosDeCodigo = (diretorio) =>
+  readdirSync(diretorio, { withFileTypes: true }).flatMap((entrada) => {
+    const caminho = `${diretorio}/${entrada.name}`
+    if (entrada.isDirectory()) return arquivosDeCodigo(caminho)
+    return /\.(js|jsx)$/.test(entrada.name) ? [caminho] : []
+  })
+
+// Só chamadas com chave literal. `t(`alertas.erro.${erro}`)` e
+// `t(result.messageKey)` montam o nome em tempo de execução e ficam de fora —
+// não há como conferi-los sem executar a tela.
+const CHAMADA_LITERAL = /\bt\(\s*(['"])([^'"]+)\1/g
+
+describe('lang › chaves pedidas pelo código', () => {
+  it('deve existir no dicionário de referência todas as chaves literais usadas em t()', () => {
+    const ausentes = []
+
+    for (const arquivo of arquivosDeCodigo(DIRETORIO_FONTE)) {
+      const codigo = readFileSync(arquivo, 'utf-8')
+      for (const [, , chave] of codigo.matchAll(CHAMADA_LITERAL)) {
+        if (!(chave in planoReferencia)) {
+          ausentes.push({ chave, arquivo: arquivo.slice(DIRETORIO_FONTE.length + 1) })
+        }
+      }
+    }
+
+    expect(ausentes).toEqual([])
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Reservas mortas depois de t()
+// ---------------------------------------------------------------------------
+// `t('chave') || 'texto de reserva'` apareceu 110 vezes no projeto, e o `||`
+// nunca disparou uma única: `t` devolve a PRÓPRIA CHAVE quando não acha
+// tradução, e chave é string não vazia — verdadeira. A única forma de o ramo
+// direito executar seria uma tradução vazia, que o teste acima proíbe.
+//
+// O problema nunca foram os bytes. Era a leitura: quem passa por
+// `t('enabled') || 'Ativado'` conclui que o pior caso está coberto e para de
+// olhar. Foi assim que cinco chaves inexistentes atravessaram revisão e
+// chegaram à produção mostrando o próprio nome na tela.
+//
+// Quem garante a existência da chave é o teste de cobertura acima; a reserva
+// só imitava essa garantia.
+// ---------------------------------------------------------------------------
+
+const RESERVA_MORTA = /(^|[^A-Za-z0-9_$])t\((['"])[^'"]+\2\)\s*\|\|/g
+
+describe('lang › reservas depois de t()', () => {
+  it('não deve haver fallback literal encadeado em t(), que nunca executa', () => {
+    const ocorrencias = []
+
+    for (const arquivo of arquivosDeCodigo(DIRETORIO_FONTE)) {
+      const codigo = readFileSync(arquivo, 'utf-8')
+      for (const achado of codigo.matchAll(RESERVA_MORTA)) {
+        const linha = codigo.slice(0, achado.index).split('\n').length
+        ocorrencias.push(`${arquivo.slice(DIRETORIO_FONTE.length + 1)}:${linha}`)
+      }
+    }
+
+    expect(ocorrencias).toEqual([])
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Marcadores do Joyride
+// ---------------------------------------------------------------------------
+// O rótulo de progresso do tour traz {current} e {total}, de chave simples:
+// quem substitui é o próprio Joyride, não o `t`. O teste de marcadores lá em
+// cima só compara {{nome}}, então uma tradução que perdesse esses dois passaria
+// por ele — e o botão diria "Suivant ()" sem erro nenhum, nem no console.
+
+describe('lang › marcadores do tour', () => {
+  it.each(Object.entries(IDIOMAS))('%s deve manter {current} e {total}', (nome, dicionario) => {
+    const rotulo = dicionario.tour.proximoComProgresso
+
+    expect(rotulo).toContain('{current}')
+    expect(rotulo).toContain('{total}')
   })
 })

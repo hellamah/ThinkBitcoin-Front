@@ -6,22 +6,26 @@ export default function IntelligencePanel({ trendAtual, t }) {
 
   return (
     <section className="panel intelligence-panel">
-      <h2><MdAnalytics style={{ verticalAlign: 'middle', marginRight: '10px' }} /> {t('marketIntelligence')}</h2>
+      {/* Tudo neste painel vem do índice de interesse de busca (escala estilo
+          Google Trends, /variavel-externa/trend), não do preço. Sob o título
+          "Inteligência de Mercado", o "Tendência de Baixa" das médias era lido
+          como tendência de preço, mesmo com o preço subindo no histórico ao lado. */}
+      <h2><MdAnalytics style={{ verticalAlign: 'middle', marginRight: '10px' }} /> {t('searchInterest')}</h2>
       <div className="intelligence-grid">
         {/* Médias Móveis */}
         <div className="intel-card">
           <div className="intel-icon"><MdTimeline /></div>
-          <div className="intel-label">{t('movingAverages')}</div>
+          <div className="intel-label">{t('searchMovingAverages')}</div>
           <div className="intel-value">MA5 vs MA15</div>
           <div className={`intel-subvalue ${(trendAtual.mA5 || trendAtual.MA5) >= (trendAtual.mA15 || trendAtual.MA15) ? 'up' : 'down'}`}>
-            {(trendAtual.mA5 || trendAtual.MA5) >= (trendAtual.mA15 || trendAtual.MA15) ? t('bullishTrend') : t('bearishTrend')}
+            {(trendAtual.mA5 || trendAtual.MA5) >= (trendAtual.mA15 || trendAtual.MA15) ? t('searchRising') : t('searchFalling')}
           </div>
         </div>
 
         {/* Momentum / Delta */}
         <div className="intel-card">
           <div className="intel-icon"><MdSpeed /></div>
-          <div className="intel-label">{t('momentum')}</div>
+          <div className="intel-label">{t('searchMomentum')}</div>
           <div className="intel-value">Δ15: {trendAtual.delta15 || trendAtual.Delta15 || 0}</div>
           <div className={`intel-subvalue ${(trendAtual.delta5 || trendAtual.Delta5) >= 0 ? 'up' : 'down'}`}>
             Δ5: {trendAtual.delta5 || trendAtual.Delta5 || 0}
@@ -31,7 +35,7 @@ export default function IntelligencePanel({ trendAtual, t }) {
         {/* Volatilidade */}
         <div className="intel-card">
           <div className="intel-icon"><MdUpdate /></div>
-          <div className="intel-label">{t('trendVolatility')}</div>
+          <div className="intel-label">{t('searchVolatility')}</div>
           <div className="intel-value">
             {(trendAtual.volatilidade15 || trendAtual.Volatilidade15 || 0).toFixed(2)}
           </div>

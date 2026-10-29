@@ -11,7 +11,7 @@ import useTranslation from '../../hooks/useTranslation'
 import PatrimonioModal from './PatrimonioModal'
 
 export default function PatrimonioCard({ token, user }) {
-  const { t } = useTranslation()
+  const { t, idioma } = useTranslation()
   const [patrimonio, setPatrimonio] = useState(null)
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
@@ -48,7 +48,7 @@ export default function PatrimonioCard({ token, user }) {
   return (
     <Box className="patrimonio-summary-card">
       <Grid container spacing={3} alignItems="center">
-        <Grid item xs={12} md={7}>
+        <Grid size={{ xs: 12, md: 7 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
             <MdAccountBalanceWallet style={{ fontSize: '1.4rem', color: 'var(--accent-ink)' }} />
             <Typography className="patrimonio-title-glow" variant="subtitle2" sx={{ fontWeight: 800 }}>
@@ -63,15 +63,15 @@ export default function PatrimonioCard({ token, user }) {
 
           <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'flex-start', sm: 'baseline' }, gap: { xs: 1, sm: 3 } }}>
             <Typography className="patrimonio-value-brl">
-              R$ {saldoBRL.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              R$ {saldoBRL.toLocaleString(idioma.intl, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </Typography>
             <Typography className="patrimonio-value-usd">
-              / $ {saldoUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              / $ {saldoUSD.toLocaleString(idioma.intl, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </Typography>
           </Box>
         </Grid>
 
-        <Grid item xs={12} md={5} sx={{ display: 'flex', justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
+        <Grid size={{ xs: 12, md: 5 }} sx={{ display: 'flex', justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
           <Button
             variant="outlined"
             onClick={() => setModalOpen(true)}

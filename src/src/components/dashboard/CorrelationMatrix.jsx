@@ -3,6 +3,22 @@ import { MdGridOn } from 'react-icons/md'
 import { corDaCorrelacao } from '../../utils/correlation'
 
 /**
+ * O que a célula diz ao passar o mouse: o par, quantos pontos sustentaram o
+ * coeficiente e, quando for o caso, que ele não se distingue de zero.
+ *
+ * O número de pares importa porque o descarte é par a par: numa moeda que
+ * começou a ser coletada depois, ou com buracos na série, a célula repousa
+ * sobre menos pontos que as vizinhas — e nada no desenho denunciava isso.
+ */
+const tituloDaCelula = (a, b, celula, t) => {
+  const par = `${a} × ${b}`
+  if (!celula || celula.pares === null) return par
+  const partes = [par, t('correlationPairs', { count: celula.pares })]
+  if (!celula.significante) partes.push(t('correlationWeak'))
+  return partes.join(' · ')
+}
+
+/**
  * Matriz de correlação entre as moedas selecionadas.
  *
  * @param {object} props
@@ -22,6 +38,7 @@ export default function CorrelationMatrix({ correlacao, t }) {
       </h2>
 
       <p className="correlation-hint">{t('correlationHint')}</p>
+      <p className="correlation-hint">{t('correlationWeakHint')}</p>
 
       <div className="correlation-scroll">
         <table className="correlation-table">
@@ -37,16 +54,27 @@ export default function CorrelationMatrix({ correlacao, t }) {
             {matriz.map((linha, i) => (
               <tr key={siglas[i]}>
                 <th scope="row">{siglas[i]}</th>
-                {linha.map((r, j) => (
+                {linha.map((celula, j) => (
                   <td
                     key={`${siglas[i]}-${siglas[j]}`}
-                    style={{ backgroundColor: corDaCorrelacao(r) }}
-                    // A diagonal é 1 por definição e não carrega informação;
-                    // esmaecer evita que ela domine a leitura do heatmap.
-                    className={i === j ? 'correlation-diagonal' : undefined}
-                    title={`${siglas[i]} × ${siglas[j]}`}
+                    // Só a célula que se distingue de zero recebe cor. Pintar um
+                    // coeficiente que a amostra não sustenta é dar destaque a
+                    // ruído — mesma regra que o laboratório de sinais aplica ao
+                    // não colorir delta de linha não significante.
+                    style={{
+                      backgroundColor: celula?.significante
+                        ? corDaCorrelacao(celula.r)
+                        : 'transparent',
+                    }}
+                    className={[
+                      // A diagonal é 1 por definição e não carrega informação;
+                      // esmaecer evita que ela domine a leitura do heatmap.
+                      i === j ? 'correlation-diagonal' : '',
+                      celula && !celula.significante ? 'correlation-fraca' : '',
+                    ].filter(Boolean).join(' ') || undefined}
+                    title={tituloDaCelula(siglas[i], siglas[j], celula, t)}
                   >
-                    {r === null ? '—' : r.toFixed(2)}
+                    {celula === null ? '—' : celula.r.toFixed(2)}
                   </td>
                 ))}
               </tr>

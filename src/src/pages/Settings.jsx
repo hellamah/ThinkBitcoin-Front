@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   MdPerson,
@@ -6,7 +6,6 @@ import {
   MdBrightness4,
   MdLanguage,
   MdNotifications,
-  MdTune,
   MdAccountBalanceWallet,
   MdTrendingDown,
   MdCurrencyBitcoin,
@@ -16,6 +15,7 @@ import {
   MdAssessment,
   MdLock,
   MdPayment,
+  MdPrivacyTip,
 } from 'react-icons/md'
 import Button from '@mui/material/Button'
 import Switch from '@mui/material/Switch'
@@ -36,6 +36,7 @@ import CircularProgress from '@mui/material/CircularProgress'
 import '../App.css'
 import { useAuth } from '../context/AuthContext'
 import useTranslation from '../hooks/useTranslation'
+import { toLocal } from '../utils/dateUtils'
 import {
   apiRequest,
   AuthenticationEndpoint,
@@ -46,19 +47,23 @@ import {
 } from '../utils/apiClient'
 import { API_URL } from '../api'
 import {
-  AlgorithmStyle,
   Language,
   Theme,
-  RiskProfile,
   ReviewFrequency,
 } from '../utils/preferences'
+import { LANGUAGES, IDIOMA_PADRAO } from '../lang'
 import { isNotificationSupported } from '../utils/browser'
 import { executeNotificationWorkflow } from '../utils/workflow'
 import PlanosPagamentoModal from '../components/PlanosPagamentoModal'
+import useAlertasPreco from '../hooks/useAlertasPreco'
+import { DirecaoAlerta, StatusAlerta, contarAtivos, LIMITE_ALERTAS_ATIVOS } from '../utils/alertaPreco'
+import * as mathUtils from '../utils/mathUtils'
 import ExcluirContaModal from '../components/ExcluirContaModal'
+import MeusConsentimentosPanel from '../components/MeusConsentimentosPanel'
+import ErrorMessage from '../components/ErrorMessage'
 
 function Settings() {
-  const { t } = useTranslation()
+  const { t, idioma } = useTranslation()
   const navigate = useNavigate()
   const { token, user, prefs, login, logout, updatePreferences } = useAuth()
   const [localPrefs, setLocalPrefs] = useState(prefs)
@@ -66,8 +71,25 @@ function Settings() {
   const [loadingNome, setLoadingNome] = useState(false)
   const [modalExcluirOpen, setModalExcluirOpen] = useState(false)
   const [toast, setToast] = useState('')
+  const toastRef = useRef(null)
+
+  /**
+   * Exibe um toast por `ms` e cancela o anterior.
+   *
+   * Cada chamada tinha o próprio `setTimeout` solto. Dois avisos em sequência —
+   * salvar preferências e trocar o tema, por exemplo — deixavam dois timers
+   * correndo: o do primeiro disparava no meio da segunda mensagem e a apagava
+   * antes da hora. O timer também sobrevivia ao desmonte da tela.
+   */
+  const mostrarToast = useCallback((mensagem, ms = 2000) => {
+    clearTimeout(toastRef.current)
+    setToast(mensagem)
+    toastRef.current = setTimeout(() => setToast(''), ms)
+  }, [])
+
+  useEffect(() => () => clearTimeout(toastRef.current), [])
   const [moedas, setMoedas] = useState([])
-  const [exchanges, setExchanges] = useState([])
+  const [erroMoedas, setErroMoedas] = useState('')
   const [senha, setSenha] = useState({ atual: '', nova: '', confirma: '' })
   const [loadingSenha, setLoadingSenha] = useState(false)
   const [planoAtivo, setPlanoAtivo] = useState(null)
@@ -104,22 +126,20 @@ function Settings() {
     carregarPlanoAtivo()
     const carregarDados = async () => {
       try {
-        const [resM, resE] = await Promise.all([
-          apiRequest(MarketEndpoint.COIN_LIST),
-          apiRequest(MarketEndpoint.EXCHANGES)
-        ])
-        const listaM = resM?.resultado || resM?.Resultado || (Array.isArray(resM) ? resM : [])
-        const listaE = resE?.resultado || resE?.Resultado || (Array.isArray(resE) ? resE : [])
-        setMoedas(listaM)
-        setExchanges(listaE)
+        const resM = await apiRequest(MarketEndpoint.COIN_LIST)
+        setMoedas(resM?.resultado || resM?.Resultado || (Array.isArray(resM) ? resM : []))
       } catch (err) {
         console.error('Erro ao carregar dados:', err)
-        // Fallback para manter a interface funcional
-        setMoedas([
-          { id: 'btc-id', sigla: 'BTC', nome: 'Bitcoin' },
-          { id: 'eth-id', sigla: 'ETH', nome: 'Ethereum' },
-          { id: 'sol-id', sigla: 'SOL', nome: 'Solana' },
-        ])
+        // Aqui havia uma lista inventada — BTC, ETH e SOL, com ids falsos —
+        // "para manter a interface funcional". Ela não mantinha: das dez moedas
+        // do catálogo, o seletor passava a oferecer três, sem nada dizendo que
+        // algo tinha falhado. E se a preferência salva não fosse uma das três,
+        // o Select renderizava VAZIO — a tela dizia que não havia preferência
+        // onde havia, e o próximo clique gravava por cima da escolha do usuário.
+        //
+        // Medido com a rota falhando: preferência salva em ADA, seletor em
+        // branco. Sem lista, o honesto é dizer que não deu para carregar.
+        setErroMoedas('coinListError')
       }
     }
     carregarDados()
@@ -134,23 +154,33 @@ function Settings() {
     setNome(user?.nome || '')
   }, [user?.nome])
 
-  const confirm = () => {
-    setToast(t('settingsSaved') || 'Configurações salvas!')
-    setTimeout(() => setToast(''), 2000)
+  const {
+    alertas,
+    carregando: carregandoAlertas,
+    erro: erroAlertas,
+    temAcesso: temAcessoAlertas,
+    excluir: excluirAlerta,
+  } = useAlertasPreco(user)
+
+  // Confirma só depois de a API responder. O "Configurações salvas" saía na
+  // linha seguinte ao PUT, antes da resposta — e continuava saindo quando ele
+  // falhava: a tela afirmava ter guardado uma escolha que, na próxima sessão,
+  // voltava ao valor antigo sem explicação.
+  const salvarPreferencia = async (mudanca, mensagem = t('settingsSaved')) => {
+    const salvo = await updatePreferences(mudanca)
+    if (salvo) mostrarToast(mensagem, 2000)
+    else mostrarToast(t('settingsSaveError'), 5000)
   }
 
   const toggleTheme = () => {
     const novo = (prefs?.tema === Theme.DARK) ? Theme.LIGHT : Theme.DARK
-    updatePreferences({ tema: novo })
-    setToast(novo === Theme.LIGHT ? t('lightOn') : t('darkOn'))
-    setTimeout(() => setToast(''), 2000)
+    salvarPreferencia({ tema: novo }, novo === Theme.LIGHT ? t('lightOn') : t('darkOn'))
   }
 
   const changeLang = (e) => {
     const lang = e.target.value
     if (!Object.values(Language).includes(lang)) return
-    updatePreferences({ idioma: lang })
-    confirm()
+    salvarPreferencia({ idioma: lang })
   }
 
   const changeAlerts = async (e) => {
@@ -162,24 +192,14 @@ function Settings() {
       notificationApi: Notification,
       baseUrl: API_URL,
     })
-    updatePreferences({ notificacoes: result.shouldEnableNotifications })
-    setToast(t(result.messageKey))
-    setTimeout(() => setToast(''), 2000)
-  }
-
-  const changeEstilo = (e) => {
-    const val = e.target.value
-    if (!Object.values(AlgorithmStyle).includes(val)) return
-    updatePreferences({ estiloAlgoritmo: val })
-    confirm()
+    await salvarPreferencia({ notificacoes: result.shouldEnableNotifications }, t(result.messageKey))
   }
 
   const handleSalvarNome = async (e) => {
     e.preventDefault()
     const valor = nome.trim()
     if (!valor) {
-      setToast(t('account.nameRequired'))
-      setTimeout(() => setToast(''), 3000)
+      mostrarToast(t('account.nameRequired'), 3000)
       return
     }
     if (valor === user?.nome) return
@@ -199,13 +219,12 @@ function Settings() {
       })
       const novoToken = res?.resultado?.tokenAutenticado
       if (novoToken) await login(novoToken)
-      setToast(t('account.nameUpdated'))
+      mostrarToast(t('account.nameUpdated'), 3000)
     } catch (err) {
       console.error('Erro ao atualizar o nome:', err)
-      setToast(t('account.errorUpdatingName'))
+      mostrarToast(t('account.errorUpdatingName'), 3000)
     } finally {
       setLoadingNome(false)
-      setTimeout(() => setToast(''), 3000)
     }
   }
 
@@ -218,18 +237,15 @@ function Settings() {
   const handleTrocarSenha = async (e) => {
     e.preventDefault()
     if (!senha.atual || !senha.nova || !senha.confirma) {
-      setToast(t('fillAllFields') || 'Preencha todos os campos')
-      setTimeout(() => setToast(''), 3000)
+      mostrarToast(t('fillAllFields'), 3000)
       return
     }
     if (senha.nova !== senha.confirma) {
-      setToast(t('passwordsDontMatch') || 'As senhas não coincidem')
-      setTimeout(() => setToast(''), 3000)
+      mostrarToast(t('passwordsDontMatch'), 3000)
       return
     }
     if (senha.nova.length < 6) {
-      setToast(t('passwordTooShort') || 'A senha deve ter no mínimo 6 caracteres')
-      setTimeout(() => setToast(''), 3000)
+      mostrarToast(t('passwordTooShort'), 3000)
       return
     }
 
@@ -244,14 +260,13 @@ function Settings() {
         },
         suppressAuthRedirect: true,
       })
-      setToast(t('passwordChangedSuccess') || 'Senha alterada com sucesso!')
+      mostrarToast(t('passwordChangedSuccess'), 3000)
       setSenha({ atual: '', nova: '', confirma: '' })
     } catch (err) {
-      const msg = err.status === 400 ? (t('invalidCurrentPassword') || 'Senha atual incorreta') : (t('errorChangingPassword') || 'Erro ao alterar senha')
-      setToast(msg)
+      const msg = err.status === 400 ? (t('invalidCurrentPassword')) : (t('errorChangingPassword'))
+      mostrarToast(msg, 3000)
     } finally {
       setLoadingSenha(false)
-      setTimeout(() => setToast(''), 3000)
     }
   }
 
@@ -282,6 +297,16 @@ function Settings() {
     </Box>
   )
 
+
+  // O valor salvo nem sempre está na lista carregada: ela pode ter falhado, e o
+  // catálogo pode simplesmente não trazer mais aquela moeda — é o caso do USDT
+  // hoje, que sai da lista e deixa o seletor de saldo de segurança em branco
+  // para quem o tinha escolhido. Sem uma opção correspondente, o MUI renderiza
+  // vazio, e vazio aqui quer dizer "não escolhi nenhuma", que é outra coisa.
+  const opcoesDeMoeda = (salvo) =>
+    salvo && !moedas.some((m) => m.sigla === salvo)
+      ? [{ sigla: salvo }, ...moedas]
+      : moedas
 
   const renderField = (label, component) => (
     <Box sx={{
@@ -365,9 +390,14 @@ function Settings() {
           boxShadow: '0 0 20px var(--color-primary)'
         }} />
         <Typography sx={{ color: 'var(--text-faint)', fontSize: '1rem', fontWeight: 500, letterSpacing: '0.5px' }}>
-          {t('settingsSubtitle') || 'CONTROL_CENTER // CONFIGURAÇÃO_SISTEMA'}
+          {t('settingsSubtitle')}
         </Typography>
       </header>
+
+      {/* Sem o catálogo, os dois seletores de moeda ficam só com o que já estava
+          salvo. Dizer isso uma vez é melhor que deixar a tela parecer vazia por
+          escolha do usuário. */}
+      <ErrorMessage message={t(erroMoedas)} onClose={() => setErroMoedas('')} />
 
       <div className="settings-grid">
         {renderPanel(<MdBrightness4 />, t('themeTitle'), (
@@ -397,7 +427,7 @@ function Settings() {
             ))}
             {renderField(t('language'), (
               <Select
-                value={localPrefs?.idioma || Language.PT}
+                value={localPrefs?.idioma || IDIOMA_PADRAO}
                 onChange={(e) => {
                   const val = e.target.value
                   setLocalPrefs(p => ({ ...p, idioma: val }))
@@ -406,36 +436,25 @@ function Settings() {
                 size="small"
                 sx={selectSx}
               >
-                <MenuItem value={Language.PT}>{t('portuguese')}</MenuItem>
-                <MenuItem value={Language.EN}>{t('english')}</MenuItem>
+                {/* Rótulo é o endônimo vindo do registro: quem procura
+                    "Français" não procura por "Francês". */}
+                {LANGUAGES.map((idioma) => (
+                  <MenuItem key={idioma.codigo} value={idioma.codigo}>{idioma.rotulo}</MenuItem>
+                ))}
               </Select>
             ))}
           </>
         ))}
 
-        {renderPanel(<MdTune />, t('algorithmStyle'), (
-          renderField(t('algorithmStyle') || 'Estilo do Robô', (
-            <Select
-              value={localPrefs?.estiloAlgoritmo || AlgorithmStyle.BALANCED}
-              onChange={(e) => {
-                const val = e.target.value
-                setLocalPrefs(p => ({ ...p, estiloAlgoritmo: val }))
-                changeEstilo(e)
-              }}
-              size="small"
-              sx={selectSx}
-            >
-              <MenuItem value={AlgorithmStyle.CONSERVATIVE}>{t('conservative')}</MenuItem>
-              <MenuItem value={AlgorithmStyle.BALANCED}>{t('balanced')}</MenuItem>
-              <MenuItem value={AlgorithmStyle.AGGRESSIVE}>{t('aggressive')}</MenuItem>
-            </Select>
-          ))
-        ))}
-
         {renderPanel(<MdNotifications />, t('notifications'), (
           renderField(t('emailNotifications'), (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>{localPrefs?.notificacoes ? t('enabled') : t('disabled')}</span>
+              {/* Eram `enabled`/`disabled`, que não existiam em dicionário
+                  nenhum — a tela mostrava a chave crua ao lado do interruptor.
+                  As chaves novas dizem o que rotulam: assim cada idioma pode
+                  concordar com "notificações" em vez de carregar um adjetivo
+                  genérico que não combina com nada. */}
+              <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>{localPrefs?.notificacoes ? t('notificationsEnabled') : t('notificationsDisabled')}</span>
               <Switch
                 checked={!!localPrefs?.notificacoes}
                 onChange={(e) => {
@@ -449,14 +468,92 @@ function Settings() {
           ))
         ))}
 
+        {temAcessoAlertas && renderPanel(<MdNotifications />, t('alertas.titulo'), (
+          <>
+            <Typography variant="body2" sx={{ color: 'var(--text-secondary)' }}>
+              {t('alertas.settingsDescricao')}
+            </Typography>
+
+            {carregandoAlertas ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                <CircularProgress size={20} />
+              </Box>
+            ) : erroAlertas ? (
+              /* Mesma distinção do modal do painel: falhar ao carregar não é
+                 "você não tem alertas". O `t` cobre os dois formatos que o hook
+                 devolve — mensagem do backend, ou chave de tradução. */
+              <Typography variant="body2" sx={{ color: 'var(--danger-ink)' }}>
+                {t(erroAlertas)}
+              </Typography>
+            ) : alertas.length === 0 ? (
+              /* Não reaproveita `alertas.listaVazia`: aquele texto aponta para o
+                 formulário "acima" no modal do sino, que não existe nesta tela. */
+              <Typography variant="body2" sx={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                {t('alertas.settingsListaVazia')}
+              </Typography>
+            ) : (
+              <>
+                <Typography variant="caption" sx={{ color: 'var(--text-muted)' }}>
+                  {t('alertas.meusAlertas', {
+                    ativos: contarAtivos(alertas),
+                    limite: LIMITE_ALERTAS_ATIVOS,
+                  })}
+                </Typography>
+                {alertas.map((a) => (
+                  <Box
+                    key={a.idAlertaPrecoTB}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1.5,
+                      py: 1.2,
+                      borderBottom: '1px solid var(--border-subtle)',
+                      opacity: a.status === StatusAlerta.DISPARADO ? 0.65 : 1,
+                    }}
+                  >
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography variant="body2" sx={{ color: 'var(--text-primary)', fontWeight: 700 }}>
+                        {a.siglaMoeda} {a.direcao === DirecaoAlerta.ACIMA ? '\u2265' : '\u2264'}{' '}
+                        {mathUtils.formatCurrency(a.valorAlvo)}
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: 'var(--text-muted)' }}>
+                        {a.status === StatusAlerta.DISPARADO
+                          ? t('alertas.disparadoEm', {
+                              valor: mathUtils.formatCurrency(a.valorDisparo ?? a.valorAlvo),
+                              data: toLocal(a.dataDisparo, idioma.intl),
+                            })
+                          : t('alertas.aguardando')}
+                      </Typography>
+                    </Box>
+                    <Button
+                      size="small"
+                      onClick={() => excluirAlerta(a.idAlertaPrecoTB).catch(() => {})}
+                      sx={{ color: 'var(--text-muted)', minWidth: 0 }}
+                    >
+                      {t('alertas.excluir')}
+                    </Button>
+                  </Box>
+                ))}
+              </>
+            )}
+          </>
+        ))}
+
         {renderPanel(<MdPayment />, t('planos.title'), (
           <>
             {renderField(t('planos.currentPlan'), (
               <Typography variant="body1" sx={{ color: 'var(--accent-ink)', fontWeight: 800, fontFamily: "'Share Tech Mono', monospace" }}>
+                {/* A reserva aqui era o nome de um plano — "Consultor
+                    (Básico)". Quando a consulta falha, `planoAtivo` fica nulo,
+                    e a tela então AFIRMAVA que o usuário está no plano básico.
+                    Para quem paga por um plano acima, era a assinatura errada
+                    na cara, por causa de uma requisição que não voltou. Dizer
+                    que não foi possível identificar é a única coisa verdadeira
+                    nos dois casos — falha e lista vazia. */}
                 {loadingPlano ? (
                   <CircularProgress size={16} sx={{ color: 'var(--accent-ink)' }} />
                 ) : (
-                  planoAtivo?.nome || 'Consultor (Básico)'
+                  planoAtivo?.nome || t('planos.naoIdentificado')
                 )}
               </Typography>
             ))}
@@ -494,8 +591,7 @@ function Settings() {
                 onChange={(e) => setLocalPrefs(p => ({ ...p, investimentoInicial: e.target.value }))}
                 onBlur={(e) => {
                   const val = parseFloat(e.target.value) || 0
-                  updatePreferences({ investimentoInicial: val })
-                  confirm()
+                  salvarPreferencia({ investimentoInicial: val })
                 }}
                 sx={inputSx}
                 InputProps={{ startAdornment: <Box sx={{ mr: 1, color: 'var(--accent-ink)', fontWeight: 700, fontSize: '0.9rem' }}>$</Box> }}
@@ -508,14 +604,13 @@ function Settings() {
                 onChange={(e) => {
                   const val = e.target.value
                   setLocalPrefs(p => ({ ...p, siglaMoedaPreferida: val }))
-                  updatePreferences({ siglaMoedaPreferida: val })
-                  confirm()
+                  salvarPreferencia({ siglaMoedaPreferida: val })
                 }}
                 size="small"
                 sx={selectSx}
               >
-                <MenuItem value=""><em>{t('none') || 'Padrão'}</em></MenuItem>
-                {moedas.map(m => (
+                <MenuItem value=""><em>{t('none')}</em></MenuItem>
+                {opcoesDeMoeda(localPrefs?.siglaMoedaPreferida).map(m => (
                   <MenuItem key={m.sigla} value={m.sigla}>{m.sigla}</MenuItem>
                 ))}
               </Select>
@@ -558,7 +653,7 @@ function Settings() {
                 }
               }}
             >
-              {loadingNome ? (t('saving') || 'SALVANDO...') : t('account.saveName').toUpperCase()}
+              {loadingNome ? (t('saving')) : t('account.saveName').toUpperCase()}
             </Button>
           </Box>
         ))}
@@ -566,7 +661,7 @@ function Settings() {
         <div style={{ gridColumn: '1 / -1' }}>
           {renderPanel(<MdSecurity />, t('riskManagementTitle'), (
             <Grid container spacing={4}>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                   {renderField(t('maxRiskPerTrade'), (
                     <TextField
@@ -576,8 +671,7 @@ function Settings() {
                       onChange={(e) => setLocalPrefs(p => ({ ...p, riscoMaximoPerda: e.target.value }))}
                       onBlur={(e) => {
                         const val = parseFloat(e.target.value) || 0
-                        updatePreferences({ riscoMaximoPerda: val })
-                        confirm()
+                        salvarPreferencia({ riscoMaximoPerda: val })
                       }}
                       sx={inputSx}
                       InputProps={{ endAdornment: <Box sx={{ ml: 1, color: 'var(--accent-ink)', fontWeight: 700 }}>%</Box> }}
@@ -585,27 +679,31 @@ function Settings() {
                   ))}
 
                   {renderField(t('reviewFrequency'), (
-                    <Select
-                      value={localPrefs?.frequenciaReview || ReviewFrequency.DAILY}
-                      onChange={(e) => {
-                        const val = e.target.value
-                        setLocalPrefs(p => ({ ...p, frequenciaReview: val }))
-                        updatePreferences({ frequenciaReview: val })
-                        confirm()
-                      }}
-                      size="small"
-                      sx={selectSx}
-                    >
-                      <MenuItem value={ReviewFrequency.DAILY}><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><MdHistory /> {t('daily')}</Box></MenuItem>
-                      <MenuItem value={ReviewFrequency.WEEKLY}><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><MdHistory /> {t('weekly')}</Box></MenuItem>
-                      <MenuItem value={ReviewFrequency.MONTHLY}><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><MdHistory /> {t('monthly')}</Box></MenuItem>
-                    </Select>
+                    <Box>
+                      <Select
+                        value={localPrefs?.frequenciaReview || ReviewFrequency.DAILY}
+                        onChange={(e) => {
+                          const val = e.target.value
+                          setLocalPrefs(p => ({ ...p, frequenciaReview: val }))
+                          salvarPreferencia({ frequenciaReview: val })
+                        }}
+                        size="small"
+                        sx={selectSx}
+                      >
+                        <MenuItem value={ReviewFrequency.DAILY}><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><MdHistory /> {t('daily')}</Box></MenuItem>
+                        <MenuItem value={ReviewFrequency.WEEKLY}><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><MdHistory /> {t('weekly')}</Box></MenuItem>
+                        <MenuItem value={ReviewFrequency.MONTHLY}><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><MdHistory /> {t('monthly')}</Box></MenuItem>
+                      </Select>
+                      <Typography variant="caption" color="textSecondary" sx={{ mt: 0.5 }}>
+                        {t('reviewFrequencyDescription')}
+                      </Typography>
+                    </Box>
                   ))}
                 </Box>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                  {renderField(t('safetyBalance'), (
+                  {renderField(t('safetyBalance'), ( // Clarifica se o saldo é retido ou apenas informativo
                     <Box sx={{ display: 'flex', gap: 1, width: '100%' }}>
                       <TextField
                         type="number"
@@ -615,46 +713,27 @@ function Settings() {
                         onChange={(e) => setLocalPrefs(p => ({ ...p, saldoSeguranca: e.target.value }))}
                         onBlur={(e) => {
                           const val = parseFloat(e.target.value) || 0
-                          updatePreferences({ saldoSeguranca: val })
-                          confirm()
+                          salvarPreferencia({ saldoSeguranca: val })
                         }}
                         sx={inputSx}
                       />
 
                       <Select
-                        value={localPrefs?.siglaMoedaUltimaInteracaoIA || ''}
+                        value={localPrefs?.siglaMoedaSaldoSeguranca || ''}
                         onChange={(e) => {
                           const val = e.target.value
-                          setLocalPrefs(p => ({ ...p, siglaMoedaUltimaInteracaoIA: val }))
-                          updatePreferences({ siglaMoedaUltimaInteracaoIA: val })
-                          confirm()
+                          setLocalPrefs(p => ({ ...p, siglaMoedaSaldoSeguranca: val }))
+                          salvarPreferencia({ siglaMoedaSaldoSeguranca: val })
                         }}
                         size="small"
                         sx={{ ...selectSx, minWidth: 90 }}
                       >
                         <MenuItem value=""><em>--</em></MenuItem>
-                        {moedas.map(m => (
+                        {opcoesDeMoeda(localPrefs?.siglaMoedaSaldoSeguranca).map(m => (
                           <MenuItem key={m.sigla} value={m.sigla}>{m.sigla}</MenuItem>
                         ))}
                       </Select>
                     </Box>
-                  ))}
-                  {renderField(t('riskProfile'), (
-                    <Select
-                      value={localPrefs?.perfilRisco || RiskProfile.MODERATE}
-                      onChange={(e) => {
-                        const val = e.target.value
-                        setLocalPrefs(p => ({ ...p, perfilRisco: val }))
-                        updatePreferences({ perfilRisco: val })
-                        confirm()
-                      }}
-                      size="small"
-                      sx={selectSx}
-                    >
-                      <MenuItem value={RiskProfile.CONSERVATIVE}>{t('conservative')}</MenuItem>
-                      <MenuItem value={RiskProfile.MODERATE}>{t('moderate')}</MenuItem>
-                      <MenuItem value={RiskProfile.AGGRESSIVE}>{t('aggressive')}</MenuItem>
-                    </Select>
                   ))}
                 </Box>
               </Grid>
@@ -663,16 +742,16 @@ function Settings() {
         </div>
 
         <div style={{ gridColumn: '1 / -1' }}>
-          {renderPanel(<MdLock />, t('security') || 'SEGURANÇA', (
+          {renderPanel(<MdLock />, t('security'), (
             <Box component="form" onSubmit={handleTrocarSenha} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
               <Typography variant="body2" sx={{ color: 'var(--text-muted)', mb: 1 }}>
-                {t('changePasswordDescription') || 'Mantenha sua conta segura alterando sua senha periodicamente.'}
+                {t('changePasswordDescription')}
               </Typography>
               <Grid container spacing={3}>
-                <Grid item xs={12} md={4}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <TextField
                     fullWidth
-                    label={t('currentPassword') || 'Senha Atual'}
+                    label={t('currentPassword')}
                     type="password"
                     value={senha.atual}
                     onChange={(e) => setSenha(p => ({ ...p, atual: e.target.value }))}
@@ -680,10 +759,10 @@ function Settings() {
                     InputLabelProps={{ sx: { color: 'var(--text-muted)' } }}
                   />
                 </Grid>
-                <Grid item xs={12} md={4}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <TextField
                     fullWidth
-                    label={t('newPassword') || 'Nova Senha'}
+                    label={t('newPassword')}
                     type="password"
                     value={senha.nova}
                     onChange={(e) => setSenha(p => ({ ...p, nova: e.target.value }))}
@@ -691,10 +770,10 @@ function Settings() {
                     InputLabelProps={{ sx: { color: 'var(--text-muted)' } }}
                   />
                 </Grid>
-                <Grid item xs={12} md={4}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <TextField
                     fullWidth
-                    label={t('confirmNewPassword') || 'Confirmar Nova Senha'}
+                    label={t('confirmNewPassword')}
                     type="password"
                     value={senha.confirma}
                     onChange={(e) => setSenha(p => ({ ...p, confirma: e.target.value }))}
@@ -724,11 +803,15 @@ function Settings() {
                     }
                   }}
                 >
-                  {loadingSenha ? (t('saving') || 'SALVANDO...') : (t('updatePassword') || 'ATUALIZAR SENHA')}
+                  {loadingSenha ? (t('saving')) : (t('updatePassword'))}
                 </Button>
               </Box>
             </Box>
           ))}
+        </div>
+
+        <div style={{ gridColumn: '1 / -1' }}>
+          {renderPanel(<MdPrivacyTip />, 'Privacidade e consentimento', <MeusConsentimentosPanel />)}
         </div>
 
         <div style={{ gridColumn: '1 / -1' }}>
@@ -767,7 +850,9 @@ function Settings() {
         </div>
       </div>
 
-      <Box className={`toast${toast ? ' show' : ''}`} sx={{
+      {/* role="status": o aviso de "salvo" ou de falha era só visual, e quem
+          usa leitor de tela não sabia se a mudança tinha sido guardada. */}
+      <Box role="status" className={`toast${toast ? ' show' : ''}`} sx={{
         background: 'rgba(255, 215, 0, 0.9)',
         color: 'var(--text-on-accent)',
         fontWeight: 700,

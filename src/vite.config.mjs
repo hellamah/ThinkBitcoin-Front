@@ -22,6 +22,71 @@ export default defineConfig(({ command, mode }) => {
 
   return {
     plugins: [react()],
+    // `npm run preview` serve o bundle de produção com a MESMA CSP que o
+    // vercel.json e o default.conf publicam. É o único jeito de exercitar a
+    // política antes do deploy: `npm run dev` não serve, porque o dev server
+    // injeta script inline e usa eval para o refresh, e acusaria violações que
+    // não existem em produção.
+    //
+    // Foi assim que apareceu o `https://www.gstatic.com` no style-src: o pacote
+    // geochart do Google Charts busca tooltip.css e util.css do gstatic, e sem
+    // essa origem o load do pacote nunca completa — o mapa inteiro fica em
+    // branco. A política vinha como Report-Only, então isso passou despercebido
+    // até alguém ligá-la.
+    //
+    // ATENÇÃO: são três cópias da mesma política (aqui, vercel.json e
+    // default.conf). Mudou uma, mude as três — arquivo estático não importa
+    // constante de JS. O test/cabecalhosSeguranca.test.js compara as cópias e
+    // falha se alguma divergir fora da exceção descrita abaixo.
+    //
+    // A única divergência proposital está no connect-src: as duas cópias que
+    // servem localmente (esta e a default.conf, que vai na imagem publicada em
+    // localhost:3000 pelo Helm) liberam as origens locais da API, porque o
+    // api.js ignora VITE_API_URL quando o hostname é localhost e monta
+    // http://localhost:13501 pelas portas do minikube. O vercel.json, que é
+    // produção, continua sem elas — lá não existe API em localhost.
+    preview: {
+      headers: {
+        'Content-Security-Policy':
+          "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://www.gstatic.com; font-src 'self' data:; img-src 'self' data: blob: https://www.gstatic.com; connect-src 'self' https://api.minerthinkbitcoin.com https://thinkbitcoin-api.ddns.net https://www.gstatic.com http://localhost:* http://127.0.0.1:* https://thinkbitcoin.local:*; frame-src 'none'; upgrade-insecure-requests",
+      },
+    },
+    // Tira do bundle publicado o console de depuração, e SÓ ele.
+    //
+    // `console.warn` e `console.error` ficam de propósito: são o que a
+    // pessoa lê ao abrir o DevTools para contar o que aconteceu, e o que
+    // resta de diagnóstico quando não há coletor de erros configurado
+    // (VITE_ERROR_ENDPOINT em utils/relatarErro.js). Apagar os quatro de uma
+    // vez é o atalho comum e custa exatamente a informação que mais falta no
+    // dia em que algo quebra só em produção.
+    //
+    // `pure` e não `drop`: o esbuild marca as chamadas como sem efeito
+    // colateral e as remove na minificação, o que deixa o build de
+    // desenvolvimento intacto — lá os logs continuam todos.
+    esbuild: {
+      pure: command === "build" ? ["console.log", "console.debug", "console.info"] : [],
+    },
+    build: {
+      rollupOptions: {
+        output: {
+          // React, ReactDOM e o router num chunk próprio. Eles mudam só quando
+          // a dependência muda, enquanto o chunk de entrada muda a cada deploy
+          // — e, juntos, cada deploy fazia quem volta ao site baixar de novo o
+          // react-dom inteiro. Separados, ficam em cache (o /assets sai com
+          // `immutable`) até a próxima atualização de versão.
+          //
+          // Só esses, de propósito. Todos entram no primeiro carregamento de
+          // qualquer jeito, então separá-los não traz nada a mais para a
+          // primeira visita. Agrupar o MUI inteiro faria o contrário: puxaria
+          // para a entrada componentes que só as páginas sob demanda usam.
+          manualChunks(id) {
+            if (/[\\/]node_modules[\\/](react|react-dom|scheduler|react-router|react-router-dom|cookie|set-cookie-parser)[\\/]/.test(id)) {
+              return 'react-vendor'
+            }
+          },
+        },
+      },
+    },
     server: {
       proxy: {
         '/ThinkBitcoin': {
@@ -36,7 +101,10 @@ export default defineConfig(({ command, mode }) => {
       setupFiles: ['./test/vitest.setup.js'],
       // Ambiente Node puro: não há window/localStorage reais.
       // Os testes que dependem deles (ex.: cache, preferences) mockam essas APIs manualmente.
-      // Para testar componentes React seria necessário trocar para 'jsdom'.
+      // Testes de componente pedem jsdom por arquivo, com o comentário
+      // `// @vitest-environment jsdom` na primeira linha. O resto da suíte
+      // segue em Node: mais rápido, e sem um DOM falso escondendo dependência
+      // de navegador em código que deveria ser puro.
       environment: 'node',
       globals: false,
     },

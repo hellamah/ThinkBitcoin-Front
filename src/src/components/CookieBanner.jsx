@@ -1,10 +1,17 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Box, Typography, Button } from '@mui/material'
 import { MdCookie } from 'react-icons/md'
+import { apiRequest, ConsentimentoEndpoint, HttpMethod } from '../utils/apiClient'
+import { OrigemConsentimento, TipoConsentimento } from '../utils/consentimento'
+import { useAuth } from '../context/AuthContext'
+import useTranslation from '../hooks/useTranslation'
 
 const STORAGE_KEY = 'cookie_consent_v1'
+// Marca de que a escolha guardada localmente já foi registrada na trilha do
+// usuário. Sem ela, todo carregamento da Home tentaria reenviar o mesmo aceite.
+const SYNC_KEY = 'cookie_consent_sincronizado_v1'
 
-export function hasCookieConsent() {
+function hasCookieConsent() {
   try {
     return !!localStorage.getItem(STORAGE_KEY)
   } catch {
@@ -12,25 +19,86 @@ export function hasCookieConsent() {
   }
 }
 
+function lerCookieConsent() {
+  try {
+    return localStorage.getItem(STORAGE_KEY)
+  } catch {
+    return null
+  }
+}
+
 function saveCookieConsent(value) {
   try {
     localStorage.setItem(STORAGE_KEY, value)
-  } catch {}
+    localStorage.removeItem(SYNC_KEY)
+  } catch { /* storage indisponível (modo privado): o consentimento fica só nesta sessão */ }
+}
+
+function marcarSincronizado() {
+  try {
+    localStorage.setItem(SYNC_KEY, '1')
+  } catch { /* idem: sem storage, sincroniza de novo na próxima visita */ }
+}
+
+function jaSincronizado() {
+  try {
+    return localStorage.getItem(SYNC_KEY) === '1'
+  } catch {
+    return false
+  }
 }
 
 function CookieBanner() {
+  const { token } = useAuth()
+  const { t } = useTranslation()
   const [visivel, setVisivel] = useState(!hasCookieConsent())
+
+  /**
+   * Registra a escolha na trilha do usuário.
+   *
+   * Só com token: a trilha é do titular, e visitante anônimo não tem a quem ser
+   * associado — para ele o localStorage segue sendo o registro possível.
+   */
+  const registrarNaTrilha = useCallback(
+    async (aceitouTodos) => {
+      if (!token) return
+
+      try {
+        await apiRequest(ConsentimentoEndpoint.REGISTRAR, {
+          method: HttpMethod.POST,
+          body: {
+            origem: OrigemConsentimento.BANNER_COOKIES,
+            itens: [{ tipo: TipoConsentimento.COOKIES, idDocumentoLegal: null, concedido: aceitouTodos }],
+          },
+        })
+        marcarSincronizado()
+      } catch (err) {
+        // Falhar aqui não pode desfazer a escolha do usuário na tela: a
+        // preferência já vale localmente e a sincronização tenta de novo depois.
+        console.error('Erro ao registrar consentimento de cookies:', err)
+      }
+    },
+    [token]
+  )
+
+  // Quem escolheu antes de entrar na conta — ou antes desta tela existir —
+  // teria a preferência presa no navegador. Ao autenticar, ela sobe uma vez.
+  // O servidor ignora reenvio idêntico, então nada disso polui a trilha.
+  useEffect(() => {
+    if (!token || jaSincronizado()) return
+
+    const escolha = lerCookieConsent()
+    if (!escolha) return
+
+    registrarNaTrilha(escolha === 'all')
+  }, [token, registrarNaTrilha])
 
   if (!visivel) return null
 
-  const aceitar = () => {
-    saveCookieConsent('all')
+  const responder = (valor) => {
+    saveCookieConsent(valor)
     setVisivel(false)
-  }
-
-  const essenciais = () => {
-    saveCookieConsent('essential')
-    setVisivel(false)
+    registrarNaTrilha(valor === 'all')
   }
 
   return (
@@ -53,14 +121,13 @@ function CookieBanner() {
       <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, flex: 1 }}>
         <MdCookie style={{ color: 'var(--accent-ink)', fontSize: '1.3rem', flexShrink: 0, marginTop: 2 }} />
         <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.82rem', lineHeight: 1.6 }}>
-          Utilizamos cookies essenciais para o funcionamento da plataforma e cookies de preferências para melhorar sua experiência.
-          Consulte nossa{' '}
+          {t('cookies.texto')}{' '}
           {/* Caminho relativo, não a URL absoluta de produção: assim o link
               funciona no preview e no localhost em vez de pular para o site
               publicado. Abre em outra aba para não derrubar este banner. */}
           <Box component="a" href="/privacidade" target="_blank" rel="noopener"
             sx={{ color: 'var(--accent-ink)', textDecoration: 'none', fontWeight: 600, '&:hover': { opacity: 0.8 } }}>
-            Política de Privacidade
+            {t('cookies.politica')}
           </Box>.
         </Typography>
       </Box>
@@ -69,7 +136,7 @@ function CookieBanner() {
         <Button
           variant="outlined"
           size="small"
-          onClick={essenciais}
+          onClick={() => responder('essential')}
           sx={{
             borderColor: 'var(--border-strong)',
             color: 'var(--text-muted)',
@@ -79,12 +146,12 @@ function CookieBanner() {
             '&:hover': { borderColor: 'var(--border-interactive)', color: 'var(--text-primary)' },
           }}
         >
-          Apenas essenciais
+          {t('cookies.apenasEssenciais')}
         </Button>
         <Button
           variant="contained"
           size="small"
-          onClick={aceitar}
+          onClick={() => responder('all')}
           sx={{
             backgroundColor: 'var(--accent)',
             color: 'var(--text-on-accent)',
@@ -95,7 +162,7 @@ function CookieBanner() {
             '&:hover': { bgcolor: '#e0c200' },
           }}
         >
-          Aceitar todos
+          {t('cookies.aceitarTodos')}
         </Button>
       </Box>
     </Box>

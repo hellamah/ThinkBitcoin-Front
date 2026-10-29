@@ -1,0 +1,22 @@
+# O contexto de build e `src/` (buildContext no azure-pipelines-front-build-image).
+#
+# No CI isto nao muda nada: o agente clona limpo e nenhum destes arquivos existe.
+# O alvo e o build local. Sem esta lista, o `COPY . .` do Dockerfile despeja o
+# node_modules do host POR CIMA do que o `npm install` acabou de instalar dentro
+# da imagem — em Windows isso significa binarios win32 do esbuild e do rollup
+# dentro de uma imagem Linux, e o build quebra por um motivo que nao esta no
+# codigo. O `dist/` local entraria do mesmo jeito e seria sobrescrito pelo build
+# real, so custando camada.
+node_modules
+dist
+dist-ssr
+*.local
+
+# Dumps de teste gerados localmente, mesmos nomes que o .gitignore ja cobre.
+*.log
+
+# Nao ha .env versionado hoje, e o VITE_API_URL chega por ARG/ENV no Dockerfile.
+# A exclusao e para que um .env local de alguem nunca seja assado numa camada da
+# imagem, que e publicada no Docker Hub.
+.env
+.env.*

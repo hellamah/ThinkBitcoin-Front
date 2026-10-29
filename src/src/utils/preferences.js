@@ -1,3 +1,5 @@
+import { LANGUAGE_CODES, IDIOMA_PADRAO, detectarIdiomaDoNavegador } from '../lang'
+
 const getWindow = () =>
   typeof window !== 'undefined' ? window : undefined
 
@@ -16,11 +18,23 @@ export const Theme = Object.freeze({
   DARK: 'dark',
 })
 
-export const Language = Object.freeze({
-  PT: 'pt',
-  EN: 'en',
-})
+// Derivado do registro em lang/index.js, e não escrito à mão: enquanto esta
+// lista era própria, acrescentar um idioma exigia lembrar de editá-la — e
+// esquecer não quebrava nada, só fazia o idioma novo ser rejeitado em silêncio
+// pelo normalizeLanguage e cair no padrão.
+export const Language = Object.freeze(
+  Object.fromEntries(LANGUAGE_CODES.map((codigo) => [codigo.toUpperCase(), codigo]))
+)
 
+// Estilo do algoritmo e perfil de risco saíram da interface: eram a mesma
+// pergunta feita duas vezes — mesma escala, e "Conservador"/"Agressivo" escritos
+// com a mesma palavra nos dois seletores — e nada no sistema lia a resposta.
+//
+// As colunas continuam no banco, então o valor precisa seguir sendo enviado: a
+// alteração grava `preferencia.EstiloAlgoritmo = parametro.EstiloAlgoritmo`
+// direto, sem guarda, e o default do banco só vale no INSERT. Parar de mandar
+// gravaria null por cima. Daí estes valores permanecerem aqui, agora como
+// constantes e não mais como opções.
 export const AlgorithmStyle = Object.freeze({
   CONSERVATIVE: 'conservador',
   BALANCED: 'equilibrado',
@@ -41,7 +55,7 @@ export const ReviewFrequency = Object.freeze({
 
 export const DEFAULT_PREFERENCES = Object.freeze({
   tema: Theme.DARK,
-  idioma: Language.PT,
+  idioma: IDIOMA_PADRAO,
   notificacoes: false,
   estiloAlgoritmo: AlgorithmStyle.BALANCED,
   investimentoInicial: 0,
@@ -49,13 +63,17 @@ export const DEFAULT_PREFERENCES = Object.freeze({
   siglaMoedaPreferida: null,
   siglaEmpresaExterna: null,
   saldoSeguranca: 0,
+  siglaMoedaSaldoSeguranca: null,
   siglaMoedaUltimaInteracaoIA: null,
   dataUltimaInteracaoIA: null,
-  frequenciaReview: 'diaria',
-  perfilRisco: 'moderado',
+  frequenciaReview: ReviewFrequency.DAILY,
+  perfilRisco: RiskProfile.MODERATE,
 })
 
-const getStorage = () => {
+// Exportado para o diário da simulação (utils/experimentos.js), que precisa do
+// mesmo acesso tolerante a storage bloqueado. Uma segunda cópia desta checagem
+// seria o lugar onde as duas divergiriam.
+export const getStorage = () => {
   if (!hasLocalStorage()) return null
   try {
     return getWindow().localStorage
@@ -75,9 +93,7 @@ const normalizeTheme = (value) => {
 const normalizeLanguage = (value) => {
   if (typeof value !== 'string') return null
   const normalized = value.toLowerCase()
-  if (normalized === Language.PT) return Language.PT
-  if (normalized === Language.EN) return Language.EN
-  return null
+  return LANGUAGE_CODES.includes(normalized) ? normalized : null
 }
 
 const normalizeAlgorithmStyle = (value) => {
@@ -118,9 +134,16 @@ export const sanitizePreferences = (prefs = {}) => {
     notificacoes: notificacoes ?? DEFAULT_PREFERENCES.notificacoes,
     investimentoInicial: merged.investimentoInicial ?? DEFAULT_PREFERENCES.investimentoInicial,
     riscoMaximoPerda: merged.riscoMaximoPerda ?? DEFAULT_PREFERENCES.riscoMaximoPerda,
-    siglaMoedaPreferida: merged.siglaMoedaPreferida ?? merged.SiglaMoedaPreferida ?? merged.idMoedaPreferida ?? DEFAULT_PREFERENCES.siglaMoedaPreferida,
-    siglaEmpresaExterna: merged.siglaEmpresaExterna ?? merged.SiglaEmpresaExterna ?? merged.idEmpresaExterna ?? DEFAULT_PREFERENCES.siglaEmpresaExterna,
+    // Só sigla entra aqui. O fallback para o Guid (idMoedaPreferida) parecia uma
+    // rede de segurança, mas era o contrário: a API devolvia só o Guid, ele virava
+    // "sigla" e voltava assim no PUT seguinte — e a alteração, não achando moeda
+    // com aquele código, gravava null por cima. Trocar o tema apagava a moeda
+    // preferida. A API agora devolve a sigla junto do Guid; quem não tiver vínculo
+    // vem com null, que é a resposta certa.
+    siglaMoedaPreferida: merged.siglaMoedaPreferida ?? merged.SiglaMoedaPreferida ?? DEFAULT_PREFERENCES.siglaMoedaPreferida,
+    siglaEmpresaExterna: merged.siglaEmpresaExterna ?? merged.SiglaEmpresaExterna ?? DEFAULT_PREFERENCES.siglaEmpresaExterna,
     saldoSeguranca: merged.saldoSeguranca ?? DEFAULT_PREFERENCES.saldoSeguranca,
+    siglaMoedaSaldoSeguranca: merged.siglaMoedaSaldoSeguranca ?? merged.SiglaMoedaSaldoSeguranca ?? DEFAULT_PREFERENCES.siglaMoedaSaldoSeguranca,
     siglaMoedaUltimaInteracaoIA: merged.siglaMoedaUltimaInteracaoIA ?? merged.SiglaMoedaUltimaInteracaoIA ?? DEFAULT_PREFERENCES.siglaMoedaUltimaInteracaoIA,
     dataUltimaInteracaoIA: merged.dataUltimaInteracaoIA ?? merged.DataUltimaInteracaoIA ?? DEFAULT_PREFERENCES.dataUltimaInteracaoIA,
     frequenciaReview: merged.frequenciaReview ?? DEFAULT_PREFERENCES.frequenciaReview,
@@ -151,8 +174,64 @@ export const clearStoredToken = () => {
   storage.removeItem('token')
 }
 
+// O idioma do navegador entra aqui, e não no sanitizePreferences: aquele é uma
+// função de saneamento de dados, que deve devolver a mesma coisa para a mesma
+// entrada. Esta é o começo de sessão — já lê o tema do storage, e ler também a
+// preferência declarada no sistema é o mesmo tipo de decisão.
+//
+// A ordem é: escolha explícita do usuário (que chega depois, do backend ou do
+// storage) > idioma do navegador > IDIOMA_PADRAO. Quem já escolheu não é
+// mexido; quem nunca escolheu recebe o idioma em que já navega.
 export const getInitialPreferences = () =>
-  sanitizePreferences({ tema: getStoredTheme() })
+  sanitizePreferences({
+    tema: getStoredTheme(),
+    idioma: detectarIdiomaDoNavegador(),
+  })
+
+// ---------------------------------------------------------------------------
+// Moeda preferida
+// ---------------------------------------------------------------------------
+
+// As grafias em que a moeda preferida já chegou do backend. Quatro nomes para o
+// mesmo campo, com e sem maiúscula: o front aceita todos em vez de apostar em
+// qual a resposta traz hoje.
+const CAMPOS_MOEDA_PREFERIDA = [
+  'siglaMoedaPreferida',
+  'SiglaMoedaPreferida',
+  'idMoedaPreferida',
+  'IdMoedaPreferida',
+  'moedaPreferida',
+  'MoedaPreferida',
+]
+
+/**
+ * A moeda com que uma tela deve abrir: a preferida, senão o BTC, senão a
+ * primeira da lista.
+ *
+ * Estava inline no Dashboard. Saiu quando a simulação ganhou tela própria e
+ * passou a precisar da mesma escolha — duas cópias desta busca discordariam no
+ * primeiro campo novo que o backend mandasse.
+ *
+ * @param {object|null} prefs - Preferências do usuário.
+ * @param {Array<{id?: *, simbolo?: string}>} moedas - Lista do carrossel.
+ * @returns {string|null} - O símbolo, ou null com a lista vazia.
+ */
+export const acharMoedaPreferida = (prefs, moedas) => {
+  if (!Array.isArray(moedas) || moedas.length === 0) return null
+
+  const valor = CAMPOS_MOEDA_PREFERIDA.map((campo) => prefs?.[campo]).find(Boolean)
+  if (valor) {
+    const alvo = String(valor).toUpperCase().trim()
+    const match = moedas.find(
+      (m) =>
+        (m.id && String(m.id) === String(valor)) ||
+        (m.simbolo && String(m.simbolo).toUpperCase() === alvo)
+    )
+    if (match) return match.simbolo
+  }
+
+  return (moedas.find((m) => m.simbolo === 'BTC') || moedas[0])?.simbolo ?? null
+}
 
 // ---------------------------------------------------------------------------
 // Tours de onboarding (react-joyride)

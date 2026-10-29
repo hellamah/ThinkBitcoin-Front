@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   calcularVwap,
+  calcularVwapMovel,
+  PERIODO_VWAP_MOVEL,
   desvioDoVwap,
   detectarCruzamentos,
   resumirVwap,
@@ -92,6 +94,32 @@ describe('utils/vwap › detectarCruzamentos', () => {
   it('deve tolerar entrada vazia', () => {
     expect(detectarCruzamentos([])).toEqual([])
     expect(detectarCruzamentos(null)).toEqual([])
+  })
+})
+
+describe('utils/vwap › calcularVwapMovel', () => {
+  it('deve ponderar só os últimos candles da janela', () => {
+    // Janela de 2: o primeiro candle sai da conta assim que o terceiro entra.
+    const v = calcularVwapMovel([reg(100, 10), reg(200, 30), reg(300, 10)], 2)
+    expect(v[0]).toBeNull()
+    expect(v[1]).toBeCloseTo((100 * 10 + 200 * 30) / 40, 10)
+    expect(v[2]).toBeCloseTo((200 * 30 + 300 * 10) / 40, 10)
+  })
+
+  it('não deve existir antes de a janela encher', () => {
+    const v = calcularVwapMovel(Array.from({ length: 30 }, () => reg(100, 10)))
+    expect(v.slice(0, PERIODO_VWAP_MOVEL - 1).every((x) => x === null)).toBe(true)
+    expect(v[PERIODO_VWAP_MOVEL - 1]).toBeCloseTo(100, 10)
+  })
+
+  it('deve ignorar candle sem volume, como o acumulado', () => {
+    const v = calcularVwapMovel([reg(100, 10), reg(999, 0), reg(200, 10)], 3)
+    expect(v[2]).toBeCloseTo(150, 10)
+  })
+
+  it('deve tolerar entrada vazia', () => {
+    expect(calcularVwapMovel([])).toEqual([])
+    expect(calcularVwapMovel(null)).toEqual([])
   })
 })
 

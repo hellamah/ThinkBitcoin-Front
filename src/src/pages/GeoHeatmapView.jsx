@@ -14,7 +14,6 @@ import Menu from '@mui/material/Menu'
 import MenuItem from '@mui/material/MenuItem'
 import Tooltip from '@mui/material/Tooltip'
 import { useTheme } from '@mui/material/styles'
-import { Joyride, STATUS } from 'react-joyride'
 import { readToken } from '../utils/themeTokens'
 import {
   MdPublic,
@@ -30,19 +29,24 @@ import DashboardHeader from '../components/dashboard/DashboardHeader'
 import HeatmapInsights from '../components/heatmap/HeatmapInsights'
 import ErrorMessage from '../components/ErrorMessage'
 import CoinCarousel from '../components/dashboard/CoinCarousel'
+import AlertaPrecoModal from '../components/dashboard/AlertaPrecoModal'
+import TourGuiado from '../components/TourGuiadoSobDemanda'
 import { useAuth } from '../context/AuthContext'
 import { useDashboard } from '../context/DashboardContext'
 import useTranslation from '../hooks/useTranslation'
 import useCoinPrices from '../hooks/useCoinPrices'
+import useAlertasPreco from '../hooks/useAlertasPreco'
 import { apiRequest, VariavelExternaEndpoint } from '../utils/apiClient'
 import { MapRegion, ExportFormat, MapMetric } from '../utils/enums'
 import { formatTooltipData, getRegionForCountry, filterCoinsByCountry, getCountryName } from '../utils/mapUtils'
 import { hasCacheValid } from '../utils/cache'
+import { idiomaDe } from '../lang'
 import { getTourHeatmapVisto, setTourHeatmapVisto } from '../utils/preferences'
+import { contarAtivos } from '../utils/alertaPreco'
 import { exportarHeatmapDados } from '../utils/exportUtils'
 
 // Componente de Gráfico Nativo à prova de loops no React 19
-const NativeGeoChart = ({ data, options, onSelect, onChartReady }) => {
+const NativeGeoChart = ({ data, options, onSelect, onChartReady, language }) => {
   const containerRef = useRef(null)
   const [loaded, setLoaded] = useState(false)
 
@@ -61,9 +65,13 @@ const NativeGeoChart = ({ data, options, onSelect, onChartReady }) => {
     if (checkLoaded()) return
 
     const loadLibrary = () => {
+      // O locale vem de fora, do registro de idiomas — estava cravado em
+      // 'pt-BR'. A biblioteca só carrega uma vez por página, então quem troca
+      // de idioma sem recarregar mantém o locale da carga inicial: é limitação
+      // do loader do Google, não da preferência.
       window.google.charts.load('current', {
         packages: ['geochart'],
-        language: 'pt-BR'
+        language
       })
       window.google.charts.setOnLoadCallback(() => {
         if (active) setLoaded(true)
@@ -150,6 +158,16 @@ export default function GeoHeatmapView() {
   const { refreshTrigger, moedaSelecionada, setMoedaSelecionada } = useDashboard()
   const { t } = useTranslation()
   const { moedas: moedasCarousel, erro: erroMoedas, setErro: setErroMoedas } = useCoinPrices()
+
+  const {
+    alertas,
+    carregando: carregandoAlertas,
+    erro: erroAlertas,
+    temAcesso: temAcessoAlertas,
+    criar: criarAlerta,
+    excluir: excluirAlerta,
+  } = useAlertasPreco(usuario)
+  const [modalAlertasAberto, setModalAlertasAberto] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
   const navigationType = useNavigationType()
@@ -192,7 +210,9 @@ export default function GeoHeatmapView() {
   const handleChartReady = useCallback((chart) => { chartInstanceRef.current = chart }, [])
 
   // Nomes de países no idioma preferido do usuário (Intl.DisplayNames).
-  const localeIdioma = prefs?.idioma === 'en' ? 'en' : 'pt'
+  // O locale vem do registro: enquanto era um ternário entre 'en' e 'pt', todo
+  // idioma acrescentado depois caía calado em português neste ponto.
+  const localeIdioma = idiomaDe(prefs?.idioma).intl
   const nomePais = useCallback((code) => getCountryName(code, localeIdioma), [localeIdioma])
 
   // ------ estados de notificação ------
@@ -206,7 +226,6 @@ export default function GeoHeatmapView() {
 
   // ------ tour onboarding ------
   const [tourRodando, setTourRodando] = useState(false)
-  const refCarousel = useRef(null)
   const refIntervalos = useRef(null)
   const refAcoesTopo = useRef(null)
   const refZoom = useRef(null)
@@ -403,8 +422,8 @@ export default function GeoHeatmapView() {
       [
         'Country',
         metricaMapa === MapMetric.INTENSIDADE
-          ? (t('heatmap.metricaIntensidade') || 'Intensidade média')
-          : (t('heatmap.metricaLideranca') || 'Liderança de buscas'),
+          ? (t('heatmap.metricaIntensidade'))
+          : (t('heatmap.metricaLideranca')),
         { role: 'tooltip', type: 'string', p: { html: true } }
       ]
     ]
@@ -520,7 +539,8 @@ export default function GeoHeatmapView() {
         useCache: true,
         cacheKey: chaveCache,
         ttl: 5 * 60 * 1000,
-        forceRefresh
+        forceRefresh,
+        emSegundoPlano: silencioso,
       })
 
       let rawData = []
@@ -533,7 +553,7 @@ export default function GeoHeatmapView() {
       setHeatmapRaw(rawData?.length > 0 ? rawData : null)
     } catch (err) {
       console.error('Erro ao carregar Heatmap', err)
-      setErro(t('heatmap.erroCarregar') || 'Não foi possível carregar os dados geográficos no momento.')
+      setErro(t('heatmap.erroCarregar'))
     } finally {
       setLoading(false)
     }
@@ -583,8 +603,8 @@ export default function GeoHeatmapView() {
   const handleCompartilhar = () => {
     const url = window.location.href
     navigator.clipboard.writeText(url)
-      .then(() => mostrarSnackbar(t('heatmap.linkCopiado') || 'Link copiado!'))
-      .catch(() => mostrarSnackbar(t('heatmap.erroCopiarLink') || 'Não foi possível copiar o link', 'error'))
+      .then(() => mostrarSnackbar(t('heatmap.linkCopiado')))
+      .catch(() => mostrarSnackbar(t('heatmap.erroCopiarLink'), 'error'))
   }
 
   const handleAbrirExportar = (event) => setAnchorExportar(event.currentTarget)
@@ -597,24 +617,28 @@ export default function GeoHeatmapView() {
     if (formato === ExportFormat.PNG) {
       const uri = chartInstanceRef.current?.getImageURI?.()
       if (!uri) {
-        mostrarSnackbar(t('heatmap.exportarPNGErro') || 'Não foi possível gerar a imagem do mapa.', 'error')
+        mostrarSnackbar(t('heatmap.exportarPNGErro'), 'error')
         return
       }
       const link = document.createElement('a')
       link.href = uri
       link.download = `heatmap_${moedaSelecionada}_${intervaloMapa}.png`
       link.click()
-      mostrarSnackbar(`PNG — ${t('heatmap.exportacaoConcluida') || 'exportação concluída!'}`)
+      mostrarSnackbar(`PNG — ${t('heatmap.exportacaoConcluida')}`)
       return
     }
 
-    exportarHeatmapDados(heatmapData, moedaSelecionada, intervaloMapa, formato)
-    mostrarSnackbar(`${formato.toUpperCase()} — ${t('heatmap.exportacaoConcluida') || 'exportação concluída!'}`)
+    // `nomePais` vai junto para o arquivo sair com o nome do país no idioma da
+    // tela; sem ele a coluna "País" carregava o código ISO cru.
+    exportarHeatmapDados(heatmapData, moedaSelecionada, intervaloMapa, formato, nomePais)
+    mostrarSnackbar(`${formato.toUpperCase()} — ${t('heatmap.exportacaoConcluida')}`)
   }
 
   // ---------------------------------------------------------------------------
   // Eventos do gráfico
   // ---------------------------------------------------------------------------
+  // Clique num país do mapa: o NativeGeoChart registra o `select` e entrega a
+  // linha da tabela aqui.
   const handleChartSelect = useCallback((row) => {
     const currentData = heatmapDataRef.current
     if (currentData?.[row + 1]) {
@@ -623,22 +647,6 @@ export default function GeoHeatmapView() {
       handleCountryClick(countryCode)
     }
   }, [handleCountryClick])
-
-  const chartEvents = useMemo(() => [
-    {
-      eventName: 'select',
-      callback: ({ chartWrapper }) => {
-        const chart = chartWrapper.getChart()
-        const selection = chart.getSelection()
-        if (selection.length > 0) {
-          const row = selection[0].row
-          handleChartSelect(row)
-          // Limpa seleção para evitar coloração cinza padrão do Google Charts
-          chart.setSelection([])
-        }
-      }
-    }
-  ], [handleChartSelect])
 
   // O GeoChart pinta atributos SVG via JS: precisa de cor resolvida, var() não
   // funciona aqui. Os tons de "sem dado" e a rampa da escala também invertem —
@@ -667,37 +675,33 @@ export default function GeoHeatmapView() {
   }), [chartOptions, chartHeight])
 
   // ---------------------------------------------------------------------------
-  // Tour Onboarding (react-joyride)
+  // Tour Onboarding (moldura em components/TourGuiado)
   // ---------------------------------------------------------------------------
-  // Nota: react-joyride v3 — `skipBeacon`, `showProgress`, cores e ações dos
-  // botões são configurados via prop `options` (não existem `showSkipButton`,
-  // `showProgress` nem `styles.options` de nível superior como na v2), e o
-  // handler de eventos é `onEvent` (não `callback`).
   const passosTour = useMemo(() => [
     {
       target: '[data-tour="carrossel"]',
-      title: t('heatmap.tourPasso1Titulo') || 'Carrossel de Ativos',
-      content: t('heatmap.tourPasso1Descricao') || 'Selecione o ativo que deseja visualizar.',
+      title: t('heatmap.tourPasso1Titulo'),
+      content: t('heatmap.tourPasso1Descricao'),
     },
     {
       target: '[data-tour="intervalos"]',
-      title: t('heatmap.tourPasso2Titulo') || 'Filtro de Intervalo',
-      content: t('heatmap.tourPasso2Descricao') || 'Alterne entre 1H, 1D e 1M.',
+      title: t('heatmap.tourPasso2Titulo'),
+      content: t('heatmap.tourPasso2Descricao'),
     },
     {
       target: '[data-tour="acoes-topo"]',
-      title: t('heatmap.tourPasso3Titulo') || 'Exportar e Compartilhar',
-      content: t('heatmap.tourPasso3Descricao') || 'Baixe os dados ou compartilhe o link.',
+      title: t('heatmap.tourPasso3Titulo'),
+      content: t('heatmap.tourPasso3Descricao'),
     },
     {
       target: '[data-tour="zoom"]',
-      title: t('heatmap.tourPasso4Titulo') || 'Zoom Geográfico',
-      content: t('heatmap.tourPasso4Descricao') || 'Clique em uma região para dar zoom.',
+      title: t('heatmap.tourPasso4Titulo'),
+      content: t('heatmap.tourPasso4Descricao'),
     },
     {
       target: '[data-tour="inteligencia"]',
-      title: t('heatmap.tourPasso5Titulo') || 'Central de Inteligência',
-      content: t('heatmap.tourPasso5Descricao') || 'Top 5 países. Clique para filtrar o carrossel.',
+      title: t('heatmap.tourPasso5Titulo'),
+      content: t('heatmap.tourPasso5Descricao'),
     },
   ], [t])
 
@@ -709,15 +713,10 @@ export default function GeoHeatmapView() {
     }
   }, [heatmapData])
 
-  const handleTourCallback = (data) => {
-    const { status } = data
-    if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
-      setTourRodando(false)
-      setTourHeatmapVisto()
-    }
+  const encerrarTour = () => {
+    setTourRodando(false)
+    setTourHeatmapVisto()
   }
-
-  if (!token) return <Box sx={{ p: 5 }}>Redirecionando para login...</Box>
 
   // ---------------------------------------------------------------------------
   // Render
@@ -734,59 +733,24 @@ export default function GeoHeatmapView() {
           pointer-events: none !important;
         }
         .__floater__open { z-index: 9999 !important; }
+        /* Superfície e texto por token. Cravados em rgba(15,15,15,0.97) e #fff
+           o balão do tour ficava escuro nos dois temas, enquanto title/content
+           abaixo vêm de --accent-ink e --text-secondary: no modo claro isso era
+           texto quase preto sobre fundo quase preto, e o tour inteiro sumia. */
         .react-joyride__tooltip {
-          background: rgba(15,15,15,0.97) !important;
+          background: var(--surface-overlay) !important;
           border: 1px solid var(--accent-a30) !important;
           border-radius: 16px !important;
-          color: #fff !important;
+          color: var(--text-secondary) !important;
           font-family: 'Outfit', sans-serif !important;
-          box-shadow: 0 20px 60px rgba(0,0,0,0.8) !important;
+          box-shadow: 0 20px 60px var(--scrim-strong) !important;
         }
         .react-joyride__tooltip button { font-family: 'Outfit', sans-serif !important; }
       `}} />
 
       {/* Tour Onboarding — montado apenas enquanto roda para não deixar
           o portal/beacon residual da react-joyride no DOM. */}
-      {tourRodando && (
-      <Joyride
-        steps={passosTour}
-        run={tourRodando}
-        continuous
-        onEvent={handleTourCallback}
-        locale={{
-          back: 'Voltar',
-          close: t('heatmap.tourFechar') || 'Entendi!',
-          last: t('heatmap.tourFechar') || 'Entendi!',
-          next: 'Próximo',
-          nextWithProgress: 'Próximo ({current} de {total})',
-          skip: 'Pular',
-        }}
-        options={{
-          // Sem beacon: o tooltip abre direto em cada passo.
-          skipBeacon: true,
-          buttons: ['back', 'close', 'skip', 'primary'],
-          showProgress: true,
-          // O ✕ dispensa o tour inteiro (status "skipped" marca como visto);
-          // o default 'close' da v3 avançaria para o próximo passo.
-          closeButtonAction: 'skip',
-          // Clique no overlay e tecla ESC não avançam por acidente.
-          overlayClickAction: false,
-          dismissKeyAction: false,
-          primaryColor: '#ffd700',
-          textColor: '#fff',
-          backgroundColor: 'var(--surface-overlay)',
-          arrowColor: 'rgba(15,15,15,0.97)',
-          zIndex: 9999,
-        }}
-        styles={{
-          tooltipTitle: { color: 'var(--accent-ink)', fontWeight: 800, fontSize: '1rem' },
-          tooltipContent: { color: 'var(--text-secondary)', fontSize: '0.88rem' },
-          buttonPrimary: { backgroundColor: 'var(--accent)', color: 'var(--text-on-accent)', fontWeight: 700, borderRadius: '8px' },
-          buttonBack: { color: 'var(--text-muted)' },
-          buttonSkip: { color: 'var(--text-faint)', fontSize: '0.78rem' },
-        }}
-      />
-      )}
+      {tourRodando && <TourGuiado passos={passosTour} onEncerrar={encerrarTour} />}
 
       {/* Notificações (snackbar) */}
       <Snackbar
@@ -795,13 +759,16 @@ export default function GeoHeatmapView() {
         onClose={() => setSnackbarAberto(false)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
+        {/* Fundo por token, como o texto. Cravado em rgba(20,20,20,0.97), no
+            tema claro ficava texto quase preto sobre fundo quase preto
+            (1,04:1): "Link copiado" e "Exportação concluída" sumiam. */}
         <Alert
           onClose={() => setSnackbarAberto(false)}
           severity={snackbarSeveridade}
           variant="filled"
           sx={{
             fontFamily: 'Outfit, sans-serif',
-            background: snackbarSeveridade === 'success' ? 'rgba(20,20,20,0.97)' : undefined,
+            background: snackbarSeveridade === 'success' ? 'var(--surface-overlay)' : undefined,
             border: '1px solid var(--accent-a30)',
             color: 'var(--text-primary)',
           }}
@@ -810,9 +777,32 @@ export default function GeoHeatmapView() {
         </Alert>
       </Snackbar>
 
-      <DashboardHeader t={t} prefs={prefs} usuario={usuario} title={t('nav.heatmap') || 'Geopolítica'} />
+      <DashboardHeader
+        t={t}
+        prefs={prefs}
+        usuario={usuario}
+        title={t('nav.heatmap')}
+        onAbrirAlertas={() => setModalAlertasAberto(true)}
+        alertasAtivos={contarAtivos(alertas)}
+        alertasBloqueados={!temAcessoAlertas}
+      />
+
+      <AlertaPrecoModal
+        visible={modalAlertasAberto}
+        onClose={() => setModalAlertasAberto(false)}
+        moedas={moedasCarousel}
+        moedaInicial={moedaSelecionada}
+        alertas={alertas}
+        carregando={carregandoAlertas}
+        erro={erroAlertas}
+        onCriar={criarAlerta}
+        onExcluir={excluirAlerta}
+        notificacoesLigadas={!!prefs?.notificacoes}
+      />
+      {/* O `erro` desta tela já sai traduzido — é montado aqui dentro, onde o
+          `t` existe. O do carrossel vem do hook, que só tem a chave. */}
       <ErrorMessage message={erro} onClose={() => setErro('')} />
-      <ErrorMessage message={erroMoedas} onClose={() => setErroMoedas('')} />
+      <ErrorMessage message={t(erroMoedas)} onClose={() => setErroMoedas('')} />
 
       {/* Carrossel de Ativos */}
       <div data-tour="carrossel">
@@ -832,10 +822,10 @@ export default function GeoHeatmapView() {
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 4 }}>
           <Box>
             <Typography variant="h4" sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1.5, fontFamily: 'Outfit, sans-serif', fontWeight: 800, color: 'var(--accent-ink)' }}>
-              <MdPublic /> {t('globalHotspot') || 'Geopolítica de Mercado'}
+              <MdPublic /> {t('globalHotspot')}
             </Typography>
             <Typography variant="body1" sx={{ opacity: 0.7, fontSize: '0.95rem' }}>
-              {t('heatmap.descricao') || 'Mapeamento global do interesse de busca pelo ativo, destacando as regiões que atualmente lideram a narrativa de mercado.'}
+              {t('heatmap.descricao')}
             </Typography>
           </Box>
 
@@ -845,7 +835,7 @@ export default function GeoHeatmapView() {
             <div className="interval-selector-mini" data-tour="intervalos" ref={refIntervalos}>
               {[
                 { label: '1H', value: '1h' },
-                { label: '1D', value: '24h' },
+                { label: '1D', value: '1d' },
                 { label: '1M', value: '1m' },
               ].map((opt) => (
                 <button
@@ -866,8 +856,8 @@ export default function GeoHeatmapView() {
             {/* Seletor de métrica do mapa: liderança × intensidade (sem refetch) */}
             <div className="interval-selector-mini" data-tour="metrica">
               {[
-                { label: t('heatmap.metricaLiderancaCurta') || 'Liderança', value: MapMetric.LIDERANCA, hint: t('heatmap.metricaLideranca') || 'Nº de vezes que o país liderou as buscas' },
-                { label: t('heatmap.metricaIntensidadeCurta') || 'Intensidade', value: MapMetric.INTENSIDADE, hint: t('heatmap.metricaIntensidade') || 'Intensidade média de busca (0-100)' },
+                { label: t('heatmap.metricaLiderancaCurta'), value: MapMetric.LIDERANCA, hint: t('heatmap.metricaLideranca') },
+                { label: t('heatmap.metricaIntensidadeCurta'), value: MapMetric.INTENSIDADE, hint: t('heatmap.metricaIntensidade') },
               ].map((opt) => (
                 <Tooltip key={opt.value} title={opt.hint} arrow>
                   <button
@@ -883,7 +873,7 @@ export default function GeoHeatmapView() {
             {/* Botões de ação */}
             <Box sx={{ display: 'flex', gap: 1 }} data-tour="acoes-topo" ref={refAcoesTopo}>
               {/* Compartilhar */}
-              <Tooltip title={t('heatmap.compartilhar') || 'Compartilhar'} arrow>
+              <Tooltip title={t('heatmap.compartilhar')} arrow>
                 <Button
                   id="btn-compartilhar"
                   variant="outlined"
@@ -903,12 +893,12 @@ export default function GeoHeatmapView() {
                     }
                   }}
                 >
-                  {t('heatmap.compartilhar') || 'Compartilhar'}
+                  {t('heatmap.compartilhar')}
                 </Button>
               </Tooltip>
 
               {/* Exportar */}
-              <Tooltip title={t('heatmap.exportar') || 'Exportar Dados'} arrow>
+              <Tooltip title={t('heatmap.exportar')} arrow>
                 <Button
                   id="btn-exportar"
                   variant="outlined"
@@ -933,7 +923,7 @@ export default function GeoHeatmapView() {
                     }
                   }}
                 >
-                  {t('heatmap.exportar') || 'Exportar'}
+                  {t('heatmap.exportar')}
                 </Button>
               </Tooltip>
               <Menu
@@ -955,24 +945,24 @@ export default function GeoHeatmapView() {
                   onClick={() => handleExportar(ExportFormat.CSV)}
                   sx={{ color: 'var(--text-primary)', fontFamily: 'Outfit, sans-serif', fontSize: '0.88rem', '&:hover': { backgroundColor: 'var(--accent-a08)' } }}
                 >
-                  📄 {t('heatmap.exportarCSV') || 'Exportar CSV'}
+                  📄 {t('heatmap.exportarCSV')}
                 </MenuItem>
                 <MenuItem
                   onClick={() => handleExportar(ExportFormat.JSON)}
                   sx={{ color: 'var(--text-primary)', fontFamily: 'Outfit, sans-serif', fontSize: '0.88rem', '&:hover': { backgroundColor: 'var(--accent-a08)' } }}
                 >
-                  🗂 {t('heatmap.exportarJSON') || 'Exportar JSON'}
+                  🗂 {t('heatmap.exportarJSON')}
                 </MenuItem>
                 <MenuItem
                   onClick={() => handleExportar(ExportFormat.PNG)}
                   sx={{ color: 'var(--text-primary)', fontFamily: 'Outfit, sans-serif', fontSize: '0.88rem', '&:hover': { backgroundColor: 'var(--accent-a08)' } }}
                 >
-                  🖼 {t('heatmap.exportarPNG') || 'Exportar PNG'}
+                  🖼 {t('heatmap.exportarPNG')}
                 </MenuItem>
               </Menu>
 
               {/* Tour */}
-              <Tooltip title={t('heatmap.tourIniciar') || 'Ver tour'} arrow>
+              <Tooltip title={t('heatmap.tourIniciar')} arrow>
                 <Button
                   id="btn-tour"
                   variant="text"
@@ -1005,16 +995,24 @@ export default function GeoHeatmapView() {
               color: 'var(--text-muted)',
               fontFamily: 'Outfit, sans-serif',
             }}>
-              ⚡ {t('heatmap.cacheAtivo') || 'Dados em cache (< 5 min)'}
-              <MdRefresh
-                size={13}
-                style={{ cursor: 'pointer', opacity: 0.6 }}
+              ⚡ {t('heatmap.cacheAtivo')}
+              {/* O onClick estava no <svg> do ícone: o único jeito de forçar
+                  a releitura era clicar num desenho, que nem o teclado alcança
+                  nem o leitor de tela anuncia. */}
+              <button
+                type="button"
+                className="botao-nu"
+                aria-label={t('heatmap.forcarAtualizacao')}
+                title={t('heatmap.forcarAtualizacao')}
+                style={{ display: 'inline-flex', opacity: 0.6 }}
                 onClick={() => {
                   setDadosDoCacheAtivo(false)
                   setHeatmapRaw(null)
                   carregarHeatmap(true)
                 }}
-              />
+              >
+                <MdRefresh size={13} />
+              </button>
             </Box>
           </Fade>
         )}
@@ -1028,7 +1026,7 @@ export default function GeoHeatmapView() {
             animation: 'fadeIn 0.4s ease'
           }}>
             <Typography variant="body2" sx={{ color: 'var(--text-primary)', fontSize: '0.88rem', fontFamily: 'Outfit, sans-serif' }}>
-              🔍 {t('heatmap.filtrandoPor') || 'Exibindo ativos cuja busca é liderada por:'} <strong>{nomePais(paisSelecionado)}</strong>
+              🔍 {t('heatmap.filtrandoPor')} <strong>{nomePais(paisSelecionado)}</strong>
             </Typography>
             <Button
               size="small"
@@ -1039,7 +1037,7 @@ export default function GeoHeatmapView() {
                 '&:hover': { background: 'rgba(255, 215, 0, 0.12)' }
               }}
             >
-              {t('heatmap.limparFiltro') || 'Limpar Filtro'}
+              {t('heatmap.limparFiltro')}
             </Button>
           </Box>
         )}
@@ -1047,24 +1045,32 @@ export default function GeoHeatmapView() {
         {/* Barra de Zoom Regional */}
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 3, alignItems: 'center' }} data-tour="zoom" ref={refZoom}>
           <Typography variant="caption" sx={{ color: 'var(--text-muted)', mr: 1, textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>
-            {t('heatmap.zoomGeografico') || 'Zoom Geográfico:'}
+            {t('heatmap.zoomGeografico')}
           </Typography>
           {Object.entries(MapRegion).map(([key, value]) => {
             const isSelected = regionSelecionada === value
             const isActive = activeRegions.has(value)
             const label = {
-              WORLD: t('heatmap.regiaoMundo') || 'Mundo',
-              AMERICAS: t('heatmap.regiaoAmericas') || 'Américas',
-              EUROPE: t('heatmap.regiaoEuropa') || 'Europa',
-              ASIA: t('heatmap.regiaoAsia') || 'Ásia',
-              AFRICA: t('heatmap.regiaoAfrica') || 'África',
-              OCEANIA: t('heatmap.regiaoOceania') || 'Oceania',
+              WORLD: t('heatmap.regiaoMundo'),
+              AMERICAS: t('heatmap.regiaoAmericas'),
+              EUROPE: t('heatmap.regiaoEuropa'),
+              ASIA: t('heatmap.regiaoAsia'),
+              AFRICA: t('heatmap.regiaoAfrica'),
+              OCEANIA: t('heatmap.regiaoOceania'),
             }[key]
             return (
+              // Filtro de região do mapa: um dos controles principais da tela, e
+              // era um <Box> com onClick. `disabled` substitui a guarda de
+              // `if (!isActive) return`, que deixava a pílula clicável e inerte
+              // — o navegador agora avisa antes do clique, em vez de engolir.
               <Box
                 key={key}
+                component="button"
+                type="button"
+                className="botao-nu"
+                disabled={!isActive}
+                aria-pressed={isSelected}
                 onClick={() => {
-                  if (!isActive) return
                   setRegionSelecionada(value)
                   if (paisSelecionado) {
                     const countryRegion = getRegionForCountry(paisSelecionado)
@@ -1133,6 +1139,7 @@ export default function GeoHeatmapView() {
                       options={optionsFinal}
                       onSelect={handleChartSelect}
                       onChartReady={handleChartReady}
+                      language={localeIdioma}
                     />
                   </Box>
                 </Box>
@@ -1156,24 +1163,29 @@ export default function GeoHeatmapView() {
                   }}
                 >
                   <Typography variant="h6" sx={{ color: 'var(--accent-ink)', fontWeight: 800, fontFamily: 'Outfit, sans-serif', fontSize: '1.05rem', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
-                    {t('heatmap.centralInteligencia') || 'Central de Inteligência'}
+                    {t('heatmap.centralInteligencia')}
                   </Typography>
                   <Typography variant="body2" sx={{ opacity: 0.6, fontSize: '0.85rem', lineHeight: 1.4 }}>
-                    {t('heatmap.centralDescricao') || 'Nível de aceleração e dominância de busca de narrativas por região geográfica para a moeda selecionada'} ({moedaSelecionada}).
+                    {t('heatmap.centralDescricao')} ({moedaSelecionada}).
                   </Typography>
 
                   {/* Pulso da narrativa + concentração geográfica + Fear & Greed
                       (dados do /trend e /fear-greed já carregados pelo carrossel) */}
-                  <HeatmapInsights trend={moedaSelObj?.trend} fear={moedaSelObj?.fear} t={t} />
+                  <HeatmapInsights trend={moedaSelObj?.trend} fear={moedaSelObj?.fear} t={t} locale={localeIdioma} />
 
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, mt: 2 }}>
                     {topRegioes.length > 0 ? (
                       topRegioes.map((reg, idx) => (
                         <Box
                           key={reg.country}
+                          component="button"
+                          type="button"
+                          className="botao-nu"
+                          aria-pressed={paisSelecionado === reg.country}
                           onClick={() => handleCountryClick(reg.country)}
                           sx={{
-                            display: 'flex', flexDirection: 'column', gap: 0.8, cursor: 'pointer',
+                            display: 'flex', flexDirection: 'column', alignItems: 'stretch',
+                            width: '100%', textAlign: 'left', gap: 0.8, cursor: 'pointer',
                             p: 1.2, borderRadius: '8px',
                             transition: 'all 0.2s cubic-bezier(0.165, 0.84, 0.44, 1)',
                             background: paisSelecionado === reg.country ? 'rgba(255, 215, 0, 0.04)' : 'transparent',
@@ -1221,7 +1233,7 @@ export default function GeoHeatmapView() {
                       ))
                     ) : (
                       <Box sx={{ p: 4, textAlign: 'center', opacity: 0.4 }}>
-                        <Typography variant="body2" sx={{ fontStyle: 'italic' }}>{t('heatmap.aguardandoDados') || 'Aguardando dados geográficos...'}</Typography>
+                        <Typography variant="body2" sx={{ fontStyle: 'italic' }}>{t('heatmap.aguardandoDados')}</Typography>
                       </Box>
                     )}
                   </Box>
@@ -1232,7 +1244,7 @@ export default function GeoHeatmapView() {
         ) : (
           <Box sx={{ p: 6, textAlign: 'center', opacity: 0.5, backgroundColor: 'var(--surface-panel)', borderRadius: '16px', border: '1px solid var(--border)' }}>
             <MdAnalytics size={48} style={{ color: 'var(--accent-ink)', marginBottom: '12px' }} />
-            <Typography sx={{ fontFamily: 'Outfit, sans-serif' }}>{t('heatmap.semDados') || 'Dados de mapa não disponíveis para o ativo selecionado no período.'}</Typography>
+            <Typography sx={{ fontFamily: 'Outfit, sans-serif' }}>{t('heatmap.semDados')}</Typography>
           </Box>
         )}
       </section>

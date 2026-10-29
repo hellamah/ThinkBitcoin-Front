@@ -2,6 +2,7 @@ import { API_URL } from '../api'
 import { USE_MOCK_API } from './mockFlag'
 import { getCache, setCache } from './cache'
 import { getStoredToken } from './preferences'
+import { iniciarCarregamento } from './carregamentoGlobal'
 
 export const HttpMethod = Object.freeze({
   GET: 'GET',
@@ -50,13 +51,30 @@ export const ApiEndpoint = Object.freeze({
     RETURN_SEQUENCE: (id = '') => `/ThinkBitcoin/sequenciasRetorno/${id}`,
     EXCHANGES: '/ThinkBitcoin/exchanges',
   }),
-  CARGO: Object.freeze({
-    UPDATE: '/ThinkBitcoin/CargoUsuarioTB/AlterarCargoUsuarioTB/',
-  }),
   VARIAVEL_EXTERNA: Object.freeze({
     FEAR_GREED: '/ThinkBitcoin/variavel-externa/fear-greed',
     TREND: '/ThinkBitcoin/variavel-externa/trend',
     TREND_HEATMAP: '/ThinkBitcoin/variavel-externa/trend/heatmap',
+  }),
+  ALERTA_PRECO: Object.freeze({
+    LIST: '/ThinkBitcoin/alertas-preco',
+    CREATE: '/ThinkBitcoin/alertas-preco',
+    DELETE: (id) => `/ThinkBitcoin/alertas-preco/${id}`,
+  }),
+  // Documentos legais versionados. As leituras sao publicas: o banner de
+  // cookies aparece para visitante e o cadastro pede aceite antes de existir
+  // conta, entao exigir login para ler o que se esta aceitando seria o avesso
+  // do consentimento informado.
+  DOCUMENTO_LEGAL: Object.freeze({
+    VIGENTE: (tipo) => `/ThinkBitcoin/documentos-legais/${tipo}`,
+    VERSOES: (tipo) => `/ThinkBitcoin/documentos-legais/${tipo}/versoes`,
+    VERSAO: (id) => `/ThinkBitcoin/documentos-legais/versao/${id}`,
+    PUBLICAR: '/ThinkBitcoin/documentos-legais',
+  }),
+  CONSENTIMENTO: Object.freeze({
+    MEUS: '/ThinkBitcoin/consentimentos/meus',
+    PENDENTES: '/ThinkBitcoin/consentimentos/pendentes',
+    REGISTRAR: '/ThinkBitcoin/consentimentos',
   }),
   PATRIMONIO: Object.freeze({
     BY_USER: (id) => `/ThinkBitcoin/patrimonio/${id}`,
@@ -105,8 +123,105 @@ export const ApiEndpoint = Object.freeze({
       const qs = params.toString()
       return qs ? `/api/TreinamentoEpisodio/serie?${qs}` : '/api/TreinamentoEpisodio/serie'
     },
+    // Avaliação out-of-sample de cada sessão de treino, da mais recente para a mais antiga.
+    AVALIACOES: ({ versaoModelo, dataInicio, dataFim, quantidade } = {}) => {
+      const params = new URLSearchParams()
+      if (versaoModelo) params.set('versaoModelo', versaoModelo)
+      if (dataInicio) params.set('dataInicio', dataInicio)
+      if (dataFim) params.set('dataFim', dataFim)
+      if (quantidade != null) params.set('quantidade', String(quantidade))
+      const qs = params.toString()
+      return qs ? `/api/TreinamentoEpisodio/avaliacoes?${qs}` : '/api/TreinamentoEpisodio/avaliacoes'
+    },
+    // Opções dos filtros de todo o histórico: moedas e versões, com o período de cada uma.
+    FILTROS: '/api/TreinamentoEpisodio/filtros',
+  }),
+  // Zoo de estratégias: regras simples medidas pela régua de risco (recurso pago).
+  // `janela`: 'teste-agente' para a janela do agente; omitida, o histórico.
+  ZOO_ESTRATEGIA: Object.freeze({
+    RODADA: ({ versaoZoo, dataHora, janela } = {}) => {
+      const params = new URLSearchParams()
+      if (versaoZoo) params.set('versaoZoo', versaoZoo)
+      if (dataHora) params.set('dataHora', dataHora)
+      if (janela) params.set('janela', janela)
+      const qs = params.toString()
+      return qs ? `/api/ZooEstrategia/rodada?${qs}` : '/api/ZooEstrategia/rodada'
+    },
+    CURVA: ({ moeda, estrategias, versaoZoo, dataInicio, dataFim, janela } = {}) => {
+      const params = new URLSearchParams()
+      if (moeda) params.set('moeda', moeda)
+      if (estrategias?.length) params.set('estrategias', estrategias.join(','))
+      if (versaoZoo) params.set('versaoZoo', versaoZoo)
+      if (dataInicio) params.set('dataInicio', dataInicio)
+      if (dataFim) params.set('dataFim', dataFim)
+      if (janela) params.set('janela', janela)
+      const qs = params.toString()
+      return qs ? `/api/ZooEstrategia/curva?${qs}` : '/api/ZooEstrategia/curva'
+    },
+  }),
+  // Operações do robô ao vivo (TbHistoricoDecisao), da mais recente para a mais
+  // antiga. Cargo AcessoIA; a tela que as usa (/robo-ao-vivo) é de administrador.
+  HISTORICO_DECISAO: Object.freeze({
+    LIST: ({ siglaMoeda, dataInicio, quantidade } = {}) => {
+      const params = new URLSearchParams()
+      if (siglaMoeda) params.set('siglaMoeda', siglaMoeda)
+      if (dataInicio) params.set('dataInicio', dataInicio)
+      if (quantidade != null) params.set('quantidade', String(quantidade))
+      const qs = params.toString()
+      return qs ? `/ThinkBitcoin/historicoDecisoes?${qs}` : '/ThinkBitcoin/historicoDecisoes'
+    },
+  }),
+  // O placar do robô ao vivo: a curva dele refeita pelas operações, a da regra no
+  // zoo, a do buy & hold, o critério do motor e a última conferência diária
+  // (CalculoPlacarRobo no .NET). Cargo AcessoIA.
+  ROBO_AO_VIVO: Object.freeze({
+    PLACAR: '/api/RoboAoVivo/placar',
+  }),
+  // A decisão do robô em cada vela (TbSequenciaRetorno), da mais recente para a
+  // mais antiga. O Tipo da vela das 23h é a decisão do dia. Cargo AcessoIA.
+  SEQUENCIA_RETORNO: Object.freeze({
+    LIST: ({ siglaMoeda, dataInicio, quantidade } = {}) => {
+      const params = new URLSearchParams()
+      if (siglaMoeda) params.set('siglaMoeda', siglaMoeda)
+      if (dataInicio) params.set('dataInicio', dataInicio)
+      if (quantidade != null) params.set('quantidade', String(quantidade))
+      const qs = params.toString()
+      return qs ? `/ThinkBitcoin/sequenciasRetorno?${qs}` : '/ThinkBitcoin/sequenciasRetorno'
+    },
+  }),
+  // Pedidos de alteração da Equipe Pregão (o usuário sintético que usa a
+  // plataforma como um day trader). A leitura é do cargo interno (Sistema ou
+  // Administrador); a decisão, só do administrador.
+  PEDIDO_ALTERACAO: Object.freeze({
+    LIST: ({ status, tipo, agente } = {}) => {
+      const params = new URLSearchParams()
+      if (status) params.set('status', status)
+      if (tipo) params.set('tipo', tipo)
+      if (agente) params.set('agente', agente)
+      const qs = params.toString()
+      return qs ? `/api/PedidoAlteracao?${qs}` : '/api/PedidoAlteracao'
+    },
+    // Corpo: { decisao: 'aprovado' | 'descartado', motivo }. Descartar pede motivo.
+    DECISAO: (id) => `/api/PedidoAlteracao/${id}/decisao`,
+    // Sem login: só os pedidos que um administrador aprovou (aprovado,
+    // em-correcao, corrigido, validado), com a linha do tempo, sem quem decidiu
+    // nem o motivo. Esperando decisão e descartado nunca vêm.
+    PUBLICO: '/api/PedidoAlteracao/publico',
   }),
 })
+
+/**
+ * Teto de candles que `/moeda/{sigla}/valor` aceita por requisição.
+ *
+ * Espelha o `FuncaoObterValorMoeda.QuantidadeMaxima` do backend. Acima disto a
+ * API responde 400 — antes ela aceitava qualquer número e materializava o
+ * resultado inteiro em memória, que era o problema que o teto resolveu.
+ *
+ * Está aqui, e não no DashboardContext, porque é contrato da API e não escolha
+ * de tela: qualquer consumidor futuro precisa respeitá-lo. Na cadência horária
+ * da coleta são cerca de 208 dias.
+ */
+export const QUANTIDADE_MAXIMA_CANDLES = 5000
 
 const JSON_HEADERS = Object.freeze({ 'Content-Type': 'application/json' })
 
@@ -116,9 +231,36 @@ const JSON_HEADERS = Object.freeze({ 'Content-Type': 'application/json' })
 // seguida de minúscula) para não corromper chaves-código como "BTC" ou "US".
 const PASCAL_KEY = /^[A-Z][a-z]/
 
+// Carimbo ISO 8601 sem nenhuma marca de fuso: "2026-08-14T11:00:00", com ou sem
+// fração de segundo. O `$` é essencial — um valor que já termine em Z ou em
+// ±hh:mm não casa e passa intacto.
+const ISO_SEM_FUSO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?$/
+
+/**
+ * Marca como UTC o carimbo que a API entrega sem fuso.
+ *
+ * A API .NET serializa `DateTime` sem sufixo quando o Kind é `Unspecified` —
+ * que é o que o EF Core devolve ao ler `datetime2`. Os valores SÃO UTC
+ * (`HoraReferencia` vem de `dataHoraAberturaUtc` da Binance), mas sem a marca
+ * `new Date()` os interpreta como hora LOCAL. Numa máquina em UTC-3, todo
+ * instante do produto nascia três horas deslocado.
+ *
+ * O desvio passava despercebido porque era uniforme: rótulo e filtro erravam
+ * juntos, então a tela parecia coerente consigo mesma. Aparecia só na borda —
+ * escolher "1 de abril" trazia candles a partir das 21h de 31 de março, e o
+ * mock (que emite `toISOString()`, com Z) se comportava diferente da produção.
+ *
+ * Corrigir aqui, na fronteira, em vez de em cada `new Date(...)` espalhado:
+ * são mais de trinta pontos de leitura, e o próximo a ser escrito voltaria a
+ * errar. Depois disto, todo consumidor recebe um carimbo que `new Date()` lê
+ * corretamente, sem precisar saber de nada disso.
+ */
+const marcarUtcQuandoFaltarFuso = (value) =>
+  typeof value === 'string' && ISO_SEM_FUSO.test(value) ? `${value}Z` : value
+
 export const normalizeApiKeys = (value) => {
   if (Array.isArray(value)) return value.map(normalizeApiKeys)
-  if (value === null || typeof value !== 'object') return value
+  if (value === null || typeof value !== 'object') return marcarUtcQuandoFaltarFuso(value)
   const out = {}
   for (const [key, val] of Object.entries(value)) {
     const camel = PASCAL_KEY.test(key)
@@ -164,6 +306,45 @@ const extractErrorMessage = async (response) => {
   return null
 }
 
+/**
+ * Efeitos colaterais que um status de erro dispara, independentemente de a
+ * resposta ter vindo da API ou do mock.
+ *
+ * Extraído para que os dois caminhos não divirjam: enquanto isto vivia só
+ * dentro do bloco de `fetch`, o modo demo não tinha como expirar sessão nem
+ * abrir o convite de assinatura, e um 403 mockado passava batido.
+ */
+const notificarStatusDeErro = (status, endpoint, suppressAuthRedirect) => {
+  if (typeof window === 'undefined') return
+
+  if (status === 401 && !suppressAuthRedirect) {
+    window.dispatchEvent(new CustomEvent('auth-expired'))
+  }
+
+  // 403 = autenticado mas sem o cargo exigido: recurso de assinatura paga.
+  // O Layout escuta este evento e exibe o convite para migrar de plano.
+  if (status === 403) {
+    window.dispatchEvent(new CustomEvent('subscription-required', { detail: { endpoint } }))
+  }
+}
+
+/**
+ * Padroniza o erro para o formato que os consumidores esperam: `status`,
+ * `hasBackendMessage` e uma mensagem sempre preenchida.
+ *
+ * `hasBackendMessage` é o que autoriza a tela a exibir o texto como veio, em
+ * vez de trocá-lo pela frase genérica dela. Sem esta marca, uma mensagem
+ * precisa ("Você já tem um alerta ativo neste valor") chega à interface
+ * indistinguível de uma falha de rede.
+ */
+const montarErroDeApi = (mensagem, status) => {
+  const texto = typeof mensagem === 'string' ? mensagem.trim() : ''
+  const error = new Error(texto || 'Falha na requisição à API')
+  error.status = status
+  error.hasBackendMessage = Boolean(texto)
+  return error
+}
+
 export const apiRequest = async (
   endpoint,
   {
@@ -176,6 +357,16 @@ export const apiRequest = async (
     cacheKey,
     forceRefresh = false,
     suppressAuthRedirect = false,
+    // Polling e atualização automática: a pessoa não pediu nada, então a barra
+    // de carregamento do topo não acende. Sem isto, ela piscaria a cada minuto
+    // numa tela parada, sugerindo que algo mudou quando nada mudou.
+    emSegundoPlano = false,
+    // Endpoint aberto, lido por página pública (ex.: /pregao): a chamada vai
+    // sem o token, e um 401 ou 403 não dispara nada — nem o fim da sessão nem
+    // o convite de assinatura. Quem lê sem login não tem sessão para expirar
+    // nem plano para migrar, e quem está logado e abre a página aberta não pode
+    // ser deslogado nem convidado a pagar por causa dela.
+    anonimo = false,
   } = {}
 ) => {
   const isGet = method === HttpMethod.GET
@@ -188,11 +379,45 @@ export const apiRequest = async (
     }
   }
 
+  // Depois do cache, de propósito: o que já está guardado volta na hora, e a
+  // barra só teria tempo de piscar.
+  const encerrarCarregamento = emSegundoPlano ? () => {} : iniciarCarregamento()
+  try {
+    return await requisitarSemCache(endpoint, {
+      method, headers, body, signal, useCache, ttl, key, isGet, suppressAuthRedirect, anonimo,
+    })
+  } finally {
+    encerrarCarregamento()
+  }
+}
+
+const requisitarSemCache = async (
+  endpoint,
+  { method, headers, body, signal, useCache, ttl, key, isGet, suppressAuthRedirect, anonimo }
+) => {
+  const notificar = (status) => {
+    if (!anonimo) notificarStatusDeErro(status, endpoint, suppressAuthRedirect)
+  }
+
   if (USE_MOCK_API) {
     // Import dinâmico: em produção a flag é estaticamente falsa e o Rollup joga
     // o mockApi num chunk separado, que o navegador nunca chega a buscar.
     const { getMockResponse } = await import('./mockApi')
-    const mockResponse = getMockResponse({ endpoint, method, body })
+
+    let mockResponse
+    try {
+      mockResponse = getMockResponse({ endpoint, method, body })
+    } catch (mockError) {
+      // Os handlers do mock recusam entrada inválida lançando um Error com
+      // `status`, imitando o 400 da API. Sem este catch a exceção escapava crua:
+      // o erro chegava sem `hasBackendMessage`, e a tela — que só confia no
+      // texto quando essa marca existe — descartava a mensagem específica e
+      // exibia "tente novamente" no lugar dela.
+      const status = Number.isInteger(mockError?.status) ? mockError.status : 400
+      notificar(status)
+      throw montarErroDeApi(mockError?.message, status)
+    }
+
     if (mockResponse) {
       const normalizedMock = normalizeApiKeys(mockResponse)
       if (useCache && isGet) {
@@ -204,23 +429,12 @@ export const apiRequest = async (
 
   const response = await fetch(
     buildUrl(endpoint),
-    { ...createRequestInit(method, withAuthHeader(headers), body), signal }
+    { ...createRequestInit(method, anonimo ? headers : withAuthHeader(headers), body), signal }
   )
 
   if (!response.ok) {
-    if (response.status === 401 && !suppressAuthRedirect && typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('auth-expired'))
-    }
-    // 403 = autenticado mas sem o cargo exigido: recurso de assinatura paga.
-    // O Layout escuta este evento e exibe o convite para migrar de plano.
-    if (response.status === 403 && typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('subscription-required', { detail: { endpoint } }))
-    }
-    const backendMessage = await extractErrorMessage(response)
-    const error = new Error(backendMessage || 'Falha na requisição à API')
-    error.status = response.status
-    error.hasBackendMessage = Boolean(backendMessage)
-    throw error
+    notificar(response.status)
+    throw montarErroDeApi(await extractErrorMessage(response), response.status)
   }
 
   if (response.status === 204) return null
@@ -237,8 +451,15 @@ export const AuthenticationEndpoint = ApiEndpoint.AUTHENTICATION
 export const UserEndpoint = ApiEndpoint.USER
 export const MarketEndpoint = ApiEndpoint.MARKET
 export const PreferencesEndpoint = ApiEndpoint.PREFERENCES
-export const CargoEndpoint = ApiEndpoint.CARGO
 export const VariavelExternaEndpoint = ApiEndpoint.VARIAVEL_EXTERNA
 export const PatrimonioEndpoint = ApiEndpoint.PATRIMONIO
+export const AlertaPrecoEndpoint = ApiEndpoint.ALERTA_PRECO
 export const PlanosPagamentoEndpoint = ApiEndpoint.PLANOS_PAGAMENTO
 export const TreinamentoEpisodioEndpoint = ApiEndpoint.TREINAMENTO_EPISODIO
+export const ZooEstrategiaEndpoint = ApiEndpoint.ZOO_ESTRATEGIA
+export const HistoricoDecisaoEndpoint = ApiEndpoint.HISTORICO_DECISAO
+export const SequenciaRetornoEndpoint = ApiEndpoint.SEQUENCIA_RETORNO
+export const RoboAoVivoEndpoint = ApiEndpoint.ROBO_AO_VIVO
+export const PedidoAlteracaoEndpoint = ApiEndpoint.PEDIDO_ALTERACAO
+export const DocumentoLegalEndpoint = ApiEndpoint.DOCUMENTO_LEGAL
+export const ConsentimentoEndpoint = ApiEndpoint.CONSENTIMENTO

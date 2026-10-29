@@ -25,7 +25,10 @@ jobs:
       versionSpec: '20.x'
     displayName: 'Install Node.js'
 
-  - script: npm install
+  # `ci` instala exatamente o que o package-lock.json trava; `install` resolvia
+  # os ranges de novo a cada execução, e os testes rodavam sobre versões que
+  # ninguém tinha escolhido.
+  - script: npm ci
     workingDirectory: 'src'
     displayName: 'Install Dependencies'
 

@@ -47,6 +47,81 @@ export const FilterInterval = Object.freeze({
   CUSTOM: 'custom',
 });
 
+/**
+ * Por que uma posição simulada foi fechada.
+ *
+ * STOP – o preço tocou o limite de perda.
+ * ALVO – o preço tocou o limite de ganho.
+ * TEMPO – esgotou o horizonte em candles sem tocar stop nem alvo.
+ * DESCONTINUIDADE – a série pulou mais tempo do que a cadência tolera (hora sem
+ *   coleta). A posição fecha no último preço conhecido: dentro do buraco não se
+ *   sabe o que aconteceu, e seguir segurando seria inventar. Conta no win rate,
+ *   porque a saída ocorreu a um preço real.
+ * FIM_DA_SERIE – a janela carregada acabou com a posição ainda aberta. Entra na
+ *   curva de capital, mas fica FORA do win rate: o desfecho não aconteceu, e
+ *   contá-lo como acerto ou erro seria inventar o que não se sabe.
+ * SINAL – apareceu o sinal de saída escolhido. A posição fecha na ABERTURA do
+ *   candle seguinte, pela mesma razão que a entrada acontece ali: o sinal só é
+ *   conhecido no fechamento do candle que o gerou.
+ */
+export const ExitReason = Object.freeze({
+  STOP: 'stop',
+  ALVO: 'alvo',
+  TEMPO: 'tempo',
+  DESCONTINUIDADE: 'descontinuidade',
+  FIM_DA_SERIE: 'fimDaSerie',
+  SINAL: 'sinal',
+});
+
+/**
+ * Como a distância do stop é decidida.
+ *
+ * PERCENTUAL – número fixo digitado pelo usuário, igual para toda a janela.
+ * ATR – dimensionado pela volatilidade medida no candle da entrada. Um stop de
+ *   2% é apertado num ativo que oscila 5% ao dia e frouxo num que oscila 0,5%;
+ *   o ATR ajusta a distância ao que o ativo estava de fato fazendo naquele
+ *   momento, em vez de aplicar o mesmo palpite a períodos calmos e agitados.
+ * ATR_MOVEL – nasce igual ao ATR e depois acompanha o preço: a cada candle
+ *   fechado, o stop sobe (comprado) ou desce (vendido) até a mesma distância do
+ *   melhor preço alcançado. Nunca recua.
+ */
+export const StopMode = Object.freeze({
+  PERCENTUAL: 'percentual',
+  ATR: 'atr',
+  ATR_MOVEL: 'atrMovel',
+});
+
+/**
+ * Filtro de tendência aplicado ao candle do sinal de entrada.
+ *
+ * ALTA – só entra com o fechamento acima da média móvel.
+ * BAIXA – só entra com o fechamento abaixo dela.
+ *
+ * Ausente (null) é "sem filtro". Não há um valor NENHUM porque o motor trata a
+ * falta de filtro como falta, e não como um filtro que sempre passa.
+ */
+export const TrendFilter = Object.freeze({
+  ALTA: 'alta',
+  BAIXA: 'baixa',
+});
+
+/**
+ * Lado da posição simulada.
+ *
+ * Existe porque metade do vocabulário de sinais é de baixa — divergência
+ * baixista, RSI em sobrecompra, estrela cadente. Medir esses sinais apenas
+ * comprado não descreve nada.
+ *
+ * O valor é numérico, e não a string dos outros enums deste arquivo, porque ele
+ * É o multiplicador do retorno: `direcao * (saida - entrada) / entrada` vale
+ * para os dois lados sem ramificação. Mesma convenção do ambiente de simulação
+ * do backend.
+ */
+export const TradeDirection = Object.freeze({
+  COMPRA: 1,
+  VENDA: -1,
+});
+
 export const MapRegion = Object.freeze({
   WORLD: 'world',
   AMERICAS: '019',
@@ -54,16 +129,6 @@ export const MapRegion = Object.freeze({
   ASIA: '142',
   AFRICA: '002',
   OCEANIA: '009',
-});
-
-/**
- * Variante de tema visual da plataforma.
- * DEFAULT – tema escuro padrão.
- * HIGH_CONTRAST – alto contraste para acessibilidade.
- */
-export const ThemeVariant = Object.freeze({
-  DEFAULT: 'default',
-  HIGH_CONTRAST: 'high-contrast',
 });
 
 /**

@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { analisarSinais, SignalKey } from '../src/utils/signalLab'
+import { analisarSinais, montarSerieDeSinais, SignalKey } from '../src/utils/signalLab'
 import { CandlePattern } from '../src/utils/candlePatterns'
+import { DivergenceKind } from '../src/utils/flowDivergence'
+import { PERIODO_VWAP_MOVEL, VwapSignal } from '../src/utils/vwap'
+import { OscillatorSignal } from '../src/utils/oscillators'
+import { geradorAleatorio } from '../src/utils/mathUtils'
 
 // Geometrias fixas: martelo tem sombra inferior longa, neutro fica no meio.
 const MARTELO = { corpo: 10, sup: 2, inf: 30 }
@@ -76,13 +80,25 @@ describe('utils/signalLab › analisarSinais', () => {
   })
 
   it('deve captar volume atípico quando a série sustenta a régua', () => {
-    // calcularLimites exige 8 registros; o pico de volume é 10× a mediana.
-    const cronologico = Array.from({ length: 9 }, (_, i) => reg(100 + i, NEUTRO, 100))
-    cronologico[2] = reg(102, NEUTRO, 1000)
+    // A régua é a dos candles até ele, e exige 8: o pico vem no 9º, a 10× a
+    // mediana dos que vieram antes.
+    const cronologico = Array.from({ length: 10 }, (_, i) => reg(100 + i, NEUTRO, 100))
+    cronologico[8] = reg(108, NEUTRO, 1000)
 
     const r = analisarSinais(comoDaApi(cronologico))
     const vol = r.sinais.find((s) => s.chave === SignalKey.VOLUME_ATIPICO)
     expect(vol.ocorrencias).toBe(1)
+  })
+
+  it('não deve chamar de atípico um candle sem histórico para compará-lo', () => {
+    // O mesmo pico no 3º candle. Contra a régua do período inteiro ele era
+    // atípico — mas no fechamento dele só existiam três candles, e os seis
+    // seguintes, que fariam a régua, ainda não tinham acontecido.
+    const cronologico = Array.from({ length: 10 }, (_, i) => reg(100 + i, NEUTRO, 100))
+    cronologico[2] = reg(102, NEUTRO, 1000)
+
+    const r = analisarSinais(comoDaApi(cronologico))
+    expect(r.sinais.find((s) => s.chave === SignalKey.VOLUME_ATIPICO)).toBeUndefined()
   })
 
   it('deve ordenar pelo maior deslocamento em relação à base', () => {
@@ -151,5 +167,445 @@ describe('utils/signalLab › significância estatística', () => {
     const r = analisarSinais(comoDaApi([reg(100), reg(110), reg(121)]))
     expect(r.base.positivos).toBe(2)
     expect(r.base.ocorrencias).toBe(2)
+  })
+})
+
+describe('utils/signalLab › janela analisada', () => {
+  // A série carregada inclui a margem de aquecimento que o dashboard pede antes
+  // do período escolhido. Sem `aPartirDe`, o laboratório media aqueles candles
+  // também — e reportava mais amostras do que o filtro da tela pediu, além de
+  // discordar da simulação ao lado sobre a mesma janela.
+
+  const comHora = (close, hora, forma = NEUTRO) => ({
+    precoFechamento: close,
+    precoCorpoCandle: forma.corpo,
+    precoSombraSuperior: forma.sup,
+    precoSombraInferior: forma.inf,
+    precoAmplitude: forma.corpo + forma.sup + forma.inf,
+    precoVolume: 100,
+    precoPercentualVariacao: 0,
+    horaReferencia: hora,
+  })
+
+  // Seis candles horários; os três primeiros são aquecimento.
+  const SERIE = comoDaApi([
+    comHora(100, '2026-01-01T00:00:00Z'),
+    comHora(110, '2026-01-01T01:00:00Z'),
+    comHora(120, '2026-01-01T02:00:00Z'),
+    comHora(130, '2026-01-01T03:00:00Z'),
+    comHora(140, '2026-01-01T04:00:00Z'),
+    comHora(150, '2026-01-01T05:00:00Z'),
+  ])
+
+  it('deve medir a série inteira quando não há recorte', () => {
+    // Cinco candles têm futuro dentro da janela.
+    expect(analisarSinais(SERIE).base.ocorrencias).toBe(5)
+  })
+
+  it('deve contar apenas os candles do período escolhido', () => {
+    // A partir das 03:00 sobram três candles, e o último não tem futuro.
+    const r = analisarSinais(SERIE, { aPartirDe: '2026-01-01T03:00:00Z' })
+    expect(r.base.ocorrencias).toBe(2)
+  })
+
+  it('deve medir os retornos do período, não os do aquecimento', () => {
+    // 130→140 e 140→150. Se o aquecimento entrasse, a média incluiria os saltos
+    // de 100→110 e 110→120, que são percentualmente maiores.
+    const r = analisarSinais(SERIE, { aPartirDe: '2026-01-01T03:00:00Z' })
+    const esperado = ((10 / 130) * 100 + (10 / 140) * 100) / 2
+    expect(r.base.retornoMedio).toBeCloseTo(esperado, 6)
+  })
+
+  it('deve ignorar recorte inutilizável em vez de zerar a análise', () => {
+    expect(analisarSinais(SERIE, { aPartirDe: 'nao e data' }).base.ocorrencias).toBe(5)
+    expect(analisarSinais(SERIE, { aPartirDe: null }).base.ocorrencias).toBe(5)
+  })
+
+  it('deve devolver null quando o recorte não deixa nada para medir', () => {
+    expect(analisarSinais(SERIE, { aPartirDe: '2027-01-01T00:00:00Z' })).toBeNull()
+  })
+})
+
+describe('utils/signalLab › famílias de alinhamento posicional', () => {
+  // Por que este bloco existe:
+  //
+  // Martelo e volume atípico são classificados registro a registro, dentro do
+  // próprio laço. Divergência, VWAP e osciladores não: chegam prontos, como
+  // ARRAY indexado por posição cronológica, montado antes do laço. São as
+  // únicas famílias em que a marca pode ser atribuída ao candle errado — e um
+  // deslocamento de uma posição não quebra nada visível, só troca o número.
+  //
+  // Cada série abaixo é construída para que o retorno seguinte a cada sinal
+  // seja ÚNICO. Isso transforma `retornoMedio` em prova de alinhamento: se a
+  // marca escorregar um candle, o valor muda. Conferir só `ocorrencias` não
+  // bastaria — no meio de uma sequência a contagem se mantém.
+
+  const NEUTRO = { corpo: 50, sup: 25, inf: 25 }
+
+  // Registro com os campos que estas famílias exigem e que o `reg` do bloco
+  // acima não precisa carregar: fluxo (volumeDelta), nocional
+  // (precoTotalNegociada, para o VWAP) e ticket.
+  const regCompleto = (close, opts = {}) => {
+    const { forma = NEUTRO, volume = 100, delta = 0, variacao = 0, ticket = 10 } = opts
+    return {
+      precoFechamento: close,
+      precoCorpoCandle: forma.corpo,
+      precoSombraSuperior: forma.sup,
+      precoSombraInferior: forma.inf,
+      precoAmplitude: forma.corpo + forma.sup + forma.inf,
+      precoVolume: volume,
+      precoPercentualVariacao: variacao,
+      volumeDelta: delta,
+      precoTotalNegociada: volume * close,
+      precoFinanceiroPorTrade: ticket,
+    }
+  }
+
+  const daApi = (cronologico) => [...cronologico].reverse()
+  const acharSinal = (r, chave) => r.sinais.find((s) => s.chave === chave)
+
+  // Serrilhado de 20 candles: deixa o RSI perto de 50 para que a alta (ou a
+  // queda) seguinte ATRAVESSE o limiar. Sem isso o RSI já nasce saturado e
+  // `detectarExtremosRsi` não marca nada — o evento é a travessia, não o nível.
+  const preambuloNeutro = () =>
+    Array.from({ length: 20 }, (_, i) => (i % 2 === 0 ? 100 : 102))
+
+  describe('divergência de fluxo', () => {
+    it('deve marcar divergência baixista no candle certo', () => {
+      // Preço sobe 1 por candle e o fluxo é negativo o tempo todo: alta sem
+      // lastro de compra em toda janela a partir da 5ª posição.
+      const cron = Array.from({ length: 14 }, (_, i) => regCompleto(100 + i, { delta: -20 }))
+      const d = acharSinal(analisarSinais(daApi(cron)), DivergenceKind.BEARISH)
+
+      // Marcado das posições 7 a 12. A janela de preço existe desde a 5, mas a
+      // régua de volume só a partir da 7: ela é medida nos candles até ali, e
+      // exige 8. A 13 fica de fora por não ter futuro dentro da série.
+      expect(d.ocorrencias).toBe(6)
+      // Média de 1/107, 1/108 … 1/112. Escorregar uma posição em qualquer
+      // direção muda tanto a contagem quanto esta média.
+      expect(d.retornoMedio).toBeCloseTo(0.91346, 5)
+    })
+
+    it('deve marcar divergência altista no candle certo', () => {
+      const cron = Array.from({ length: 14 }, (_, i) => regCompleto(120 - i, { delta: 20 }))
+      const d = acharSinal(analisarSinais(daApi(cron)), DivergenceKind.BULLISH)
+
+      expect(d.ocorrencias).toBe(6)
+      expect(d.retornoMedio).toBeCloseTo(-0.90519, 5)
+    })
+  })
+
+  describe('cruzamentos de VWAP', () => {
+    // O VWAP é o das últimas 24 horas e só existe com a janela cheia: os 24
+    // primeiros candles, parados em 100, levam o VWAP a 100 na posição 23. A
+    // travessia depende dos 23 anteriores — não dá para montar por candle
+    // isolado.
+    const SERIE = [...Array(24).fill(100), 90, 95, 99, 120, 132, 100, 105, 105]
+
+    it('deve atribuir o cruzamento para cima ao candle certo', () => {
+      const r = analisarSinais(daApi(SERIE.map((p) => regCompleto(p))))
+      const alta = acharSinal(r, VwapSignal.CROSS_UP)
+
+      // Posições 27 (120, contra VWAP de 100,17) e 30 (105, contra 101,71).
+      expect(alta.ocorrencias).toBe(2)
+      // 120 → 132 (+10%) e 105 → 105 (0%).
+      expect(alta.retornoMedio).toBeCloseTo(5, 5)
+    })
+
+    it('deve atribuir o cruzamento para baixo ao candle certo', () => {
+      const r = analisarSinais(daApi(SERIE.map((p) => regCompleto(p))))
+      const baixa = acharSinal(r, VwapSignal.CROSS_DOWN)
+
+      // Posições 24 (90) e 29 (100, contra VWAP de 101,5).
+      expect(baixa.ocorrencias).toBe(2)
+      // 90 → 95 (+5,56%) e 100 → 105 (+5%).
+      expect(baixa.retornoMedio).toBeCloseTo(5.27778, 5)
+    })
+  })
+
+  describe('osciladores', () => {
+    it('deve atribuir RSI em sobrecompra e rompimento de banda superior', () => {
+      const precos = [...preambuloNeutro()]
+      for (let i = 0; i < 12; i++) precos.push(103 + i * 4)
+      const r = analisarSinais(daApi(precos.map((p) => regCompleto(p))))
+
+      const rsi = acharSinal(r, OscillatorSignal.RSI_OVERBOUGHT)
+      expect(rsi.ocorrencias).toBe(1)
+      // Marcado na posição 23: 115 → 119.
+      expect(rsi.retornoMedio).toBeCloseTo(3.47826, 5)
+
+      // A banda rompe antes do RSI saturar — posição 21: 107 → 111. Os dois
+      // saem do mesmo array de marcas, e valores diferentes provam que cada um
+      // foi para a sua posição.
+      const banda = acharSinal(r, OscillatorSignal.BAND_BREAK_UP)
+      expect(banda.ocorrencias).toBe(1)
+      expect(banda.retornoMedio).toBeCloseTo(3.73832, 5)
+    })
+
+    it('deve atribuir RSI em sobrevenda e rompimento de banda inferior', () => {
+      const precos = [...preambuloNeutro()]
+      for (let i = 0; i < 12; i++) precos.push(99 - i * 4)
+      const r = analisarSinais(daApi(precos.map((p) => regCompleto(p))))
+
+      const rsi = acharSinal(r, OscillatorSignal.RSI_OVERSOLD)
+      expect(rsi.ocorrencias).toBe(1)
+      // Posição 24: 83 → 79.
+      expect(rsi.retornoMedio).toBeCloseTo(-4.81928, 5)
+
+      const banda = acharSinal(r, OscillatorSignal.BAND_BREAK_DOWN)
+      expect(banda.ocorrencias).toBe(1)
+      // Posição 21: 95 → 91.
+      expect(banda.retornoMedio).toBeCloseTo(-4.21053, 5)
+    })
+
+    it('não deve marcar RSI que já nasce fora do limiar', () => {
+      // Série que só sobe: o RSI satura em 100 na primeira posição calculável e
+      // nunca ATRAVESSA o limiar vindo de baixo. Comportamento deliberado —
+      // permanecer sobrecomprado é estado, não evento — e fica registrado aqui
+      // para não ser "corrigido" por engano.
+      const precos = Array.from({ length: 30 }, (_, i) => 100 + i * 3)
+      const r = analisarSinais(daApi(precos.map((p) => regCompleto(p))))
+
+      expect(acharSinal(r, OscillatorSignal.RSI_OVERBOUGHT)).toBeUndefined()
+    })
+  })
+
+  describe('anomalias por registro', () => {
+    // Ticket e variação atípica são avaliados registro a registro, como o
+    // volume. Entram aqui porque nenhum teste os cobria — o alinhamento não é
+    // o risco, a ausência de cobertura era.
+    const serieComPico = () => {
+      const cron = Array.from({ length: 12 }, (_, i) =>
+        regCompleto(100 + i, { ticket: 10, variacao: 1 })
+      )
+      // Posição 9, com nove candles antes para fazer a régua: ticket 5× a
+      // mediana e variação a 3σ da média dos dez.
+      cron[9] = regCompleto(109, { ticket: 50, variacao: 40 })
+      return cron
+    }
+
+    it('deve captar ticket alto', () => {
+      const t = acharSinal(analisarSinais(daApi(serieComPico())), SignalKey.TICKET_ALTO)
+      expect(t.ocorrencias).toBe(1)
+      // 109 → 110.
+      expect(t.retornoMedio).toBeCloseTo(0.91743, 5)
+    })
+
+    it('deve captar variação atípica', () => {
+      const v = acharSinal(analisarSinais(daApi(serieComPico())), SignalKey.VARIACAO_ATIPICA)
+      expect(v.ocorrencias).toBe(1)
+      expect(v.retornoMedio).toBeCloseTo(0.91743, 5)
+    })
+  })
+})
+
+describe('utils/signalLab › causalidade da série de sinais', () => {
+  // Série com mudança de regime no meio: volume, ticket e oscilação baixos na
+  // primeira metade e altos na segunda, com picos espalhados. É o formato em
+  // que uma régua medida sobre o período INTEIRO mais se afasta da que existia
+  // no instante de cada candle.
+  const serieComRegime = (n = 160, semente = 3) => {
+    const sortear = geradorAleatorio(semente)
+    let preco = 100
+    return Array.from({ length: n }, (_, i) => {
+      const escala = i < n / 2 ? 1 : 4
+      const variacao = (sortear() - 0.5) * 2 * escala
+      const abertura = preco
+      preco = Math.max(1, preco * (1 + variacao / 100))
+      const volume = (50 + sortear() * 100) * escala * (sortear() < 0.05 ? 6 : 1)
+      const corpo = Math.abs(preco - abertura) + 0.01
+      const sup = sortear() * 3
+      const inf = sortear() * 3
+      return {
+        horaReferencia: new Date(Date.UTC(2026, 0, 1) + i * 3600000).toISOString(),
+        precoAbertura: abertura,
+        precoFechamento: preco,
+        precoMaior: Math.max(abertura, preco) + sup,
+        precoMenor: Math.min(abertura, preco) - inf,
+        precoCorpoCandle: corpo,
+        precoSombraSuperior: sup,
+        precoSombraInferior: inf,
+        precoAmplitude: corpo + sup + inf,
+        precoPercentualVariacao: variacao,
+        precoVolume: volume,
+        precoTotalNegociada: volume * preco,
+        precoFinanceiroPorTrade: (8 + sortear() * 4) * escala * (sortear() < 0.05 ? 3 : 1),
+        volumeDelta: (sortear() - 0.5) * volume,
+      }
+    })
+  }
+
+  it('não deve deixar candle futuro mudar o sinal de um candle passado', () => {
+    // O sinal de um candle é o que o operador veria no fechamento dele. Se
+    // cortar a série logo depois muda esse sinal, ele foi montado com dado que
+    // ainda não existia — e a simulação operava sobre essa informação.
+    const cronologico = serieComRegime()
+    const inteira = montarSerieDeSinais([...cronologico].reverse())
+
+    for (const corte of [30, 60, 80, 100, 130]) {
+      const ate = montarSerieDeSinais(cronologico.slice(0, corte).reverse())
+      const diferentes = ate.filter((c, i) => c.sinais.join() !== inteira[i].sinais.join())
+      expect(diferentes.map((c) => c.registro.horaReferencia)).toEqual([])
+    }
+  })
+
+  it('deve ler o cruzamento de VWAP só nas últimas 24 horas', () => {
+    // Mesmos 60 candles finais, históricos anteriores em níveis de preço
+    // opostos. Ancorado no início da série, o VWAP carregava esse passado para
+    // sempre: seis meses depois ainda era a média de seis meses, e quase não
+    // era mais cruzado.
+    const fim = serieComRegime(60, 9)
+    const passado = (nivel) => serieComRegime(48, 5).map((r, i) => ({
+      ...r,
+      horaReferencia: new Date(Date.UTC(2025, 11, 30) + i * 3600000).toISOString(),
+      precoFechamento: nivel,
+      precoAbertura: nivel,
+      precoTotalNegociada: r.precoVolume * nivel,
+    }))
+    const cruzamentos = (cronologico) =>
+      montarSerieDeSinais([...cronologico].reverse())
+        .slice(-60 + PERIODO_VWAP_MOVEL)
+        .map((c) => c.sinais.filter((s) => s.startsWith('vwap')).join())
+
+    // A régua é a série SEM passado nenhum, e não uma com o outro passado: com
+    // o preço sempre acima (ou abaixo) do acumulado, as duas versões dariam
+    // "nenhum cruzamento" — iguais entre si, e o teste passaria com o defeito.
+    const soFim = cruzamentos(fim)
+    expect(soFim.some(Boolean)).toBe(true)
+    expect(cruzamentos([...passado(50), ...fim])).toEqual(soFim)
+    expect(cruzamentos([...passado(200), ...fim])).toEqual(soFim)
+  })
+})
+
+describe('utils/signalLab › validação fora da amostra', () => {
+  // A tabela mede quinze sinais na mesma janela e ordena pelo maior
+  // deslocamento. O intervalo de confiança responde por uma linha de cada vez e
+  // não enxerga esse procedimento: com quinze linhas a 95%, a chance de ao menos
+  // uma se destacar por acaso é de ~54%, e ordenar pelo extremo é exatamente o
+  // que traz essa linha para o topo. A validação é o trecho que não participou
+  // da ordenação — a única coluna capaz de desmentir a tabela.
+
+  const MARTELOS_AJUSTE = [5, 9, 13, 17]
+  const MARTELOS_VALIDACAO = [24, 26]
+
+  /**
+   * Trinta candles horários. O corte reserva os 20% mais recentes — seis —, e o
+   * martelo foi plantado para contar histórias OPOSTAS nos dois trechos: no
+   * ajuste ele sempre precede alta, na validação sempre precede queda. Os
+   * demais candles alternam, para a taxa base não ser 0% nem 100% em lado
+   * nenhum: sem base intermediária o delta não teria o que medir.
+   */
+  const serieDe = ({
+    marteloNoAjuste = true,
+    marteloNaValidacao = true,
+    fatorPrecoValidacao = 1,
+    fatorVolumeValidacao = 1,
+  } = {}) => {
+    const candles = []
+    let preco = 100
+
+    for (let i = 0; i < 30; i++) {
+      const naValidacao = i >= 24
+      const ehMartelo =
+        (marteloNoAjuste && MARTELOS_AJUSTE.includes(i)) ||
+        (marteloNaValidacao && MARTELOS_VALIDACAO.includes(i))
+      const forma = ehMartelo ? MARTELO : NEUTRO
+
+      candles.push({
+        precoFechamento: preco * (naValidacao ? fatorPrecoValidacao : 1),
+        precoCorpoCandle: forma.corpo,
+        precoSombraSuperior: forma.sup,
+        precoSombraInferior: forma.inf,
+        precoAmplitude: forma.corpo + forma.sup + forma.inf,
+        precoVolume: 100 * (naValidacao ? fatorVolumeValidacao : 1),
+        precoPercentualVariacao: 0,
+        horaReferencia: `2026-03-0${1 + Math.floor(i / 24)}T${String(i % 24).padStart(2, '0')}:00:00Z`,
+      })
+
+      const sobe = ehMartelo ? !naValidacao : i % 2 === 0
+      preco = sobe ? preco * 1.02 : preco * 0.98
+    }
+
+    return comoDaApi(candles)
+  }
+
+  const marteloDe = (r) => r.sinais.find((s) => s.chave === CandlePattern.MARTELO)
+
+  it('deve reservar a fração mais recente da janela', () => {
+    const r = analisarSinais(serieDe())
+    // 20% de 30 candles: seis reservados, vinte e quatro para o ajuste.
+    expect(r.corte.candlesValidacao).toBe(6)
+    expect(r.corte.candlesAjuste).toBe(24)
+  })
+
+  it('não deve cortar quando a janela é curta demais para dividir', () => {
+    // Seis candles: 20% arredondam para um, e um lado com um candle só não
+    // produz duas medições — produz uma medição e um número sem sentido.
+    const curta = comoDaApi([
+      reg(100), reg(110), reg(105), reg(112), reg(108), reg(115),
+    ])
+    const r = analisarSinais(curta)
+    expect(r.corte).toBeNull()
+    expect(r.sinais.every((s) => s.ajuste === null && s.validacao === null)).toBe(true)
+  })
+
+  it('deve permitir desligar o corte', () => {
+    expect(analisarSinais(serieDe(), { fracaoValidacao: null }).corte).toBeNull()
+  })
+
+  it('deve revelar o sinal que inverte fora do trecho em que foi escolhido', () => {
+    const martelo = marteloDe(analisarSinais(serieDe()))
+
+    // No ajuste o martelo precedeu alta todas as vezes; na validação, queda
+    // todas as vezes. É a linha que a janela cheia — que contém as duas — leria
+    // como um deslocamento positivo modesto, escondendo a inversão.
+    expect(martelo.deltaTaxa).toBeGreaterThan(0)
+    expect(martelo.ajuste.deltaTaxa).toBeGreaterThan(0)
+    expect(martelo.validacao.deltaTaxa).toBeLessThan(0)
+    expect(martelo.ajuste.taxaAlta).toBeCloseTo(100, 6)
+    expect(martelo.validacao.taxaAlta).toBeCloseTo(0, 6)
+  })
+
+  it('deve medir o delta de cada trecho contra a base DAQUELE trecho', () => {
+    const r = analisarSinais(serieDe())
+    const martelo = marteloDe(r)
+
+    // A taxa base se move entre os trechos, então comparar taxas brutas de um
+    // lado com o outro leria errado: o que atravessa o corte é o deslocamento.
+    expect(martelo.ajuste.deltaTaxa).toBeCloseTo(
+      martelo.ajuste.taxaAlta - r.corte.baseAjuste.taxaAlta,
+      6
+    )
+    expect(martelo.validacao.deltaTaxa).toBeCloseTo(
+      martelo.validacao.taxaAlta - r.corte.baseValidacao.taxaAlta,
+      6
+    )
+    expect(r.corte.baseAjuste.taxaAlta).not.toBeCloseTo(r.corte.baseValidacao.taxaAlta, 3)
+  })
+
+  it('deve deixar em branco o trecho em que o sinal não ocorreu', () => {
+    // "Não ocorreu" não é "não funcionou": um número ali seria invenção.
+    const soNoAjuste = marteloDe(analisarSinais(serieDe({ marteloNaValidacao: false })))
+    expect(soNoAjuste.ajuste.ocorrencias).toBe(MARTELOS_AJUSTE.length)
+    expect(soNoAjuste.validacao).toBeNull()
+
+    const soNaValidacao = marteloDe(analisarSinais(serieDe({ marteloNoAjuste: false })))
+    expect(soNaValidacao.ajuste).toBeNull()
+    expect(soNaValidacao.validacao.ocorrencias).toBe(MARTELOS_VALIDACAO.length)
+  })
+
+  it('não deve deixar o trecho reservado influenciar o ajuste', () => {
+    // O ajuste é medido sobre a série CORTADA, com os indicadores remontados
+    // sobre ela. Reaproveitar a série da janela cheia e só filtrar por data
+    // pareceria equivalente e não é: limiares de anomalia, Bollinger, RSI e VWAP
+    // teriam sido calculados com os candles reservados dentro, e o ajuste saberia
+    // da validação por vias tortas.
+    const normal = analisarSinais(serieDe())
+    const validacaoDistorcida = analisarSinais(
+      serieDe({ fatorPrecoValidacao: 5, fatorVolumeValidacao: 50 })
+    )
+
+    expect(validacaoDistorcida.corte.baseAjuste).toEqual(normal.corte.baseAjuste)
+    expect(marteloDe(validacaoDistorcida).ajuste).toEqual(marteloDe(normal).ajuste)
   })
 })

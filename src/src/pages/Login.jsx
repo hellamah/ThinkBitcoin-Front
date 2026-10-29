@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { TextField, Button, Box, Paper, Typography, Modal, CircularProgress } from '@mui/material'
 import { MdEmail, MdLock } from 'react-icons/md'
 import ErrorMessage from '../components/ErrorMessage'
@@ -19,14 +19,22 @@ function Login() {
   const [carregando, setCarregando] = useState(false)
   const [mensagem, setMensagem] = useState('')
   const navegar = useNavigate()
-  const { login } = useAuth()
+  const { login, token } = useAuth()
   const { t } = useTranslation()
+  // Só o token de quando a tela abriu conta: o login feito aqui mesmo também
+  // preenche o token, e redirecionar por ele cortaria a mensagem de boas-vindas.
+  const [jaEntrou] = useState(() => Boolean(token))
 
   const [modalAberto, setModalAberto] = useState(false)
   const [emailRecuperacao, setEmailRecuperacao] = useState('')
   const [erroRecuperacao, setErroRecuperacao] = useState('')
   const [mensagemRecuperacao, setMensagemRecuperacao] = useState('')
   const [enviandoRecuperacao, setEnviandoRecuperacao] = useState(false)
+
+  // Quem já entrou e chega aqui (por um favorito, pelo voltar do navegador) vai
+  // direto para o painel, em vez de ver o formulário de novo. O `token` é o
+  // mesmo que a ProtectedRoute usa, e já vem sem os vencidos: não há vaivém.
+  if (jaEntrou) return <Navigate to="/dashboard" replace />
 
   const processarEnvio = async (e) => {
     e.preventDefault()
@@ -68,9 +76,9 @@ function Login() {
         },
         suppressAuthRedirect: true,
       })
-      setMensagemRecuperacao('Se este email estiver cadastrado, você receberá um link de redefinição em breve.')
+      setMensagemRecuperacao(t('senha.recuperarEnviado'))
     } catch {
-      setErroRecuperacao('Não foi possível processar a solicitação. Tente novamente.')
+      setErroRecuperacao(t('senha.recuperarErro'))
     } finally {
       setEnviandoRecuperacao(false)
     }
@@ -118,7 +126,7 @@ function Login() {
             {t('login')}
           </Typography>
           <Typography sx={{ color: 'var(--text-muted)', mt: 1 }}>
-            Configure seu perfil de investimento profissional
+            {t('loginSubtitle')}
           </Typography>
         </Box>
 
@@ -158,18 +166,26 @@ function Login() {
              />
 
             <Box sx={{ textAlign: 'right', mt: -1, mb: 1 }}>
+              {/* Era um <span> com onClick: o único caminho para recuperar a
+                  senha não existia para quem navega por teclado, e o leitor de
+                  tela anunciava a frase como texto comum.
+
+                  `type="button"` não é detalhe: isto vive dentro do <form> de
+                  login, e o padrão do HTML para botão sem type é submit —
+                  abrir o modal passaria a tentar autenticar junto. */}
               <Typography
-                component="span"
+                component="button"
+                type="button"
+                className="botao-nu"
                 onClick={abrirModalRecuperacao}
                 sx={{
                   color: 'var(--text-muted)',
                   fontSize: '0.8rem',
-                  cursor: 'pointer',
                   '&:hover': { color: 'var(--accent-ink)' },
                   transition: 'color 0.2s',
                 }}
               >
-                Esqueci minha senha
+                {t('senha.esqueci')}
               </Typography>
             </Box>
 
@@ -217,10 +233,10 @@ function Login() {
           p: 4,
         }}>
           <Typography variant="h6" sx={{ fontWeight: 700, color: 'var(--accent-ink)', mb: 1 }}>
-            Recuperar senha
+            {t('senha.recuperarTitulo')}
           </Typography>
           <Typography sx={{ color: 'var(--text-muted)', fontSize: '0.875rem', mb: 3 }}>
-            Informe seu email e enviaremos um link para redefinir sua senha.
+            {t('senha.recuperarDescricao')}
           </Typography>
 
           {mensagemRecuperacao ? (
@@ -231,7 +247,7 @@ function Login() {
             <form onSubmit={enviarRecuperacao}>
               <TextField
                 fullWidth
-                label="Email"
+                label={t('email')}
                 type="email"
                 value={emailRecuperacao}
                 onChange={(e) => setEmailRecuperacao(e.target.value)}
@@ -254,7 +270,7 @@ function Login() {
                   onClick={() => setModalAberto(false)}
                   sx={{ borderColor: 'var(--border-strong)', color: 'var(--text-muted)', borderRadius: '10px' }}
                 >
-                  Cancelar
+                  {t('senha.recuperarCancelar')}
                 </Button>
                 <Button
                   fullWidth variant="contained" type="submit" disabled={enviandoRecuperacao}
@@ -263,7 +279,7 @@ function Login() {
                     '&:hover': { bgcolor: '#e0c200' }
                   }}
                 >
-                  {enviandoRecuperacao ? <CircularProgress size={20} sx={{ color: 'var(--text-on-accent)' }} /> : 'Enviar'}
+                  {enviandoRecuperacao ? <CircularProgress size={20} sx={{ color: 'var(--text-on-accent)' }} /> : t('senha.recuperarEnviar')}
                 </Button>
               </Box>
             </form>

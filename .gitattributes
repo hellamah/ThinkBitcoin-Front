@@ -1,0 +1,43 @@
+# Normalizacao de fim de linha.
+#
+# Sem este arquivo, o que entra no banco de objetos depende do core.autocrlf
+# de cada maquina: uma grava LF, outra grava CRLF, e o mesmo arquivo passa a
+# existir em duas formas na historia. Para o git isso nao e uma diferenca de
+# formatacao, e o arquivo inteiro reescrito — um cherry-pick que cruze essa
+# fronteira conflita em todas as linhas, mesmo mudando uma so. Aconteceu com
+# o App.css e suas 7246 linhas.
+#
+# `text=auto` faz o git guardar todo arquivo detectado como texto em LF,
+# convertendo para o fim de linha da plataforma no checkout. O que o
+# desenvolvedor ve no editor nao muda; o que muda e o que fica gravado.
+* text=auto
+
+# --- Precisam de LF tambem NO DISCO -----------------------------------------
+# Estes rodam dentro do container Linux. Com CRLF o shell le o `\r` como parte
+# do comando e falha com "bad interpreter" / "not found". O Dockerfile hoje
+# carrega um `sed -i 's/\r$//' /entrypoint.sh` justamente para contornar isso.
+*.sh        text eol=lf
+Dockerfile  text eol=lf
+*.conf      text eol=lf
+*.tpl       text eol=lf
+.dockerignore text eol=lf
+
+# --- Windows ----------------------------------------------------------------
+# PowerShell tolera LF, mas a convencao da plataforma e CRLF e nao ha custo.
+*.ps1       text eol=crlf
+
+# --- Binarios: nunca converter nem tentar fazer diff ------------------------
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.ico       binary
+*.woff      binary
+*.woff2     binary
+*.ttf       binary
+*.eot       binary
+*.pdf       binary
+*.docx      binary
+*.xlsx      binary
+*.sqlite    binary
+*.wsuo      binary

@@ -4,10 +4,12 @@
  * Este conjunto de testes valida a persistência de configurações, saneamento 
  * de entradas e o ciclo de vida de preferências do investidor no ThinkBitcoin.
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { IDIOMA_PADRAO } from '../src/lang'
 import {
   AlgorithmStyle,
   DEFAULT_PREFERENCES,
+  acharMoedaPreferida,
   Language,
   ReviewFrequency,
   RiskProfile,
@@ -37,6 +39,25 @@ const criarMockStorage = () => {
   }
 }
 
+// getInitialPreferences passou a consultar o idioma do navegador. O Node 22
+// define um `navigator` real, com o idioma do sistema operacional, então todo
+// teste que toca nisso precisa fixá-lo — senão a suíte passa na máquina de quem
+// a escreveu e falha num runner configurado em outro idioma.
+const navigatorOriginal = Object.getOwnPropertyDescriptor(globalThis, 'navigator')
+
+const comNavegador = (valor) => {
+  Object.defineProperty(globalThis, 'navigator', {
+    value: valor,
+    configurable: true,
+    writable: true,
+  })
+}
+
+afterEach(() => {
+  if (navigatorOriginal) Object.defineProperty(globalThis, 'navigator', navigatorOriginal)
+  else delete globalThis.navigator
+})
+
 describe('utils/preferences › Enums & Constantes', () => {
   it('deve expor temas (Light/Dark) como constantes imutáveis', () => {
     expect(Theme.LIGHT).toBe('light')
@@ -49,9 +70,12 @@ describe('utils/preferences › Enums & Constantes', () => {
     expect(AlgorithmStyle.AGGRESSIVE).toBe('agressivo')
   })
 
-  it('deve carregar as configurações padrão (Dark/PT) corretamente', () => {
+  it('deve carregar as configurações padrão corretamente', () => {
     expect(DEFAULT_PREFERENCES.tema).toBe(Theme.DARK)
-    expect(DEFAULT_PREFERENCES.idioma).toBe(Language.PT)
+    // Comparado com IDIOMA_PADRAO, e não com um código escrito à mão: o idioma
+    // padrão é decisão de produto e mora no registro. Cravá-lo aqui faria o
+    // teste falhar por estar desatualizado, não por haver defeito.
+    expect(DEFAULT_PREFERENCES.idioma).toBe(IDIOMA_PADRAO)
   })
 })
 
@@ -84,6 +108,54 @@ describe('utils/preferences › sanitizePreferences (Saneamento de Dados)', () =
     const prefs = sanitizePreferences(data)
     expect(prefs.nome).toBe('Trader X')
     expect(prefs.idPreferenciasUsuarioTB).toBe('P001')
+  })
+
+  it('deve aceitar as siglas de moeda e corretora vindas da API', () => {
+    const prefs = sanitizePreferences({
+      siglaMoedaPreferida: 'BTC',
+      siglaEmpresaExterna: 'MB',
+      siglaMoedaSaldoSeguranca: 'USDT',
+    })
+    expect(prefs.siglaMoedaPreferida).toBe('BTC')
+    expect(prefs.siglaEmpresaExterna).toBe('MB')
+    expect(prefs.siglaMoedaSaldoSeguranca).toBe('USDT')
+  })
+
+  // Regressão: a resposta da API traz o Guid ao lado da sigla. Enquanto o Guid
+  // servia de fallback, ele virava "sigla" e voltava assim no PUT seguinte — o
+  // backend não achava moeda com aquele código e gravava null por cima, de modo
+  // que trocar o tema apagava a moeda preferida do usuário.
+  it('não deve aceitar o Guid do vínculo como se fosse a sigla', () => {
+    const prefs = sanitizePreferences({
+      idMoedaPreferida: '4FBFEC54-EC8A-4D0E-AAF8-095102896310',
+      idEmpresaExterna: '6143DB57-A01F-4713-B9DA-C4DD4C6DD312',
+      idMoedaSaldoSeguranca: '0A1B2C3D-4E5F-6071-8293-A4B5C6D7E8F9',
+    })
+    expect(prefs.siglaMoedaPreferida).toBeNull()
+    expect(prefs.siglaEmpresaExterna).toBeNull()
+    expect(prefs.siglaMoedaSaldoSeguranca).toBeNull()
+  })
+
+  it('deve manter a sigla quando ela chega junto do Guid', () => {
+    const prefs = sanitizePreferences({
+      idMoedaPreferida: '4FBFEC54-EC8A-4D0E-AAF8-095102896310',
+      siglaMoedaPreferida: 'BTC',
+    })
+    expect(prefs.siglaMoedaPreferida).toBe('BTC')
+  })
+
+  // A string vazia é o "Padrão" da tela, e o backend a distingue de null: null
+  // deixa o vínculo como está, "" o desfaz. Trocá-la por null aqui tiraria do
+  // usuário a única forma de limpar a escolha.
+  it('deve preservar a string vazia, que é o pedido de limpar o vínculo', () => {
+    const prefs = sanitizePreferences({
+      siglaMoedaPreferida: '',
+      siglaMoedaSaldoSeguranca: '',
+      siglaEmpresaExterna: '',
+    })
+    expect(prefs.siglaMoedaPreferida).toBe('')
+    expect(prefs.siglaMoedaSaldoSeguranca).toBe('')
+    expect(prefs.siglaEmpresaExterna).toBe('')
   })
 })
 
@@ -119,9 +191,51 @@ describe('utils/preferences › Persistência (LocalStorage)', () => {
 
   it('deve inicializar as preferências combinando valores padrão e persistidos', () => {
     localStorage.setItem('theme', 'light')
+    // Navegador em idioma não suportado: isola o teste do tema, que é o que ele
+    // afere. Sem fixar o navigator, o idioma sairia do sistema operacional da
+    // máquina que roda a suíte.
+    comNavegador({ languages: ['ja-JP'], language: 'ja-JP' })
     const initial = getInitialPreferences()
     expect(initial.tema).toBe(Theme.LIGHT)
-    expect(initial.idioma).toBe(Language.PT) // Padrão pois não estava no storage
+    expect(initial.idioma).toBe(IDIOMA_PADRAO) // Nem no storage, nem no navegador
+  })
+
+  it('deve adotar o idioma do navegador quando o usuário nunca escolheu', () => {
+    comNavegador({ languages: ['fr-FR', 'en-US'], language: 'fr-FR' })
+    expect(getInitialPreferences().idioma).toBe('fr')
+  })
+
+  it('deve cair no padrão quando o navegador pede um idioma não suportado', () => {
+    comNavegador({ languages: ['ko-KR'], language: 'ko-KR' })
+    expect(getInitialPreferences().idioma).toBe(IDIOMA_PADRAO)
+  })
+})
+
+describe('utils/preferences › acharMoedaPreferida', () => {
+  const MOEDAS = [
+    { id: 7, simbolo: 'ETH' },
+    { id: 1, simbolo: 'BTC' },
+    { id: 3, simbolo: 'SOL' },
+  ]
+
+  it('deve achar a preferida pela sigla ou pelo id, em qualquer das grafias', () => {
+    expect(acharMoedaPreferida({ siglaMoedaPreferida: 'sol ' }, MOEDAS)).toBe('SOL')
+    expect(acharMoedaPreferida({ IdMoedaPreferida: 7 }, MOEDAS)).toBe('ETH')
+    expect(acharMoedaPreferida({ MoedaPreferida: 'eth' }, MOEDAS)).toBe('ETH')
+  })
+
+  it('deve cair no BTC sem preferência ou com uma que não está na lista', () => {
+    expect(acharMoedaPreferida(null, MOEDAS)).toBe('BTC')
+    expect(acharMoedaPreferida({ siglaMoedaPreferida: 'XYZ' }, MOEDAS)).toBe('BTC')
+  })
+
+  it('deve cair na primeira da lista quando nem o BTC existe', () => {
+    expect(acharMoedaPreferida({}, [{ simbolo: 'ADA' }, { simbolo: 'XRP' }])).toBe('ADA')
+  })
+
+  it('deve devolver null sem lista', () => {
+    expect(acharMoedaPreferida({ siglaMoedaPreferida: 'BTC' }, [])).toBeNull()
+    expect(acharMoedaPreferida({}, null)).toBeNull()
   })
 })
 

@@ -13,18 +13,22 @@ import { MdRefresh, MdTrendingUp, MdTrendingDown } from 'react-icons/md'
 import { toLocal } from '../../utils/dateUtils'
 import * as mathUtils from '../../utils/mathUtils'
 import { avaliarAnomalia } from '../../utils/marketStats'
-
-import { useDashboard } from '../../context/DashboardContext'
+import useJanelaVirtual, { LIMIAR_DE_VIRTUALIZACAO } from '../../hooks/useJanelaVirtual'
 
 export default function HistoryTable({
-  historicoMoeda,
   historicoFiltrado,
   moedasFiltro,
   limitesPorMoeda = {},
   totalPaginas,
-  t
+  pagina,
+  setPagina,
+  t,
+  locale
 }) {
-  const { pagina, setPagina } = useDashboard()
+  // `pagina` e `setPagina` chegam por prop. Antes vinham do contexto global E
+  // como prop — as props eram passadas e ignoradas, então quem lesse a chamada
+  // no Dashboard via uma ligação que não existia. Agora existe uma só, e ela é
+  // a que aparece na chamada.
   const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' })
 
   const handleSort = (key) => {
@@ -68,6 +72,31 @@ export default function HistoryTable({
     return sortableItems
   }, [historicoFiltrado, sortConfig])
 
+  // Só a fatia visível da tabela vai para o DOM. Sem isto, o filtro de 1 mês
+  // monta 759 linhas de uma vez (2232 células do MUI, cada uma com `sx`), e
+  // reordenar por uma coluna refaz todas: uma long task de ~480 ms medida num
+  // desktop, que é meia tela travada — e num celular, bem mais.
+  //
+  // Abaixo do limiar nada muda: a tabela continua inteira no DOM, onde o
+  // Ctrl+F do navegador a alcança por completo.
+  const virtualizada = sortedData.length > LIMIAR_DE_VIRTUALIZACAO
+  const janela = useJanelaVirtual({
+    total: sortedData.length,
+    ativo: virtualizada,
+    // Palpite usado só até haver uma linha na tela para medir de verdade.
+    alturaInicial: 62,
+  })
+
+  // Os espaçadores precisam de uma célula dentro. Um `<tr>` vazio é inválido
+  // no modelo de conteúdo de tabela do HTML, e a altura dele não é garantida:
+  // funciona no Chrome, mas um navegador que colapse a linha para zero levaria
+  // junto a barra de rolagem e o posicionamento da fatia inteira.
+  const colunas = moedasFiltro && moedasFiltro.length > 1 ? 4 : 3
+
+  const linhasVisiveis = virtualizada
+    ? sortedData.slice(janela.inicio, janela.fim)
+    : sortedData
+
   if (!moedasFiltro || moedasFiltro.length === 0) return null
 
   const titulo = moedasFiltro.length > 1 ? moedasFiltro.join(', ') : moedasFiltro[0]
@@ -90,8 +119,33 @@ export default function HistoryTable({
         <h2 style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <MdRefresh style={{ color: 'var(--accent-ink)' }} /> {t('coinHistory')}: {titulo}
         </h2>
-        <TableContainer component={Paper} sx={{ backgroundColor: 'transparent', boxShadow: 'none' }}>
-          <Table size="small">
+        {/* Quando virtualizada, a rolagem é do contêiner e não da página: é o
+            `scrollTop` dele que diz qual fatia renderizar. O cabeçalho fica
+            fixo porque, com a lista rolando aqui dentro, ele sairia de vista
+            já nas primeiras linhas. */}
+        <TableContainer
+          component={Paper}
+          ref={janela.refRolagem}
+          onScroll={janela.aoRolar}
+          sx={{
+            backgroundColor: 'transparent',
+            boxShadow: 'none',
+            ...(virtualizada ? { maxHeight: '70vh', overflowY: 'auto' } : null),
+          }}
+        >
+          {/* `aria-rowcount` com o total real: o leitor de tela anuncia
+              "linha 340 de 759" mesmo que só 32 estejam no DOM. Sem ele, a
+              pessoa ouviria a contagem da fatia e concluiria que a tabela
+              tem 32 linhas. */}
+          <Table
+            size="small"
+            stickyHeader={virtualizada}
+            // +1 pelo cabeçalho: `aria-rowcount` conta TODAS as linhas da
+            // tabela, e o `aria-rowindex` das linhas de dados já começa em 2
+            // por causa dele. Sem o +1, a última linha se anuncia como
+            // "745 de 744".
+            aria-rowcount={virtualizada ? sortedData.length + 1 : undefined}
+          >
             <TableHead>
               <TableRow sx={{ '& th': { borderBottom: '1px solid var(--border-strong)', padding: '12px 16px' } }}>
                 <TableCell>
@@ -112,7 +166,7 @@ export default function HistoryTable({
                       onClick={() => handleSort('coin')}
                       sx={sortLabelSx}
                     >
-                      {t('coin') || 'Moeda'}
+                      {t('coin')}
                     </TableSortLabel>
                   </TableCell>
                 )}
@@ -133,7 +187,7 @@ export default function HistoryTable({
                     onClick={() => handleSort('variation')}
                     sx={sortLabelSx}
                   >
-                    {t('variation') || 'Variação'}
+                    {t('variation')}
                   </TableSortLabel>
                 </TableCell>
               </TableRow>
@@ -143,12 +197,24 @@ export default function HistoryTable({
                 <TableRow>
                   <TableCell colSpan={moedasFiltro.length > 1 ? 4 : 3} align="center" sx={{ color: 'var(--text-faint)', py: 8 }}>
                     <div style={{ opacity: 0.5, fontSize: '0.9rem' }}>
-                      {t('noRecordsFound') || 'Nenhum registro encontrado para os filtros selecionados'}
+                      {t('noRecordsFound')}
                     </div>
                   </TableCell>
                 </TableRow>
               ) : (
-                sortedData.map((r, idx) => {
+                <>
+                  {/* Os dois espaçadores ocupam a altura das linhas que não
+                      foram renderizadas. São eles que mantêm a barra de
+                      rolagem proporcional à lista inteira — sem eles, a
+                      barra teria o tamanho da fatia visível e rolar levaria
+                      ao fim da tabela em um palmo. */}
+                  {janela.alturaAcima > 0 && (
+                    <TableRow aria-hidden="true" sx={{ height: janela.alturaAcima }}>
+                      <TableCell colSpan={colunas} sx={{ p: 0, border: 0 }} />
+                    </TableRow>
+                  )}
+                {linhasVisiveis.map((r, i) => {
+                  const idx = janela.inicio + i
                   const val = r.precoFechamento ?? r.PrecoFechamento ?? r.valor ?? r.Valor ?? r.valorNegociado ?? r.ValorNegociado ?? 0
                   const dVar = r.precoPercentualVariacao ?? r.PrecoPercentualVariacao ?? r.variacaoPercentual ?? r.VariacaoPercentual ?? r.variacao ?? r.Variacao ?? 0
                   const isUp = dVar >= 0
@@ -158,14 +224,25 @@ export default function HistoryTable({
 
                   return (
                     <TableRow
-                      key={idx}
+                      // A chave é a posição NA JANELA, não o índice absoluto.
+                      // Com o índice absoluto, rolar uma linha trocava a chave
+                      // de todas as trinta e o React desmontava e remontava a
+                      // fatia inteira a cada evento de scroll, em vez de
+                      // reaproveitar os nós e só trocar o conteúdo — parte do
+                      // custo que a virtualização existe para evitar, de volta
+                      // durante a rolagem.
+                      key={i}
+                      // A medição da altura sai daqui: a primeira linha da
+                      // fatia é a única que o hook precisa ver.
+                      ref={i === 0 ? janela.refLinha : undefined}
+                      aria-rowindex={virtualizada ? idx + 2 : undefined}
                       sx={{
                         '&:hover': { backgroundColor: 'var(--surface-subtle)' },
                         '& td': { borderBottom: '1px solid var(--border-subtle)', py: 1.5, px: 2 }
                       }}
                     >
                       <TableCell sx={{ color: 'var(--text-muted)', fontFamily: "'Share Tech Mono', monospace" }}>
-                        {toLocal(r.horaReferencia ?? r.HoraReferencia ?? r.dataHora ?? r.DataHora)}
+                        {toLocal(r.horaReferencia ?? r.HoraReferencia ?? r.dataHora ?? r.DataHora, locale)}
                       </TableCell>
                       {moedasFiltro.length > 1 && (
                         <TableCell sx={{ color: 'var(--accent-ink)', fontWeight: 'bold' }}>
@@ -199,7 +276,13 @@ export default function HistoryTable({
                       </TableCell>
                     </TableRow>
                   )
-                })
+                })}
+                  {janela.alturaAbaixo > 0 && (
+                    <TableRow aria-hidden="true" sx={{ height: janela.alturaAbaixo }}>
+                      <TableCell colSpan={colunas} sx={{ p: 0, border: 0 }} />
+                    </TableRow>
+                  )}
+                </>
               )}
             </TableBody>
           </Table>

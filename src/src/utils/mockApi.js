@@ -1,6 +1,12 @@
-// A flag mudou de casa (mockFlag.js) para que este arquivo possa ficar atrás de
-// um import dinâmico. Reexportada aqui só para quem já importava daqui.
-export { USE_MOCK_API } from './mockFlag'
+// A flag vive em mockFlag.js, para que este arquivo possa ficar atrás de um
+// import dinâmico e não viajar no bundle de produção.
+
+import { CURVAS_ZOO, RODADA_ZOO } from './mockZooEstrategia'
+import { DECISOES_ROBO, PLACAR_ROBO, SEQUENCIAS_ROBO } from './mockRoboAoVivo'
+import { CURVAS_ZOO_JANELA, RODADA_ZOO_JANELA } from './mockZooJanelaAgente'
+import { AuthRole, decodeAuthenticationToken, temCargo } from './authentication'
+import { getStoredToken } from './preferences'
+import { AGUARDANDO_DECISAO, DECISOES, DESCARTAVEIS, STATUS, STATUS_PUBLICOS, TAMANHO_MOTIVO } from './pedidoAlteracao'
 
 // As preferências do modo demo vivem no localStorage: sem isso o GET devolve
 // sempre o mesmo objeto fixo e qualquer alteração do usuário (tema, idioma…)
@@ -44,35 +50,35 @@ const base64FromUtf8 = (str) => {
   return str
 }
 
-const buildMockToken = () => {
-  const header = { alg: 'HS256', typ: 'JWT' }
-  const payload = {
-    'idUsuarioTB': 'b282e124-4dd8-4ccd-a9c6-5b6b0c324a50',
-    'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name': 'Helama Borges',
-    'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress': 'helama@thinkbitcoin.com',
-  }
+/**
+ * Catálogo de moedas do modo demo — a mesma lista que `GET /moedas` devolve.
+ *
+ * É a fonte única: o mapa de valores-base abaixo é DERIVADO daqui. Enquanto as
+ * duas coisas fossem listas separadas, acrescentar uma moeda ao catálogo sem
+ * lembrar do valor-base a faria cair no fallback de 100 — um DOGE cotado a cem
+ * dólares no meio do carrossel.
+ *
+ * O `id` é Guid, como a API real emite. Não é detalhe cosmético: o handler do
+ * heatmap tenta `parseInt(idMoeda)` e só cai no hash de caracteres quando o
+ * valor não é numérico. Com ids '1', '2', '3' o modo demo exercitaria um ramo
+ * que produção nunca usa, e o ramo que produção usa ficaria sem cobertura.
+ */
+const MOCK_MOEDAS = Object.freeze([
+  { id: '6f1c0b7e-2d3a-4c58-9e10-7a5b3c8d1e01', sigla: 'BTC', nome: 'Bitcoin', valorBase: 68000 },
+  { id: '6f1c0b7e-2d3a-4c58-9e10-7a5b3c8d1e02', sigla: 'ETH', nome: 'Ethereum', valorBase: 3500 },
+  { id: '6f1c0b7e-2d3a-4c58-9e10-7a5b3c8d1e03', sigla: 'ADA', nome: 'Cardano', valorBase: 0.73 },
+  { id: '6f1c0b7e-2d3a-4c58-9e10-7a5b3c8d1e04', sigla: 'XRP', nome: 'XRP', valorBase: 0.61 },
+  { id: '6f1c0b7e-2d3a-4c58-9e10-7a5b3c8d1e05', sigla: 'SOL', nome: 'Solana', valorBase: 148 },
+  { id: '6f1c0b7e-2d3a-4c58-9e10-7a5b3c8d1e06', sigla: 'LINK', nome: 'Chainlink', valorBase: 18 },
+  { id: '6f1c0b7e-2d3a-4c58-9e10-7a5b3c8d1e07', sigla: 'BNB', nome: 'BNB', valorBase: 585 },
+  { id: '6f1c0b7e-2d3a-4c58-9e10-7a5b3c8d1e08', sigla: 'LTC', nome: 'Litecoin', valorBase: 88 },
+  { id: '6f1c0b7e-2d3a-4c58-9e10-7a5b3c8d1e09', sigla: 'DOGE', nome: 'Dogecoin', valorBase: 0.16 },
+  { id: '6f1c0b7e-2d3a-4c58-9e10-7a5b3c8d1e0a', sigla: 'PAXG', nome: 'PAX Gold', valorBase: 2330 },
+])
 
-  const encode = (value) =>
-    base64FromUtf8(JSON.stringify(value))
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=+$/, '')
-
-  return `${encode(header)}.${encode(payload)}.mock-signature`
-}
-
-const MOCK_COIN_BASE_VALUE = Object.freeze({
-  BTC: 68000,
-  ETH: 3500,
-  ADA: 0.73,
-  XRP: 0.61,
-  SOL: 148,
-  LINK: 18,
-  BNB: 585,
-  LTC: 88,
-  DOGE: 0.16,
-  PAXG: 2330,
-})
+const MOCK_COIN_BASE_VALUE = Object.freeze(
+  Object.fromEntries(MOCK_MOEDAS.map((m) => [m.sigla, m.valorBase]))
+)
 
 const hashSymbol = (symbol) =>
   symbol
@@ -104,13 +110,30 @@ const CHOQUE = 0.028
 // numa banda plausível sem deixar de ter tendência.
 const REVERSAO = 0.012
 
-// Quantas horas de histórico o mock gera. 120 dias cobrem o preset de 1 mês
-// (~720 candles) com folga, sem pagar a geração de um ano inteiro de hora em
-// hora a cada requisição.
-const HORAS_DE_HISTORICO = 120 * 24
+// Quantas horas de histórico o mock gera: dois anos e uma semana. A simulação
+// busca 180 dias, e a leitura "escolher pelo passado", dois anos; com os 120
+// dias de antes, a primeira anunciava "janela curta" em todo teste no modo demo
+// e a segunda não tinha período nenhum para mostrar.
+const HORAS_DE_HISTORICO = (2 * 365 + 7) * 24
 
-const buildCoinValueResponse = (symbol, urlParams) => {
-  const normalized = symbol.toUpperCase()
+// A série gerada, por moeda e por hora cheia. Gerar ~17.700 candles a cada
+// requisição custava o que custavam os 120 dias antes, vezes seis; guardada, a
+// geração acontece uma vez por hora por moeda. Quem recebe a resposta recebe
+// cópias — o `normalizeApiKeys` do apiClient refaz cada registro —, então
+// nada do que a tela fizer com elas volta para cá.
+const historicosMock = new Map()
+
+const historicoMockDe = (normalized) => {
+  const agora = new Date()
+  agora.setMinutes(0, 0, 0)
+  const guardado = historicosMock.get(normalized)
+  if (guardado?.hora === agora.getTime()) return guardado.registros
+  const registros = gerarHistoricoMock(normalized, agora)
+  historicosMock.set(normalized, { hora: agora.getTime(), registros })
+  return registros
+}
+
+const gerarHistoricoMock = (normalized, agora) => {
   const baseValue = MOCK_COIN_BASE_VALUE[normalized] ?? 100
   const variationFactor = ((hashSymbol(normalized) % 17) - 8) * 0.0025
 
@@ -123,13 +146,11 @@ const buildCoinValueResponse = (symbol, urlParams) => {
   const sortear = geradorSemeado(hashSymbol(normalized))
   let precoRelativo = 1
   let momentum = 0
-  // Base truncada na hora para todas as moedas caírem na mesma grade de
-  // horários. Com `new Date()` puro cada moeda era gerada num milissegundo
+  // `agora` chega truncado na hora para todas as moedas caírem na mesma grade
+  // de horários. Com `new Date()` puro cada moeda era gerada num milissegundo
   // diferente, então nenhuma série se alinhava com outra: o gráfico multi-moeda
   // ficava com um ponto por moeda por instante e a correlação não achava um
   // par sequer. O backend real amostra em cadência fixa, que é o que isto imita.
-  const agora = new Date()
-  agora.setMinutes(0, 0, 0)
 
   // Um candle por hora, como o backend real amostra.
   //
@@ -268,6 +289,13 @@ const buildCoinValueResponse = (symbol, urlParams) => {
       })
     }
   }
+
+  return registros
+}
+
+const buildCoinValueResponse = (symbol, urlParams) => {
+  // Cópia: o `reverse()` abaixo inverteria no lugar a série guardada.
+  let registros = [...historicoMockDe(symbol.toUpperCase())]
 
   // Filtragem
   if (urlParams) {
@@ -423,7 +451,7 @@ const generateMockPatrimonio = () => {
       saldoTotalUSD += valorUSD
       
       registros.push({
-        idPatrimonioTB: crypto.randomUUID?.() || Math.random().toString(36).substring(2, 15),
+        idPatrimonioTB: globalThis.crypto?.randomUUID?.() || Math.random().toString(36).substring(2, 15),
         idUsuarioTB: "b282e124-4dd8-4ccd-a9c6-5b6b0c324a50",
         valorBRL: Number(valorBRL.toFixed(2)),
         valorUSD: Number(valorUSD.toFixed(2)),
@@ -485,7 +513,7 @@ const resolveMockCobranca = () => {
 const criarMockCobranca = (body) => {
   const criadaEmMs = Date.now()
   mockCobranca = {
-    idCobranca: crypto.randomUUID?.() || Math.random().toString(36).substring(2, 15),
+    idCobranca: globalThis.crypto?.randomUUID?.() || Math.random().toString(36).substring(2, 15),
     idUsuarioTB: body?.idUsuarioTB || 'b282e124-4dd8-4ccd-a9c6-5b6b0c324a50',
     tipoPlano: parseInt(body?.tipoPlano ?? 0),
     nomePlano: body?.nomePlano || '',
@@ -506,59 +534,206 @@ const criarMockCobranca = (body) => {
 // Espelha o contrato de /api/TreinamentoEpisodio (LIST paginado por janela de
 // datas, RESUMO e SERIE) para que /treinamento-episodios funcione em modo mock
 // como as demais telas. Sem este mock, a página cai no backend real com o token
-// mockado, leva 401 e desloga a sessão inteira. Gera um treino sintético "ao
-// vivo" com 3 ciclos (separados por pausas > 30min, detectadas como ciclos) nas
-// últimas ~4h, moedas alternando. Ancorado no load do módulo (determinístico).
-const TREINO_COINS = ['BTC', 'ETH', 'SOL', 'XRP', 'ADA', 'LINK', 'BNB', 'LTC', 'DOGE']
-const TREINO_VERSAO = 'v3.2.1'
-const TREINO_STEP_MS = 20 * 1000
-const TREINO_CICLOS_MIN = [50, 60, 45] // duração de cada ciclo
-const TREINO_PAUSA_MIN = 40            // pausa entre ciclos (> 30min ⇒ novo ciclo)
-const TREINO_ANCHOR = Date.now()
+// mockado, leva 401 e desloga a sessão inteira.
+//
+// Imita também o FORMATO dos dados reais, e não só o contrato. O mock anterior
+// tinha três treinos separados por pausas de 40 min, numeração corrida de 1 a
+// 465 e nove moedas em ordem fixa: nada do que a tela aprendeu com os dados
+// reais dava para conferir sem login. Agora, como no treinador
+// (ScriptComum/services/training_service.py) e na API:
+//   · cada treino tem 300 episódios e a numeração recomeça em 1, com 5 a 8 min
+//     entre um treino e o seguinte — abaixo do limiar de lacuna da tela (30
+//     min), então só o reinício da numeração separa os ciclos;
+//   · o epsilon volta a 1 a cada treino e cai ~1,5% por episódio (0,999985 por
+//     step, 1000 steps) até o piso de 0,05; o reward do começo é pior por isso;
+//   · a cada 23 episódios, três gravados no mesmo segundo, que a API devolve em
+//     ordem decrescente (#189 antes de #187);
+//   · dez moedas, em rodadas embaralhadas sobre a mesma janela de dados: o
+//     reward de uma rodada sobe e desce junto, porque é o mesmo mercado;
+//   · o loss é da rede, quase igual entre as moedas da mesma rodada;
+//   · totalSteps é a soma das ações, e rewardTotal = rewardMedio × steps;
+//   · a versão do modelo muda entre treinos, a cada 16h (a janela de 24h pega
+//     sempre ao menos uma troca);
+//   · cada episódio traz o acerto por trade (trades fechados, vencedores,
+//     retorno médio e acertoTrades, que a API calcula): explorando, muito giro
+//     e pouco acerto; no piso do epsilon, o contrário;
+//   · cada episódio traz a janela de dados que negociou (dataInicioDados e
+//     dataFimDados): 1000 velas horárias por rodada, andando para trás no
+//     dataset — o mercado que o agente viu não é o da hora em que ele rodou;
+//   · cada treino termina com a avaliação out-of-sample da sessão (validação,
+//     teste, campeão, promoção), em /api/TreinamentoEpisodio/avaliacoes;
+//   · três dias de histórico, para as janelas da análise terem o que mostrar;
+//   · antes do encerramento (TREINO_ENCERRADO_MS), o treino continuava depois
+//     do load, um episódio a cada 20 s; com o relógio de teste antes dessa
+//     data, ainda dá para exercitar o polling, o status e a virada de ciclo.
+// O calendário dos treinos é contado de uma data fixa, e não do load: o mesmo
+// episódio tem o mesmo id, a mesma hora e os mesmos números em qualquer
+// recarga. Ancorado no load, tudo andava alguns minutos a cada F5, e o link de
+// um episódio ou de um ciclo enquadrado deixava de bater com os dados.
+const TREINO_COINS = ['BTC', 'ETH', 'BNB', 'SOL', 'XRP', 'ADA', 'DOGE', 'LTC', 'LINK', 'PAXG']
+const TREINO_EPISODIOS_POR_CICLO = 300
+const TREINO_PASSO_MS = 20 * 1000
+const TREINO_PAUSAS_MIN = [5, 7, 6, 8]
+// Lote de 1000 velas e até 1000 steps por episódio: min(1000, 1000 − 1).
+const TREINO_STEPS = 999
+const TREINO_RAJADA_A_CADA = 23
+const TREINO_HISTORICO_MS = 72 * 3600 * 1000
+const TREINO_FUTURO_MS = 24 * 3600 * 1000
+const TREINO_EPOCA = Date.UTC(2026, 0, 1)
+// O treino acabou: o agente foi encerrado em 22/10/2026 (docs/agente-v9.md do
+// Back-Python), e o último episódio do banco é das 12:20 UTC desse dia. O
+// relógio do mock do treino para aí, para o modo demo (o do Trader) mostrar o
+// que o cliente vê no cluster: o treino parado, e não andando na hora do load.
+export const TREINO_ENCERRADO_MS = Date.UTC(2026, 9, 22, 12, 20, 33)
+const treinoAgora = () => Math.min(Date.now(), TREINO_ENCERRADO_MS)
+const TREINO_DURACAO_CICLO_MS = (TREINO_EPISODIOS_POR_CICLO - 1) * TREINO_PASSO_MS
+// As pausas se repetem de quatro em quatro ciclos: um bloco tem duração fixa.
+const TREINO_BLOCO_MS = TREINO_PAUSAS_MIN.reduce((soma, p) => soma + TREINO_DURACAO_CICLO_MS + p * 60 * 1000, 0)
+// A última é a v9 (docs/agente-v9.md no repositório Python): as sessões dela são
+// escolhidas pela régua do zoo, e a aba Validação as mostra pelo critério delas.
+const TREINO_VERSOES = ['v3.1.0', 'v3.2.1', 'v3.3.0', 'v9-diaria-so-comprado']
+const TREINO_VERSAO_V9 = 'v9-diaria-so-comprado'
+const TREINO_VERSAO_A_CADA_MS = 16 * 3600 * 1000
 
-const treinoPad = (n) => String(n).padStart(2, '0')
-// dataHora local-naive (YYYY-MM-DDTHH:mm:ss), formato que o front compara/parseia.
-const treinoLocalNaive = (ms) => {
-  const d = new Date(ms)
-  return `${d.getFullYear()}-${treinoPad(d.getMonth() + 1)}-${treinoPad(d.getDate())}T${treinoPad(d.getHours())}:${treinoPad(d.getMinutes())}:${treinoPad(d.getSeconds())}`
+// A janela de dados de cada rodada. O treinador percorre o dataset de trás para
+// a frente, um lote de 1000 velas horárias por rodada de moedas (as dez moedas
+// treinam no mesmo lote antes de o offset andar), e dá a volta ao chegar ao
+// começo. O dataset do mock são os 18 meses que terminam quatro meses antes do
+// mês corrente (os quatro meses seguintes fazem as vezes de holdout): contado
+// em mês, e não do load, para não mudar a cada recarga; e dentro dos dois anos
+// de velas do mock de mercado, para o contexto do episódio ter o que mostrar.
+const TREINO_VELAS_POR_LOTE = 1000
+const TREINO_HORA_MS = 3600 * 1000
+const treinoMesCorrente = new Date()
+const TREINO_DATASET_FIM = Date.UTC(treinoMesCorrente.getUTCFullYear(), treinoMesCorrente.getUTCMonth() - 4, 1)
+const TREINO_DATASET_INICIO = Date.UTC(treinoMesCorrente.getUTCFullYear(), treinoMesCorrente.getUTCMonth() - 22, 1)
+const TREINO_LOTES_NO_DATASET = Math.floor(
+  (TREINO_DATASET_FIM - TREINO_DATASET_INICIO) / (TREINO_VELAS_POR_LOTE * TREINO_HORA_MS)
+)
+const treinoJanelaDaRodada = (rodada) => {
+  const lote = rodada % TREINO_LOTES_NO_DATASET
+  const fim = TREINO_DATASET_FIM - (lote * TREINO_VELAS_POR_LOTE + 1) * TREINO_HORA_MS
+  return { inicio: fim - (TREINO_VELAS_POR_LOTE - 1) * TREINO_HORA_MS, fim }
+}
+// Quanto cada moeda soma ao reward. A PAXG, lastreada em ouro, quase não se
+// mexe e rende menos.
+const TREINO_VIES_DA_MOEDA = {
+  BTC: 0.03, ETH: 0.02, BNB: 0.01, SOL: 0, XRP: -0.01,
+  ADA: -0.02, DOGE: 0.015, LTC: 0.005, LINK: -0.005, PAXG: -0.05,
+}
+
+// dataHora sem marca de fuso (YYYY-MM-DDTHH:mm:ss), imitando o `Kind=Unspecified`
+// que o EF Core devolve — mas com os componentes em UTC, que é o que a API real
+// faz: o carimbo vem sem sufixo e os valores SÃO UTC.
+//
+// Saía com os componentes LOCAIS, e isso tornava o modo demo incoerente consigo
+// mesmo: o front carimba o Z que falta (marcarUtcQuandoFaltarFuso), então lia o
+// episódio como tendo acontecido `offset` horas antes do `_ms` pelo qual o
+// próprio mock filtra. Em UTC-3, os episódios das últimas três horas ficavam
+// invisíveis: a lista os pedia numa janela onde não estavam, e abrir um deles
+// por link direto dava "episódio não encontrado".
+const treinoUtcNaive = (ms) => new Date(ms).toISOString().slice(0, 19)
+
+// Ruído determinístico em [−1, 1]: o mesmo episódio sai sempre igual.
+const treinoRuido = (semente) => {
+  const x = Math.sin(semente * 12.9898 + 78.233) * 43758.5453
+  return (x - Math.floor(x)) * 2 - 1
+}
+
+// Ordem das moedas numa rodada (Fisher–Yates com o ruído como sorteio).
+const treinoRodada = (rodada) => {
+  const moedas = [...TREINO_COINS]
+  for (let i = moedas.length - 1; i > 0; i--) {
+    const j = Math.floor(((treinoRuido(rodada * 101 + i) + 1) / 2) * (i + 1)) % (i + 1)
+    ;[moedas[i], moedas[j]] = [moedas[j], moedas[i]]
+  }
+  return moedas
+}
+
+// Início do ciclo `c`, contado desde a época.
+const treinoInicioDoCiclo = (c) => {
+  const porBloco = TREINO_PAUSAS_MIN.length
+  let ms = TREINO_EPOCA + Math.floor(c / porBloco) * TREINO_BLOCO_MS
+  for (let k = 0; k < c % porBloco; k++) ms += TREINO_DURACAO_CICLO_MS + TREINO_PAUSAS_MIN[k] * 60 * 1000
+  return ms
 }
 
 let treinoCache = null
+// Os episódios dos três dias antes do load até um dia depois, em ordem de
+// gravação. Quem lê filtra pelo relógio (treinoFiltrar): o que ainda não
+// "aconteceu" não aparece.
 const buildTreinoEpisodios = () => {
   if (treinoCache) return treinoCache
-  const cicloSteps = TREINO_CICLOS_MIN.map((min) => Math.floor((min * 60000) / TREINO_STEP_MS))
-  const totalEps = cicloSteps.reduce((a, b) => a + b, 0)
-  const totalMs = TREINO_CICLOS_MIN.reduce((a, b) => a + b, 0) * 60000 + TREINO_PAUSA_MIN * 60000 * (TREINO_CICLOS_MIN.length - 1)
-  let cursor = TREINO_ANCHOR - totalMs
+  const N = TREINO_EPISODIOS_POR_CICLO
+  const agora = treinoAgora()
+  const desde = agora - TREINO_HISTORICO_MS
+  const ate = agora + TREINO_FUTURO_MS
+  let c = Math.floor((desde - TREINO_EPOCA) / TREINO_BLOCO_MS) * TREINO_PAUSAS_MIN.length
+  while (treinoInicioDoCiclo(c) + TREINO_DURACAO_CICLO_MS < desde) c++
   const eps = []
-  let ep = 0
-  for (let c = 0; c < cicloSteps.length; c++) {
-    for (let s = 0; s < cicloSteps[c]; s++) {
-      const ts = cursor + s * TREINO_STEP_MS
-      const prog = ep / totalEps
-      const noise = (Math.sin(ep * 1.3) + Math.cos(ep * 0.7)) * 0.05
-      const reward = 0.1 + prog * 0.6 + noise
+  for (; treinoInicioDoCiclo(c) <= ate; c++) {
+    const inicioDoCiclo = treinoInicioDoCiclo(c)
+    const nVersao = Math.floor((inicioDoCiclo - TREINO_EPOCA) / TREINO_VERSAO_A_CADA_MS) % TREINO_VERSOES.length
+    // Cada versão chega a um patamar um pouco diferente, e cada treino varia
+    // um tanto em volta dele.
+    const habilidade = 0.4 + 0.03 * nVersao + 0.02 * treinoRuido(c * 29 + 11)
+    for (let i = 0; i < N; i++) {
+      const seq = c * N + i
+      // Rajada: o 1º e o 2º episódios saem com o carimbo do 3º. Nunca a partir
+      // do 1º episódio do treino: ele levaria o carimbo do 3º, 40 s depois do
+      // início, e a pausa antes do treino passaria das de TREINO_PAUSAS_MIN
+      // (8 min viravam 8 min 40 s no treino múltiplo de 92).
+      const k = seq % TREINO_RAJADA_A_CADA
+      const emRajada = k <= 2 && i - k >= 1 && i - k + 2 < N
+      const ms = inicioDoCiclo + (emRajada ? i - k + 2 : i) * TREINO_PASSO_MS
+      const rodada = Math.floor(seq / TREINO_COINS.length)
+      const moeda = treinoRodada(rodada)[seq % TREINO_COINS.length]
+      const janela = treinoJanelaDaRodada(rodada)
+      const epsilon = Math.max(0.05, 0.985 ** i)
+      const mercado = 0.06 * treinoRuido(rodada * 7 + 3)
+      const rewardMedio = -0.06 + (1 - epsilon) * habilidade + TREINO_VIES_DA_MOEDA[moeda]
+        + mercado + 0.035 * treinoRuido(seq * 3 + 1)
+      // Com epsilon 1 o agente sorteia a ação; treinado, segura mais do que opera.
+      const pHold = epsilon / 3 + (1 - epsilon) * (0.58 + 0.05 * treinoRuido(seq * 17 + 7))
+      const pCompra = epsilon / 3 + (1 - epsilon) * (0.23 + 0.03 * treinoRuido(seq * 19 + 8))
+      const acoesHold = Math.round(pHold * TREINO_STEPS)
+      const acoesCompra = Math.round(pCompra * TREINO_STEPS)
+      // Acerto por trade, como o treinador conta (trades fechados, líquidos da
+      // taxa): explorando, o agente gira muito e acerta pouco; no piso do
+      // epsilon, gira menos e acerta mais.
+      const trades = Math.max(0, Math.round(TREINO_STEPS * (1 - pHold) * (0.08 + 0.22 * epsilon)
+        + 3 * treinoRuido(seq * 29 + 5)))
+      const acerto = Math.min(0.9, Math.max(0.05, 0.36 + 0.6 * (1 - epsilon) * (habilidade - 0.25)
+        + 2 * TREINO_VIES_DA_MOEDA[moeda] + 0.05 * treinoRuido(seq * 31 + 6)))
+      const tradesVencedores = Math.round(trades * acerto)
       eps.push({
-        idTreinamentoEpisodio: `mock-treino-${ep}`,
-        episodio: ep + 1,
-        dataHora: treinoLocalNaive(ts),
-        _ms: ts,
-        moeda: TREINO_COINS[ep % TREINO_COINS.length],
-        versaoModelo: TREINO_VERSAO,
-        rewardMedio: reward,
-        rewardTotal: reward * 100,
-        lossMedia: 2.5 * (1 - prog) + 0.2 + Math.abs(noise),
-        epsilon: Math.max(0.05, 1 - prog),
-        winRate: Math.min(0.65, 0.15 + prog * 0.45 + noise * 0.3),
-        duracaoSegundos: 8 + (ep % 7) * 1.5,
-        acoesHold: 40 + (ep % 20),
-        acoesCompra: 20 + (ep % 15),
-        acoesVenda: 15 + (ep % 12),
-        totalSteps: 75,
+        idTreinamentoEpisodio: `mock-treino-${seq}`,
+        episodio: i + 1,
+        dataHora: treinoUtcNaive(ms),
+        // O carimbo tem precisão de segundo; o filtro usa o mesmo instante.
+        _ms: Math.floor(ms / 1000) * 1000,
+        moeda,
+        versaoModelo: TREINO_VERSOES[nVersao],
+        rewardMedio,
+        rewardTotal: rewardMedio * TREINO_STEPS,
+        lossMedia: 0.05 + 0.55 * epsilon ** 1.5 + 0.008 * treinoRuido(rodada * 11 + 4)
+          + 0.002 * treinoRuido(seq * 13 + 6),
+        epsilon,
+        winRate: Math.min(0.9, Math.max(0.05, 0.32 + 0.45 * rewardMedio + 0.03 * treinoRuido(seq * 5 + 2))),
+        duracaoSegundos: 13 + 2.5 * treinoRuido(seq * 23 + 9),
+        acoesHold,
+        acoesCompra,
+        acoesVenda: TREINO_STEPS - acoesHold - acoesCompra,
+        totalSteps: TREINO_STEPS,
+        dataInicioDados: treinoUtcNaive(janela.inicio),
+        dataFimDados: treinoUtcNaive(janela.fim),
+        trades,
+        tradesVencedores,
+        retornoMedioTrade: trades > 0 ? -0.002 + 0.03 * (acerto - 0.4) + 0.0015 * treinoRuido(seq * 37 + 7) : null,
+        // Calculado pela API (TreinamentoEpisodioRespostaModelo.AcertoTrades).
+        acertoTrades: trades > 0 ? tradesVencedores / trades : null,
       })
-      ep++
     }
-    cursor += cicloSteps[c] * TREINO_STEP_MS + TREINO_PAUSA_MIN * 60000
   }
   treinoCache = eps
   return eps
@@ -569,73 +744,952 @@ const treinoQuery = (endpoint) =>
 // Remove o campo interno _ms antes de devolver ao front.
 const treinoStrip = ({ _ms, ...rest }) => rest
 
+// Primeiro índice da lista (em ordem de gravação) com _ms > ms, ou >= ms.
+const treinoIndiceDepois = (lista, ms, inclusive) => {
+  let lo = 0
+  let hi = lista.length
+  while (lo < hi) {
+    const meio = (lo + hi) >> 1
+    if (inclusive ? lista[meio]._ms <= ms : lista[meio]._ms < ms) lo = meio + 1
+    else hi = meio
+  }
+  return lo
+}
+
+const treinoInstante = (texto, padrao) => {
+  const ms = texto ? new Date(texto).getTime() : NaN
+  return Number.isFinite(ms) ? ms : padrao
+}
+
+// Os filtros da API: moeda e versão sem diferenciar maiúsculas, dataInicio e
+// dataFim INCLUSIVOS (DataHora >= início e <= fim), e nada depois do relógio.
+const treinoFiltrar = (q) => {
+  const todos = buildTreinoEpisodios()
+  const inicio = treinoInstante(q.get('dataInicio'), -Infinity)
+  const fim = Math.min(treinoInstante(q.get('dataFim'), Infinity), treinoAgora())
+  let lista = todos.slice(treinoIndiceDepois(todos, inicio, false), treinoIndiceDepois(todos, fim, true))
+  const moeda = q.get('moeda')?.toUpperCase()
+  const versao = q.get('versaoModelo')?.toUpperCase()
+  if (moeda) lista = lista.filter((e) => e.moeda === moeda)
+  if (versao) lista = lista.filter((e) => e.versaoModelo.toUpperCase() === versao)
+  return lista
+}
+
 const mockTreinoList = (endpoint) => {
   const q = treinoQuery(endpoint)
-  const moeda = q.get('moeda'), versao = q.get('versaoModelo')
-  const dataInicio = q.get('dataInicio'), dataFim = q.get('dataFim')
-  const quantidade = q.get('quantidade') ? parseInt(q.get('quantidade'), 10) : 50
-  const pagina = q.get('pagina') ? parseInt(q.get('pagina'), 10) : 1
-  const asc = q.get('ordenarAscendente') === 'true'
-
-  let lista = buildTreinoEpisodios()
-  if (moeda) lista = lista.filter((e) => e.moeda === moeda)
-  if (versao) lista = lista.filter((e) => e.versaoModelo === versao)
-  if (dataInicio) { const ini = new Date(dataInicio).getTime(); lista = lista.filter((e) => e._ms >= ini) }
-  if (dataFim) { const fim = new Date(dataFim).getTime(); lista = lista.filter((e) => e._ms < fim) }
-  lista = [...lista].sort((a, b) => asc ? a._ms - b._ms : b._ms - a._ms)
-
-  const totalRegistros = lista.length
-  const totalPaginas = Math.max(1, Math.ceil(totalRegistros / quantidade))
-  const inicio = (pagina - 1) * quantidade
-  const pageItems = lista.slice(inicio, inicio + quantidade).map(treinoStrip)
+  const quantidade = Math.max(1, parseInt(q.get('quantidade'), 10) || 50)
+  const pagina = Math.max(1, parseInt(q.get('pagina'), 10) || 1)
+  const lista = treinoFiltrar(q)
+  // A API ordena só por DataHora. Em ordem decrescente, os episódios do mesmo
+  // segundo saem do maior para o menor — a ordenação da tela é que desempata.
+  const ordenada = q.get('ordenarAscendente') === 'true' ? lista : [...lista].reverse()
+  const totalRegistros = ordenada.length
   return {
     mensagem: 'Episódios de treinamento (mock)',
-    resultado: { lista: pageItems, pagina, quantidade, totalRegistros, totalPaginas },
+    resultado: {
+      lista: ordenada.slice((pagina - 1) * quantidade, pagina * quantidade).map(treinoStrip),
+      totalRegistros,
+      totalPaginas: Math.ceil(totalRegistros / quantidade),
+      paginaAtual: pagina,
+    },
   }
 }
 
+// Como ResumoTreinamentoEpisodioModelo: por moeda, o primeiro e o último
+// episódio por DataHora dentro dos filtros.
 const mockTreinoResumo = (endpoint) => {
-  const versao = treinoQuery(endpoint).get('versaoModelo')
-  let eps = buildTreinoEpisodios()
-  if (versao) eps = eps.filter((e) => e.versaoModelo === versao)
-  const byCoin = {}
-  for (const e of eps) (byCoin[e.moeda] = byCoin[e.moeda] || []).push(e)
-  const resultado = Object.entries(byCoin).map(([moeda, arr]) => ({
-    moeda,
-    episodios: arr.length,
-    rewardInicial: arr[0].rewardMedio,
-    rewardAtual: arr[arr.length - 1].rewardMedio,
-    winRateInicial: arr[0].winRate,
-    winRateAtual: arr[arr.length - 1].winRate,
-    lossMedio: arr.reduce((s, r) => s + r.lossMedia, 0) / arr.length,
-    dataHoraAtual: arr[arr.length - 1].dataHora,
-  }))
+  const porMoeda = new Map()
+  for (const e of treinoFiltrar(treinoQuery(endpoint))) {
+    if (!porMoeda.has(e.moeda)) porMoeda.set(e.moeda, [])
+    porMoeda.get(e.moeda).push(e)
+  }
+  const resultado = [...porMoeda.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([moeda, eps]) => {
+      const primeiro = eps[0]
+      const ultimo = eps[eps.length - 1]
+      return {
+        moeda,
+        episodios: eps.length,
+        rewardInicial: primeiro.rewardMedio,
+        rewardAtual: ultimo.rewardMedio,
+        winRateInicial: primeiro.winRate,
+        winRateAtual: ultimo.winRate,
+        epsilonAtual: ultimo.epsilon,
+        lossMedio: eps.reduce((s, r) => s + r.lossMedia, 0) / eps.length,
+        dataHoraInicial: primeiro.dataHora,
+        dataHoraAtual: ultimo.dataHora,
+      }
+    })
   return { mensagem: 'Resumo de treinamento (mock)', resultado }
 }
 
+// Como SerieTreinamentoEpisodioModelo: os `limite` mais recentes, em ordem, com
+// média móvel de `janela` (10 por padrão).
 const mockTreinoSerie = (endpoint) => {
-  const moeda = treinoQuery(endpoint).get('moeda')
-  let eps = buildTreinoEpisodios()
-  if (moeda) eps = eps.filter((e) => e.moeda === moeda)
-  eps = [...eps].sort((a, b) => a._ms - b._ms)
-  const mm = (arr, i, key) => {
-    const s = Math.max(0, i - 4)
-    const slice = arr.slice(s, i + 1)
-    return slice.reduce((a, r) => a + r[key], 0) / slice.length
+  const q = treinoQuery(endpoint)
+  const janela = parseInt(q.get('janela'), 10) > 0 ? parseInt(q.get('janela'), 10) : 10
+  const limite = parseInt(q.get('limite'), 10) > 0 ? parseInt(q.get('limite'), 10) : 500
+  const eps = treinoFiltrar(q).slice(-limite)
+  const mm = (i, chave) => {
+    const de = Math.max(0, i - janela + 1)
+    let soma = 0
+    for (let j = de; j <= i; j++) soma += eps[j][chave]
+    return soma / (i - de + 1)
   }
   const resultado = eps.map((e, i) => ({
+    moeda: e.moeda,
+    versaoModelo: e.versaoModelo,
     dataHora: e.dataHora,
+    episodio: e.episodio,
     rewardMedio: e.rewardMedio,
-    rewardMedioMediaMovel: mm(eps, i, 'rewardMedio'),
-    lossMedia: e.lossMedia,
-    epsilon: e.epsilon,
+    rewardMedioMediaMovel: mm(i, 'rewardMedio'),
     winRate: e.winRate,
-    winRateMediaMovel: mm(eps, i, 'winRate'),
+    winRateMediaMovel: mm(i, 'winRate'),
+    lossMedia: e.lossMedia,
+    lossMediaMovel: mm(i, 'lossMedia'),
+    epsilon: e.epsilon,
   }))
   return { mensagem: 'Série de treinamento (mock)', resultado }
 }
 
+// Avaliação out-of-sample de cada sessão (/api/TreinamentoEpisodio/avaliacoes),
+// como AvaliacaoSessaoTreinoModelo: uma por treino, 2 min depois do último
+// episódio, dentro da pausa até o seguinte. Versões mais novas rendem mais; uma
+// sessão vira o campeão quando bate o passivo e o melhor das 12 anteriores.
+// Tudo calculado pelo índice do treino no calendário fixo, e não em cadeia a
+// partir do primeiro carregado: a mesma sessão dá o mesmo resultado em qualquer
+// recarga.
+const TREINO_AVALIACAO_APOS_MS = 2 * 60 * 1000
+const treinoScoreDaSessao = (c) => {
+  const nVersao = Math.floor((treinoInicioDoCiclo(c) - TREINO_EPOCA) / TREINO_VERSAO_A_CADA_MS) % TREINO_VERSOES.length
+  return -0.012 + 0.009 * nVersao + 0.018 * treinoRuido(c * 41 + 1)
+}
+const treinoParteDaAvaliacao = (mediana, semente, linhas) => ({
+  medianaSobrePassivo: mediana,
+  alfa: mediana + 0.09 + 0.02 * treinoRuido(semente + 1),
+  retornoAgente: mediana - 0.015 + 0.01 * treinoRuido(semente + 2),
+  retornoBuyHold: -0.11 + 0.03 * treinoRuido(semente + 3),
+  moedasBatendoPassivo: Math.max(0, Math.min(10, Math.round(5 + mediana * 120))),
+  moedasBatendoBuyHold: Math.max(0, Math.min(10, Math.round(8 + mediana * 40))),
+  moedasAvaliadas: 10,
+  trades: Math.round(280 + 60 * treinoRuido(semente + 4)),
+  linhas,
+})
+
+// A régua da v9 na validação de 30%: a média de 200 dias em cada janela (os
+// números reais, medidos em 08/10/2026) e o piso de acaso (09/10/2026).
+const TREINO_REGRA_V9 = { 'parte-1': -1.797, 'parte-2': 3.568, 'parte-3': -1.507, validacao: -0.837 }
+const TREINO_PISO_V9 = 1.1843
+
+// Uma sessão da v9: o Calmar do agente em cada janela anda em volta do da
+// validação inteira, e a escolha segue o worker (régua, lucro, piso, campeão).
+const treinoAvaliacaoV9 = (c, campeao) => {
+  const score = 0.75 + 0.75 * treinoRuido(c * 41 + 1)
+  const desvio = { 'parte-1': -0.9, 'parte-2': 2.6, 'parte-3': -0.4, validacao: 0 }
+  const regua = Object.entries(desvio).map(([janela, d], i) => {
+    const calmarAgente = janela === 'validacao' ? score : score + d + 0.6 * treinoRuido(c * 61 + i)
+    const aprovadasAgente = Math.max(0, Math.min(10, Math.round(2 + calmarAgente)))
+    return {
+      janela,
+      calmarAgente,
+      aprovadasAgente,
+      calmarRegra: TREINO_REGRA_V9[janela],
+      aprovadasRegra: 0,
+      bate: calmarAgente > TREINO_REGRA_V9[janela],
+    }
+  })
+  const batidas = regua.filter((j) => j.bate).length
+  let motivo = null
+  let motivoCodigo = null
+  let scoreCampeao = null
+  if (batidas < regua.length) {
+    motivo = `não bate a média de 200 dias na validação inteira e em cada parte (bate em ${batidas} de ${regua.length})`
+    motivoCodigo = 'abaixo-da-regra'
+  } else if (score <= 0) {
+    motivo = `bate a média de 200 dias, mas perde dinheiro na validação inteira (Calmar mediano ${score.toFixed(2)})`
+    motivoCodigo = 'sem-lucro-na-validacao'
+  } else if (score <= TREINO_PISO_V9) {
+    motivo = `Calmar mediano ${score.toFixed(2)} não passa do piso de acaso (${TREINO_PISO_V9.toFixed(2)}, o percentil 95 de redes sem treino)`
+    motivoCodigo = 'abaixo-do-acaso'
+  } else if (campeao !== null && score <= campeao) {
+    scoreCampeao = campeao
+    motivo = `o campeão atual tem Calmar mediano ${campeao.toFixed(2)} na mesma validação`
+    motivoCodigo = 'abaixo-do-campeao'
+  }
+  return { score, regua, motivo, motivoCodigo, scoreCampeao, promovido: motivo === null }
+}
+
+let treinoAvaliacoesCache = null
+const buildTreinoAvaliacoes = () => {
+  if (treinoAvaliacoesCache) return treinoAvaliacoesCache
+  const agora = treinoAgora()
+  const ate = agora + TREINO_FUTURO_MS
+  let c = Math.floor((agora - TREINO_HISTORICO_MS - TREINO_EPOCA) / TREINO_BLOCO_MS) * TREINO_PAUSAS_MIN.length
+  const avaliacoes = []
+  let campeaoV9 = null
+  for (; treinoInicioDoCiclo(c) <= ate; c++) {
+    const ms = Math.floor((treinoInicioDoCiclo(c) + TREINO_DURACAO_CICLO_MS + TREINO_AVALIACAO_APOS_MS) / 1000) * 1000
+    const nVersao = Math.floor((treinoInicioDoCiclo(c) - TREINO_EPOCA) / TREINO_VERSAO_A_CADA_MS) % TREINO_VERSOES.length
+    const versao = TREINO_VERSOES[nVersao]
+    if (versao === TREINO_VERSAO_V9) {
+      const v9 = treinoAvaliacaoV9(c, campeaoV9)
+      if (v9.promovido) campeaoV9 = v9.score
+      avaliacoes.push({
+        idAvaliacaoSessaoTreino: `mock-avaliacao-${c}`,
+        dataHora: treinoUtcNaive(ms),
+        _ms: ms,
+        modelo: 'DQNAgent_v9',
+        versaoModelo: versao,
+        episodios: 40,
+        criterio: 'regua-zoo-contra-200d-validacao-3-partes',
+        score: v9.score,
+        scoreCampeao: v9.scoreCampeao,
+        promovido: v9.promovido,
+        motivo: v9.motivo,
+        motivoCodigo: v9.motivoCodigo,
+        fracaoHoldout: 0.3,
+        fracaoTeste: 0.5,
+        taxaTreino: 0.001,
+        taxaAvaliacao: 0.001,
+        validacao: treinoParteDaAvaliacao(0.004 + 0.01 * treinoRuido(c * 67), c * 53, 8034),
+        // A v9 não mede o teste nas sessões: ele é medido uma vez, com o _melhor final.
+        teste: null,
+        pisoDeAcaso: TREINO_PISO_V9,
+        regua: v9.regua,
+      })
+      continue
+    }
+    const score = treinoScoreDaSessao(c)
+    let campeao = 0.004
+    for (let j = c - 12; j < c; j++) campeao = Math.max(campeao, treinoScoreDaSessao(j))
+    let promovido = false
+    let motivo = null
+    let motivoCodigo = null
+    let scoreCampeao = null
+    if (score <= 0) {
+      motivo = 'não bate o passivo na moeda mediana'
+      motivoCodigo = 'abaixo-do-passivo'
+    } else {
+      // O campeão é medido de novo na validação desta sessão. O número dele anda
+      // pouco: entre uma sessão e outra a validação só ganha as velas novas.
+      scoreCampeao = campeao + 0.001 * treinoRuido(c * 47 + 3)
+      if (score <= scoreCampeao) {
+        const pct = scoreCampeao * 100
+        motivo = `o campeão atual rende ${pct >= 0 ? '+' : ''}${pct.toFixed(2)}% na mesma validação`
+        motivoCodigo = 'abaixo-do-campeao'
+      } else {
+        promovido = true
+      }
+    }
+    avaliacoes.push({
+      idAvaliacaoSessaoTreino: `mock-avaliacao-${c}`,
+      dataHora: treinoUtcNaive(ms),
+      _ms: ms,
+      modelo: `DQNAgent_${versao}`,
+      versaoModelo: versao,
+      episodios: TREINO_EPISODIOS_POR_CICLO,
+      criterio: 'mediana-vs-passivo-validacao',
+      score,
+      scoreCampeao,
+      promovido,
+      motivo,
+      motivoCodigo,
+      fracaoHoldout: 0.2,
+      fracaoTeste: 0.5,
+      taxaTreino: 0.004,
+      taxaAvaliacao: 0.001,
+      validacao: treinoParteDaAvaliacao(score, c * 53, 4380),
+      // O teste é o número honesto: fica abaixo da validação, que escolheu.
+      teste: treinoParteDaAvaliacao(score - 0.008 + 0.015 * treinoRuido(c * 43 + 2), c * 59, 4381),
+      pisoDeAcaso: null,
+      regua: null,
+    })
+  }
+  treinoAvaliacoesCache = avaliacoes
+  return avaliacoes
+}
+
+const mockTreinoAvaliacoes = (endpoint) => {
+  const q = treinoQuery(endpoint)
+  const inicio = treinoInstante(q.get('dataInicio'), -Infinity)
+  const fim = Math.min(treinoInstante(q.get('dataFim'), Infinity), treinoAgora())
+  const versao = q.get('versaoModelo')?.toUpperCase()
+  const quantidade = Math.min(1000, Math.max(1, parseInt(q.get('quantidade'), 10) || 200))
+  const resultado = buildTreinoAvaliacoes()
+    .filter((a) => a._ms >= inicio && a._ms <= fim && (!versao || a.versaoModelo.toUpperCase() === versao))
+    .reverse()
+    .slice(0, quantidade)
+    .map(treinoStrip)
+  return { mensagem: resultado.length > 0 ? 'Avaliações de treinamento (mock)' : 'Dados não encontrados', resultado }
+}
+
+// Como FiltrosTreinamentoEpisodioModelo: moedas e versões de todo o histórico
+// até agora, da versão que treinou por último para a mais antiga. As versões do
+// mock voltam em rodízio, e o período de uma vai do primeiro ao último episódio
+// dela, como o MIN/MAX da API.
+const mockTreinoFiltros = () => {
+  const eps = treinoFiltrar(new URLSearchParams())
+  const porVersao = new Map()
+  for (const e of eps) {
+    const v = porVersao.get(e.versaoModelo)
+    if (!v) porVersao.set(e.versaoModelo, { primeiro: e, ultimo: e, episodios: 1, moedas: new Set([e.moeda]) })
+    else {
+      v.ultimo = e
+      v.episodios += 1
+      v.moedas.add(e.moeda)
+    }
+  }
+  const atual = eps[eps.length - 1]?.versaoModelo ?? null
+  const agora = treinoAgora()
+  // O _melhor da v9 não opera ao vivo: só o critério do v8 decide o "ao vivo".
+  const aoVivo = buildTreinoAvaliacoes()
+    .filter((a) => a._ms <= agora && a.promovido && a.criterio === 'mediana-vs-passivo-validacao')
+    .pop()?.versaoModelo ?? null
+  const versoes = [...porVersao.entries()]
+    .sort(([, a], [, b]) => b.ultimo._ms - a.ultimo._ms)
+    .map(([versao, v]) => ({
+      versao,
+      primeiroEpisodio: v.primeiro.dataHora,
+      ultimoEpisodio: v.ultimo.dataHora,
+      episodios: v.episodios,
+      moedas: [...v.moedas].sort(),
+      atual: versao === atual,
+      aoVivo: versao === aoVivo,
+    }))
+  return {
+    mensagem: versoes.length > 0 ? 'Filtros de treinamento (mock)' : 'Dados não encontrados',
+    resultado: { moedas: [...new Set(eps.map((e) => e.moeda))].sort(), versoes },
+  }
+}
+
+// Alertas de preço do modo demo. Em memória de propósito: o valor do exercício
+// é ver a lista mudar ao criar e excluir, não sobreviver ao reload.
+let mockAlertas = []
+
+// Documentos legais do modo demo. O texto é o mesmo que a migração semeia no
+// banco: as páginas /termos e /privacidade passaram a ler da API, e um mock com
+// texto resumido faria a demo mostrar um documento que não existe.
+const MOCK_DOCUMENTOS = [
+  {
+    idDocumentoLegal: 'd0c1e9a0-0000-4000-8000-000000000001',
+    tipo: 'PRIVACIDADE',
+    versao: '1.0',
+    titulo: 'Política de Privacidade',
+    conteudo: '## 1. Controlador dos Dados\n\nA **ThinkBitcoin** é a controladora dos dados pessoais coletados por meio desta plataforma, nos termos da Lei nº 13.709/2018 (LGPD).\n\n## 2. Dados Coletados\n\nColetamos e tratamos as seguintes categorias de dados:\n\n- Dados de identificação (nome, e-mail)\n- Dados de acesso e autenticação (token JWT — armazenado localmente)\n- Preferências de uso (tema, idioma, perfil de risco)\n- Dados de navegação e interação com a plataforma (logs de sessão)\n- Endereços de carteiras Bitcoin informados voluntariamente\n\n## 3. Finalidade do Tratamento\n\nOs dados são tratados exclusivamente para: prestação dos serviços de análise de mercado Bitcoin, personalização da experiência, segurança da conta, cumprimento de obrigações legais e melhoria contínua da plataforma.\n\n## 4. Base Legal\n\nO tratamento é realizado com base no seu **consentimento** (art. 7º, I da LGPD), na execução do contrato de uso da plataforma (art. 7º, V) e no cumprimento de obrigações legais (art. 7º, II).\n\n## 5. Compartilhamento de Dados\n\nSeus dados **não são vendidos** a terceiros. Podemos compartilhá-los apenas com parceiros de infraestrutura (hospedagem, autenticação) vinculados por contratos de confidencialidade, ou quando exigido por lei.\n\n## 6. Retenção e Exclusão\n\nOs dados são retidos pelo período necessário à prestação do serviço ou conforme exigido pela legislação. Você pode solicitar a exclusão a qualquer momento pelo e-mail de suporte.\n\n## 7. Seus Direitos (art. 18 LGPD)\n\n- Confirmação da existência de tratamento\n- Acesso aos seus dados\n- Correção de dados incompletos ou desatualizados\n- Anonimização, bloqueio ou eliminação de dados desnecessários\n- Portabilidade dos dados\n- Revogação do consentimento a qualquer tempo\n\n## 8. Contato com o DPO\n\nPara exercer seus direitos ou esclarecer dúvidas sobre privacidade, entre em contato com nosso Encarregado (DPO) pelo e-mail: **privacidade@thinkbitcoin.com.br**',
+    resumoAlteracoes: null,
+    hashConteudo: 'mock-privacidade-v1',
+    exigeNovoAceite: false,
+    vigente: true,
+    dataPublicacao: '2026-08-22T00:00:00Z',
+    dataVigenciaInicio: '2026-08-22T00:00:00Z',
+    dataVigenciaFim: null,
+  },
+  {
+    idDocumentoLegal: 'd0c1e9a0-0000-4000-8000-000000000002',
+    tipo: 'TERMOS',
+    versao: '1.0',
+    titulo: 'Termos de Uso',
+    conteudo: '## 1. Aceitação dos Termos\n\nAo utilizar a plataforma ThinkBitcoin você concorda integralmente com estes Termos de Uso. O uso continuado após alterações implica aceitação das versões atualizadas.\n\n## 2. Descrição do Serviço\n\nA ThinkBitcoin oferece uma plataforma de análise de dados e informações sobre o mercado de Bitcoin, incluindo dashboards, heatmaps geopolíticos, análises de on-chain e ferramentas educacionais. As informações disponibilizadas têm caráter exclusivamente informativo.\n\n## 3. Não Constitui Consultoria Financeira\n\n> ⚠ **Aviso Importante**\n>\n> O conteúdo desta plataforma é meramente informativo e educacional. Nenhuma informação aqui disponibilizada constitui conselho de investimento, recomendação de compra ou venda de ativos, ou assessoria financeira de qualquer natureza. Investimentos em criptoativos envolvem riscos significativos. Consulte um profissional habilitado antes de tomar decisões financeiras.\n\n## 4. Uso Permitido\n\nVocê se compromete a utilizar a plataforma somente para fins lícitos e pessoais, respeitando a legislação brasileira vigente. É vedado: reproduzir, redistribuir ou comercializar o conteúdo sem autorização expressa; realizar engenharia reversa; utilizar bots ou automações não autorizadas; praticar qualquer ato que prejudique a integridade da plataforma ou de outros usuários.\n\n## 5. Propriedade Intelectual\n\nTodo o conteúdo, marca, código-fonte, layout e demais elementos da plataforma são de propriedade exclusiva da ThinkBitcoin e protegidos pela Lei nº 9.610/1998 (Lei de Direitos Autorais) e pela Lei nº 9.279/1996 (Propriedade Industrial).\n\n## 6. Limitação de Responsabilidade\n\nA ThinkBitcoin não se responsabiliza por perdas financeiras decorrentes do uso das informações disponibilizadas, por interrupções no serviço, por falhas de terceiros ou por eventos de força maior.\n\n## 7. Modificações\n\nReservamo-nos o direito de alterar estes Termos a qualquer momento. Mudanças relevantes serão comunicadas por e-mail ou por aviso na plataforma.\n\n## 8. Foro\n\nFica eleito o foro da comarca de São Paulo / SP para dirimir quaisquer controvérsias decorrentes destes Termos, com renúncia expressa a qualquer outro, por mais privilegiado que seja.',
+    resumoAlteracoes: null,
+    hashConteudo: 'mock-termos-v1',
+    exigeNovoAceite: false,
+    vigente: true,
+    dataPublicacao: '2026-08-22T00:00:00Z',
+    dataVigenciaInicio: '2026-08-22T00:00:00Z',
+    dataVigenciaFim: null,
+  },
+]
+
+const documentoVigentePorTipo = (tipo) =>
+  MOCK_DOCUMENTOS.find((d) => d.tipo === tipo && d.vigente) || null
+
+// A demo entra com os dois documentos já aceitos: quem abre o modo demo quer
+// ver o produto, não um modal de consentimento na primeira tela.
+let mockConsentimentos = MOCK_DOCUMENTOS.map((documento, indice) => ({
+  idConsentimentoUsuarioTB: `c0n5en70-0000-4000-8000-00000000000${indice + 1}`,
+  tipo: documento.tipo,
+  concedido: true,
+  origem: 'CADASTRO',
+  dataRegistro: '2026-08-22T12:00:00Z',
+  idDocumentoLegal: documento.idDocumentoLegal,
+  versaoDocumento: documento.versao,
+  tituloDocumento: documento.titulo,
+  enderecoIp: '203.0.113.10',
+  atual: true,
+  conteudoIntegro: true,
+}))
+
+const registrarMockConsentimento = (itens, origem) => {
+  const agora = new Date().toISOString()
+
+  for (const item of itens ?? []) {
+    const documento = MOCK_DOCUMENTOS.find((d) => d.idDocumentoLegal === item.idDocumentoLegal)
+
+    // Append-only, igual ao servidor: o registro anterior perde a marca de
+    // atual, mas continua no histórico.
+    mockConsentimentos = mockConsentimentos.map((c) =>
+      c.tipo === item.tipo ? { ...c, atual: false } : c
+    )
+
+    mockConsentimentos = [
+      {
+        idConsentimentoUsuarioTB: crypto.randomUUID(),
+        tipo: item.tipo,
+        concedido: !!item.concedido,
+        origem,
+        dataRegistro: agora,
+        idDocumentoLegal: documento?.idDocumentoLegal ?? null,
+        versaoDocumento: documento?.versao ?? null,
+        tituloDocumento: documento?.titulo ?? null,
+        enderecoIp: '203.0.113.10',
+        atual: true,
+        conteudoIntegro: true,
+      },
+      ...mockConsentimentos,
+    ]
+  }
+}
+
+/**
+ * Preço vigente da moeda no modo demo.
+ *
+ * Deriva da mesma série que alimenta o carrossel, e não de
+ * MOCK_COIN_BASE_VALUE. O valor-base é só o ponto de partida do passeio
+ * aleatório: para o ETH ele é 3500 enquanto a tela exibe ~4036. Comparar o
+ * alvo contra a base fazia o mock recusar um alerta perfeitamente válido
+ * dizendo que ele era "igual ao preço atual" — um preço que o usuário não vê
+ * em lugar nenhum.
+ */
+const mockPrecoAtual = (sigla) => {
+  const registros = buildCoinValueResponse(String(sigla).toUpperCase())?.resultado?.registros
+  // A série vem em ordem decrescente: o primeiro é o candle mais recente.
+  return registros?.[0]?.precoFechamento ?? MOCK_COIN_BASE_VALUE[String(sigla).toUpperCase()] ?? 100
+}
+
+const mockCriarAlerta = (body) => {
+  const sigla = String(body?.siglaMoeda || '').toUpperCase()
+  const valorAlvo = Number(body?.valorAlvo)
+  const precoAtual = mockPrecoAtual(sigla)
+
+  if (!Number.isFinite(valorAlvo) || valorAlvo <= 0) {
+    const err = new Error('Valor alvo deve ser maior que zero.')
+    err.status = 400
+    throw err
+  }
+
+  if (valorAlvo === precoAtual) {
+    const err = new Error('Valor alvo é igual ao preço atual. Escolha um valor acima ou abaixo.')
+    err.status = 400
+    throw err
+  }
+
+  mockAlertas = [
+    {
+      idAlertaPrecoTB: `mock-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+      idMoeda: `mock-moeda-${sigla}`,
+      siglaMoeda: sigla,
+      nomeMoeda: sigla,
+      valorAlvo,
+      // Inferida aqui pelo mesmo critério do servidor: alvo acima do preço
+      // vigente sobe, abaixo desce.
+      direcao: valorAlvo > precoAtual ? 'ACIMA' : 'ABAIXO',
+      status: 'ATIVO',
+      valorReferencia: precoAtual,
+      dataCriacao: new Date().toISOString(),
+      dataDisparo: null,
+      valorDisparo: null,
+    },
+    ...mockAlertas,
+  ]
+
+  return { mensagem: 'Alerta mock criado com sucesso' }
+}
+
+// Zoo de estratégias (/api/ZooEstrategia/*): as rodadas reais guardadas em
+// mockZooEstrategia.js (histórico) e mockZooJanelaAgente.js (janela do agente,
+// ?janela=teste-agente). A curva vem como a API a devolve — uma por estratégia,
+// em ordem de nome —, só que com menos pontos.
+const DIA_MS = 24 * 60 * 60 * 1000
+
+const zooDaJanela = (endpoint) => (treinoQuery(endpoint).get('janela') === 'teste-agente'
+  ? { rodada: RODADA_ZOO_JANELA, curvas: CURVAS_ZOO_JANELA }
+  : { rodada: RODADA_ZOO, curvas: CURVAS_ZOO })
+
+const mockZooRodada = (endpoint) => ({ mensagem: 'Rodada do zoo (mock)', resultado: zooDaJanela(endpoint).rodada })
+
+const mockZooCurva = (endpoint) => {
+  const q = treinoQuery(endpoint)
+  const moeda = (q.get('moeda') || '').trim().toUpperCase()
+  if (!moeda) {
+    const erro = new Error('Informe a moeda da curva.')
+    erro.status = 400
+    throw erro
+  }
+  const { rodada, curvas } = zooDaJanela(endpoint)
+  const pedidas = (q.get('estrategias') || '').split(',').map((e) => e.trim()).filter(Boolean)
+  const nomes = pedidas.length > 0 ? pedidas : rodada.estrategias.map((e) => e.estrategia)
+  // dataInicio/dataFim filtram como na API. A tela do robô ao vivo pedia datas
+  // até 28/10/2026, quando passou a ler o placar pronto (PLACAR_ROBO).
+  const dataInicio = q.get('dataInicio') ? Date.parse(`${q.get('dataInicio').slice(0, 10)}T00:00:00Z`) : null
+  const dataFim = q.get('dataFim') ? Date.parse(`${q.get('dataFim').slice(0, 10)}T00:00:00Z`) : null
+  const comData = dataInicio !== null || dataFim !== null
+  const noPeriodo = (p) => {
+    const ms = Date.parse(p.data)
+    return (dataInicio === null || ms >= dataInicio) && (dataFim === null || ms <= dataFim)
+  }
+  const resultado = [...new Set(nomes)]
+    .sort()
+    .map((estrategia) => ({ estrategia, curva: curvas[`${estrategia}|${moeda}`] }))
+    .filter(({ curva }) => curva)
+    .map(({ estrategia, curva }) => {
+      const inicio = Date.parse(`${curva.inicio}T00:00:00Z`)
+      const pontos = curva.pontos.map(([dias, patrimonio, exposicao]) => ({
+        data: new Date(inicio + dias * DIA_MS).toISOString(),
+        patrimonio,
+        exposicao,
+      }))
+      return {
+        versaoZoo: rodada.versaoZoo,
+        estrategia,
+        moeda,
+        pontos: comData ? pontos.filter(noPeriodo) : pontos,
+      }
+    })
+    .filter((c) => c.pontos.length > 0)
+  return { mensagem: resultado.length ? 'Curva do zoo (mock)' : 'Dados não encontrados', resultado }
+}
+
+// As decisões do robô por vela (/ThinkBitcoin/sequenciasRetorno, sem a barra
+// final): os filtros e a paginação da FuncaoObterSequenciaRetorno, sobre as
+// velas das 23h reais de mockRoboAoVivo.js. Com a barra final, a rota segue no
+// mock antigo (buildSequenceResponse), que nenhuma tela usa.
+const mockSequenciasDoRobo = (endpoint) => {
+  const q = treinoQuery(endpoint)
+  const sigla = (q.get('siglaMoeda') || '').trim().toUpperCase()
+  const utc = (v) => Date.parse(/([zZ]|[+-]\d{2}:?\d{2})$/.test(v) ? v : `${v}Z`)
+  const dataInicio = q.get('dataInicio') ? utc(q.get('dataInicio')) : null
+  const dataFim = q.get('dataFim') ? utc(q.get('dataFim')) : null
+  const pagina = Math.max(1, Number(q.get('pagina')) || 1)
+  const quantidade = Math.max(1, Number(q.get('quantidade')) || 10)
+  const asc = q.get('ordemAsc') === 'true'
+  const filtrados = SEQUENCIAS_ROBO
+    .filter((s) => !sigla || s.moeda.toUpperCase() === sigla)
+    .filter((s) => dataInicio === null || utc(s.dataHora) >= dataInicio)
+    .filter((s) => dataFim === null || utc(s.dataHora) <= dataFim)
+    .sort((a, b) => (asc ? 1 : -1) * (utc(a.dataHora) - utc(b.dataHora)))
+  return {
+    mensagem: 'Operação realizada com sucesso',
+    resultado: {
+      totalRegistros: filtrados.length,
+      totalPaginas: Math.ceil(filtrados.length / quantidade),
+      paginaAtual: pagina,
+      registros: filtrados.slice((pagina - 1) * quantidade, pagina * quantidade),
+    },
+  }
+}
+
+// Operações do robô ao vivo (/ThinkBitcoin/historicoDecisoes): os filtros e a
+// paginação da FuncaoObterHistoricoDecisao, sobre as decisões reais guardadas
+// em mockRoboAoVivo.js. A data sem fuso é UTC, como no banco.
+const mockHistoricoDecisoes = (endpoint) => {
+  const q = treinoQuery(endpoint)
+  const sigla = (q.get('siglaMoeda') || '').trim().toUpperCase()
+  const status = (q.get('status') || '').trim().toUpperCase()
+  const utc = (v) => Date.parse(/([zZ]|[+-]\d{2}:?\d{2})$/.test(v) ? v : `${v}Z`)
+  const dataInicio = q.get('dataInicio') ? utc(q.get('dataInicio')) : null
+  const dataFim = q.get('dataFim') ? utc(q.get('dataFim')) : null
+  const pagina = Math.max(1, Number(q.get('pagina')) || 1)
+  const quantidade = Math.max(1, Number(q.get('quantidade')) || 10)
+  const asc = q.get('ordemAsc') === 'true'
+  const filtrados = DECISOES_ROBO
+    .filter((d) => !sigla || d.moedaSigla.toUpperCase() === sigla)
+    .filter((d) => !status || d.status.toUpperCase() === status)
+    .filter((d) => dataInicio === null || utc(d.dataHora) >= dataInicio)
+    .filter((d) => dataFim === null || utc(d.dataHora) <= dataFim)
+    .sort((a, b) => (asc ? 1 : -1) * (utc(a.dataHora) - utc(b.dataHora)))
+  return {
+    mensagem: 'Operação realizada com sucesso',
+    resultado: {
+      totalRegistros: filtrados.length,
+      totalPaginas: Math.ceil(filtrados.length / quantidade),
+      paginaAtual: pagina,
+      registros: filtrados.slice((pagina - 1) * quantidade, pagina * quantidade),
+    },
+  }
+}
+
+// Quem entra no modo demo. Qualquer credencial entra como Minerador, para que
+// os recursos de assinatura (alertas de preço) apareçam em vez de virarem
+// cadeado. Um e-mail que começa com "admin" entra como Administrador, para
+// exercitar as telas internas (Pedidos do Pregão); o Trader da Equipe Pregão
+// entra com trader@teste.local e continua vendo a plataforma como cliente.
+//
+// A renovação não manda e-mail: mantém quem está na sessão, como a API, que
+// reemite o token para o usuário do token atual.
+const EMAIL_DEMO = 'teste@thinkbitcoin.com'
+const sessaoMock = (endpoint, body) => {
+  if (endpoint.endsWith('/renovar')) {
+    const atual = decodeAuthenticationToken(getStoredToken())
+    return temCargo(atual, AuthRole.ADMINISTRADOR)
+      ? { email: atual.email || EMAIL_DEMO, cargo: AuthRole.ADMINISTRADOR }
+      : { email: EMAIL_DEMO, cargo: AuthRole.MINERADOR }
+  }
+  const email = String(body?.email ?? '').trim().toLowerCase()
+  return email.startsWith('admin')
+    ? { email, cargo: AuthRole.ADMINISTRADOR }
+    : { email: EMAIL_DEMO, cargo: AuthRole.MINERADOR }
+}
+
+// Pedidos de alteração da Equipe Pregão (/api/PedidoAlteracao). Sete pedidos,
+// com os achados que o Trader de fato repetiu entre os dias:
+//   · três esperando decisão (os dois primeiros são os do contrato da fila no
+//     Back-DotNet);
+//   · um aprovado, esperando a correção;
+//   · dois que fizeram o ciclo: o rótulo de preço no índice de busca, corrigido
+//     (7fe6ede), e o "Acessar terminal" que devolvia o logado ao login,
+//     corrigido (a538d17) e validado pelo Pregão;
+//   · um descartado, para o filtro de descartados ter o que mostrar.
+// A página aberta mostra só os três que um administrador aprovou: os abertos e
+// o descartado ficam só na tela do administrador.
+// Cada um guarda a linha do tempo (`eventos`), como TbPedidoAlteracaoEvento: o
+// detalhe dos passos do Pregão é o texto do consumidor; o da decisão, o motivo.
+// Em memória de propósito, como os alertas: o que vale é ver a fila mudar ao
+// decidir, não sobreviver ao reload.
+//
+// As datas andam com o relógio (horas antes do load), para "última vez" não
+// envelhecer na demo, e saem sem marca de fuso, como a API as serializa
+// (treinoUtcNaive).
+const PEDIDO_AGORA = Date.now()
+const pedidoHaHoras = (horas) => treinoUtcNaive(PEDIDO_AGORA - horas * 3600 * 1000)
+// O nome da rodada no Pregão (a pasta do diário): AAAA-MM-DD_HHMM.
+const rodadaHaHoras = (horas) => pedidoHaHoras(horas).slice(0, 16).replace('T', '_').replace(':', '')
+const ORDEM_DOS_TIPOS = ['errado', 'automatico', 'confuso', 'falta']
+
+// Os textos do FuncaoPedidoAlteracaoPregaoConsumidor para os passos do Pregão.
+const detalheAberto = (dias, rodadas, visitas) =>
+  `Visto em ${dias} dias diferentes (${rodadas} de ${visitas} rodadas que passaram pela tela).`
+const DETALHE_VALIDADO = 'Não se repetiu nos 3 dias depois da correção (8 rodadas na janela; o critério é aparecer em 2 dias diferentes).'
+
+// Um passo da linha do tempo. `autor` e `statusAnterior` existem no banco e
+// nunca saem na API pública.
+const eventoMock = (acao, horas, { anterior = null, detalhe = null, autor = 'pregao.trader' } = {}) => ({
+  acao,
+  dataHora: pedidoHaHoras(horas),
+  autor,
+  statusAnterior: anterior,
+  statusNovo: acao,
+  detalhe,
+})
+
+const pedidoMock = (dados) => ({
+  agente: 'pregao.trader',
+  ambiente: 'http://localhost:5174',
+  trecho: null,
+  detalhe: null,
+  ajuste: null,
+  janelaDias: 3,
+  minimoDias: 2,
+  rodadasNaJanela: 8,
+  dataHora: pedidoHaHoras(3.5),
+  status: STATUS.ABERTO,
+  decididoPor: null,
+  motivoDecisao: null,
+  referenciaCorrecao: null,
+  ...dados,
+})
+
+let mockPedidos = [
+  pedidoMock({
+    idPedidoAlteracao: '5b0e7c1a-3f2d-4e8a-9b6c-0d1e2f3a4b01',
+    chave: '7733adfd8f8ce6a88ee0b5a1891a48bf9570094b',
+    tipo: 'errado',
+    telas: 'Alertas de preço · Geopolítica',
+    problema: 'Atraso de até 1 hora no e-mail é inviável para day trade',
+    trecho: 'avisamos por e-mail em até 1 hora',
+    detalhe: 'A janela de alertas diz "avisamos por e-mail em até 1 hora". No day trade o preço passa pelo alvo e volta em minutos: o aviso chega quando a entrada já passou.',
+    ajuste: 'Avisar no momento em que o preço atinge o valor, por notificação no navegador, com o e-mail como cópia, e dizer na janela quanto o aviso pode demorar.',
+    dias: 3,
+    rodadas: 5,
+    visitas: 8,
+    primeiraVez: pedidoHaHoras(52),
+    ultimaVez: pedidoHaHoras(4),
+    diarios: [52, 44, 33, 9, 4].map(rodadaHaHoras),
+    dataStatus: pedidoHaHoras(28),
+    dataCriacao: pedidoHaHoras(28),
+    // Aberto com o que se via então; os contadores andam depois, sem passo novo.
+    eventos: [eventoMock('aberto', 28, { detalhe: detalheAberto(2, 3, 6) })],
+  }),
+  pedidoMock({
+    idPedidoAlteracao: '5b0e7c1a-3f2d-4e8a-9b6c-0d1e2f3a4b02',
+    chave: '6edbc4dd08c02755f350bea18772769702d983b4',
+    tipo: 'confuso',
+    telas: 'Alertas de preço',
+    problema: 'Lista com 10 ativos sob rótulo de TOP 5',
+    detalhe: 'O título "TOP 5 ATIVOS DO MOMENTO" fica sobre uma lista de 10 ativos, com Solana, Chainlink e Litecoin abaixo do quinto. Quem lê não sabe se o ranking é dos 5 primeiros ou da lista inteira.',
+    ajuste: 'Mostrar só os 5 primeiros sob esse título, ou trocar o título para dizer quantos ativos a lista tem.',
+    dias: 2,
+    rodadas: 2,
+    visitas: 7,
+    primeiraVez: pedidoHaHoras(33),
+    ultimaVez: pedidoHaHoras(9),
+    diarios: [33, 9].map(rodadaHaHoras),
+    dataStatus: pedidoHaHoras(9),
+    dataCriacao: pedidoHaHoras(9),
+    eventos: [eventoMock('aberto', 9, { detalhe: detalheAberto(2, 2, 7) })],
+  }),
+  pedidoMock({
+    idPedidoAlteracao: '5b0e7c1a-3f2d-4e8a-9b6c-0d1e2f3a4b03',
+    chave: '0c9f3be1a7d24e6f8b5a2c1d0e9f8a7b6c5d4e3f',
+    tipo: 'falta',
+    telas: 'Painel',
+    problema: 'Sem gráfico de candles interativo com ferramentas de desenho',
+    dias: 2,
+    rodadas: 3,
+    visitas: 8,
+    primeiraVez: pedidoHaHoras(47),
+    ultimaVez: pedidoHaHoras(4),
+    diarios: [47, 28, 4].map(rodadaHaHoras),
+    dataStatus: pedidoHaHoras(28),
+    dataCriacao: pedidoHaHoras(28),
+    eventos: [eventoMock('aberto', 28, { detalhe: detalheAberto(2, 2, 6) })],
+  }),
+  pedidoMock({
+    idPedidoAlteracao: '5b0e7c1a-3f2d-4e8a-9b6c-0d1e2f3a4b04',
+    chave: '9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2f1e0d',
+    tipo: 'confuso',
+    telas: 'Simulação',
+    problema: 'Significado do intervalo de confiança IC 95% não está claro',
+    trecho: 'IC 95%',
+    dias: 2,
+    rodadas: 2,
+    visitas: 6,
+    primeiraVez: pedidoHaHoras(50),
+    ultimaVez: pedidoHaHoras(28),
+    diarios: [50, 28].map(rodadaHaHoras),
+    dataHora: pedidoHaHoras(27.5),
+    status: STATUS.DESCARTADO,
+    dataStatus: pedidoHaHoras(20),
+    decididoPor: 'admin@teste.local',
+    motivoDecisao: 'Agora não: a simulação é para quem estuda regras, não para o day trade.',
+    dataCriacao: pedidoHaHoras(27),
+    eventos: [
+      eventoMock('aberto', 27, { detalhe: detalheAberto(2, 2, 6) }),
+      eventoMock('descartado', 20, {
+        anterior: 'aberto',
+        autor: 'admin@teste.local',
+        detalhe: 'Agora não: a simulação é para quem estuda regras, não para o day trade.',
+      }),
+    ],
+  }),
+  pedidoMock({
+    idPedidoAlteracao: '5b0e7c1a-3f2d-4e8a-9b6c-0d1e2f3a4b05',
+    chave: '3a7f9c2e4b6d8a0c1e3f5a7b9c1d3e5f7a9b1c3d',
+    tipo: 'errado',
+    telas: 'Painel',
+    problema: 'Variação do BTC no carrossel não bate com a do gráfico',
+    trecho: 'BTC -0,9%',
+    detalhe: 'O carrossel do Painel mostra "BTC -0,9%" e o gráfico logo abaixo, no mesmo período, "-0.91%". Com duas casas num lugar e uma no outro, parece que são dois números diferentes.',
+    ajuste: 'Usar a mesma variação, com as mesmas casas decimais e o mesmo separador, no carrossel e no gráfico.',
+    dias: 2,
+    rodadas: 2,
+    visitas: 8,
+    primeiraVez: pedidoHaHoras(70),
+    ultimaVez: pedidoHaHoras(46),
+    diarios: [70, 46].map(rodadaHaHoras),
+    dataHora: pedidoHaHoras(45.5),
+    status: STATUS.APROVADO,
+    dataStatus: pedidoHaHoras(20),
+    decididoPor: 'admin@teste.local',
+    dataCriacao: pedidoHaHoras(45),
+    eventos: [
+      eventoMock('aberto', 45, { detalhe: detalheAberto(2, 2, 8) }),
+      eventoMock('aprovado', 20, { anterior: 'aberto', autor: 'admin@teste.local' }),
+    ],
+  }),
+  pedidoMock({
+    idPedidoAlteracao: '5b0e7c1a-3f2d-4e8a-9b6c-0d1e2f3a4b06',
+    chave: '8c1e5a9d3f7b2c6e0a4d8f2b6c0e4a8d2f6b0c4e',
+    tipo: 'confuso',
+    telas: 'Painel',
+    problema: 'Índice de interesse de busca aparece com rótulos de preço',
+    trecho: 'Médias Móveis - Tendência de Baixa',
+    dias: 3,
+    rodadas: 4,
+    visitas: 9,
+    primeiraVez: pedidoHaHoras(150),
+    ultimaVez: pedidoHaHoras(101),
+    diarios: [150, 126, 105, 101].map(rodadaHaHoras),
+    dataHora: pedidoHaHoras(100.5),
+    status: STATUS.CORRIGIDO,
+    referenciaCorrecao: 'https://dev.azure.com/helamaborges/ThinkBitcoin/_git/ThinkBitcoin-Front/pullrequest/38',
+    dataStatus: pedidoHaHoras(80),
+    decididoPor: 'admin@teste.local',
+    dataCriacao: pedidoHaHoras(120),
+    eventos: [
+      eventoMock('aberto', 120, { detalhe: detalheAberto(2, 3, 7) }),
+      eventoMock('aprovado', 100, { anterior: 'aberto', autor: 'admin@teste.local' }),
+      eventoMock('em-correcao', 98, { anterior: 'aprovado', autor: 'agents-oficina' }),
+      eventoMock('corrigido', 80, { anterior: 'em-correcao', autor: 'agents-oficina' }),
+    ],
+  }),
+  pedidoMock({
+    idPedidoAlteracao: '5b0e7c1a-3f2d-4e8a-9b6c-0d1e2f3a4b07',
+    chave: 'e2b4d6f8a0c2e4b6d8f0a2c4e6b8d0f2a4c6e8b0',
+    tipo: 'errado',
+    telas: 'Início',
+    problema: 'Já logado, "Acessar terminal" volta ao formulário de login',
+    trecho: 'Acessar terminal',
+    dias: 2,
+    rodadas: 3,
+    visitas: 8,
+    primeiraVez: pedidoHaHoras(230),
+    ultimaVez: pedidoHaHoras(205),
+    diarios: [230, 210, 205].map(rodadaHaHoras),
+    dataHora: pedidoHaHoras(100.5),
+    status: STATUS.VALIDADO,
+    referenciaCorrecao: 'https://dev.azure.com/helamaborges/ThinkBitcoin/_git/ThinkBitcoin-Front/pullrequest/36',
+    dataStatus: pedidoHaHoras(100),
+    decididoPor: 'admin@teste.local',
+    dataCriacao: pedidoHaHoras(204),
+    eventos: [
+      eventoMock('aberto', 204, { detalhe: detalheAberto(2, 3, 8) }),
+      eventoMock('aprovado', 190, { anterior: 'aberto', autor: 'admin@teste.local' }),
+      eventoMock('em-correcao', 189, { anterior: 'aprovado', autor: 'agents-oficina' }),
+      eventoMock('corrigido', 180, { anterior: 'em-correcao', autor: 'agents-oficina' }),
+      eventoMock('validado', 100, { anterior: 'corrigido', detalhe: DETALHE_VALIDADO }),
+    ],
+  }),
+]
+
+const erroDoPedido = (mensagem) => {
+  const err = new Error(mensagem)
+  err.status = 400
+  throw err
+}
+
+// A ordem da API: do mais grave ao menos grave e, no mesmo tipo, do visto em
+// mais dias, em mais rodadas e mais recentemente. Tipo novo vai para o fim.
+const posicaoDoTipo = (tipo) => {
+  const posicao = ORDEM_DOS_TIPOS.indexOf(tipo)
+  return posicao >= 0 ? posicao : ORDEM_DOS_TIPOS.length
+}
+
+const ordenarPedidos = (lista) => [...lista].sort((a, b) => posicaoDoTipo(a.tipo) - posicaoDoTipo(b.tipo)
+  || b.dias - a.dias
+  || b.rodadas - a.rodadas
+  || Date.parse(b.ultimaVez) - Date.parse(a.ultimaVez))
+
+const respostaDaLista = (resultado) =>
+  ({ mensagem: resultado.length ? 'Operação realizada com sucesso' : 'Dados não encontrados', resultado })
+
+const mockListarPedidos = (endpoint) => {
+  const q = treinoQuery(endpoint)
+  const status = (q.get('status') || '').trim().toLowerCase()
+  const tipo = (q.get('tipo') || '').trim().toLowerCase()
+  const agente = (q.get('agente') || '').trim().toLowerCase()
+  if (status && !Object.values(STATUS).includes(status)) {
+    erroDoPedido(`Status desconhecido: '${q.get('status')}'. Use ${Object.values(STATUS).join(', ')}.`)
+  }
+  const filtrados = mockPedidos
+    .filter((p) => (!status || p.status === status) && (!tipo || p.tipo === tipo) && (!agente || p.agente.toLowerCase() === agente))
+  // A lista do administrador não traz a linha do tempo (é do GET /{id}).
+  return respostaDaLista(ordenarPedidos(filtrados).map(({ eventos: _eventos, ...pedido }) => pedido))
+}
+
+// A lista aberta (/api/PedidoAlteracao/publico, sem login): só o que um
+// administrador aprovou (aprovado, em-correcao, corrigido, validado), até 200,
+// na ordem do administrador. Esperando decisão e descartado nunca vêm. Só os
+// campos que a API pública expõe: nada de quem decidiu, motivo, link do PR,
+// ambiente, diários, chave ou agente. Nos passos, o detalhe só nos do Pregão —
+// o da decisão é o motivo, e o motivo é privado.
+const LIMITE_PUBLICO = 200
+const ACOES_DO_PREGAO = [STATUS.ABERTO, STATUS.REABERTO, STATUS.VALIDADO]
+
+const mockPedidosPublicos = () => respostaDaLista(
+  ordenarPedidos(mockPedidos.filter((p) => STATUS_PUBLICOS.includes(p.status)))
+    .slice(0, LIMITE_PUBLICO)
+    .map((p) => ({
+      idPedidoAlteracao: p.idPedidoAlteracao,
+      tipo: p.tipo,
+      telas: p.telas,
+      problema: p.problema,
+      trecho: p.trecho,
+      detalhe: p.detalhe,
+      ajuste: p.ajuste,
+      dias: p.dias,
+      rodadas: p.rodadas,
+      visitas: p.visitas,
+      primeiraVez: p.primeiraVez,
+      ultimaVez: p.ultimaVez,
+      status: p.status,
+      dataStatus: p.dataStatus,
+      eventos: p.eventos.map((e) => ({
+        acao: e.acao,
+        dataHora: e.dataHora,
+        statusNovo: e.statusNovo,
+        detalhe: ACOES_DO_PREGAO.includes(e.acao) ? e.detalhe : null,
+      })),
+    }))
+)
+
+const ROTA_DECISAO = /^\/api\/PedidoAlteracao\/([^/?]+)\/decisao$/
+
+// As mesmas regras e mensagens da FuncaoDecidirPedidoAlteracao, com o passo na
+// linha do tempo.
+const mockDecidirPedido = (endpoint, body) => {
+  const id = endpoint.match(ROTA_DECISAO)?.[1]
+  const decisao = String(body?.decisao ?? '').trim().toLowerCase()
+  if (decisao !== DECISOES.APROVADO && decisao !== DECISOES.DESCARTADO) {
+    erroDoPedido(`Decisão desconhecida: '${body?.decisao ?? ''}'. Use ${DECISOES.APROVADO} ou ${DECISOES.DESCARTADO}.`)
+  }
+  const motivo = typeof body?.motivo === 'string' && body.motivo.trim() ? body.motivo.trim() : null
+  if (decisao === DECISOES.DESCARTADO && !motivo) erroDoPedido('Informe o motivo do descarte.')
+  if (motivo && motivo.length > TAMANHO_MOTIVO) erroDoPedido(`O motivo passa de ${TAMANHO_MOTIVO} caracteres.`)
+
+  const pedido = mockPedidos.find((p) => p.idPedidoAlteracao === id)
+  if (!pedido) erroDoPedido('Pedido não encontrado.')
+  // A nova tentativa só se descarta, como no backend (StatusPedidoAlteracao.Descartaveis).
+  const decidivel = AGUARDANDO_DECISAO.includes(pedido.status)
+    || (decisao === DECISOES.DESCARTADO && DESCARTAVEIS.includes(pedido.status))
+  if (!decidivel) {
+    erroDoPedido(`O pedido está ${pedido.status}: só se decide um pedido ${AGUARDANDO_DECISAO.join(' ou ')}.`)
+  }
+
+  const agora = treinoUtcNaive(Date.now())
+  const quem = decodeAuthenticationToken(getStoredToken())?.email || 'admin@teste.local'
+  mockPedidos = mockPedidos.map((p) => (p === pedido
+    ? {
+      ...p,
+      status: decisao,
+      dataStatus: agora,
+      decididoPor: quem,
+      motivoDecisao: motivo,
+      eventos: [
+        ...p.eventos,
+        { acao: decisao, dataHora: agora, autor: quem, statusAnterior: p.status, statusNovo: decisao, detalhe: motivo },
+      ],
+    }
+    : p))
+  return { mensagem: 'Operação realizada com sucesso' }
+}
+
 const mockHandlers = [
+  {
+    method: 'GET',
+    match: (endpoint) => endpoint.split('?')[0] === '/api/PedidoAlteracao',
+    response: (endpoint) => mockListarPedidos(endpoint),
+  },
+  {
+    method: 'GET',
+    match: (endpoint) => endpoint.split('?')[0] === '/api/PedidoAlteracao/publico',
+    response: () => mockPedidosPublicos(),
+  },
+  {
+    method: 'POST',
+    match: (endpoint) => ROTA_DECISAO.test(endpoint),
+    response: (endpoint, body) => mockDecidirPedido(endpoint, body),
+  },
   {
     method: 'GET',
     match: (endpoint) => endpoint.split('?')[0] === '/api/TreinamentoEpisodio/resumo',
@@ -648,6 +1702,42 @@ const mockHandlers = [
   },
   {
     method: 'GET',
+    match: (endpoint) => endpoint.split('?')[0] === '/api/TreinamentoEpisodio/avaliacoes',
+    response: (endpoint) => mockTreinoAvaliacoes(endpoint),
+  },
+  {
+    method: 'GET',
+    match: (endpoint) => endpoint.split('?')[0] === '/api/TreinamentoEpisodio/filtros',
+    response: () => mockTreinoFiltros(),
+  },
+  {
+    method: 'GET',
+    match: (endpoint) => endpoint.split('?')[0] === '/api/ZooEstrategia/rodada',
+    response: (endpoint) => mockZooRodada(endpoint),
+  },
+  {
+    method: 'GET',
+    match: (endpoint) => endpoint.split('?')[0] === '/api/ZooEstrategia/curva',
+    response: (endpoint) => mockZooCurva(endpoint),
+  },
+  {
+    method: 'GET',
+    match: (endpoint) => endpoint.split('?')[0] === '/ThinkBitcoin/historicoDecisoes',
+    response: (endpoint) => mockHistoricoDecisoes(endpoint),
+  },
+  {
+    method: 'GET',
+    match: (endpoint) => endpoint.split('?')[0] === '/ThinkBitcoin/sequenciasRetorno',
+    response: (endpoint) => mockSequenciasDoRobo(endpoint),
+  },
+  // O placar do robô ao vivo, pronto como o .NET o devolve (mockRoboAoVivo.js).
+  {
+    method: 'GET',
+    match: (endpoint) => endpoint.split('?')[0] === '/api/RoboAoVivo/placar',
+    response: () => ({ mensagem: 'Operação realizada com sucesso', resultado: PLACAR_ROBO }),
+  },
+  {
+    method: 'GET',
     match: (endpoint) => endpoint.split('?')[0] === '/api/TreinamentoEpisodio',
     response: (endpoint) => mockTreinoList(endpoint),
   },
@@ -656,20 +1746,51 @@ const mockHandlers = [
     match: (endpoint) =>
       endpoint === '/ThinkBitcoin/gerarTokenBearer' ||
       endpoint === '/ThinkBitcoin/gerarTokenBearer/renovar',
-    response: () => {
+    response: (endpoint, body) => {
+      // Minerador, ou Administrador com e-mail "admin…" (sessaoMock).
+      const sessao = sessaoMock(endpoint, body)
       // Cria um payload mock no padrão JWT para o decode da aplicação
       const payload = {
         'idUsuarioTB': 'b282e124-4dd8-4ccd-a9c6-5b6b0c324a50',
         // Igual à API: o nome sai do banco na reemissão, então o que o usuário
         // salvou em /settings precisa aparecer aqui depois de renovar.
         'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name': readMockPrefs()?.nome || 'Usuário Teste',
-        'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress': 'teste@thinkbitcoin.com'
+        'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress': sessao.email,
+        'http://schemas.microsoft.com/ws/2008/06/identity/claims/role': sessao.cargo,
       }
       const base64Payload = base64FromUtf8(JSON.stringify(payload))
       return {
         mensagem: 'Token mock gerado com sucesso',
         resultado: { tokenAutenticado: `header.${base64Payload}.signature` },
       }
+    },
+  },
+  {
+    method: 'GET',
+    match: (endpoint) => endpoint === '/ThinkBitcoin/alertas-preco',
+    response: () => ({
+      mensagem: 'Alertas mock retornados com sucesso',
+      resultado: mockAlertas,
+    }),
+  },
+  {
+    method: 'POST',
+    match: (endpoint) => endpoint === '/ThinkBitcoin/alertas-preco',
+    response: (endpoint, body) => mockCriarAlerta(body),
+  },
+  {
+    method: 'DELETE',
+    match: (endpoint) => endpoint.startsWith('/ThinkBitcoin/alertas-preco/'),
+    response: (endpoint) => {
+      const id = endpoint.split('/').pop()
+      const antes = mockAlertas.length
+      mockAlertas = mockAlertas.filter((a) => a.idAlertaPrecoTB !== id)
+      if (mockAlertas.length === antes) {
+        const err = new Error('Alerta não encontrado.')
+        err.status = 400
+        throw err
+      }
+      return { mensagem: 'Alerta mock excluído com sucesso' }
     },
   },
   {
@@ -690,6 +1811,8 @@ const mockHandlers = [
         siglaEmpresaExterna: 'MB',
         investimentoInicial: 1000.0,
         riscoMaximoPerda: 2.5,
+        saldoSeguranca: 500.0,
+        siglaMoedaSaldoSeguranca: 'USDT',
         perfilRisco: 'moderado',
         siglaMoedaUltimaInteracaoIA: 'ETH',
         dataUltimaInteracaoIA: new Date().toISOString(),
@@ -756,6 +1879,19 @@ const mockHandlers = [
         err.status = 409
         throw err
       }
+
+      // Mesma recusa do servidor: sem o aceite dos dois documentos, com a
+      // versão de cada um, não há cadastro. Um mock permissivo aqui esconderia
+      // no modo demo exatamente a regra que o produto passou a ter.
+      const aceitou = (tipo) =>
+        (body?.aceites ?? []).some((a) => a?.tipo === tipo && a?.concedido && !!a?.idDocumentoLegal)
+
+      if (!aceitou('PRIVACIDADE') || !aceitou('TERMOS')) {
+        const err = new Error('É necessário aceitar a Política de Privacidade e os Termos de Uso.')
+        err.status = 400
+        throw err
+      }
+
       return { mensagem: 'Usuário mock cadastrado com sucesso' }
     },
   },
@@ -772,6 +1908,22 @@ const mockHandlers = [
       decision: 'BUY',
       confidence: 0.73,
       acao: 1,
+    }),
+  },
+  // Catálogo de moedas. Faltava um handler para esta rota, e a falta não dava
+  // erro visível: `apiRequest` só usa o mock quando algum handler casa, e sem
+  // casar a chamada seguia para a rede de verdade. No modo demo — que existe
+  // justamente para rodar sem backend — isso significava carrossel vazio,
+  // "Carregando moedas..." eterno e, por tabela, dashboard e heatmap sem série
+  // nenhuma, já que ambos partem desta lista para descobrir sigla e idMoeda.
+  {
+    method: 'GET',
+    match: (endpoint) => endpoint.split('?')[0] === '/ThinkBitcoin/moedas',
+    response: () => ({
+      mensagem: 'Moedas mock retornadas com sucesso',
+      // `valorBase` fica de fora: é combustível do gerador de séries, não
+      // contrato da API. Quem quer preço chama /moeda/{sigla}/valor.
+      resultado: MOCK_MOEDAS.map(({ id, sigla, nome }) => ({ id, sigla, nome })),
     }),
   },
   {
@@ -854,11 +2006,17 @@ const mockHandlers = [
       const urlQuery = endpoint.includes('?') ? new URLSearchParams(endpoint.split('?')[1]) : null
       const idMoedaStr = urlQuery?.get('idMoeda') || '1'
       const intervalo = urlQuery?.get('intervalo') || '24h'
-      let idNum = parseInt(idMoedaStr)
-      if (isNaN(idNum)) {
-        idNum = idMoedaStr.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
-      }
-      
+
+      // Hash da string INTEIRA, sempre. Antes tentava `parseInt` primeiro e só
+      // caía no hash quando o resultado era NaN — e `parseInt` para no primeiro
+      // caractere não numérico: todo Guid que começa com dígito virava aquele
+      // dígito. Como Guid é hexadecimal, dez moedas quaisquer têm boa chance de
+      // colidir no mesmo número e receber o MESMO mapa, sem nada acusar. O
+      // ramo do parseInt não servia para nada que o hash não sirva.
+      const idNum = idMoedaStr
+        .split('')
+        .reduce((acc, char) => acc + char.charCodeAt(0), 0)
+
       const factor = (idNum * 17) % 30
       
       let registros = []
@@ -979,7 +2137,7 @@ const mockHandlers = [
       const valorUSD = parseFloat((valorBRL / cotacao).toFixed(2))
 
       const novo = {
-        idPatrimonioTB: crypto.randomUUID?.() || Math.random().toString(36).substring(2, 15),
+        idPatrimonioTB: globalThis.crypto?.randomUUID?.() || Math.random().toString(36).substring(2, 15),
         idUsuarioTB: body?.idUsuarioTB || 'b282e124-4dd8-4ccd-a9c6-5b6b0c324a50',
         valorBRL,
         valorUSD,
@@ -1132,7 +2290,90 @@ const mockHandlers = [
         resultado: true
       }
     }
-  }
+  },
+  {
+    method: 'GET',
+    match: (endpoint) => /^\/ThinkBitcoin\/documentos-legais\/[A-Z_]+$/.test(endpoint),
+    response: (endpoint) => {
+      const tipo = endpoint.split('/').pop()
+      const documento = documentoVigentePorTipo(tipo)
+      if (!documento) {
+        const err = new Error('Nenhuma vers\u00e3o vigente encontrada para este documento.')
+        err.status = 400
+        throw err
+      }
+      return { mensagem: 'Documento mock retornado com sucesso', resultado: documento }
+    },
+  },
+  {
+    method: 'GET',
+    match: (endpoint) => /^\/ThinkBitcoin\/documentos-legais\/[A-Z_]+\/versoes$/.test(endpoint),
+    response: (endpoint) => {
+      const tipo = endpoint.split('/')[3]
+      return {
+        mensagem: 'Vers\u00f5es mock retornadas com sucesso',
+        resultado: MOCK_DOCUMENTOS.filter((d) => d.tipo === tipo).map(({ conteudo: _conteudo, ...meta }) => meta),
+      }
+    },
+  },
+  {
+    method: 'GET',
+    match: (endpoint) => endpoint.startsWith('/ThinkBitcoin/documentos-legais/versao/'),
+    response: (endpoint) => {
+      const id = endpoint.split('/').pop()
+      const documento = MOCK_DOCUMENTOS.find((d) => d.idDocumentoLegal === id)
+      if (!documento) {
+        const err = new Error('Vers\u00e3o do documento n\u00e3o encontrada.')
+        err.status = 400
+        throw err
+      }
+      return { mensagem: 'Vers\u00e3o mock retornada com sucesso', resultado: documento }
+    },
+  },
+  {
+    method: 'GET',
+    match: (endpoint) => endpoint === '/ThinkBitcoin/consentimentos/pendentes',
+    response: () => ({
+      mensagem: 'Pend\u00eancias mock retornadas com sucesso',
+      // Espelha a regra do servidor: pendente \u00e9 documento obrigat\u00f3rio cujo
+      // \u00faltimo registro n\u00e3o \u00e9 um aceite da vers\u00e3o vigente.
+      resultado: MOCK_DOCUMENTOS.filter((documento) => {
+        const atual = mockConsentimentos.find((c) => c.tipo === documento.tipo && c.atual)
+        return !atual || !atual.concedido
+      }).map((documento) => {
+        const atual = mockConsentimentos.find((c) => c.tipo === documento.tipo && c.atual)
+        return {
+          tipo: documento.tipo,
+          motivo: atual ? 'REVOGADO' : 'NUNCA_ACEITO',
+          idDocumentoLegal: documento.idDocumentoLegal,
+          versao: documento.versao,
+          titulo: documento.titulo,
+          resumoAlteracoes: documento.resumoAlteracoes,
+          dataVigenciaInicio: documento.dataVigenciaInicio,
+          versaoAceitaAnteriormente: atual?.versaoDocumento ?? null,
+        }
+      }),
+    }),
+  },
+  {
+    method: 'GET',
+    match: (endpoint) => endpoint === '/ThinkBitcoin/consentimentos/meus',
+    response: () => ({
+      mensagem: 'Consentimentos mock retornados com sucesso',
+      resultado: mockConsentimentos,
+    }),
+  },
+  {
+    method: 'POST',
+    match: (endpoint) => endpoint === '/ThinkBitcoin/consentimentos',
+    response: (endpoint, body) => {
+      registrarMockConsentimento(body?.itens, body?.origem ?? 'CONFIGURACOES')
+      return {
+        mensagem: 'Consentimento mock registrado com sucesso',
+        resultado: (body?.itens ?? []).map((i) => i.tipo),
+      }
+    },
+  },
 ]
 
 export const getMockResponse = ({ endpoint, method, body }) => {

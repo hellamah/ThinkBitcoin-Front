@@ -16,10 +16,10 @@ import { MdAdd, MdHistory, MdAttachMoney, MdOutlineCalendarToday } from 'react-i
 import Modal from '../Modal'
 import { apiRequest, PatrimonioEndpoint, HttpMethod } from '../../utils/apiClient'
 import useTranslation from '../../hooks/useTranslation'
-import * as mathUtils from '../../utils/mathUtils'
+import { toLocal } from '../../utils/dateUtils'
 
-export default function PatrimonioModal({ visible, onClose, token, user, patrimonio, onRefresh }) {
-  const { t } = useTranslation()
+export default function PatrimonioModal({ visible, onClose, user, patrimonio, onRefresh }) {
+  const { t, idioma } = useTranslation()
   const [valorBRL, setValorBRL] = useState('')
   const [observacao, setObservacao] = useState('')
   const [loading, setLoading] = useState(false)
@@ -33,7 +33,7 @@ export default function PatrimonioModal({ visible, onClose, token, user, patrimo
 
     const valor = parseFloat(valorBRL)
     if (isNaN(valor) || valor <= 0) {
-      setErrorMsg(t('patrimonio.amountRequired') || 'Informe um valor maior que zero.')
+      setErrorMsg(t('patrimonio.amountRequired'))
       return
     }
 
@@ -48,13 +48,13 @@ export default function PatrimonioModal({ visible, onClose, token, user, patrimo
         }
       })
 
-      setSuccessMsg(t('patrimonio.saveSuccess') || 'Patrimônio registrado com sucesso!')
+      setSuccessMsg(t('patrimonio.saveSuccess'))
       setValorBRL('')
       setObservacao('')
       if (onRefresh) await onRefresh()
     } catch (err) {
       console.error(err)
-      setErrorMsg(t('patrimonio.saveError') || 'Erro ao registrar patrimônio. Tente novamente.')
+      setErrorMsg(t('patrimonio.saveError'))
     } finally {
       setLoading(false)
     }
@@ -90,7 +90,7 @@ export default function PatrimonioModal({ visible, onClose, token, user, patrimo
   }
 
   return (
-    <Modal visible={visible} onClose={onClose} className="modal-md">
+    <Modal visible={visible} onClose={onClose} className="modal-md" rotulo={t('patrimonio.manage')}>
       <Box sx={{ p: 1, maxWidth: '100%' }}>
         <Typography variant="h5" className="patrimonio-title-glow" sx={{ mb: 4, display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <MdAttachMoney style={{ fontSize: '1.8rem' }} /> {t('patrimonio.manage')}
@@ -182,14 +182,14 @@ export default function PatrimonioModal({ visible, onClose, token, user, patrimo
                       <TableCell sx={tableCellSx}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'var(--text-muted)' }}>
                           <MdOutlineCalendarToday />
-                          {new Date(reg.dataHora).toLocaleString()}
+                          {toLocal(reg.dataHora, idioma.intl)}
                         </Box>
                       </TableCell>
                       <TableCell sx={{ ...tableCellSx, fontWeight: 700 }} align="right">
-                        R$ {reg.valorBRL.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        R$ {reg.valorBRL.toLocaleString(idioma.intl, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </TableCell>
                       <TableCell sx={{ ...tableCellSx, color: 'var(--accent-ink) !important' }} align="right">
-                        $ {reg.valorUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        $ {reg.valorUSD.toLocaleString(idioma.intl, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </TableCell>
                       <TableCell sx={{ ...tableCellSx, opacity: 0.8, maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={reg.observacao}>
                         {reg.observacao}

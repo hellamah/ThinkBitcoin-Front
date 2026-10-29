@@ -8,11 +8,12 @@ import { MapRegion } from './enums';
  * nativa Intl.DisplayNames (cobre todos os países, em qualquer idioma).
  * Instâncias são cacheadas por locale; códigos inválidos retornam o próprio código.
  * @param {string} code - Código ISO do país (ex: BR, US, TR)
- * @param {string} [locale='pt'] - Locale BCP 47 (ex: 'pt', 'en')
+ * @param {string} [locale='en'] - Locale BCP 47 (ex: 'pt', 'en'). Acompanha o
+ *   idioma padrão do app; na prática todo chamador passa o locale do registro.
  * @returns {string} Nome do país localizado, ou o código se não resolvido
  */
 const displayNamesCache = {};
-export const getCountryName = (code, locale = 'pt') => {
+export const getCountryName = (code, locale = 'en') => {
   const c = String(code || '').toUpperCase().trim();
   try {
     if (!displayNamesCache[locale]) {

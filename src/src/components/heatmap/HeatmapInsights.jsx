@@ -3,7 +3,7 @@ import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import LinearProgress from '@mui/material/LinearProgress'
 import Tooltip from '@mui/material/Tooltip'
-import { MdTrendingUp, MdTrendingDown, MdAccessTime, MdWarningAmber } from 'react-icons/md'
+import { MdTrendingUp, MdTrendingDown, MdAccessTime, MdWarningAmber, MdInfo } from 'react-icons/md'
 
 // ---------------------------------------------------------------------------
 // Painel de insights do heatmap: consome o último registro de /variavel-externa/trend
@@ -31,11 +31,13 @@ export const formatarMinutos = (min) => {
   return m > 0 ? `${h}h ${m}min` : `${h}h`
 }
 
-export const formatarHora = (iso) => {
+// `locale` é o idioma do app (idioma.intl). Com `[]`, a hora seguia o navegador:
+// "02:30 PM" numa tela em português.
+export const formatarHora = (iso, locale) => {
   if (!iso) return null
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return null
-  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  return d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
 }
 
 // O Google Trends normaliza a série em 0-100, mas registros imputados podem
@@ -110,7 +112,7 @@ const BarraMedida = ({ label, valorLabel, percent, cor }) => (
   </Box>
 )
 
-export default function HeatmapInsights({ trend, fear, t }) {
+export default function HeatmapInsights({ trend, fear, t, locale }) {
   // Countdown até a próxima atualização do Fear & Greed (timeUntilUpdateSeg).
   const [segundosRestantes, setSegundosRestantes] = useState(null)
   const fearUpdateSeg = num(fear?.timeUntilUpdateSeg)
@@ -137,7 +139,7 @@ export default function HeatmapInsights({ trend, fear, t }) {
   const pico = formatarMinutos(trend?.minutosDesdePico)
   const rank = num(trend?.rankNoMinuto)
   const hhi = normalizarHHI(trend?.geoHHI)
-  const horaRef = formatarHora(trend?.horaReferencia)
+  const horaRef = formatarHora(trend?.horaReferencia, locale)
   const dadosImputados = trend?.isTimeseriesOk === false || trend?.isGeoOk === false
 
   const fearValor = num(fear?.valor)
@@ -150,11 +152,11 @@ export default function HeatmapInsights({ trend, fear, t }) {
           {horaRef && (
             <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, fontSize: '0.72rem', color: 'var(--text-faint)', fontFamily: 'Outfit, sans-serif' }}>
               <MdAccessTime size={13} />
-              {t('heatmap.atualizadoAs') || 'Atualizado às'} {horaRef}
+              {t('heatmap.atualizadoAs')} {horaRef}
             </Box>
           )}
           {dadosImputados && (
-            <Tooltip title={t('heatmap.dadosImputados') || 'Parte dos dados foi estimada (coleta incompleta)'} arrow>
+            <Tooltip title={t('heatmap.dadosImputados')} arrow>
               <Box sx={{
                 display: 'inline-flex', alignItems: 'center', gap: 0.5,
                 px: 1, py: 0.2, borderRadius: '10px',
@@ -162,7 +164,7 @@ export default function HeatmapInsights({ trend, fear, t }) {
                 fontSize: '0.7rem', color: 'var(--scale-fear-mid)', fontFamily: 'Outfit, sans-serif',
               }}>
                 <MdWarningAmber size={13} />
-                {t('heatmap.dadosImputados') || 'Dados parcialmente estimados'}
+                {t('heatmap.dadosImputados')}
               </Box>
             </Tooltip>
           )}
@@ -174,25 +176,28 @@ export default function HeatmapInsights({ trend, fear, t }) {
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
           {valorAtual !== null && (
             <StatChip
-              label={t('heatmap.interesseAtual') || 'Interesse atual'}
-              value={`${valorAtual}/100`}
-              hint={mediaPeriodo !== null ? `${t('heatmap.mediaPeriodo') || 'média'}: ${mediaPeriodo.toFixed(1)}` : undefined}
+              label={t('heatmap.interesseAtual')}
+              // Garante que o denominador da escala seja sempre 100
+              value={`${valorAtual.toString().split('/')[0]}/100`}
+              hint={mediaPeriodo !== null ? `${t('heatmap.mediaPeriodo')}: ${mediaPeriodo.toFixed(1)}` : undefined}
             />
           )}
           {delta5 !== null && (
-            <StatChip label={t('heatmap.momentum5') || 'Momentum 5min'} value="" delta={delta5} />
+            <StatChip label={t('heatmap.momentum5')} value="" delta={delta5} />
           )}
           {delta15 !== null && (
-            <StatChip label={t('heatmap.momentum15') || 'Momentum 15min'} value="" delta={delta15} />
+            <StatChip label={t('heatmap.momentum15')} value="" delta={delta15} />
           )}
           {volatilidade !== null && (
-            <StatChip label={t('heatmap.volatilidade') || 'Volatilidade 15min'} value={volatilidade.toFixed(1)} />
+            <StatChip label={t('heatmap.volatilidade')} value={volatilidade.toFixed(1)} />
           )}
           {pico !== null && (
-            <StatChip label={t('heatmap.picoHa') || 'Pico de buscas há'} value={pico} />
+            <Tooltip title={t('heatmap.picoTooltip')}>
+              <StatChip label={t('heatmap.picoHa')} value={pico} />
+            </Tooltip>
           )}
           {rank !== null && (
-            <StatChip label={t('heatmap.rankBuscas') || 'Rank de buscas'} value={`#${rank}`} />
+            <StatChip label={t('heatmap.rankBuscas')} value={`#${rank}`} />
           )}
         </Box>
       )}
@@ -200,10 +205,17 @@ export default function HeatmapInsights({ trend, fear, t }) {
       {/* Concentração geográfica (índice HHI) */}
       {hhi !== null && (
         <BarraMedida
-          label={t('heatmap.concentracaoGeo') || 'Concentração geográfica'}
-          valorLabel={hhi >= 0.25
-            ? `🎯 ${t('heatmap.concentrada') || 'Narrativa concentrada'}`
-            : `🌍 ${t('heatmap.distribuida') || 'Narrativa globalizada'}`}
+          label={t('heatmap.concentracaoGeo')}
+          valorLabel={hhi >= 0.25 ? (
+            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+              🎯 {t('heatmap.concentrada')}
+              <Tooltip title={t('heatmap.concentrada_tooltip')}>
+                <MdInfo size={14} />
+              </Tooltip>
+            </Box>
+          ) : (
+            `🌍 ${t('heatmap.distribuida')}`
+          )}
           percent={hhi * 100}
           cor="var(--accent-ink)"
         />
@@ -213,14 +225,14 @@ export default function HeatmapInsights({ trend, fear, t }) {
       {fearValor !== null && (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.4 }}>
           <BarraMedida
-            label={t('heatmap.fearGreed') || 'Fear & Greed'}
+            label={t('heatmap.fearGreed')}
             valorLabel={`${fearValor} · ${fear?.classificacao || ''}`}
             percent={fearValor}
             cor={corFearGreed(fearValor)}
           />
           {formatarContagem(segundosRestantes) && (
             <Typography sx={{ fontSize: '0.68rem', color: 'var(--text-faint)', fontFamily: 'Share Tech Mono, monospace', alignSelf: 'flex-end' }}>
-              ⏳ {t('heatmap.proximaAtualizacao') || 'Próxima atualização em'} {formatarContagem(segundosRestantes)}
+              ⏳ {t('heatmap.proximaAtualizacao')} {formatarContagem(segundosRestantes)}
             </Typography>
           )}
         </Box>

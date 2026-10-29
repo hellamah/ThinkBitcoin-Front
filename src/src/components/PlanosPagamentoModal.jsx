@@ -18,6 +18,7 @@ import Modal from './Modal'
 import { apiRequest, PlanosPagamentoEndpoint, AuthenticationEndpoint, HttpMethod } from '../utils/apiClient'
 import { useAuth } from '../context/AuthContext'
 import useTranslation from '../hooks/useTranslation'
+import { toLocalTime } from '../utils/dateUtils'
 
 const POLL_INTERVAL_MS = 4000
 
@@ -62,7 +63,7 @@ const buildMigrarBody = (plano, user) => ({
 })
 
 export default function PlanosPagamentoModal({ visible, onClose, token, user, onRefresh }) {
-  const { t } = useTranslation()
+  const { t, idioma } = useTranslation()
   const { login } = useAuth()
   const [planos, setPlanos] = useState([])
   const [loading, setLoading] = useState(true)
@@ -73,6 +74,9 @@ export default function PlanosPagamentoModal({ visible, onClose, token, user, on
   const [copiado, setCopiado] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
   const pollRef = useRef(null)
+  const copiadoRef = useRef(null)
+
+  useEffect(() => () => clearTimeout(copiadoRef.current), [])
 
   const carregarPlanos = useCallback(async () => {
     if (!token) return []
@@ -150,13 +154,21 @@ export default function PlanosPagamentoModal({ visible, onClose, token, user, on
 
   // Polling do status da cobrança enquanto o QR code está na tela. Quem
   // ativa o plano é o backend (webhook do gateway); aqui só refletimos.
+  //
+  // `visible` entra na condição E nas dependências. O componente fica montado o
+  // tempo todo — Settings o renderiza sempre, e é o `Modal` que devolve null —,
+  // então sem esta guarda fechar a tela no meio de um pagamento deixava uma
+  // consulta a cada 4 segundos rodando indefinidamente, invisível, até sair de
+  // Configurações. Pior: se o Pix caísse nesse intervalo, `concluirPagamento`
+  // trocava o token do usuário com a tela fechada e nada na interface dizia
+  // que a assinatura tinha mudado.
   useEffect(() => {
-    if (step !== Step.PAGAMENTO || !cobranca?.idCobranca) return undefined
+    if (!visible || step !== Step.PAGAMENTO || !cobranca?.idCobranca) return undefined
     const consultar = async () => {
       try {
         const res = await apiRequest(
           PlanosPagamentoEndpoint.COBRANCA(cobranca.idCobranca),
-          { forceRefresh: true, suppressAuthRedirect: true }
+          { forceRefresh: true, suppressAuthRedirect: true, emSegundoPlano: true }
         )
         const atual = res?.resultado?.cobranca
         if (!atual) return
@@ -177,7 +189,7 @@ export default function PlanosPagamentoModal({ visible, onClose, token, user, on
     }
     pollRef.current = setInterval(consultar, POLL_INTERVAL_MS)
     return () => clearInterval(pollRef.current)
-  }, [step, cobranca?.idCobranca, concluirPagamento, t])
+  }, [visible, step, cobranca?.idCobranca, concluirPagamento, t])
 
   const selecionarPlano = (plano) => {
     setErrorMsg('')
@@ -227,7 +239,11 @@ export default function PlanosPagamentoModal({ visible, onClose, token, user, on
     try {
       await navigator.clipboard.writeText(cobranca.pixCopiaECola)
       setCopiado(true)
-      setTimeout(() => setCopiado(false), 2500)
+      // Guardado em ref e cancelado no desmonte: solto, o timer de 2,5s
+      // continuava vivo depois de fechar a tela e apagava o "copiado" de uma
+      // reabertura seguinte.
+      clearTimeout(copiadoRef.current)
+      copiadoRef.current = setTimeout(() => setCopiado(false), 2500)
     } catch (err) {
       console.error('Erro ao copiar código Pix:', err)
     }
@@ -256,7 +272,12 @@ export default function PlanosPagamentoModal({ visible, onClose, token, user, on
         const isAtivo = plano.ativo
         return (
           <div key={plano.idPlanoPagamento} className={`pricing-plan-card${isAtivo ? ' active-plan' : ''}`}>
-            <Typography variant="h6" sx={{ fontWeight: 800, color: isAtivo ? 'var(--color-primary)' : '#fff', mb: 1, textTransform: 'uppercase', fontFamily: "'Share Tech Mono', monospace" }}>
+            {/* O nome do plano vinha em `#fff` literal sobre `--surface-panel`,
+                que no tema claro é branco a 75%: os cards que NÃO são o plano
+                ativo perdiam o título por completo — a tela de assinatura
+                mostrava três cartões sem nome, e só o ativo (que usa o ouro)
+                continuava legível. */}
+            <Typography variant="h6" sx={{ fontWeight: 800, color: isAtivo ? 'var(--color-primary)' : 'var(--text-primary)', mb: 1, textTransform: 'uppercase', fontFamily: "'Share Tech Mono', monospace" }}>
               {plano.nome}
             </Typography>
             <Typography variant="body2" sx={{ color: 'var(--text-muted)', minHeight: '60px', mb: 2, fontSize: '0.85rem' }}>
@@ -279,7 +300,7 @@ export default function PlanosPagamentoModal({ visible, onClose, token, user, on
               </div>
               <div className="pricing-feature-item">
                 <span className="pricing-feature-icon"><MdAccountBalance /></span>
-                <span>{t('planos.liquidacao')}: D+{plano.liquidacao} ({plano.permiteResgateParcial ? t('planos.yes') : t('planos.no')} resgate parcial)</span>
+                <span>{t('planos.liquidacao')}: D+{plano.liquidacao} ({plano.permiteResgateParcial ? t('planos.yes') : t('planos.no')})</span>
               </div>
               <div className="pricing-feature-item">
                 <span className="pricing-feature-icon"><MdCheck /></span>
@@ -291,7 +312,11 @@ export default function PlanosPagamentoModal({ visible, onClose, token, user, on
               </div>
               <div className="pricing-feature-item">
                 <span className="pricing-feature-icon"><MdCheck /></span>
-                <span>{t('planos.limiteDiario')}: R$ {plano.limiteDiarioResgate.toLocaleString()}</span>
+                {/* `.toLocaleString()` direto no campo da API derrubava a tela
+                    inteira — o modal fica sob o ErrorBoundary da raiz — se o
+                    plano viesse sem limite diário. Os outros números do cartão
+                    já são interpolados crus e sobrevivem a um null. */}
+                <span>{t('planos.limiteDiario')}: R$ {Number(plano.limiteDiarioResgate ?? 0).toLocaleString(idioma.intl)}</span>
               </div>
             </div>
 
@@ -392,7 +417,7 @@ export default function PlanosPagamentoModal({ visible, onClose, token, user, on
   const renderPagamento = () => {
     if (!cobranca) return null
     const expiraEm = cobranca.expiraEm
-      ? new Date(cobranca.expiraEm).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      ? toLocalTime(cobranca.expiraEm, idioma.intl)
       : null
     return (
       <Box sx={{ maxWidth: 440, mx: 'auto', textAlign: 'center' }}>
@@ -420,7 +445,9 @@ export default function PlanosPagamentoModal({ visible, onClose, token, user, on
 
         <Box
           sx={{
-            border: '1px dashed rgba(255,255,255,0.25)',
+            // Tracejado literal em branco: no claro a moldura do Pix
+            // copia-e-cola sumia, e o código ficava solto no meio do modal.
+            border: '1px dashed var(--border-strong)',
             borderRadius: '10px',
             p: 1.5,
             mb: 2,
@@ -489,7 +516,7 @@ export default function PlanosPagamentoModal({ visible, onClose, token, user, on
   }
 
   return (
-    <Modal visible={visible} onClose={onClose} className={getModalSizeClass()}>
+    <Modal visible={visible} onClose={onClose} className={getModalSizeClass()} rotulo={t('planos.viewPlans')}>
       <Box sx={{ p: 1, maxWidth: '100%' }}>
         <Typography variant="h5" className="patrimonio-title-glow" sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <MdPayment style={{ fontSize: '1.8rem' }} /> {t('planos.viewPlans')}
