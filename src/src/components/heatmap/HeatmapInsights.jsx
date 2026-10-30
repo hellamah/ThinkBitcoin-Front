@@ -210,7 +210,7 @@ export default function HeatmapInsights({ trend, fear, t, locale }) {
           label={t('heatmap.concentracaoGeo')}
           valorLabel={hhi >= 0.25 ? (
             <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
-              🎯 {t('heatmap.concentrada')}
+              🎯 {t('heatmap.concentrada')} ({(hhi * 100).toFixed(1)}%)
               <Tooltip title={t('heatmap.concentrada_tooltip')}>
                 <MdInfo size={14} />
               </Tooltip>
