@@ -349,7 +349,7 @@
   "simulationOutOfSample": "Out of sample",
   "simulationOutOfSampleSub": "alpha in the most recent {{fracao}}% of the window",
   "simulationOutOfSampleShort": "only {{count}} trade(s): short sample",
-  "simulationOutOfSampleNone": "no trades in the reserved stretch",
+  "simulationOutOfSampleNone": "no trades in the out-of-sample",
   "simulationReservedValue": "Held back",
   "simulationReservedSub": "the most recent {{fracao}}%, kept until you lock the rule",
   "simulationReveal": "Lock rule and reveal",

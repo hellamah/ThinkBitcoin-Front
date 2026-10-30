@@ -349,7 +349,7 @@
   "simulationOutOfSample": "Fuori campione",
   "simulationOutOfSampleSub": "alfa nel {{fracao}}% più recente della finestra",
   "simulationOutOfSampleShort": "solo {{count}} operazione/i: campione breve",
-  "simulationOutOfSampleNone": "nessuna operazione nel tratto riservato",
+  "simulationOutOfSampleNone": "nessuna operazione nell'Out-of-sample",
   "simulationReservedValue": "Riservata",
   "simulationReservedSub": "il {{fracao}}% più recente, custodito finché non fissi la regola",
   "simulationReveal": "Fissa la regola e rivela",

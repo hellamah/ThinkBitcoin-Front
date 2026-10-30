@@ -349,7 +349,7 @@
   "simulationOutOfSample": "Fuera de muestra",
   "simulationOutOfSampleSub": "alfa en el {{fracao}}% más reciente de la ventana",
   "simulationOutOfSampleShort": "solo {{count}} operación(es): muestra corta",
-  "simulationOutOfSampleNone": "no operó en el tramo reservado",
+  "simulationOutOfSampleNone": "no operó en el Out-of-sample",
   "simulationReservedValue": "Reservada",
   "simulationReservedSub": "el {{fracao}}% más reciente, guardado hasta que fije la regla",
   "simulationReveal": "Fijar regla y revelar",
