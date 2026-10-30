@@ -164,7 +164,7 @@ export default function CoinCarousel({
                   </span>
                   <div className={`carousel-mini-var ${isUp ? 'up' : 'down'}`}>
                     {isUp ? <MdTrendingUp /> : <MdTrendingDown />}
-                    {mathUtils.formatPercent(m.variacao)}
+                    {mathUtils.formatPercent(m.variacao, 3)}
                   </div>
                 </div>
 
@@ -223,7 +223,7 @@ export default function CoinCarousel({
                         <div className="top-item-header-row">
                           <span className="top-name">{m.nome}</span>
                           <span className={`top-var-badge ${up ? 'up' : 'down'}`}>
-                            {up ? '▲' : '▼'} {mathUtils.formatPercent(m.variacao).replace('+', '').replace('-', '')}
+                            {up ? '▲' : '▼'} {mathUtils.formatPercent(m.variacao, 3).replace('+', '').replace('-', '')}
                           </span>
                         </div>
                         <span className="top-price">{mathUtils.formatCurrency(m.valor)}</span>
