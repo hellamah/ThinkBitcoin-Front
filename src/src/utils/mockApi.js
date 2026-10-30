@@ -260,7 +260,7 @@ const gerarHistoricoMock = (normalized, agora) => {
         // Amplitude é, por definição, máxima menos mínima; era 3% fixo do preço
         // e não conversava com o OHLC ao lado.
         precoAmplitude: Number((maior - menor).toFixed(2)),
-        precoPercentualVariacao: Number(dVar.toFixed(2)),
+        precoPercentualVariacao: Number(dVar.toFixed(4)),
         precoRatioCompraVenda: Number(
           (volumeVendido > 0 ? volumeComprado / volumeVendido : 0).toFixed(5)
         ),
