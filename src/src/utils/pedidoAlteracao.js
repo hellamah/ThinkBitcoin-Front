@@ -134,9 +134,13 @@ export const GRUPOS_DE_DESCARTE = Object.freeze([
   { id: 'dayTrade', pertence: (p) => p?.tipo === 'falta' && DAY_TRADE.test(p?.problema || '') },
 ])
 
-/** Os grupos com pedido a descartar: [{ id, pedidos }], só dos que esperam decisão. */
+/**
+ * Os grupos com pedido a descartar: [{ id, pedidos }], dos que esperam decisão e
+ * da nova tentativa, que gasta uma rodada do modelo a cada dia até alguém
+ * descartar (em 30/10/2026, 5 das 12 eram das telas encerradas).
+ */
 export const gruposDeDescarte = (pedidos) => {
-  const restantes = (Array.isArray(pedidos) ? pedidos : []).filter(podeDecidir)
+  const restantes = (Array.isArray(pedidos) ? pedidos : []).filter(podeDescartar)
   const usados = new Set()
   return GRUPOS_DE_DESCARTE.map(({ id, pertence }) => {
     const doGrupo = restantes.filter((p) => !usados.has(p.idPedidoAlteracao) && pertence(p))

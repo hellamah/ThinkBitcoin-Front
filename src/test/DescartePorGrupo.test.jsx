@@ -54,6 +54,11 @@ describe('pregão › grupos de descarte', () => {
     expect(lista.map((g) => g.id)).toEqual(['telaEncerrada'])
   })
 
+  it('a nova tentativa entra: ela gasta o modelo até alguém descartar', () => {
+    const tentando = pedido('n', 'Reward antigo', 'Treinamento IA', { status: 'nova-tentativa' })
+    expect(gruposDeDescarte([tentando]).map((g) => g.id)).toEqual(['telaEncerrada'])
+  })
+
   it('sem nada a descartar, nenhum grupo', () => {
     expect(gruposDeDescarte([COMUM])).toEqual([])
     expect(gruposDeDescarte(undefined)).toEqual([])
