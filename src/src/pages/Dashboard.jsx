@@ -272,10 +272,6 @@ export default function Dashboard() {
         return true
       })
     }
-    registros = registros.filter(r => {
-      const time = new Date(r.horaReferencia ?? r.HoraReferencia ?? r.dataHora ?? r.DataHora).getTime()
-      return time <= Date.now()
-    })
     if (resultadoFiltro && resultadoFiltro !== 'ALL') {
       registros = registros.filter(r => {
         const v = r.precoPercentualVariacao ?? r.PrecoPercentualVariacao ?? r.variacaoPercentual ?? r.VariacaoPercentual ?? 0
