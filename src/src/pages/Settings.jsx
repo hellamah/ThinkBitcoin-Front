@@ -582,7 +582,7 @@ function Settings() {
 
         {renderPanel(<MdAccountBalanceWallet />, t('traderLabTitle'), (
           <>
-            {renderField(t('initialInvestment'), (
+            {renderField(t('initialInvestmentSettings'), ( // Clarifica a moeda do investimento inicial em USD para evitar confusão com os planos em R$
               <TextField
                 type="number"
                 variant="outlined"

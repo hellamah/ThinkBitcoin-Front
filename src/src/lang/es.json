@@ -124,6 +124,7 @@
   "traderLabTitle": "Laboratorio del trader",
   "riskManagementTitle": "Gestión de riesgo",
   "initialInvestment": "Inversión inicial y planes (R$)",
+  "initialInvestmentSettings": "Inversión inicial (USD) y planes (R$)",
   "maxRiskPerTrade": "Riesgo máximo por operación (%)",
   "preferredCoin": "Moneda preferida",
   "preferredCoinSettings": "Moneda preferida (Base global)",
