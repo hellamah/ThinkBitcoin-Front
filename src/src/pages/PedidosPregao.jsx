@@ -7,6 +7,7 @@ import Typography from '@mui/material/Typography'
 import { MdRefresh } from 'react-icons/md'
 import ErrorMessage from '../components/ErrorMessage'
 import CartaoPedido from '../components/pregao/CartaoPedido'
+import DescartePorGrupo from '../components/pregao/DescartePorGrupo'
 import FiltroDeStatus from '../components/pregao/FiltroDeStatus'
 import { EstadoVazio, Painel } from '../components/treinamento/Painel'
 import usePedidosAlteracao from '../hooks/usePedidosAlteracao'
@@ -34,7 +35,7 @@ export default function PedidosPregao() {
   // O filtro na URL (?status=aprovado): sobrevive a refresh e gera link.
   const [searchParams, setSearchParams] = useSearchParams()
   const filtro = filtroDaUrl(searchParams.get('status'))
-  const { pedidos, carregando, erro, recarregar, decidir } = usePedidosAlteracao()
+  const { pedidos, carregando, erro, recarregar, decidir, descartarVarios } = usePedidosAlteracao()
   // A última decisão: o pedido some da fila, e sem o aviso não se sabe para onde foi.
   const [aviso, setAviso] = useState(null)
 
@@ -53,6 +54,13 @@ export default function PedidosPregao() {
   const aoDecidir = (pedido) => async (decisao, motivo) => {
     await decidir(pedido.idPedidoAlteracao, decisao, motivo)
     setAviso({ decisao, problema: pedido.problema })
+  }
+
+  const aoDescartarGrupo = async (ids, motivo) => {
+    const falhas = await descartarVarios(ids, motivo)
+    const feitos = ids.length - falhas.length
+    setAviso(feitos > 0 ? { grupo: feitos } : null)
+    return falhas
   }
 
   return (
@@ -79,7 +87,9 @@ export default function PedidosPregao() {
             }}
           >
             <Typography variant="body2" sx={{ color: 'var(--text-primary)' }}>
-              {t(aviso.decisao === DECISOES.APROVADO ? 'pregao.avisoAprovado' : 'pregao.avisoDescartado', { problema: aviso.problema })}
+              {aviso.grupo
+                ? t('pregao.avisoGrupo', { n: aviso.grupo })
+                : t(aviso.decisao === DECISOES.APROVADO ? 'pregao.avisoAprovado' : 'pregao.avisoDescartado', { problema: aviso.problema })}
             </Typography>
           </Box>
         )}
@@ -94,6 +104,7 @@ export default function PedidosPregao() {
         ) : (
           <>
             {erro && <ErrorMessage message={erro.hasBackendMessage ? erro.message : t('pregao.loadError')} />}
+            {filtro === FILTRO_PADRAO && <DescartePorGrupo pedidos={pedidos} onDescartar={aoDescartarGrupo} />}
             {visiveis.length === 0 ? (
               <Painel><EstadoVazio mensagem={t(filtro === FILTRO_PADRAO ? 'pregao.vazioEsperando' : 'pregao.vazio')} /></Painel>
             ) : (

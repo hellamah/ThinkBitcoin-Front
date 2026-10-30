@@ -1295,6 +1295,27 @@
     "erroDecisao": "Impossible d’enregistrer la décision. Réessayez.",
     "avisoAprovado": "Demande approuvée : {{problema}}",
     "avisoDescartado": "Demande écartée : {{problema}}",
+    "avisoGrupo": "Demandes écartées : {{n}}.",
+    "grupos": {
+      "titulo": "Écarter par groupe",
+      "sub": "Des demandes auxquelles une de vos décisions répond déjà. Vérifiez la liste avant d’écarter : on ne peut pas revenir en arrière.",
+      "revisar": "Vérifier {{n}}",
+      "fechar": "Fermer",
+      "descartarN": "Écarter la sélection ({{n}})",
+      "falhas": "Non écartées, et toujours dans la file : {{n}}. {{erro}}",
+      "telaEncerrada": {
+        "titulo": "Écrans de l’entraînement arrêté",
+        "motivo": "L’agent a été arrêté le 22/10/2026, et l’écran est devenu un historique."
+      },
+      "vitrine": {
+        "titulo": "Vitrine de la page d’accueil",
+        "motivo": "La vitrine de la page d’accueil relève du marketing et reste telle quelle (décision du 25/10/2026)."
+      },
+      "dayTrade": {
+        "titulo": "Fonctions de day trading",
+        "motivo": "Fonction de day trading : laissée de côté tant que le client cible n’est pas décidé."
+      }
+    },
     "loadError": "Impossible de charger les demandes du Pregão.",
     "retry": "Réessayer",
     "vazio": "Aucune demande avec ce statut.",

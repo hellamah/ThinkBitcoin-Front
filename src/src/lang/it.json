@@ -1295,6 +1295,27 @@
     "erroDecisao": "Impossibile registrare la decisione. Riprova.",
     "avisoAprovado": "Richiesta approvata: {{problema}}",
     "avisoDescartado": "Richiesta scartata: {{problema}}",
+    "avisoGrupo": "Richieste scartate: {{n}}.",
+    "grupos": {
+      "titulo": "Scarta per gruppo",
+      "sub": "Richieste a cui una tua decisione risponde già. Controlla l’elenco prima di scartare: lo scarto non si può annullare.",
+      "revisar": "Controlla {{n}}",
+      "fechar": "Chiudi",
+      "descartarN": "Scarta selezionate ({{n}})",
+      "falhas": "Non scartate, e ancora in coda: {{n}}. {{erro}}",
+      "telaEncerrada": {
+        "titulo": "Schermate dell’addestramento chiuso",
+        "motivo": "L’agente è stato chiuso il 22/10/2026, e la schermata è diventata storico."
+      },
+      "vitrine": {
+        "titulo": "Vetrina della pagina iniziale",
+        "motivo": "La vetrina della pagina iniziale è marketing e resta com’è (decisione del 25/10/2026)."
+      },
+      "dayTrade": {
+        "titulo": "Funzioni di day trading",
+        "motivo": "Funzione di day trading: resta fuori finché non si decide il cliente di riferimento."
+      }
+    },
     "loadError": "Impossibile caricare le richieste del Pregão.",
     "retry": "Riprova",
     "vazio": "Nessuna richiesta con questo stato.",

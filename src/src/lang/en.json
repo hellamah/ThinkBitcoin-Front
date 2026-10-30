@@ -1295,6 +1295,27 @@
     "erroDecisao": "Could not record the decision. Try again.",
     "avisoAprovado": "Request approved: {{problema}}",
     "avisoDescartado": "Request discarded: {{problema}}",
+    "avisoGrupo": "Requests discarded: {{n}}.",
+    "grupos": {
+      "titulo": "Discard by group",
+      "sub": "Requests that one of your decisions already answers. Check the list before discarding: a discard can't be undone.",
+      "revisar": "Review {{n}}",
+      "fechar": "Close",
+      "descartarN": "Discard selected ({{n}})",
+      "falhas": "Not discarded, and still in the queue: {{n}}. {{erro}}",
+      "telaEncerrada": {
+        "titulo": "Screens of the retired training",
+        "motivo": "The agent was retired on 10/22/2026, and the screen became history."
+      },
+      "vitrine": {
+        "titulo": "Home page showcase",
+        "motivo": "The home page showcase is marketing and stays as it is (decision of 10/25/2026)."
+      },
+      "dayTrade": {
+        "titulo": "Day trading features",
+        "motivo": "Day trading feature: left out while the target customer is undecided."
+      }
+    },
     "loadError": "Could not load the Pregão requests.",
     "retry": "Try again",
     "vazio": "No requests with this status.",

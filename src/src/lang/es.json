@@ -1295,6 +1295,27 @@
     "erroDecisao": "No se pudo registrar la decisión. Inténtalo de nuevo.",
     "avisoAprovado": "Pedido aprobado: {{problema}}",
     "avisoDescartado": "Pedido descartado: {{problema}}",
+    "avisoGrupo": "Pedidos descartados: {{n}}.",
+    "grupos": {
+      "titulo": "Descartar por grupo",
+      "sub": "Pedidos que una decisión tuya ya responde. Revisa la lista antes de descartar: el descarte no se puede deshacer.",
+      "revisar": "Revisar {{n}}",
+      "fechar": "Cerrar",
+      "descartarN": "Descartar seleccionados ({{n}})",
+      "falhas": "No se descartaron, y siguen en la cola: {{n}}. {{erro}}",
+      "telaEncerrada": {
+        "titulo": "Pantallas del entrenamiento terminado",
+        "motivo": "El agente se dio por terminado el 22/10/2026, y la pantalla pasó a ser historial."
+      },
+      "vitrine": {
+        "titulo": "Escaparate de la página inicial",
+        "motivo": "El escaparate de la página inicial es marketing y queda como está (decisión del 25/10/2026)."
+      },
+      "dayTrade": {
+        "titulo": "Funciones de day trading",
+        "motivo": "Función de day trading: queda fuera mientras no se decida el cliente objetivo."
+      }
+    },
     "loadError": "No se pudieron cargar los pedidos del Pregão.",
     "retry": "Intentar de nuevo",
     "vazio": "Ningún pedido en este estado.",

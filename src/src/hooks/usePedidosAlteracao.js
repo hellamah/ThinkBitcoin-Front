@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { apiRequest, HttpMethod, PedidoAlteracaoEndpoint } from '../utils/apiClient'
-import { AGUARDANDO_DECISAO, STATUS_PUBLICOS } from '../utils/pedidoAlteracao'
+import { AGUARDANDO_DECISAO, STATUS, STATUS_PUBLICOS } from '../utils/pedidoAlteracao'
 
 // Os pedidos de alteração da Equipe Pregão. A lista vem inteira (são dezenas
 // de pedidos) e a tela filtra por status. O Pregão consolida três vezes por
@@ -70,12 +70,35 @@ export default function usePedidosAlteracao() {
     recarregar()
   }, [setPedidos, recarregar])
 
+  /**
+   * Descarta vários pedidos, um por vez: é a mesma regra da decisão de um pedido,
+   * e a falha num não desfaz os outros. Devolve os que falharam, [{ id, erro }].
+   */
+  const descartarVarios = useCallback(async (ids, motivo) => {
+    const falhas = []
+    for (const id of ids) {
+      try {
+        await apiRequest(PedidoAlteracaoEndpoint.DECISAO(id), {
+          method: HttpMethod.POST,
+          body: { decisao: STATUS.DESCARTADO, motivo },
+        })
+        setPedidos((atual) => (Array.isArray(atual)
+          ? atual.map((p) => (p.idPedidoAlteracao === id ? { ...p, status: STATUS.DESCARTADO, motivoDecisao: motivo } : p))
+          : atual))
+      } catch (e) {
+        falhas.push({ id, erro: e })
+      }
+    }
+    recarregar()
+    return falhas
+  }, [setPedidos, recarregar])
+
   useEffect(() => {
     if (!Array.isArray(pedidos)) return
     window.dispatchEvent(new CustomEvent(EVENTO_ESPERANDO_DECISAO, { detail: contarEsperando(pedidos) }))
   }, [pedidos])
 
-  return { pedidos, carregando, erro, recarregar, decidir }
+  return { pedidos, carregando, erro, recarregar, decidir, descartarVarios }
 }
 
 /**

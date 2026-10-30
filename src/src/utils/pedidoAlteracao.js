@@ -104,6 +104,47 @@ export const conferirMotivo = (decisao, motivo) => {
   return { motivo: texto || null }
 }
 
+// ── Descarte por grupo ─────────────────────────────────────────────────────
+
+// Os pedidos que uma decisão do dono já responde (30/10/2026): dos 178 esperando
+// decisão naquele dia, 35 eram das telas do treino encerrado, e os "falta" de
+// day trade passavam de 7 dias na fila sem ninguém decidir o cliente-alvo. A
+// tela só reúne e sugere o motivo: quem descarta continua sendo o administrador.
+const TELAS_ENCERRADAS = Object.freeze(['Treinamento IA', 'Detalhe do episódio'])
+const NAO_SAO_TELA = Object.freeze(['?', 'Cruzamentos entre telas'])
+const VITRINE = /94[,.]8|precis[aã]o da ia|marketing|vitrine|uptime do core|dados\s*\/\s*seg|domina o mercado/i
+const DAY_TRADE = /order ?book|livro de (?:ofertas|ordens)|depth|profundidade|order flow|fluxo de ordens|volume profile|execu[cç][aã]o|executar|ordem|alavancagem|leverage|api keys?|chaves? de api|webhooks?|take profit|stop loss|scalp|timeframe|intraday|paper trading|linhas de tend[eê]ncia/i
+
+const telasDoPedido = (pedido) => (pedido?.telas || '')
+  .split('·')
+  .map((t) => t.trim())
+  .filter((t) => t && !NAO_SAO_TELA.includes(t))
+
+// Na ordem: o pedido que cabe em dois grupos fica no primeiro.
+export const GRUPOS_DE_DESCARTE = Object.freeze([
+  {
+    id: 'telaEncerrada',
+    // Só as telas do treino: o pedido que cita também outra tela pode valer ali.
+    pertence: (p) => {
+      const telas = telasDoPedido(p)
+      return telas.length > 0 && telas.every((t) => TELAS_ENCERRADAS.includes(t))
+    },
+  },
+  { id: 'vitrine', pertence: (p) => VITRINE.test(`${p?.problema || ''} ${p?.trecho || ''}`) },
+  { id: 'dayTrade', pertence: (p) => p?.tipo === 'falta' && DAY_TRADE.test(p?.problema || '') },
+])
+
+/** Os grupos com pedido a descartar: [{ id, pedidos }], só dos que esperam decisão. */
+export const gruposDeDescarte = (pedidos) => {
+  const restantes = (Array.isArray(pedidos) ? pedidos : []).filter(podeDecidir)
+  const usados = new Set()
+  return GRUPOS_DE_DESCARTE.map(({ id, pertence }) => {
+    const doGrupo = restantes.filter((p) => !usados.has(p.idPedidoAlteracao) && pertence(p))
+    doGrupo.forEach((p) => usados.add(p.idPedidoAlteracao))
+    return { id, pedidos: doGrupo }
+  }).filter((g) => g.pedidos.length > 0)
+}
+
 /**
  * O texto do dicionário, ou o valor cru quando o dicionário ainda não o conhece
  * (status ou tipo novo no backend): nunca a chave crua na tela.
