@@ -637,7 +637,7 @@
     "viewPlans": "Manage Plans",
     "duration": "Duration",
     "days": "days",
-    "carencia": "Grace Period",
+    "carencia": "Withdrawal Grace Period",
     "liquidacao": "Liquidation",
     "taxaSaque": "Early Withdrawal Fee",
     "taxaResgate": "Redemption Fee",
