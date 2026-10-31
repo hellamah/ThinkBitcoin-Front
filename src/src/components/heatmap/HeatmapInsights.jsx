@@ -137,7 +137,6 @@ export default function HeatmapInsights({ trend, fear, t, locale }) {
   const delta15 = num(trend?.delta15)
   const volatilidade = num(trend?.volatilidade15)
   const pico = formatarMinutos(trend?.minutosDesdePico)
-  const rank = num(trend?.rankNoMinuto)
   const hhi = normalizarHHI(trend?.geoHHI)
   const horaRef = formatarHora(trend?.horaReferencia, locale)
   const dadosImputados = trend?.isTimeseriesOk === false || trend?.isGeoOk === false
@@ -197,9 +196,6 @@ export default function HeatmapInsights({ trend, fear, t, locale }) {
             <Tooltip title={t('heatmap.picoTooltip')}>
               <StatChip label={t('heatmap.picoHa')} value={pico} />
             </Tooltip>
-          )}
-          {rank !== null && (
-            <StatChip label={t('heatmap.rankBuscas')} value={`#${rank}`} />
           )}
         </Box>
       )}

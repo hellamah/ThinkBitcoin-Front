@@ -326,9 +326,6 @@ const ExpandedChartModal = ({
                       <div className="chart-intel-tip-value">
                         {trendAtual.geoTop1Code || trendAtual.GeoTop1Code || 'N/A'}
                       </div>
-                      <div className="chart-intel-tip-sub">
-                        {t('trendRank')}: #{trendAtual.rankNoMinuto || trendAtual.RankNoMinuto || '-'}
-                      </div>
                     </div>
                   </div>
                 </>

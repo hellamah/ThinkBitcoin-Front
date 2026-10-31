@@ -35,8 +35,8 @@ describe('HeatmapInsights', () => {
   })
 
   // O rank vem pronto da API e é a soma das posições dos 3 termos de busca da própria moeda (só 3, 5 ou
-  // 6 nas 87.811 linhas de 31/10/2026): não compara moedas, e o rótulo não pode dizer que é global.
-  it('exibe o rank de buscas sem afirmar o alcance dele', () => {
+  // 6 nas 87.811 linhas de 31/10/2026): não compara moedas, e por isso saiu da tela.
+  it('não mostra o rank de buscas', () => {
     const mockTrend = {
       rankNoMinuto: 6,
       geoHHI: 2000,
@@ -50,8 +50,8 @@ describe('HeatmapInsights', () => {
 
     render(<HeatmapInsights trend={mockTrend} fear={mockFear} t={t} locale="pt-BR" />)
 
-    expect(screen.getByText(/^Rank de buscas$/i)).toBeTruthy()
-    expect(screen.getByText(/#6/i)).toBeTruthy()
+    expect(screen.queryByText(/Rank de buscas/i)).toBeNull()
+    expect(screen.queryByText(/#6/)).toBeNull()
   })
 
   it('exibe a narrativa distribuída quando o HHI é inferior a 25%', () => {

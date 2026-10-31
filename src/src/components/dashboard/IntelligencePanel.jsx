@@ -44,15 +44,12 @@ export default function IntelligencePanel({ trendAtual, t }) {
           </div>
         </div>
 
-        {/* Ranking e Hotspot */}
+        {/* Hotspot */}
         <div className="intel-card">
           <div className="intel-icon"><MdPublic /></div>
           <div className="intel-label">{t('globalHotspot')}</div>
           <div className="intel-value">
             {trendAtual.geoTop1Code || trendAtual.GeoTop1Code || 'N/A'}
-          </div>
-          <div className="intel-subvalue">
-            {t('trendRank')}: #{trendAtual.rankNoMinuto || trendAtual.RankNoMinuto || '-'}
           </div>
         </div>
       </div>
