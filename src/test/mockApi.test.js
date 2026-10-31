@@ -13,6 +13,21 @@ import { COTACAO_DEMONSTRACAO, getMockResponse, TREINO_ENCERRADO_MS } from '../s
 
 describe('utils/mockApi › getMockResponse', () => {
   describe('Patrimônio', () => {
+    // Cada tela do Trader carrega a página de novo: um saldo sorteado a cada carga virava três
+    // patrimônios na mesma rodada, e o veredito de 31/10/2026 chamou isso de inconsistência grave.
+    it('o saldo é o mesmo a cada carregamento da página', async () => {
+      const saldoAoCarregar = async () => {
+        vi.resetModules()
+        const mock = await import('../src/utils/mockApi')
+        const resposta = mock.getMockResponse({ endpoint: '/ThinkBitcoin/patrimonio/usuario', method: 'GET' })
+        return [resposta.resultado.saldoTotalBRL, resposta.resultado.saldoTotalUSD, resposta.resultado.totalRegistros]
+      }
+
+      const primeira = await saldoAoCarregar()
+      expect(primeira[0]).toBeGreaterThan(0)
+      expect(await saldoAoCarregar()).toEqual(primeira)
+    })
+
     it('o aporte novo usa a mesma cotação do histórico', () => {
       const aporte = getMockResponse({
         endpoint: '/ThinkBitcoin/patrimonio',

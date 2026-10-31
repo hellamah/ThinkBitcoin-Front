@@ -435,19 +435,22 @@ const buildSequenceResponse = () => {
 // o PR 94, e o aporte ficou em 5,20, então o patrimônio mudava de cotação a cada aporte.
 export const COTACAO_DEMONSTRACAO = 6.00
 
+// Semeado como as séries: a página carrega de novo a cada tela, e um sorteio a cada
+// carga mostrava um patrimônio diferente em cada uma.
 const generateMockPatrimonio = () => {
+  const sortear = geradorSemeado(hashSymbol('patrimonio'))
   const registros = []
   let saldoTotalBRL = 0
   let saldoTotalUSD = 0
   const agora = new Date()
 
   for (let mesOffset = 11; mesOffset >= 0; mesOffset--) {
-    const numPontosMes = 2 + Math.floor(Math.random() * 2)
+    const numPontosMes = 2 + Math.floor(sortear() * 2)
     const dataMes = new Date(agora.getFullYear(), agora.getMonth() - mesOffset, 1)
     
     for (let i = 0; i < numPontosMes; i++) {
       const dataPonto = new Date(dataMes.getFullYear(), dataMes.getMonth(), 5 + i * 10, 10 + i, 0, 0)
-      const valorBRL = 2000 + Math.random() * 8000
+      const valorBRL = 2000 + sortear() * 8000
       const cotacao = COTACAO_DEMONSTRACAO
       const valorUSD = valorBRL / cotacao
       
