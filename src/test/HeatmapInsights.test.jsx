@@ -34,6 +34,24 @@ describe('HeatmapInsights', () => {
     expect(screen.getByText(/31.0%/i)).toBeTruthy()
   })
 
+  it('exibe o rank de buscas global corretamente', () => {
+    const mockTrend = {
+      rankNoMinuto: 6,
+      geoHHI: 2000,
+      isTimeseriesOk: true,
+      isGeoOk: true,
+    }
+    const mockFear = {
+      valor: 50,
+      timeUntilUpdateSeg: 60,
+    }
+
+    render(<HeatmapInsights trend={mockTrend} fear={mockFear} t={t} locale="pt-BR" />)
+
+    expect(screen.getByText(/Rank de buscas \(Global\)/i)).toBeTruthy()
+    expect(screen.getByText(/#6/i)).toBeTruthy()
+  })
+
   it('exibe a narrativa distribuída quando o HHI é inferior a 25%', () => {
     const mockTrend = {
       valorAtual: 50,
