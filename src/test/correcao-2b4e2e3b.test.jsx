@@ -39,8 +39,9 @@ describe('AnalyticsPanel', () => {
     const label = container.querySelector('.intel-label').textContent.trim()
     expect(label).toContain('(baseada em volume)')
 
-    // Verifica se a média do período contém a especificação de 24h
+    // A média segue o período escolhido na tela (recortarJanela): não é um valor fixo como 24h
     const subvalue = container.querySelector('.intel-subvalue').textContent.trim()
-    expect(subvalue).toContain('(24h)')
+    expect(subvalue).toContain('Média do período selecionado')
+    expect(subvalue).not.toContain('24h')
   })
 })
