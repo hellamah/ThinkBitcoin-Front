@@ -938,7 +938,7 @@
     "linhaVwap": "Linha roxa tracejada: o VWAP, preço médio ponderado por volume acumulado desde o início do período.",
     "melhorPior": "O candle que mais subiu e o que mais caiu no período. Dá a dimensão dos extremos que já aconteceram aqui.",
     "pressaoCompradora": "Da quantidade negociada agora, quanto partiu de quem estava comprando. Acima de 50% houve mais compra que venda. O número abaixo é a média do período, para você ver se a leitura de agora é rotina ou desvio.",
-    "retornoAcumulado": "Quanto o preço mudou do primeiro ao último candle do período. Não é o que você teria ganhado: isso depende de quando entrou e saiu.",
+    "retornoAcumulado": "Variação de preço do primeiro ao último candle do período selecionado. Indica a performance do ativo, não o lucro real da conta (que depende do momento da entrada e saída).",
     "rsi": "Compara a força das altas com a das quedas nos últimos 14 candles. Acima de 70 costuma ser chamado de sobrecompra e abaixo de 30 de sobrevenda, mas confira no Laboratório de Sinais se isso realmente antecede algo.",
     "sinalBandaInferior": "O preço fechou abaixo da banda inferior vindo de dentro dela.",
     "sinalBandaSuperior": "O preço fechou acima da banda superior de Bollinger vindo de dentro dela.",

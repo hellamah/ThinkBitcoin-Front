@@ -938,7 +938,7 @@
     "linhaVwap": "Linea viola tratteggiata: il VWAP, prezzo medio ponderato per il volume cumulato dall'inizio del periodo.",
     "melhorPior": "La candela che è salita di più e quella che è scesa di più nel periodo. Dà la misura degli estremi già avvenuti qui.",
     "pressaoCompradora": "Della quantità negoziata ora, quanta è partita da chi stava comprando. Sopra il 50% c'è stato più acquisto che vendita. Il numero sotto è la media del periodo, per capire se la lettura di adesso è di routine o fuori norma.",
-    "retornoAcumulado": "Di quanto è cambiato il prezzo dalla prima all'ultima candela del periodo. Non è quanto avresti guadagnato: dipende da quando sei entrato e uscito.",
+    "retornoAcumulado": "Variazione di prezzo dalla prima all'ultima candela del periodo selezionato. Indica la performance dell'asset, non il profitto reale del conto (che dipende dal momento di entrata e uscita).",
     "rsi": "Confronta la forza dei rialzi con quella dei ribassi nelle ultime 14 candele. Sopra 70 si parla di ipercomprato e sotto 30 di ipervenduto, ma verifica nel Laboratorio dei segnali se questo anticipa davvero qualcosa.",
     "sinalBandaInferior": "Il prezzo ha chiuso sotto la banda inferiore provenendo dall'interno.",
     "sinalBandaSuperior": "Il prezzo ha chiuso sopra la banda superiore di Bollinger provenendo dall'interno.",
