@@ -395,7 +395,7 @@
   "simulationVerdictValidation": "Sur la portion réservée à la validation, l'alpha a été de {{valor}}.",
   "simulationVerdictValidationNone": "Aucune opération sur la portion réservée à la validation : le résultat n'a pas été testé hors échantillon.",
   "simulationChance": "Contre le hasard (Seuil de confiance)",
-  "simulationChanceSub": "Médiane des tirages (Fréquence): {{mediana}} · {{iteracoes}} tirages (Ajuste ATR)",
+  "simulationChanceSub": "Médiane des tirages (Fréquence): {{mediana}} · {{iteracoes}} tirages. Note : Le Stop Mobile (ATR) recalcule le point de sortie à chaque bougie, impactant la distribution.",
   "simulationCalculating": "Calcul en cours…",
   "simulationCi": "Intervale de Confiance (IC) 95% du rendement final",
   "simulationCiRange": "{{inferior}} à {{superior}}",
