@@ -553,7 +553,7 @@
     "picoHa": "Picco di ricerche BTC",
     "picoTooltip": "Tempo tras il verificarsi del picco di ricerche",
     "volatilidadeTooltip": "Volatilità di prezzo",
-    "rankBuscas": "Classifica delle ricerche",
+    "rankBuscas": "Classifica delle ricerche (Global)",
     "concentracaoGeo": "Concentrazione geografica",
     "concentrada": "Narrativa concentrata",
     "concentrada_tooltip": "Narrativa concentrata quando l'indice HHI di concentrazione geografica è uguale o superiore al 25%.",
