@@ -4,6 +4,7 @@ import { MdClose, MdAnalytics, MdTimeline, MdSpeed, MdUpdate, MdPublic } from 'r
 import { ChartType } from '../../utils/enums';
 import { readToken } from '../../utils/themeTokens';
 import { useDialogoAcessivel, useFecharComEsc } from '../../hooks/useDialogoAcessivel';
+import RotuloComAjuda from './RotuloComAjuda';
 
 /**
  * Modal expandido para exibir o gráfico selecionado junto a um painel de inteligência
@@ -302,9 +303,11 @@ const ExpandedChartModal = ({
                       <div className={`chart-intel-tip-value ${
                         (trendAtual.delta5 || trendAtual.Delta5) >= 0 ? 'up' : 'down'
                       }`}>
-                        Δ5: {trendAtual.delta5 || trendAtual.Delta5 || 0}
+                        <RotuloComAjuda texto={`Δ5: ${trendAtual.delta5 || trendAtual.Delta5 || 0}`} ajuda={t('searchMomentumTooltip5')} />
                       </div>
-                      <div className="chart-intel-tip-sub">Δ15: {trendAtual.delta15 || trendAtual.Delta15 || 0}</div>
+                      <div className="chart-intel-tip-sub">
+                        <RotuloComAjuda texto={`Δ15: ${trendAtual.delta15 || trendAtual.Delta15 || 0}`} ajuda={t('searchMomentumTooltip15')} />
+                      </div>
                     </div>
                   </div>
                   <div className="chart-intel-tooltip-item">
