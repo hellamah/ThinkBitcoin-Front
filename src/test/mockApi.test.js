@@ -9,9 +9,25 @@
  * - Normalização de método (case-insensitive)
  */
 import { describe, expect, it, vi } from 'vitest'
-import { getMockResponse, TREINO_ENCERRADO_MS } from '../src/utils/mockApi'
+import { COTACAO_DEMONSTRACAO, getMockResponse, TREINO_ENCERRADO_MS } from '../src/utils/mockApi'
 
 describe('utils/mockApi › getMockResponse', () => {
+  describe('Patrimônio', () => {
+    it('o aporte novo usa a mesma cotação do histórico', () => {
+      const aporte = getMockResponse({
+        endpoint: '/ThinkBitcoin/patrimonio',
+        method: 'POST',
+        body: { valorBRL: 600 },
+      })
+      const historico = getMockResponse({ endpoint: '/ThinkBitcoin/patrimonio', method: 'GET' })
+
+      const registros = JSON.stringify(aporte) + JSON.stringify(historico)
+      const cotacoes = new Set([...registros.matchAll(/"cotacaoUtilizada":([\d.]+)/g)].map((m) => Number(m[1])))
+      expect([...cotacoes]).toEqual([COTACAO_DEMONSTRACAO])
+      expect(registros).toContain('"valorUSD":100')
+    })
+  })
+
   describe('Autenticação', () => {
     it('retorna mock de token para POST /gerarTokenBearer', () => {
       const resp = getMockResponse({

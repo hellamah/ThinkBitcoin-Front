@@ -14,6 +14,7 @@ import {
   TAMANHO_MOTIVO,
   conferirMotivo,
   correcaoDoPedido,
+  grupoDoPedido,
   podeDecidir,
   podeDescartar,
 } from '../../utils/pedidoAlteracao'
@@ -35,6 +36,8 @@ export default function CartaoPedido({ pedido, onDecidir }) {
   const decidivel = podeDecidir(pedido)
   const descartavel = podeDescartar(pedido)
   const motivoValido = !conferirMotivo(DECISOES.DESCARTADO, motivo).erro
+  // Antes do botão de aprovar: o que uma decisão do dono já responde (a regra do descarte por grupo).
+  const grupo = decidivel ? grupoDoPedido(pedido) : null
 
   const enviar = async (decisao) => {
     const conferido = conferirMotivo(decisao, decisao === DECISOES.DESCARTADO ? motivo : '')
@@ -85,6 +88,12 @@ export default function CartaoPedido({ pedido, onDecidir }) {
       {pedido.status === STATUS.NOVA_TENTATIVA && (
         <Typography variant="caption" component="p" sx={{ color: 'var(--text-muted)' }}>
           {t('pregao.novaTentativaDica')}
+        </Typography>
+      )}
+
+      {grupo && (
+        <Typography variant="caption" component="p" sx={{ color: 'var(--perf-warn)' }}>
+          {t('pregao.grupos.aviso', { motivo: t(`pregao.grupos.${grupo}.motivo`) })}
         </Typography>
       )}
 

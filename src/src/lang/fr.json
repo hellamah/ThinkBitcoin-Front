@@ -1302,6 +1302,7 @@
       "revisar": "Vérifier {{n}}",
       "fechar": "Fermer",
       "descartarN": "Écarter la sélection ({{n}})",
+      "aviso": "Vérifiez avant d'approuver : {{motivo}}",
       "falhas": "Non écartées, et toujours dans la file : {{n}}. {{erro}}",
       "telaEncerrada": {
         "titulo": "Écrans de l’entraînement arrêté",

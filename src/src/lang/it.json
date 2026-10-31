@@ -1302,6 +1302,7 @@
       "revisar": "Controlla {{n}}",
       "fechar": "Chiudi",
       "descartarN": "Scarta selezionate ({{n}})",
+      "aviso": "Controlla prima di approvare: {{motivo}}",
       "falhas": "Non scartate, e ancora in coda: {{n}}. {{erro}}",
       "telaEncerrada": {
         "titulo": "Schermate dell’addestramento chiuso",

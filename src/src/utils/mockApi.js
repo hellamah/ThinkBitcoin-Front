@@ -6,7 +6,7 @@ import { DECISOES_ROBO, PLACAR_ROBO, SEQUENCIAS_ROBO } from './mockRoboAoVivo'
 import { CURVAS_ZOO_JANELA, RODADA_ZOO_JANELA } from './mockZooJanelaAgente'
 import { AuthRole, decodeAuthenticationToken, temCargo } from './authentication'
 import { getStoredToken } from './preferences'
-import { AGUARDANDO_DECISAO, DECISOES, DESCARTAVEIS, STATUS, STATUS_PUBLICOS, TAMANHO_MOTIVO } from './pedidoAlteracao'
+import { AGUARDANDO_DECISAO, DECISOES, STATUS, STATUS_PUBLICOS, TAMANHO_MOTIVO, podeDescartar } from './pedidoAlteracao'
 
 // As preferências do modo demo vivem no localStorage: sem isso o GET devolve
 // sempre o mesmo objeto fixo e qualquer alteração do usuário (tema, idioma…)
@@ -431,6 +431,10 @@ const buildSequenceResponse = () => {
   }
 }
 
+// A cotação do modo demonstração, uma só: o histórico do patrimônio foi a 6,00 com
+// o PR 94, e o aporte ficou em 5,20, então o patrimônio mudava de cotação a cada aporte.
+export const COTACAO_DEMONSTRACAO = 6.00
+
 const generateMockPatrimonio = () => {
   const registros = []
   let saldoTotalBRL = 0
@@ -444,7 +448,7 @@ const generateMockPatrimonio = () => {
     for (let i = 0; i < numPontosMes; i++) {
       const dataPonto = new Date(dataMes.getFullYear(), dataMes.getMonth(), 5 + i * 10, 10 + i, 0, 0)
       const valorBRL = 2000 + Math.random() * 8000
-      const cotacao = 6.00
+      const cotacao = COTACAO_DEMONSTRACAO
       const valorUSD = valorBRL / cotacao
       
       saldoTotalBRL += valorBRL
@@ -1651,7 +1655,7 @@ const mockDecidirPedido = (endpoint, body) => {
   if (!pedido) erroDoPedido('Pedido não encontrado.')
   // A nova tentativa só se descarta, como no backend (StatusPedidoAlteracao.Descartaveis).
   const decidivel = AGUARDANDO_DECISAO.includes(pedido.status)
-    || (decisao === DECISOES.DESCARTADO && DESCARTAVEIS.includes(pedido.status))
+    || (decisao === DECISOES.DESCARTADO && podeDescartar(pedido))
   if (!decidivel) {
     erroDoPedido(`O pedido está ${pedido.status}: só se decide um pedido ${AGUARDANDO_DECISAO.join(' ou ')}.`)
   }
@@ -2133,7 +2137,7 @@ const mockHandlers = [
       console.log('Mock POST Patrimonio:', body)
       const valorBRL = parseFloat(body?.valorBRL || 0)
       const observacao = body?.observacao || 'Aporte manual'
-      const cotacao = 5.20
+      const cotacao = COTACAO_DEMONSTRACAO
       const valorUSD = parseFloat((valorBRL / cotacao).toFixed(2))
 
       const novo = {

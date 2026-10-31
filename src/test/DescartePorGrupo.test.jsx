@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import DescartePorGrupo from '../src/components/pregao/DescartePorGrupo'
-import { gruposDeDescarte } from '../src/utils/pedidoAlteracao'
+import { gruposDeDescarte, podeDescartar } from '../src/utils/pedidoAlteracao'
 
 // O descarte por grupo: a lista vem marcada, o motivo vem sugerido e quem descarta
 // é o administrador. Sem provider de tradução, `t` devolve a chave.
@@ -57,6 +57,20 @@ describe('pregão › grupos de descarte', () => {
   it('a nova tentativa entra: ela gasta o modelo até alguém descartar', () => {
     const tentando = pedido('n', 'Reward antigo', 'Treinamento IA', { status: 'nova-tentativa' })
     expect(gruposDeDescarte([tentando]).map((g) => g.id)).toEqual(['telaEncerrada'])
+  })
+
+  it('o corrigido das telas encerradas entra: o Trader não volta lá para validar', () => {
+    const corrigido = pedido('p', 'Epsilon sem explicação', 'Treinamento IA', { status: 'corrigido' })
+    expect(gruposDeDescarte([corrigido]).map((g) => g.id)).toEqual(['telaEncerrada'])
+    expect(podeDescartar(corrigido)).toBe(true)
+  })
+
+  it('o corrigido das outras telas fica: o Trader ainda vai conferir', () => {
+    const noPainel = pedido('q', 'Saldo não bate', 'Painel', { status: 'corrigido' })
+    const naVitrine = pedido('r', 'Promessa de marketing', 'Início', { status: 'corrigido' })
+    const misto = pedido('s', 'Reward diverge', 'Painel · Treinamento IA', { status: 'corrigido' })
+    expect(gruposDeDescarte([noPainel, naVitrine, misto])).toEqual([])
+    expect(podeDescartar(noPainel)).toBe(false)
   })
 
   it('sem nada a descartar, nenhum grupo', () => {

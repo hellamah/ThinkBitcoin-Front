@@ -1302,6 +1302,7 @@
       "revisar": "Review {{n}}",
       "fechar": "Close",
       "descartarN": "Discard selected ({{n}})",
+      "aviso": "Check before approving: {{motivo}}",
       "falhas": "Not discarded, and still in the queue: {{n}}. {{erro}}",
       "telaEncerrada": {
         "titulo": "Screens of the retired training",

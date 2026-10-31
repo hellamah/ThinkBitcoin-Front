@@ -89,8 +89,14 @@ export const contagemPorFiltro = (pedidos, filtros = FILTROS) =>
 /** Se o pedido ainda aceita aprovar ou descartar. */
 export const podeDecidir = (pedido) => AGUARDANDO_DECISAO.includes(pedido?.status)
 
-/** Se o pedido aceita descartar: os que esperam decisão e a nova tentativa. */
+/**
+ * Se o pedido aceita descartar: os que esperam decisão, a nova tentativa e o corrigido
+ * das telas encerradas. Em 31/10/2026 eram 9: o Trader não visita mais essas telas, e
+ * eles não virariam validados nem reabertos. O backend aceita descartar todo corrigido
+ * (StatusPedidoAlteracao.Descartaveis): o limite é aqui, porque só ele sabe dos grupos.
+ */
 export const podeDescartar = (pedido) => DESCARTAVEIS.includes(pedido?.status)
+  || (pedido?.status === STATUS.CORRIGIDO && grupoDoPedido(pedido) === 'telaEncerrada')
 
 /**
  * O motivo que vai para a API, ou a chave do texto que explica por que ele não
@@ -148,6 +154,14 @@ export const gruposDeDescarte = (pedidos) => {
     return { id, pedidos: doGrupo }
   }).filter((g) => g.pedidos.length > 0)
 }
+
+/**
+ * O grupo de descarte do pedido, ou nulo: o cartão avisa antes de aprovar. Em
+ * 30/10/2026, 46 pedidos foram aprovados em 2 minutos, 10 deles das telas
+ * encerradas, e a regra só aparecia no painel de descarte, longe do botão.
+ */
+export const grupoDoPedido = (pedido) =>
+  GRUPOS_DE_DESCARTE.find(({ pertence }) => pertence(pedido))?.id ?? null
 
 /**
  * O texto do dicionário, ou o valor cru quando o dicionário ainda não o conhece

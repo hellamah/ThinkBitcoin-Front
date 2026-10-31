@@ -1302,6 +1302,7 @@
       "revisar": "Revisar {{n}}",
       "fechar": "Fechar",
       "descartarN": "Descartar selecionados ({{n}})",
+      "aviso": "Confira antes de aprovar: {{motivo}}",
       "falhas": "Não foram descartados, e continuam na fila: {{n}}. {{erro}}",
       "telaEncerrada": {
         "titulo": "Telas do treino encerrado",
