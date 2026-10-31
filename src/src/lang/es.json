@@ -396,7 +396,7 @@
   "simulationVerdictValidation": "En el tramo reservado para validación, el alfa fue {{valor}}.",
   "simulationVerdictValidationNone": "No hubo operaciones en el tramo reservado para validación: el resultado no se probó fuera de la muestra.",
   "simulationChance": "Contra el azar (Umbral de confianza)",
-  "simulationChanceSub": "Mediana de los sorteos (Frecuencia): {{mediana}} · {{iteracoes}} sorteos (Ajuste ATR)",
+  "simulationChanceSub": "Mediana de los sorteos (Frecuencia): {{mediana}} · {{iteracoes}} sorteos. Nota: El Stop Móvil (ATR) recalcula el punto de salida en cada vela, impactando la distribución.",
   "simulationCalculating": "Calculando…",
   "simulationCi": "Intervalo de Confianza (IC) 95% del retorno final",
   "simulationCiRange": "{{inferior}} a {{superior}}",
