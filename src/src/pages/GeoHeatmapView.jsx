@@ -432,8 +432,10 @@ export default function GeoHeatmapView() {
       const countryCode = String(item.geoTop1Code || item.GeoTop1Code).toUpperCase()
       const extras = {
         variacao24h: variacaoMoeda,
-        lideranca: item.frequenciaLideranca ?? item.FrequenciaLideranca ?? null,
-        intensidade: item.mediaIntensidade ?? item.MediaIntensidade ?? null,
+        [metricaMapa === MapMetric.INTENSIDADE ? 'intensidade' : 'lideranca']:
+          metricaMapa === MapMetric.INTENSIDADE
+            ? (item.mediaIntensidade ?? item.MediaIntensidade ?? null)
+            : (item.frequenciaLideranca ?? item.FrequenciaLideranca ?? null),
       }
       const tooltipHtml = formatTooltipData(
         nomePais(countryCode),
