@@ -96,7 +96,7 @@ const BarraMedida = ({ label, valorLabel, percent, cor }) => (
       <Typography sx={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', fontFamily: 'Outfit, sans-serif' }}>
         {label}
       </Typography>
-      <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: cor, fontFamily: 'Share Tech Mono, monospace' }}>
+      <Typography component="div" sx={{ fontSize: '0.8rem', fontWeight: 700, color: cor, fontFamily: 'Share Tech Mono, monospace' }}>
         {valorLabel}
       </Typography>
     </Box>
