@@ -296,6 +296,8 @@ export default function SimulationPanel({
             ressalvas={ressalvas}
             fraco={metricas.amostraInsuficiente}
             desatualizado={robustez.calculando && Boolean(robustez.acaso)}
+            // O custo em percentual do capital: o capital está nos parâmetros, não nas métricas.
+            capitalInicial={resultado.parametros.capitalInicial}
             t={t}
           />
 
