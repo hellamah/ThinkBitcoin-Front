@@ -208,6 +208,7 @@ export default function CoinCarousel({
             </Box>
           ) : (
             moedasCarousel
+              .filter((v, i, a) => a.findIndex(t => t.simbolo === v.simbolo) === i)
               .slice()
               .sort((a, b) => b.variacao - a.variacao)
               .slice(0, 5)
