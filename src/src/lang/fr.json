@@ -938,7 +938,7 @@
     "linhaVwap": "Ligne violette en pointillés : le VWAP, prix moyen pondéré par le volume cumulé depuis le début de la période.",
     "melhorPior": "La bougie qui a le plus monté et celle qui a le plus chuté sur la période. Donne l'ampleur des extrêmes déjà survenus ici.",
     "pressaoCompradora": "Sur la quantité négociée en ce moment, quelle part vient des acheteurs. Au-dessus de 50 %, il y a eu plus d'achat que de vente. Le chiffre en dessous est la moyenne de la période, pour voir si la lecture actuelle est habituelle ou hors norme.",
-    "retornoAcumulado": "De combien le prix a changé entre la première et la dernière bougie de la période. Ce n'est pas ce que vous auriez gagné : cela dépend du moment où vous êtes entré et sorti.",
+    "retornoAcumulado": "Variation de prix de la première à la dernière bougie de la période sélectionnée. Indique la performance de l'actif, pas le profit réel du compte (qui dépend du moment d'entrée et de sortie).",
     "rsi": "Compare la force des hausses à celle des baisses sur les 14 dernières bougies. Au-dessus de 70 on parle de surachat et en dessous de 30 de survente, mais vérifiez dans le Laboratoire de signaux si cela annonce réellement quelque chose.",
     "sinalBandaInferior": "Le prix a clôturé sous la bande inférieure en venant de l'intérieur.",
     "sinalBandaSuperior": "Le prix a clôturé au-dessus de la bande supérieure de Bollinger en venant de l'intérieur.",

@@ -938,7 +938,7 @@
     "linhaVwap": "Línea morada discontinua: el VWAP, precio medio ponderado por volumen acumulado desde el inicio del período.",
     "melhorPior": "La vela que más subió y la que más cayó en el período. Da la dimensión de los extremos que ya ocurrieron aquí.",
     "pressaoCompradora": "De la cantidad negociada ahora, cuánto partió de quien estaba comprando. Por encima del 50% hubo más compra que venta. El número de abajo es la media del período, para que vea si la lectura de ahora es rutina o desviación.",
-    "retornoAcumulado": "Cuánto cambió el precio de la primera a la última vela del período. No es lo que usted habría ganado: eso depende de cuándo entró y salió.",
+    "retornoAcumulado": "Variación de precio desde la primera hasta la última vela del período seleccionado. Indica el rendimiento del activo, no la ganancia real de la cuenta (que depende del momento de entrada y salida).",
     "rsi": "Compara la fuerza de las subidas con la de las caídas en las últimas 14 velas. Por encima de 70 suele llamarse sobrecompra y por debajo de 30 sobreventa, pero compruebe en el Laboratorio de Señales si eso realmente anticipa algo.",
     "sinalBandaInferior": "El precio cerró por debajo de la banda inferior viniendo de dentro de ella.",
     "sinalBandaSuperior": "El precio cerró por encima de la banda superior de Bollinger viniendo de dentro de ella.",

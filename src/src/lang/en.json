@@ -938,7 +938,7 @@
     "linhaVwap": "Purple dashed line: the VWAP, volume-weighted average price accumulated since the start of the period.",
     "melhorPior": "The candle that rose the most and the one that fell the most in the period. Gives a sense of the extremes seen here.",
     "pressaoCompradora": "Of the quantity traded right now, how much came from buyers. Above 50% there was more buying than selling. The figure below is the period average, so you can tell whether the current reading is routine or a departure.",
-    "retornoAcumulado": "How much the price moved from the first to the last candle in the period. Not what you would have made: that depends on when you entered and exited.",
+    "retornoAcumulado": "Price variation from the first to the last candle of the selected period. Indicates asset performance, not the account's actual profit (which depends on entry and exit timing).",
     "rsi": "Compares the strength of gains against losses over the last 14 candles. Above 70 is usually called overbought and below 30 oversold, but check the Signal Lab to see whether that actually precedes anything.",
     "sinalBandaInferior": "The price closed below the lower band coming from inside it.",
     "sinalBandaSuperior": "The price closed above the upper Bollinger band coming from inside it.",
