@@ -215,6 +215,33 @@ describe('utils/mockApi › getMockResponse', () => {
       expect(congelados).toEqual([])
     })
 
+    // O Trader viu o Cardano em 0,00% e pediu para escondê-lo, e o PR 89 tirava do
+    // site real toda moeda fora de alta. A causa era o preço em 2 casas: a 0,73, ele
+    // ficava parado em 37% das horas, contra 4% nos dados reais de 30 dias.
+    const serieLongaDe = (sigla) =>
+      getMockResponse({
+        endpoint: `/ThinkBitcoin/moeda/${sigla}/valor?pagina=1&quantidade=721&ordemAsc=false`,
+        method: 'GET',
+      }).resultado.registros
+
+    it.each(['ADA', 'XRP', 'DOGE'])('a moeda barata não fica parada a maior parte do tempo: %s', (sigla) => {
+      const registros = serieLongaDe(sigla)
+      const paradas = registros.filter((r) => r.precoPercentualVariacao === 0)
+
+      expect(registros.length).toBeGreaterThan(700)
+      expect(paradas.length / registros.length).toBeLessThan(0.05)
+    })
+
+    it.each(['ADA', 'XRP', 'DOGE'])('a vela da moeda barata continua coerente: %s', (sigla) => {
+      for (const r of serieLongaDe(sigla)) {
+        expect(r.precoMaior).toBeGreaterThanOrEqual(Math.max(r.precoAbertura, r.precoFechamento))
+        expect(r.precoMenor).toBeLessThanOrEqual(Math.min(r.precoAbertura, r.precoFechamento))
+        expect(r.precoAmplitude).toBeCloseTo(r.precoMaior - r.precoMenor, 3)
+        expect(r.precoSombraSuperior).toBeGreaterThanOrEqual(0)
+        expect(r.precoSombraInferior).toBeGreaterThanOrEqual(0)
+      }
+    })
+
     // Campo que varia no tempo mas é igual em todas as moedas passa no teste
     // acima e ainda assim inutiliza qualquer comparação — foi o caso de
     // precoVolatilidadePercentual, que dependia só do índice do candle.

@@ -136,6 +136,13 @@ const historicoMockDe = (normalized) => {
 const gerarHistoricoMock = (normalized, agora) => {
   const baseValue = MOCK_COIN_BASE_VALUE[normalized] ?? 100
   const variationFactor = ((hashSymbol(normalized) % 17) - 8) * 0.0025
+  // Moeda barata anda em casas menores, como na corretora. Com 2 casas, o
+  // Cardano a 0,73 só andava de 1 em 1 centavo (1,4%) e ficava com variação
+  // 0,00% em 37% das horas, contra 4% nos dados reais; o Dogecoin, em 85%,
+  // contra 2%. O Trader via isso como erro, e o PR 89 tirava do site real
+  // toda moeda que não estivesse em alta.
+  const casasDoPreco = baseValue < 10 ? 4 : 2
+  const arredondarPreco = (valor) => Number(valor.toFixed(casasDoPreco))
 
   let registros = []
   // Fechamento do candle anterior, que vira a abertura do próximo.
@@ -185,7 +192,7 @@ const gerarHistoricoMock = (normalized, agora) => {
       precoRelativo *= 1 + momentum
 
       const oscilacao = precoRelativo - 1 + variationFactor
-      const precoPonto = Number((baseValue * precoRelativo).toFixed(2))
+      const precoPonto = arredondarPreco(baseValue * precoRelativo)
 
       // O volume acompanha a oscilação e leva um pico a cada 11 candles. Com o
       // valor fixo que havia aqui a mediana era igual a todo registro, então o
@@ -221,7 +228,7 @@ const gerarHistoricoMock = (normalized, agora) => {
       // extremidades envolvem esse intervalo. Antes a abertura era fixada em
       // 0,99 × fechamento, então fechamento > abertura sempre — toda vela saía
       // verde e com o mesmo corpo, mesmo nos candles em que o preço caiu.
-      const abertura = fechamentoAnterior ?? Number((precoPonto * 0.995).toFixed(2))
+      const abertura = fechamentoAnterior ?? arredondarPreco(precoPonto * 0.995)
 
       // Segunda oscilação, de frequência diferente da do preço, para as sombras
       // não saírem proporcionais ao corpo. É o que faz o demo exibir doji,
@@ -230,8 +237,8 @@ const gerarHistoricoMock = (normalized, agora) => {
       const alcanceSuperior = 0.002 + Math.max(0, formato) * 0.01
       const alcanceInferior = 0.002 + Math.max(0, -formato) * 0.01
 
-      const maior = Number((Math.max(abertura, precoPonto) * (1 + alcanceSuperior)).toFixed(2))
-      const menor = Number((Math.min(abertura, precoPonto) * (1 - alcanceInferior)).toFixed(2))
+      const maior = arredondarPreco(Math.max(abertura, precoPonto) * (1 + alcanceSuperior))
+      const menor = arredondarPreco(Math.min(abertura, precoPonto) * (1 - alcanceInferior))
       fechamentoAnterior = precoPonto
 
       // Volatilidade derivada da amplitude real do candle, e não de um ciclo
@@ -254,12 +261,12 @@ const gerarHistoricoMock = (normalized, agora) => {
         precoFechamento: precoPonto,
         horaReferencia: dataPonto.toISOString(),
         precoMaior: maior,
-        precoMedio: Number(((maior + menor) / 2).toFixed(2)),
+        precoMedio: arredondarPreco((maior + menor) / 2),
         precoMenor: menor,
         precoAbertura: abertura,
         // Amplitude é, por definição, máxima menos mínima; era 3% fixo do preço
         // e não conversava com o OHLC ao lado.
-        precoAmplitude: Number((maior - menor).toFixed(2)),
+        precoAmplitude: arredondarPreco(maior - menor),
         precoPercentualVariacao: Number(dVar.toFixed(4)),
         precoRatioCompraVenda: Number(
           (volumeVendido > 0 ? volumeComprado / volumeVendido : 0).toFixed(5)
@@ -272,9 +279,9 @@ const gerarHistoricoMock = (normalized, agora) => {
         precoVariacaoAbsoluta: precoPonto * 0.01,
         // Anatomia derivada do próprio OHLC, como o backend faz. Eram frações
         // fixas do preço e não descreviam a vela ao lado.
-        precoCorpoCandle: Number(Math.abs(precoPonto - abertura).toFixed(2)),
-        precoSombraSuperior: Number((maior - Math.max(abertura, precoPonto)).toFixed(2)),
-        precoSombraInferior: Number((Math.min(abertura, precoPonto) - menor).toFixed(2)),
+        precoCorpoCandle: arredondarPreco(Math.abs(precoPonto - abertura)),
+        precoSombraSuperior: arredondarPreco(maior - Math.max(abertura, precoPonto)),
+        precoSombraInferior: arredondarPreco(Math.min(abertura, precoPonto) - menor),
         precoDirecao: dVar >= 0 ? 1 : -1,
         precoVolatilidadePercentual,
         precoFinanceiroPorTrade,
