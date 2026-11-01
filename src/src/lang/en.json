@@ -552,7 +552,7 @@
     "momentum5": "5min momentum",
     "momentum15": "15min momentum",
     "volatilidade": "15min volatility",
-    "picoHa": "BTC Search peak",
+    "picoHa": "Search peak",
     "picoTooltip": "Time since the search peak occurred",
     "volatilidadeTooltip": "Price volatility",
     "concentracaoGeo": "Geographic concentration",
