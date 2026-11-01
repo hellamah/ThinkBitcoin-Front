@@ -124,6 +124,7 @@
   "traderLabTitle": "Laboratoire du trader",
   "riskManagementTitle": "Gestion du risque",
   "initialInvestment": "Investissement initial et plans (R$)",
+  "initialInvestmentSettings": "Investissement initial (USD) et plans (R$)",
   "maxRiskPerTrade": "Risque maximal par transaction (%)",
   "preferredCoin": "Crypto préférée",
   "preferredCoinSettings": "Crypto préférée (Base globale)",
