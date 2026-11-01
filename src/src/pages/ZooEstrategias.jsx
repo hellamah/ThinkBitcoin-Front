@@ -506,18 +506,18 @@ export default function ZooEstrategias() {
                     key={m}
                     moeda={m}
                     onClick={() => setMoedaEscolhida(m)}
-                    rotulo={m === moeda ? t('zoo.coinSelected', { moeda: m }) : m}
-                    sx={m === moeda ? { outline: '2px solid var(--accent)', outlineOffset: 1 } : { opacity: 0.75 }}
+                    rotulo={m === moedaEscolhida || m === moeda ? t('zoo.coinSelected', { moeda: m }) : m}
+                    sx={m === moedaEscolhida || m === moeda ? { outline: '2px solid var(--accent)', outlineOffset: 1 } : { opacity: 0.75 }}
                   />
                 ))}
               </Box>
 
-              {estrategia && moeda && (
+              {estrategia && (moedaEscolhida ?? moeda) && (
                 // A chave da janela remonta os gráficos ao trocar de aba: as curvas
                 // da outra janela não ficam na tela enquanto as novas carregam.
                 <GraficosDaCurva
                   key={janela}
-                  moeda={moeda}
+                  moeda={moedaEscolhida ?? moeda}
                   estrategia={estrategia}
                   nome={nome}
                   linha={linha}
@@ -526,8 +526,8 @@ export default function ZooEstrategias() {
                 />
               )}
 
-              <TabelaMoedas estrategia={daRodada} nome={nome} moedaSelecionada={moeda} onSelecionar={setMoedaEscolhida} />
-              <TabelaAnos linha={linha} moeda={moeda} />
+              <TabelaMoedas estrategia={daRodada} nome={nome} moedaSelecionada={moedaEscolhida ?? moeda} onSelecionar={setMoedaEscolhida} />
+              <TabelaAnos linha={linha} moeda={moedaEscolhida ?? moeda} />
             </>
           )}
         </Box>
