@@ -33,9 +33,12 @@ const ICONE_DO_TOM = {
  * operações) ficam contadas no veredito e abrem numa lista. Antes eram avisos
  * empilhados acima do resultado, e empurravam a resposta para baixo da tela.
  */
-export default function VereditoSimulacao({ metricas, veredito, ressalvas, fraco, desatualizado, t }) {
+export default function VereditoSimulacao({ metricas, veredito, ressalvas, fraco, desatualizado, capitalInicial, t }) {
   const [ressalvasAbertas, setRessalvasAbertas] = useState(false)
   const Icone = ICONE_DO_TOM[veredito.tom] ?? MdErrorOutline
+  // O capital inicial vem dos parâmetros da simulação: as métricas não o trazem, e a conta
+  // com metricas.capitalInicial dava NaN, que o formatPercent mostrava como "(-)".
+  const custoPercentual = capitalInicial > 0 ? (metricas.custoTotal / capitalInicial) * 100 : null
 
   return (
     <div className="simulation-heroi">
@@ -51,11 +54,15 @@ export default function VereditoSimulacao({ metricas, veredito, ressalvas, fraco
           </span>
           <span>
             {t('simulationAlpha')}{' '}
-            <strong className={classeSinal(metricas.retornoTotal - metricas.buyAndHold)}>{pct(metricas.retornoTotal - metricas.buyAndHold)}</strong>
+            <strong className={classeSinal(Math.round(metricas.retornoTotal * 100) / 100 - Math.round(metricas.buyAndHold * 100) / 100)}>{pct(Math.round(metricas.retornoTotal * 100) / 100 - Math.round(metricas.buyAndHold * 100) / 100)}</strong>
           </span>
           <span>
             <RotuloComAjuda texto={t('simulationTotalCost')} ajuda={t('ajuda.simCustoTotal')} />{' '}
-            <strong className="down">{mathUtils.formatCurrency(metricas.custoTotal)}</strong>
+            {/* O custo também em percentual do capital inicial, sem sinal: é um custo, não um ganho */}
+            <strong className="down">
+              {mathUtils.formatCurrency(metricas.custoTotal)}
+              {custoPercentual !== null && ` (${pct(custoPercentual, 2, false)})`}
+            </strong>
           </span>
         </div>
       </div>

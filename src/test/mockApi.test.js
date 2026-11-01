@@ -9,9 +9,40 @@
  * - Normalização de método (case-insensitive)
  */
 import { describe, expect, it, vi } from 'vitest'
-import { getMockResponse, TREINO_ENCERRADO_MS } from '../src/utils/mockApi'
+import { COTACAO_DEMONSTRACAO, getMockResponse, TREINO_ENCERRADO_MS } from '../src/utils/mockApi'
 
 describe('utils/mockApi › getMockResponse', () => {
+  describe('Patrimônio', () => {
+    // Cada tela do Trader carrega a página de novo: um saldo sorteado a cada carga virava três
+    // patrimônios na mesma rodada, e o veredito de 31/10/2026 chamou isso de inconsistência grave.
+    it('o saldo é o mesmo a cada carregamento da página', async () => {
+      const saldoAoCarregar = async () => {
+        vi.resetModules()
+        const mock = await import('../src/utils/mockApi')
+        const resposta = mock.getMockResponse({ endpoint: '/ThinkBitcoin/patrimonio/usuario', method: 'GET' })
+        return [resposta.resultado.saldoTotalBRL, resposta.resultado.saldoTotalUSD, resposta.resultado.totalRegistros]
+      }
+
+      const primeira = await saldoAoCarregar()
+      expect(primeira[0]).toBeGreaterThan(0)
+      expect(await saldoAoCarregar()).toEqual(primeira)
+    })
+
+    it('o aporte novo usa a mesma cotação do histórico', () => {
+      const aporte = getMockResponse({
+        endpoint: '/ThinkBitcoin/patrimonio',
+        method: 'POST',
+        body: { valorBRL: 600 },
+      })
+      const historico = getMockResponse({ endpoint: '/ThinkBitcoin/patrimonio', method: 'GET' })
+
+      const registros = JSON.stringify(aporte) + JSON.stringify(historico)
+      const cotacoes = new Set([...registros.matchAll(/"cotacaoUtilizada":([\d.]+)/g)].map((m) => Number(m[1])))
+      expect([...cotacoes]).toEqual([COTACAO_DEMONSTRACAO])
+      expect(registros).toContain('"valorUSD":100')
+    })
+  })
+
   describe('Autenticação', () => {
     it('retorna mock de token para POST /gerarTokenBearer', () => {
       const resp = getMockResponse({
@@ -182,6 +213,33 @@ describe('utils/mockApi › getMockResponse', () => {
       )
 
       expect(congelados).toEqual([])
+    })
+
+    // O Trader viu o Cardano em 0,00% e pediu para escondê-lo, e o PR 89 tirava do
+    // site real toda moeda fora de alta. A causa era o preço em 2 casas: a 0,73, ele
+    // ficava parado em 37% das horas, contra 4% nos dados reais de 30 dias.
+    const serieLongaDe = (sigla) =>
+      getMockResponse({
+        endpoint: `/ThinkBitcoin/moeda/${sigla}/valor?pagina=1&quantidade=721&ordemAsc=false`,
+        method: 'GET',
+      }).resultado.registros
+
+    it.each(['ADA', 'XRP', 'DOGE'])('a moeda barata não fica parada a maior parte do tempo: %s', (sigla) => {
+      const registros = serieLongaDe(sigla)
+      const paradas = registros.filter((r) => r.precoPercentualVariacao === 0)
+
+      expect(registros.length).toBeGreaterThan(700)
+      expect(paradas.length / registros.length).toBeLessThan(0.05)
+    })
+
+    it.each(['ADA', 'XRP', 'DOGE'])('a vela da moeda barata continua coerente: %s', (sigla) => {
+      for (const r of serieLongaDe(sigla)) {
+        expect(r.precoMaior).toBeGreaterThanOrEqual(Math.max(r.precoAbertura, r.precoFechamento))
+        expect(r.precoMenor).toBeLessThanOrEqual(Math.min(r.precoAbertura, r.precoFechamento))
+        expect(r.precoAmplitude).toBeCloseTo(r.precoMaior - r.precoMenor, 3)
+        expect(r.precoSombraSuperior).toBeGreaterThanOrEqual(0)
+        expect(r.precoSombraInferior).toBeGreaterThanOrEqual(0)
+      }
     })
 
     // Campo que varia no tempo mas é igual em todas as moedas passa no teste

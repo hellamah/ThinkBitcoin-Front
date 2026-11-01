@@ -48,6 +48,26 @@ describe('Cartão do pedido do Pregão', () => {
     expect(botao('pregao.descartar')).toBeTruthy()
   })
 
+  it('avisa antes de aprovar o que uma decisão já responde', () => {
+    renderizar({ ...PEDIDO, telas: 'Treinamento IA', status: 'devolvido' })
+    expect(screen.getByText('pregao.grupos.aviso')).toBeTruthy()
+    expect(botao('pregao.aprovar')).toBeTruthy()
+  })
+
+  it('não avisa no pedido fora dos grupos nem no que já foi decidido', () => {
+    renderizar()
+    expect(screen.queryByText('pregao.grupos.aviso')).toBeNull()
+    cleanup()
+    renderizar({ ...PEDIDO, telas: 'Treinamento IA', status: 'aprovado' })
+    expect(screen.queryByText('pregao.grupos.aviso')).toBeNull()
+  })
+
+  it('o corrigido de uma tela encerrada só se descarta', () => {
+    renderizar({ ...PEDIDO, telas: 'Treinamento IA', status: 'corrigido' })
+    expect(botao('pregao.descartar')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'pregao.aprovar' })).toBeNull()
+  })
+
   it('aprovar manda a decisão sem motivo', async () => {
     const { onDecidir } = renderizar()
     fireEvent.click(botao('pregao.aprovar'))

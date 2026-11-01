@@ -6,7 +6,7 @@ import { DECISOES_ROBO, PLACAR_ROBO, SEQUENCIAS_ROBO } from './mockRoboAoVivo'
 import { CURVAS_ZOO_JANELA, RODADA_ZOO_JANELA } from './mockZooJanelaAgente'
 import { AuthRole, decodeAuthenticationToken, temCargo } from './authentication'
 import { getStoredToken } from './preferences'
-import { AGUARDANDO_DECISAO, DECISOES, DESCARTAVEIS, STATUS, STATUS_PUBLICOS, TAMANHO_MOTIVO } from './pedidoAlteracao'
+import { AGUARDANDO_DECISAO, DECISOES, STATUS, STATUS_PUBLICOS, TAMANHO_MOTIVO, podeDescartar } from './pedidoAlteracao'
 
 // As preferências do modo demo vivem no localStorage: sem isso o GET devolve
 // sempre o mesmo objeto fixo e qualquer alteração do usuário (tema, idioma…)
@@ -136,6 +136,13 @@ const historicoMockDe = (normalized) => {
 const gerarHistoricoMock = (normalized, agora) => {
   const baseValue = MOCK_COIN_BASE_VALUE[normalized] ?? 100
   const variationFactor = ((hashSymbol(normalized) % 17) - 8) * 0.0025
+  // Moeda barata anda em casas menores, como na corretora. Com 2 casas, o
+  // Cardano a 0,73 só andava de 1 em 1 centavo (1,4%) e ficava com variação
+  // 0,00% em 37% das horas, contra 4% nos dados reais; o Dogecoin, em 85%,
+  // contra 2%. O Trader via isso como erro, e o PR 89 tirava do site real
+  // toda moeda que não estivesse em alta.
+  const casasDoPreco = baseValue < 10 ? 4 : 2
+  const arredondarPreco = (valor) => Number(valor.toFixed(casasDoPreco))
 
   let registros = []
   // Fechamento do candle anterior, que vira a abertura do próximo.
@@ -185,7 +192,7 @@ const gerarHistoricoMock = (normalized, agora) => {
       precoRelativo *= 1 + momentum
 
       const oscilacao = precoRelativo - 1 + variationFactor
-      const precoPonto = Number((baseValue * precoRelativo).toFixed(2))
+      const precoPonto = arredondarPreco(baseValue * precoRelativo)
 
       // O volume acompanha a oscilação e leva um pico a cada 11 candles. Com o
       // valor fixo que havia aqui a mediana era igual a todo registro, então o
@@ -221,7 +228,7 @@ const gerarHistoricoMock = (normalized, agora) => {
       // extremidades envolvem esse intervalo. Antes a abertura era fixada em
       // 0,99 × fechamento, então fechamento > abertura sempre — toda vela saía
       // verde e com o mesmo corpo, mesmo nos candles em que o preço caiu.
-      const abertura = fechamentoAnterior ?? Number((precoPonto * 0.995).toFixed(2))
+      const abertura = fechamentoAnterior ?? arredondarPreco(precoPonto * 0.995)
 
       // Segunda oscilação, de frequência diferente da do preço, para as sombras
       // não saírem proporcionais ao corpo. É o que faz o demo exibir doji,
@@ -230,8 +237,8 @@ const gerarHistoricoMock = (normalized, agora) => {
       const alcanceSuperior = 0.002 + Math.max(0, formato) * 0.01
       const alcanceInferior = 0.002 + Math.max(0, -formato) * 0.01
 
-      const maior = Number((Math.max(abertura, precoPonto) * (1 + alcanceSuperior)).toFixed(2))
-      const menor = Number((Math.min(abertura, precoPonto) * (1 - alcanceInferior)).toFixed(2))
+      const maior = arredondarPreco(Math.max(abertura, precoPonto) * (1 + alcanceSuperior))
+      const menor = arredondarPreco(Math.min(abertura, precoPonto) * (1 - alcanceInferior))
       fechamentoAnterior = precoPonto
 
       // Volatilidade derivada da amplitude real do candle, e não de um ciclo
@@ -254,13 +261,13 @@ const gerarHistoricoMock = (normalized, agora) => {
         precoFechamento: precoPonto,
         horaReferencia: dataPonto.toISOString(),
         precoMaior: maior,
-        precoMedio: Number(((maior + menor) / 2).toFixed(2)),
+        precoMedio: arredondarPreco((maior + menor) / 2),
         precoMenor: menor,
         precoAbertura: abertura,
         // Amplitude é, por definição, máxima menos mínima; era 3% fixo do preço
         // e não conversava com o OHLC ao lado.
-        precoAmplitude: Number((maior - menor).toFixed(2)),
-        precoPercentualVariacao: Number(dVar.toFixed(2)),
+        precoAmplitude: arredondarPreco(maior - menor),
+        precoPercentualVariacao: Number(dVar.toFixed(4)),
         precoRatioCompraVenda: Number(
           (volumeVendido > 0 ? volumeComprado / volumeVendido : 0).toFixed(5)
         ),
@@ -272,9 +279,9 @@ const gerarHistoricoMock = (normalized, agora) => {
         precoVariacaoAbsoluta: precoPonto * 0.01,
         // Anatomia derivada do próprio OHLC, como o backend faz. Eram frações
         // fixas do preço e não descreviam a vela ao lado.
-        precoCorpoCandle: Number(Math.abs(precoPonto - abertura).toFixed(2)),
-        precoSombraSuperior: Number((maior - Math.max(abertura, precoPonto)).toFixed(2)),
-        precoSombraInferior: Number((Math.min(abertura, precoPonto) - menor).toFixed(2)),
+        precoCorpoCandle: arredondarPreco(Math.abs(precoPonto - abertura)),
+        precoSombraSuperior: arredondarPreco(maior - Math.max(abertura, precoPonto)),
+        precoSombraInferior: arredondarPreco(Math.min(abertura, precoPonto) - menor),
         precoDirecao: dVar >= 0 ? 1 : -1,
         precoVolatilidadePercentual,
         precoFinanceiroPorTrade,
@@ -431,20 +438,27 @@ const buildSequenceResponse = () => {
   }
 }
 
+// A cotação do modo demonstração, uma só: o histórico do patrimônio foi a 6,00 com
+// o PR 94, e o aporte ficou em 5,20, então o patrimônio mudava de cotação a cada aporte.
+export const COTACAO_DEMONSTRACAO = 6.00
+
+// Semeado como as séries: a página carrega de novo a cada tela, e um sorteio a cada
+// carga mostrava um patrimônio diferente em cada uma.
 const generateMockPatrimonio = () => {
+  const sortear = geradorSemeado(hashSymbol('patrimonio'))
   const registros = []
   let saldoTotalBRL = 0
   let saldoTotalUSD = 0
   const agora = new Date()
 
   for (let mesOffset = 11; mesOffset >= 0; mesOffset--) {
-    const numPontosMes = 2 + Math.floor(Math.random() * 2)
+    const numPontosMes = 2 + Math.floor(sortear() * 2)
     const dataMes = new Date(agora.getFullYear(), agora.getMonth() - mesOffset, 1)
     
     for (let i = 0; i < numPontosMes; i++) {
       const dataPonto = new Date(dataMes.getFullYear(), dataMes.getMonth(), 5 + i * 10, 10 + i, 0, 0)
-      const valorBRL = 2000 + Math.random() * 8000
-      const cotacao = 5.0 + Math.random() * 0.5
+      const valorBRL = 2000 + sortear() * 8000
+      const cotacao = COTACAO_DEMONSTRACAO
       const valorUSD = valorBRL / cotacao
       
       saldoTotalBRL += valorBRL
@@ -812,7 +826,7 @@ const mockTreinoResumo = (endpoint) => {
         moeda,
         episodios: eps.length,
         rewardInicial: primeiro.rewardMedio,
-        rewardAtual: ultimo.rewardMedio,
+        rewardAtual: eps.reduce((s, r) => s + r.rewardMedio, 0) / eps.length,
         winRateInicial: primeiro.winRate,
         winRateAtual: ultimo.winRate,
         epsilonAtual: ultimo.epsilon,
@@ -1651,7 +1665,7 @@ const mockDecidirPedido = (endpoint, body) => {
   if (!pedido) erroDoPedido('Pedido não encontrado.')
   // A nova tentativa só se descarta, como no backend (StatusPedidoAlteracao.Descartaveis).
   const decidivel = AGUARDANDO_DECISAO.includes(pedido.status)
-    || (decisao === DECISOES.DESCARTADO && DESCARTAVEIS.includes(pedido.status))
+    || (decisao === DECISOES.DESCARTADO && podeDescartar(pedido))
   if (!decidivel) {
     erroDoPedido(`O pedido está ${pedido.status}: só se decide um pedido ${AGUARDANDO_DECISAO.join(' ou ')}.`)
   }
@@ -2133,7 +2147,7 @@ const mockHandlers = [
       console.log('Mock POST Patrimonio:', body)
       const valorBRL = parseFloat(body?.valorBRL || 0)
       const observacao = body?.observacao || 'Aporte manual'
-      const cotacao = 5.20
+      const cotacao = COTACAO_DEMONSTRACAO
       const valorUSD = parseFloat((valorBRL / cotacao).toFixed(2))
 
       const novo = {
@@ -2195,7 +2209,7 @@ const mockHandlers = [
           tipoPrazoLiquidacao: 0,
           prazoCotizacao: 0,
           horarioLimiteSolicitacao: { ticks: 648000000000 },
-          taxaSaqueAntecipado: 0.5,
+          taxaSaqueAntecipado: 0.0,
           taxaResgate: 0.0,
           valorMinimoResgate: 50,
           saldoMinimoPermanencia: 10,

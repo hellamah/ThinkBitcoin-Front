@@ -432,8 +432,10 @@ export default function GeoHeatmapView() {
       const countryCode = String(item.geoTop1Code || item.GeoTop1Code).toUpperCase()
       const extras = {
         variacao24h: variacaoMoeda,
-        lideranca: item.frequenciaLideranca ?? item.FrequenciaLideranca ?? null,
-        intensidade: item.mediaIntensidade ?? item.MediaIntensidade ?? null,
+        [metricaMapa === MapMetric.INTENSIDADE ? 'intensidade' : 'lideranca']:
+          metricaMapa === MapMetric.INTENSIDADE
+            ? (item.mediaIntensidade ?? item.MediaIntensidade ?? null)
+            : (item.frequenciaLideranca ?? item.FrequenciaLideranca ?? null),
       }
       const tooltipHtml = formatTooltipData(
         nomePais(countryCode),
@@ -559,7 +561,7 @@ export default function GeoHeatmapView() {
     }
   }, [token, moedaSelecionada, moedaId, moedasCarousel?.length, intervaloMapa, t])
 
-  useEffect(() => { carregarHeatmap() }, [carregarHeatmap, refreshTrigger])
+  useEffect(() => { carregarHeatmap(true) }, [carregarHeatmap, refreshTrigger])
 
   // Auto-refresh: quando o cache de 5 min expira com a aba visível, recarrega
   // silenciosamente (sem skeleton) para manter o mapa vivo.
@@ -1162,10 +1164,10 @@ export default function GeoHeatmapView() {
                     '&:hover': { transform: 'translateY(-4px)', borderColor: 'var(--color-primary)', boxShadow: '0 18px 48px var(--scrim-strong), 0 0 20px var(--accent-a08)' }
                   }}
                 >
-                  <Typography variant="h6" sx={{ color: 'var(--accent-ink)', fontWeight: 800, fontFamily: 'Outfit, sans-serif', fontSize: '1.05rem', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
+                  <Typography variant="h6" component="div" sx={{ color: 'var(--accent-ink)', fontWeight: 800, fontFamily: 'Outfit, sans-serif', fontSize: '1.05rem', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
                     {t('heatmap.centralInteligencia')}
                   </Typography>
-                  <Typography variant="body2" sx={{ opacity: 0.6, fontSize: '0.85rem', lineHeight: 1.4 }}>
+                  <Typography variant="body2" component="div" sx={{ opacity: 0.6, fontSize: '0.85rem', lineHeight: 1.4 }}>
                     {t('heatmap.centralDescricao')} ({moedaSelecionada}).
                   </Typography>
 

@@ -307,10 +307,15 @@ function TabelaMoedas({ estrategia, nome, moedaSelecionada, onSelecionar }) {
               <TableCell>{t('zoo.colSince')}</TableCell>
               <TableCell align="right">{t('zoo.colCagr')}</TableCell>
               <TableCell align="right">{t('zoo.colCagrBh')}</TableCell>
-              <TableCell align="right">{t('zoo.colDrawdown')}</TableCell>
+              <TableCell align="right">{t('zoo.colDrawdownDetail')}</TableCell>
               <TableCell align="right">{t('zoo.colDrawdownBh')}</TableCell>
               <TableCell align="right" title={t('zoo.colCalmarHint')}>{t('zoo.colCalmar')}</TableCell>
               <TableCell align="right" title={t('zoo.colYearsOkHint')}>{t('zoo.colYearsOk')}</TableCell>
+              <TableCell align="center">
+                <Button variant="outlined" size="small" onClick={() => {}}>
+                  {t('zoo.btnViewCoins')}
+                </Button>
+              </TableCell>
               <TableCell align="right">{t('zoo.colApproved')}</TableCell>
             </TableRow>
           </TableHead>
@@ -326,9 +331,9 @@ function TabelaMoedas({ estrategia, nome, moedaSelecionada, onSelecionar }) {
                 <TableCell align="right">{num(m.calmar)}</TableCell>
                 <TableCell align="right">{`${m.anosOk}/${m.anosAvaliados}`}</TableCell>
                 <TableCell align="right">
-                  {m.aprovada
-                    ? <Box component="span" sx={{ color: 'var(--perf-up)', fontWeight: 700 }}>{t('zoo.yes')}</Box>
-                    : <Box component="span" sx={{ color: 'var(--text-muted)' }}>{t('zoo.no')}</Box>}
+                  <Box component="span" sx={{ color: m.aprovada ? 'var(--perf-up)' : 'var(--text-muted)', fontWeight: m.aprovada ? 700 : 400 }}>
+                    {t(m.aprovada ? 'zoo.yes' : 'zoo.no')} ({m.anosOk}/{m.anosAvaliados})
+                  </Box>
                 </TableCell>
               </TableRow>
             ))}
@@ -354,7 +359,7 @@ function TabelaAnos({ linha, moeda }) {
                 <TableCell>{t('zoo.colYear')}</TableCell>
                 <TableCell align="right">{t('zoo.colReturn')}</TableCell>
                 <TableCell align="right">{t('zoo.colReturnBh')}</TableCell>
-                <TableCell align="right">{t('zoo.colDrawdown')}</TableCell>
+                <TableCell align="right">{t('zoo.colDrawdownDetail')}</TableCell>
                 <TableCell align="right">{t('zoo.colDrawdownBh')}</TableCell>
                 <TableCell>{t('zoo.colResult')}</TableCell>
               </TableRow>
@@ -421,7 +426,7 @@ export default function ZooEstrategias() {
         </Box>
 
         <Tabs value={janela} onChange={(_, v) => trocarJanela(v)} aria-label={t('zoo.tabsLabel')} sx={estiloDasAbas}>
-          <Tab value={JANELAS.HISTORICO} id="aba-zoo-historico" aria-controls="painel-zoo" icon={<MdHistory size={18} />} iconPosition="start" label={t('zoo.tabHistory')} disabled />
+          <Tab value={JANELAS.HISTORICO} id="aba-zoo-historico" aria-controls="painel-zoo" icon={<MdHistory size={18} />} iconPosition="start" label={t('zoo.tabHistory')} />
           <Tab value={JANELAS.TESTE_AGENTE} id="aba-zoo-teste-agente" aria-controls="painel-zoo" icon={<MdSmartToy size={18} />} iconPosition="start" label={t('zoo.tabAgentWindow')} />
         </Tabs>
 
@@ -501,18 +506,18 @@ export default function ZooEstrategias() {
                     key={m}
                     moeda={m}
                     onClick={() => setMoedaEscolhida(m)}
-                    rotulo={m === moeda ? t('zoo.coinSelected', { moeda: m }) : m}
-                    sx={m === moeda ? { outline: '2px solid var(--accent)', outlineOffset: 1 } : { opacity: 0.75 }}
+                    rotulo={m === moedaEscolhida || m === moeda ? t('zoo.coinSelected', { moeda: m }) : m}
+                    sx={m === moedaEscolhida || m === moeda ? { outline: '2px solid var(--accent)', outlineOffset: 1 } : { opacity: 0.75 }}
                   />
                 ))}
               </Box>
 
-              {estrategia && moeda && (
+              {estrategia && (moedaEscolhida ?? moeda) && (
                 // A chave da janela remonta os gráficos ao trocar de aba: as curvas
                 // da outra janela não ficam na tela enquanto as novas carregam.
                 <GraficosDaCurva
                   key={janela}
-                  moeda={moeda}
+                  moeda={moedaEscolhida ?? moeda}
                   estrategia={estrategia}
                   nome={nome}
                   linha={linha}
@@ -521,8 +526,8 @@ export default function ZooEstrategias() {
                 />
               )}
 
-              <TabelaMoedas estrategia={daRodada} nome={nome} moedaSelecionada={moeda} onSelecionar={setMoedaEscolhida} />
-              <TabelaAnos linha={linha} moeda={moeda} />
+              <TabelaMoedas estrategia={daRodada} nome={nome} moedaSelecionada={moedaEscolhida ?? moeda} onSelecionar={setMoedaEscolhida} />
+              <TabelaAnos linha={linha} moeda={moedaEscolhida ?? moeda} />
             </>
           )}
         </Box>

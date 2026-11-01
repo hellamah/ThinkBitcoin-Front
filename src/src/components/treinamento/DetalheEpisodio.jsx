@@ -96,13 +96,16 @@ function Veredito({ veredito, posicao, moeda }) {
   )
 }
 
-function MetricaDoEpisodio({ id, valor, faixa }) {
+function MetricaDoEpisodio({ id, valor, faixa, onClick }) {
   const { t } = useTranslation()
   const escuro = useTheme().palette.mode === 'dark'
   const cor = corDaMetrica(id, escuro)
   const d = faixa ? variacao(valor ?? null, faixa.media) : null
   return (
     <Box
+      onClick={onClick}
+      onMouseDown={(e) => (e.currentTarget.style.filter = 'brightness(0.9)')}
+      onMouseUp={(e) => (e.currentTarget.style.filter = 'brightness(1)')}
       sx={{
         p: 1.75,
         height: '100%',
@@ -112,6 +115,8 @@ function MetricaDoEpisodio({ id, valor, faixa }) {
         display: 'flex',
         flexDirection: 'column',
         gap: 0.75,
+        cursor: 'pointer',
+        transition: 'filter 0.1s',
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
@@ -288,9 +293,9 @@ export default function DetalheEpisodio({ item, allItems, carregando, garantirPe
 
   const timeline = useMemo(() => ordenarPorData(allItems || []), [allItems])
   const daMoeda = useMemo(() => timeline.filter((r) => r.moeda === item.moeda), [timeline, item.moeda])
-  const idx = daMoeda.findIndex((r) => r.idTreinamentoEpisodio === item.idTreinamentoEpisodio)
-  const anterior = idx > 0 ? daMoeda[idx - 1] : null
-  const proximo = idx >= 0 && idx < daMoeda.length - 1 ? daMoeda[idx + 1] : null
+  const idx = timeline.findIndex((r) => r.idTreinamentoEpisodio === item.idTreinamentoEpisodio)
+  const anterior = idx > 0 ? timeline[idx - 1] : null
+  const proximo = idx >= 0 && idx < timeline.length - 1 ? timeline[idx + 1] : null
 
   const ciclo = useMemo(() => cicloDoEpisodio(timeline, item.idTreinamentoEpisodio), [timeline, item.idTreinamentoEpisodio])
 
@@ -414,7 +419,12 @@ export default function DetalheEpisodio({ item, allItems, carregando, garantirPe
           <Grid container spacing={1.5}>
             {METRICAS.map((id, i) => (
               <Grid key={id} size={tamanhoDoCartao(i)}>
-                <MetricaDoEpisodio id={id} valor={item[id]} faixa={faixas[id]} />
+                <MetricaDoEpisodio 
+                  id={id} 
+                  valor={item[id]} 
+                  faixa={faixas[id]} 
+                  onClick={() => console.log(`Métrica ${id} clicada`)} 
+                />
               </Grid>
             ))}
           </Grid>

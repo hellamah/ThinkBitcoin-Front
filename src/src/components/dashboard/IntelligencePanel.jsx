@@ -1,6 +1,8 @@
 import React from 'react'
 import { MdAnalytics, MdTimeline, MdSpeed, MdUpdate, MdPublic } from 'react-icons/md'
 
+import RotuloComAjuda from './RotuloComAjuda'
+
 export default function IntelligencePanel({ trendAtual, t }) {
   if (!trendAtual) return null
 
@@ -26,9 +28,11 @@ export default function IntelligencePanel({ trendAtual, t }) {
         <div className="intel-card">
           <div className="intel-icon"><MdSpeed /></div>
           <div className="intel-label">{t('searchMomentum')}</div>
-          <div className="intel-value">Δ15: {trendAtual.delta15 || trendAtual.Delta15 || 0}</div>
+          <div className="intel-value">
+            <RotuloComAjuda texto={`Δ15: ${trendAtual.delta15 || trendAtual.Delta15 || 0}`} ajuda={t('searchMomentumTooltip15')} />
+          </div>
           <div className={`intel-subvalue ${(trendAtual.delta5 || trendAtual.Delta5) >= 0 ? 'up' : 'down'}`}>
-            Δ5: {trendAtual.delta5 || trendAtual.Delta5 || 0}
+            <RotuloComAjuda texto={`Δ5: ${trendAtual.delta5 || trendAtual.Delta5 || 0}`} ajuda={t('searchMomentumTooltip5')} />
           </div>
         </div>
 
@@ -44,15 +48,12 @@ export default function IntelligencePanel({ trendAtual, t }) {
           </div>
         </div>
 
-        {/* Ranking e Hotspot */}
+        {/* Hotspot */}
         <div className="intel-card">
           <div className="intel-icon"><MdPublic /></div>
           <div className="intel-label">{t('globalHotspot')}</div>
           <div className="intel-value">
             {trendAtual.geoTop1Code || trendAtual.GeoTop1Code || 'N/A'}
-          </div>
-          <div className="intel-subvalue">
-            {t('trendRank')}: #{trendAtual.rankNoMinuto || trendAtual.RankNoMinuto || '-'}
           </div>
         </div>
       </div>

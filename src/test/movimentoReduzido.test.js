@@ -209,7 +209,9 @@ describe('movimento reduzido — o que o CSS não alcança', () => {
       infratores,
       `use comportamentoDeRolagem() de utils/movimento em: ${infratores.join(', ')}`
     ).toEqual([])
-  })
+    // Lê todos os arquivos de código: com a máquina ocupada, passou dos 5 s padrão
+    // no build da Vercel de 30/10/2026, com o Revisor rodando no mesmo computador.
+  }, 20000)
 
   it('comportamentoDeRolagem devolve salto direto quando a preferência está ligada', async () => {
     vi.stubGlobal('window', { matchMedia: () => ({ matches: true }) })

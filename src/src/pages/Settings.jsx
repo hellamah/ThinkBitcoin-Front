@@ -582,7 +582,7 @@ function Settings() {
 
         {renderPanel(<MdAccountBalanceWallet />, t('traderLabTitle'), (
           <>
-            {renderField(t('initialInvestment'), (
+            {renderField(t('initialInvestmentSettings'), ( // Clarifica a moeda do investimento inicial em USD para evitar confusão com os planos em R$
               <TextField
                 type="number"
                 variant="outlined"
@@ -598,22 +598,27 @@ function Settings() {
               />
             ))}
 
-            {renderField(t('preferredCoin'), (
-              <Select
-                value={localPrefs?.siglaMoedaPreferida || ''}
-                onChange={(e) => {
-                  const val = e.target.value
-                  setLocalPrefs(p => ({ ...p, siglaMoedaPreferida: val }))
-                  salvarPreferencia({ siglaMoedaPreferida: val })
-                }}
-                size="small"
-                sx={selectSx}
-              >
-                <MenuItem value=""><em>{t('none')}</em></MenuItem>
-                {opcoesDeMoeda(localPrefs?.siglaMoedaPreferida).map(m => (
-                  <MenuItem key={m.sigla} value={m.sigla}>{m.sigla}</MenuItem>
-                ))}
-              </Select>
+            {renderField(t('preferredCoinSettings'), (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Select
+                  value={localPrefs?.siglaMoedaPreferida || ''}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    setLocalPrefs(p => ({ ...p, siglaMoedaPreferida: val }))
+                    salvarPreferencia({ siglaMoedaPreferida: val })
+                  }}
+                  size="small"
+                  sx={selectSx}
+                >
+                  <MenuItem value=""><em>{t('none')}</em></MenuItem>
+                  {opcoesDeMoeda(localPrefs?.siglaMoedaPreferida).map(m => (
+                    <MenuItem key={m.sigla} value={m.sigla}>{m.sigla}</MenuItem>
+                  ))}
+                </Select>
+                <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-faint)' }}>
+                  {t('preferredCoinDescription')}
+                </Typography>
+              </Box>
             ))}
           </>
         ))}

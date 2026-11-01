@@ -96,7 +96,7 @@ const BarraMedida = ({ label, valorLabel, percent, cor }) => (
       <Typography sx={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', fontFamily: 'Outfit, sans-serif' }}>
         {label}
       </Typography>
-      <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: cor, fontFamily: 'Share Tech Mono, monospace' }}>
+      <Typography component="div" sx={{ fontSize: '0.8rem', fontWeight: 700, color: cor, fontFamily: 'Share Tech Mono, monospace' }}>
         {valorLabel}
       </Typography>
     </Box>
@@ -137,7 +137,6 @@ export default function HeatmapInsights({ trend, fear, t, locale }) {
   const delta15 = num(trend?.delta15)
   const volatilidade = num(trend?.volatilidade15)
   const pico = formatarMinutos(trend?.minutosDesdePico)
-  const rank = num(trend?.rankNoMinuto)
   const hhi = normalizarHHI(trend?.geoHHI)
   const horaRef = formatarHora(trend?.horaReferencia, locale)
   const dadosImputados = trend?.isTimeseriesOk === false || trend?.isGeoOk === false
@@ -189,15 +188,14 @@ export default function HeatmapInsights({ trend, fear, t, locale }) {
             <StatChip label={t('heatmap.momentum15')} value="" delta={delta15} />
           )}
           {volatilidade !== null && (
-            <StatChip label={t('heatmap.volatilidade')} value={volatilidade.toFixed(1)} />
+            <Tooltip title={t('heatmap.volatilidadeTooltip')}>
+              <StatChip label={t('heatmap.volatilidade')} value={volatilidade.toFixed(1)} />
+            </Tooltip>
           )}
           {pico !== null && (
             <Tooltip title={t('heatmap.picoTooltip')}>
               <StatChip label={t('heatmap.picoHa')} value={pico} />
             </Tooltip>
-          )}
-          {rank !== null && (
-            <StatChip label={t('heatmap.rankBuscas')} value={`#${rank}`} />
           )}
         </Box>
       )}
@@ -208,7 +206,7 @@ export default function HeatmapInsights({ trend, fear, t, locale }) {
           label={t('heatmap.concentracaoGeo')}
           valorLabel={hhi >= 0.25 ? (
             <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
-              🎯 {t('heatmap.concentrada')}
+              🎯 {t('heatmap.concentrada')} ({(hhi * 100).toFixed(1)}%)
               <Tooltip title={t('heatmap.concentrada_tooltip')}>
                 <MdInfo size={14} />
               </Tooltip>
@@ -231,9 +229,9 @@ export default function HeatmapInsights({ trend, fear, t, locale }) {
             cor={corFearGreed(fearValor)}
           />
           {formatarContagem(segundosRestantes) && (
-            <Typography sx={{ fontSize: '0.68rem', color: 'var(--text-faint)', fontFamily: 'Share Tech Mono, monospace', alignSelf: 'flex-end' }}>
+            <Box sx={{ fontSize: '0.68rem', color: 'var(--text-faint)', fontFamily: 'Share Tech Mono, monospace', alignSelf: 'flex-end' }}>
               ⏳ {t('heatmap.proximaAtualizacao')} {formatarContagem(segundosRestantes)}
-            </Typography>
+            </Box>
           )}
         </Box>
       )}

@@ -89,8 +89,14 @@ export const contagemPorFiltro = (pedidos, filtros = FILTROS) =>
 /** Se o pedido ainda aceita aprovar ou descartar. */
 export const podeDecidir = (pedido) => AGUARDANDO_DECISAO.includes(pedido?.status)
 
-/** Se o pedido aceita descartar: os que esperam decisão e a nova tentativa. */
+/**
+ * Se o pedido aceita descartar: os que esperam decisão, a nova tentativa e o corrigido
+ * das telas encerradas. Em 31/10/2026 eram 9: o Trader não visita mais essas telas, e
+ * eles não virariam validados nem reabertos. O backend aceita descartar todo corrigido
+ * (StatusPedidoAlteracao.Descartaveis): o limite é aqui, porque só ele sabe dos grupos.
+ */
 export const podeDescartar = (pedido) => DESCARTAVEIS.includes(pedido?.status)
+  || (pedido?.status === STATUS.CORRIGIDO && grupoDoPedido(pedido) === 'telaEncerrada')
 
 /**
  * O motivo que vai para a API, ou a chave do texto que explica por que ele não
@@ -103,6 +109,59 @@ export const conferirMotivo = (decisao, motivo) => {
   if (texto.length > TAMANHO_MOTIVO) return { erro: 'pregao.motivoLongo' }
   return { motivo: texto || null }
 }
+
+// ── Descarte por grupo ─────────────────────────────────────────────────────
+
+// Os pedidos que uma decisão do dono já responde (30/10/2026): dos 178 esperando
+// decisão naquele dia, 35 eram das telas do treino encerrado, e os "falta" de
+// day trade passavam de 7 dias na fila sem ninguém decidir o cliente-alvo. A
+// tela só reúne e sugere o motivo: quem descarta continua sendo o administrador.
+const TELAS_ENCERRADAS = Object.freeze(['Treinamento IA', 'Detalhe do episódio'])
+const NAO_SAO_TELA = Object.freeze(['?', 'Cruzamentos entre telas'])
+const VITRINE = /94[,.]8|precis[aã]o da ia|marketing|vitrine|uptime do core|dados\s*\/\s*seg|domina o mercado/i
+const DAY_TRADE = /order ?book|livro de (?:ofertas|ordens)|depth|profundidade|order flow|fluxo de ordens|volume profile|execu[cç][aã]o|executar|ordem|alavancagem|leverage|api keys?|chaves? de api|webhooks?|take profit|stop loss|scalp|timeframe|intraday|paper trading|linhas de tend[eê]ncia/i
+
+const telasDoPedido = (pedido) => (pedido?.telas || '')
+  .split('·')
+  .map((t) => t.trim())
+  .filter((t) => t && !NAO_SAO_TELA.includes(t))
+
+// Na ordem: o pedido que cabe em dois grupos fica no primeiro.
+export const GRUPOS_DE_DESCARTE = Object.freeze([
+  {
+    id: 'telaEncerrada',
+    // Só as telas do treino: o pedido que cita também outra tela pode valer ali.
+    pertence: (p) => {
+      const telas = telasDoPedido(p)
+      return telas.length > 0 && telas.every((t) => TELAS_ENCERRADAS.includes(t))
+    },
+  },
+  { id: 'vitrine', pertence: (p) => VITRINE.test(`${p?.problema || ''} ${p?.trecho || ''}`) },
+  { id: 'dayTrade', pertence: (p) => p?.tipo === 'falta' && DAY_TRADE.test(p?.problema || '') },
+])
+
+/**
+ * Os grupos com pedido a descartar: [{ id, pedidos }], dos que esperam decisão e
+ * da nova tentativa, que gasta uma rodada do modelo a cada dia até alguém
+ * descartar (em 30/10/2026, 5 das 12 eram das telas encerradas).
+ */
+export const gruposDeDescarte = (pedidos) => {
+  const restantes = (Array.isArray(pedidos) ? pedidos : []).filter(podeDescartar)
+  const usados = new Set()
+  return GRUPOS_DE_DESCARTE.map(({ id, pertence }) => {
+    const doGrupo = restantes.filter((p) => !usados.has(p.idPedidoAlteracao) && pertence(p))
+    doGrupo.forEach((p) => usados.add(p.idPedidoAlteracao))
+    return { id, pedidos: doGrupo }
+  }).filter((g) => g.pedidos.length > 0)
+}
+
+/**
+ * O grupo de descarte do pedido, ou nulo: o cartão avisa antes de aprovar. Em
+ * 30/10/2026, 46 pedidos foram aprovados em 2 minutos, 10 deles das telas
+ * encerradas, e a regra só aparecia no painel de descarte, longe do botão.
+ */
+export const grupoDoPedido = (pedido) =>
+  GRUPOS_DE_DESCARTE.find(({ pertence }) => pertence(pedido))?.id ?? null
 
 /**
  * O texto do dicionário, ou o valor cru quando o dicionário ainda não o conhece

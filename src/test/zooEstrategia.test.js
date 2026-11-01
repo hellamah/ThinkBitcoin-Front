@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { getMockResponse } from '../src/utils/mockApi'
+import { RODADA_ZOO } from '../src/utils/mockZooEstrategia'
+import { RODADA_ZOO_JANELA } from '../src/utils/mockZooJanelaAgente'
 import { ZooEstrategiaEndpoint } from '../src/utils/apiClient'
 import {
   AGENTE,
@@ -230,5 +232,20 @@ describe('zoo › janelas', () => {
     expect(mesesDaJanela('2026-02-27T00:00:00Z', '2026-10-07T00:00:00Z')).toBe(7)
     expect(mesesDaJanela('2026-10-01T00:00:00Z', '2026-10-03T00:00:00Z')).toBe(1)
     expect(mesesDaJanela(undefined, '2026-10-07T00:00:00Z')).toBeNull()
+  })
+})
+
+describe('as rodadas gravadas do modo demonstração', () => {
+  // São a gravação de uma rodada real, e o número dali não se altera: o PR 120 pôs 10/10 no resumo
+  // de uma estratégia com as 10 moedas reprovadas, e o Trader passou a ver a contradição na tela.
+  it.each([
+    ['zoo', RODADA_ZOO],
+    ['janela do agente', RODADA_ZOO_JANELA],
+  ])('o resumo de cada estratégia bate com as moedas dela (%s)', (_, rodada) => {
+    rodada.estrategias.forEach((e) => {
+      const aprovadas = e.porMoeda.filter((m) => m.aprovada).length
+      expect(e.moedasAprovadas, e.estrategia).toBe(aprovadas)
+      expect(e.aprovada, e.estrategia).toBe(aprovadas > 0 && aprovadas === e.moedas)
+    })
   })
 })
