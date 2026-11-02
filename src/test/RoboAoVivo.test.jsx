@@ -3,13 +3,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { apiRequest, HistoricoDecisaoEndpoint, RoboAoVivoEndpoint, SequenciaRetornoEndpoint } from '../src/utils/apiClient'
-import { PLACAR_ROBO, SEQUENCIAS_ROBO } from '../src/utils/mockRoboAoVivo'
+import { PLACAR_ROBO, REGRA_ROBO, SEQUENCIAS_ROBO } from '../src/utils/mockRoboAoVivo'
 import RoboAoVivo from '../src/pages/RoboAoVivo'
 
 // A tela do robô ao vivo: pede as operações desde a ativação do motor, o placar
 // pronto do .NET (as três curvas, os retornos, a dose, o critério e a última
-// conferência) e as decisões de cada vela, e mostra o estado de hoje com a
-// última decisão, os retornos, o critério, as noites e as operações.
+// conferência), as decisões de cada vela e a regra nos fechamentos, e mostra o
+// estado de hoje com a última decisão, o que falta para a regra mudar de lado,
+// o que o histórico dela diz, os retornos, o critério, as noites e as operações.
 // Sem provider de tradução, `t` devolve a chave. O gráfico (canvas) não é
 // desenhado no jsdom; o que se confere é o que está fora dele.
 
@@ -38,9 +39,10 @@ const operacao = {
 // As velas das 23h reais de 23 a 27/10, os mesmos dias do placar.
 const velas = { totalRegistros: SEQUENCIAS_ROBO.length, registros: SEQUENCIAS_ROBO }
 
-const responder = ({ ops, placar, sequencias } = {}) => async (endpoint) => {
+const responder = ({ ops, placar, sequencias, regra } = {}) => async (endpoint) => {
   if (endpoint.startsWith('/ThinkBitcoin/historicoDecisoes')) return ops ? ops() : { resultado: { totalRegistros: 1, registros: [operacao] } }
   if (endpoint.startsWith('/ThinkBitcoin/sequenciasRetorno')) return sequencias ? sequencias() : { resultado: velas }
+  if (endpoint === RoboAoVivoEndpoint.REGRA) return regra ? regra() : { resultado: REGRA_ROBO }
   return placar ? placar() : { resultado: PLACAR_ROBO }
 }
 const falha = () => { throw new Error('fora do ar') }
@@ -53,9 +55,10 @@ beforeEach(() => {
 const renderizar = () => render(<MemoryRouter><RoboAoVivo /></MemoryRouter>)
 
 describe('Robô ao vivo', () => {
-  it('pede as operações desde a ativação, o placar e as velas', async () => {
+  it('pede as operações desde a ativação, o placar, as velas e a regra', async () => {
     renderizar()
-    await waitFor(() => expect(apiRequest).toHaveBeenCalledTimes(3))
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledTimes(4))
+    expect(apiRequest).toHaveBeenCalledWith(RoboAoVivoEndpoint.REGRA)
     expect(apiRequest).toHaveBeenCalledWith(
       HistoricoDecisaoEndpoint.LIST({ siglaMoeda: 'BTC', dataInicio: '2026-10-23T11:49:00Z', quantidade: 200 })
     )
@@ -129,5 +132,74 @@ describe('Robô ao vivo', () => {
     expect(await screen.findByText('robo.noites.erro')).toBeTruthy()
     expect(screen.getAllByText('robo.acoes.VenderTudo').length).toBeGreaterThan(0)
     expect((await screen.findByTestId('robo-criterio-fidelidade')).textContent).toBe('robo.criterio.dentro')
+  })
+
+  it('mostra o patrimônio em USDT e a última hora que o robô gravou', async () => {
+    renderizar()
+    await waitFor(() => expect(screen.getByTestId('robo-patrimonio').textContent).toMatch(/^997[.,]03$/))
+    // A vela das 23h de 27/10, a mais recente do modo demo.
+    await waitFor(() => expect(screen.getByTestId('robo-ultima-hora').textContent).toMatch(/27.*UTC$/))
+  })
+
+  // O robô fora: a tela diz o que falta para ele comprar, e não só que ele está parado.
+  it('fora do mercado, diz o que falta para comprar, a próxima decisão e a dose', async () => {
+    renderizar()
+    expect((await screen.findByTestId('robo-gatilho')).textContent).toBe('robo.gatilho.paraComprar')
+    expect(screen.getByText('robo.gatilho.titleFora')).toBeTruthy()
+    expect(screen.getByTestId('robo-proxima-decisao').textContent).toBe('robo.gatilho.proximaDecisaoValor')
+    expect(screen.getByTestId('robo-dose-gatilho').textContent).toMatch(/^100%$/)
+    expect(screen.getByText('robo.gatilho.doseAoEntrar')).toBeTruthy()
+  })
+
+  it('com o preço já acima do gatilho, diz que ele compra se fechar assim', async () => {
+    apiRequest.mockImplementation(responder({
+      regra: () => ({ resultado: { ...REGRA_ROBO, faltaParaOGatilho: -0.01 } }),
+    }))
+    renderizar()
+    expect((await screen.findByTestId('robo-gatilho')).textContent).toBe('robo.gatilho.comprariaHoje')
+  })
+
+  it('dentro do mercado, diz o que o faria vender e a dose de hoje', async () => {
+    apiRequest.mockImplementation(responder({
+      regra: () => ({ resultado: { ...REGRA_ROBO, dentro: true, dose: 0.8, doseNoGatilho: 1, faltaParaOGatilho: -0.03 } }),
+    }))
+    renderizar()
+    expect((await screen.findByTestId('robo-gatilho')).textContent).toBe('robo.gatilho.paraVender')
+    expect(screen.getByText('robo.gatilho.titleDentro')).toBeTruthy()
+    expect(screen.getByTestId('robo-dose-gatilho').textContent).toMatch(/^80%$/)
+    expect(screen.getByText('robo.gatilho.doseHoje')).toBeTruthy()
+    expect(screen.getByText('robo.normal.periodoAtual')).toBeTruthy()
+  })
+
+  it('mostra o histórico da regra: a pausa de hoje, o tempo fora, as entradas e a conclusão', async () => {
+    renderizar()
+    expect((await screen.findByTestId('robo-normal-atual')).textContent).toBe('robo.normal.dias')
+    expect(screen.getByText('robo.normal.pausaAtual')).toBeTruthy()
+    const { fracaoFora } = REGRA_ROBO.historico
+    expect(screen.getByTestId('robo-normal-fora').textContent).toBe(`${Math.round(fracaoFora * 100)}%`)
+    expect(screen.getByTestId('robo-normal-duracao').textContent).toBe('robo.normal.ateDias')
+    expect(screen.getByTestId('robo-normal-entradas').textContent).toBe('robo.normal.entradasValor')
+    expect(screen.getByTestId('robo-normal-curtas').textContent).toBe('robo.normal.curtasValor')
+    expect(screen.getByTestId('robo-normal-conclusao').textContent).toBe('robo.normal.conclusao')
+  })
+
+  it('sem histórico para medir, a regra avisa em vez de mostrar zeros', async () => {
+    apiRequest.mockImplementation(responder({
+      regra: () => ({ resultado: { moeda: 'BTC', pontos: [], mudancas: [], dentro: null, faltaParaOGatilho: null, historico: null } }),
+    }))
+    renderizar()
+    expect(await screen.findByText('robo.gatilho.semDados')).toBeTruthy()
+    expect(screen.getByText('robo.normal.semDados')).toBeTruthy()
+    expect(screen.queryByTestId('robo-gatilho')).toBeNull()
+  })
+
+  it('a falha da regra não esconde o resto', async () => {
+    apiRequest.mockImplementation(responder({ regra: falha }))
+    renderizar()
+    expect(await screen.findByText('robo.gatilho.erro')).toBeTruthy()
+    expect(screen.getByText('robo.normal.erro')).toBeTruthy()
+    expect(screen.getAllByText('robo.acoes.VenderTudo').length).toBeGreaterThan(0)
+    expect(await screen.findByTestId('robo-retornos')).toBeTruthy()
+    expect(await screen.findByTestId('robo-noites')).toBeTruthy()
   })
 })

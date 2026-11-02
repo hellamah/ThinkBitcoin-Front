@@ -1,8 +1,9 @@
 // O robô ao vivo: o motor de risco do Back-Python (docs/motor-de-risco.md),
 // que decide no BTC, com dinheiro de mentira, desde que substituiu o DQN.
 // Aqui ficam as contas puras da tela /robo-ao-vivo (só administrador). A tela
-// lê as operações (historicoDecisoes), o placar (RoboAoVivo/placar) e as
-// decisões de cada vela (sequenciasRetorno).
+// lê as operações (historicoDecisoes), o placar (RoboAoVivo/placar), as
+// decisões de cada vela (sequenciasRetorno) e a regra nos fechamentos
+// (RoboAoVivo/regra).
 //
 // O placar (a curva do robô refeita pelas operações, a da regra no zoo, a do
 // buy & hold e o critério) era calculado aqui até 28/10/2026; agora vem pronto
@@ -240,4 +241,51 @@ export const sequenciasDaBusca = (resultado) => {
 export const executouAoReligar = (op) => {
   const ms = instanteUtc(op?.dataHora)
   return !Number.isNaN(ms) && ms - (diaDaDecisao(op.dataHora) + DIA_MS) >= 60 * 60 * 1000
+}
+
+/** A hora mais recente que o robô gravou, ou nula: a do PC ligado, com ou sem operação. */
+export const ultimaHoraDoRobo = (registros) => {
+  const instantes = (registros ?? []).map((r) => instanteUtc(r.dataHora)).filter((ms) => !Number.isNaN(ms))
+  return instantes.length ? Math.max(...instantes) : null
+}
+
+/**
+ * O que a próxima decisão faz diante do preço de agora. `faltaParaOGatilho` é o
+ * gatilho sobre o preço, menos 1: positiva com o preço abaixo dele.
+ * - Fora, abaixo do gatilho: falta subir para comprar. Acima: compra, se fechar assim.
+ * - Dentro, acima do gatilho: falta cair para vender. Abaixo: vende, se fechar assim.
+ */
+export const situacaoDoGatilho = (regra) => {
+  const { dentro, faltaParaOGatilho: falta } = regra ?? {}
+  if (dentro === null || dentro === undefined || falta === null || falta === undefined) return null
+  if (dentro) return falta < 0 ? 'paraVender' : 'venderiaHoje'
+  return falta > 0 ? 'paraComprar' : 'comprariaHoje'
+}
+
+const ACOES_DE_COMPRA = [ACOES.COMPRAR_TUDO, ACOES.COMPRAR_PARCIAL]
+const ACOES_DE_VENDA = [ACOES.VENDER_TUDO, ACOES.VENDER_PARCIAL]
+
+/**
+ * O gráfico do preço contra a média ({x, y}): os fechamentos, a média de 50 dias,
+ * onde a regra mudou de lado e o que o robô executou desde a ativação. A operação
+ * vai no dia da decisão que a originou: ela executa ao preço daquela vela.
+ */
+export const seriesDaRegra = (regra, operacoes) => {
+  const pontos = regra?.pontos ?? []
+  const mudancas = (tipo) => (regra?.mudancas ?? [])
+    .filter((m) => m.tipo === tipo)
+    .map((m) => ({ x: instanteUtc(m.data), y: Number(m.preco) }))
+  const execucoes = (acoes) => (operacoes ?? [])
+    .filter((op) => acoes.includes(op.acao))
+    .map((op) => ({ x: diaDaDecisao(op.dataHora), y: Number(op.precoMercado) }))
+  return {
+    preco: pontos.map((p) => ({ x: instanteUtc(p.data), y: Number(p.fechamento) })),
+    media: pontos
+      .filter((p) => p.media !== null && p.media !== undefined)
+      .map((p) => ({ x: instanteUtc(p.data), y: Number(p.media) })),
+    regraComprou: mudancas('entrada'),
+    regraVendeu: mudancas('saida'),
+    roboComprou: execucoes(ACOES_DE_COMPRA),
+    roboVendeu: execucoes(ACOES_DE_VENDA),
+  }
 }

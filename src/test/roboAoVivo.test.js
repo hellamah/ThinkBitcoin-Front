@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { HistoricoDecisaoEndpoint, RoboAoVivoEndpoint, SequenciaRetornoEndpoint } from '../src/utils/apiClient'
 import { getMockResponse } from '../src/utils/mockApi'
-import { DECISOES_ROBO, PLACAR_ROBO, SEQUENCIAS_ROBO } from '../src/utils/mockRoboAoVivo'
+import { DECISOES_ROBO, PLACAR_ROBO, REGRA_ROBO, SEQUENCIAS_ROBO } from '../src/utils/mockRoboAoVivo'
 import {
   ATIVACAO_MOTOR,
   carteirasDoRobo,
@@ -13,7 +13,10 @@ import {
   noitesDoRobo,
   operacoesDoMotor,
   sequenciasDaBusca,
+  seriesDaRegra,
   seriesDoPlacar,
+  situacaoDoGatilho,
+  ultimaHoraDoRobo,
   ultimoDiaDoPlacar,
 } from '../src/utils/roboAoVivo'
 
@@ -26,6 +29,70 @@ import {
 // estão em RoboAoVivo/CalculoPlacarRoboTests.cs daquele repositório.
 
 const op = (acao, dataHora) => ({ idHistoricoDecisao: dataHora, acao, dataHora })
+
+describe('a regra nos fechamentos', () => {
+  it('diz o que a próxima decisão faz diante do preço de agora', () => {
+    expect(situacaoDoGatilho({ dentro: false, faltaParaOGatilho: 0.05 })).toBe('paraComprar')
+    expect(situacaoDoGatilho({ dentro: false, faltaParaOGatilho: -0.01 })).toBe('comprariaHoje')
+    expect(situacaoDoGatilho({ dentro: true, faltaParaOGatilho: -0.03 })).toBe('paraVender')
+    expect(situacaoDoGatilho({ dentro: true, faltaParaOGatilho: 0.02 })).toBe('venderiaHoje')
+  })
+
+  it('sem medida, não diz nada', () => {
+    expect(situacaoDoGatilho(undefined)).toBeNull()
+    expect(situacaoDoGatilho({ dentro: null, faltaParaOGatilho: 0.05 })).toBeNull()
+    expect(situacaoDoGatilho({ dentro: false, faltaParaOGatilho: null })).toBeNull()
+  })
+
+  it('monta o gráfico: a média só onde existe, a regra onde mudou de lado e o robô no dia da decisão', () => {
+    const series = seriesDaRegra({
+      pontos: [
+        { data: '2026-10-22T00:00:00', fechamento: 81416.09, media: null },
+        { data: '2026-10-23T00:00:00', fechamento: 81189.43, media: 81900.5 },
+      ],
+      mudancas: [
+        { data: '2026-08-17T00:00:00', preco: 64532.1, tipo: 'entrada' },
+        { data: '2026-10-22T00:00:00', preco: 81416.09, tipo: 'saida' },
+      ],
+    }, [
+      { acao: 'VenderTudo', dataHora: '2026-10-24T00:00:00', precoMercado: 81189.43 },
+      { acao: 'ComprarParcial', dataHora: '2026-11-03T00:00:00', precoMercado: 80000 },
+      { acao: 'Manter', dataHora: '2026-11-04T00:00:00', precoMercado: 80001 },
+    ])
+    expect(series.preco).toEqual([
+      { x: Date.UTC(2026, 9, 22), y: 81416.09 },
+      { x: Date.UTC(2026, 9, 23), y: 81189.43 },
+    ])
+    expect(series.media).toEqual([{ x: Date.UTC(2026, 9, 23), y: 81900.5 }])
+    expect(series.regraComprou).toEqual([{ x: Date.UTC(2026, 7, 17), y: 64532.1 }])
+    expect(series.regraVendeu).toEqual([{ x: Date.UTC(2026, 9, 22), y: 81416.09 }])
+    // A venda de 24/10 às 00h executou a decisão da vela das 23h de 23/10, ao preço dela.
+    expect(series.roboVendeu).toEqual([{ x: Date.UTC(2026, 9, 23), y: 81189.43 }])
+    expect(series.roboComprou).toEqual([{ x: Date.UTC(2026, 10, 2), y: 80000 }])
+  })
+
+  it('sem regra nem operações, as séries vêm vazias', () => {
+    const series = seriesDaRegra(null, undefined)
+    expect(Object.values(series).every((s) => s.length === 0)).toBe(true)
+  })
+
+  it('acha a última hora que o robô gravou, em qualquer ordem', () => {
+    expect(ultimaHoraDoRobo([{ dataHora: '2026-11-01T23:00:00' }, { dataHora: '2026-11-02T09:00:00' }, { dataHora: 'x' }]))
+      .toBe(Date.UTC(2026, 10, 2, 9))
+    expect(ultimaHoraDoRobo([])).toBeNull()
+    expect(ultimaHoraDoRobo(undefined)).toBeNull()
+  })
+
+  it('o modo demo responde a regra real até 27/10, o mesmo último dia do placar', () => {
+    const resposta = getMockResponse({ endpoint: RoboAoVivoEndpoint.REGRA, method: 'GET' })
+    expect(resposta.resultado).toEqual(REGRA_ROBO)
+    expect(REGRA_ROBO.ultimoFechamento).toBe('2026-10-27T00:00:00')
+    expect(ultimoDiaDoPlacar(PLACAR_ROBO)).toBe(Date.UTC(2026, 9, 27))
+    expect(REGRA_ROBO.dentro).toBe(false)
+    expect(REGRA_ROBO.pontos.at(-1)).toMatchObject({ data: '2026-10-27T00:00:00', fechamento: 80909.77 })
+    expect(REGRA_ROBO.mudancas.at(-1)).toMatchObject({ data: '2026-10-22T00:00:00', tipo: 'saida' })
+  })
+})
 
 describe('utils/roboAoVivo', () => {
   it('lê a data sem fuso da API como UTC', () => {

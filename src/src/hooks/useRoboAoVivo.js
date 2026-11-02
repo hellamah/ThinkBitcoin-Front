@@ -8,9 +8,10 @@ import {
 } from '../utils/roboAoVivo'
 
 // O robô ao vivo: as operações do motor desde a ativação, o placar (a curva do
-// robô, a da mesma regra no zoo, a do buy & hold e o critério, prontos no .NET)
-// e as decisões de cada vela. As três buscas são independentes: a falha de uma
-// não apaga as outras da tela.
+// robô, a da mesma regra no zoo, a do buy & hold e o critério, prontos no .NET),
+// as decisões de cada vela e a regra nos fechamentos (o que falta para ela mudar
+// de lado e o histórico dela). As buscas são independentes: a falha de uma não
+// apaga as outras da tela.
 
 // A API pagina de 10 em 10; 27 operações por ano (docs/motor-de-risco.md)
 // cabem com folga em 200 por muito tempo.
@@ -25,9 +26,11 @@ export default function useRoboAoVivo() {
   const [operacoes, setOperacoes] = useState(undefined)
   const [placar, setPlacar] = useState(undefined)
   const [sequencias, setSequencias] = useState(undefined)
+  const [regra, setRegra] = useState(undefined)
   const [erroOperacoes, setErroOperacoes] = useState(null)
   const [erroPlacar, setErroPlacar] = useState(null)
   const [erroSequencias, setErroSequencias] = useState(null)
+  const [erroRegra, setErroRegra] = useState(null)
   const [carregando, setCarregando] = useState(false)
   const [recarga, setRecarga] = useState(0)
 
@@ -36,10 +39,11 @@ export default function useRoboAoVivo() {
     const comoErro = (e) => (e instanceof Error ? e : new Error(String(e ?? '')))
     const buscar = async () => {
       setCarregando(true)
-      const [ops, resposta, velas] = await Promise.allSettled([
+      const [ops, resposta, velas, respostaRegra] = await Promise.allSettled([
         apiRequest(HistoricoDecisaoEndpoint.LIST({ siglaMoeda: MOEDA_MOTOR, dataInicio: ATIVACAO_MOTOR, quantidade: QUANTIDADE })),
         apiRequest(RoboAoVivoEndpoint.PLACAR),
         apiRequest(SequenciaRetornoEndpoint.LIST({ siglaMoeda: MOEDA_MOTOR, dataInicio: ATIVACAO_MOTOR, quantidade: QUANTIDADE_DE_VELAS })),
+        apiRequest(RoboAoVivoEndpoint.REGRA),
       ])
       if (cancelado) return
       if (ops.status === 'fulfilled') {
@@ -60,6 +64,12 @@ export default function useRoboAoVivo() {
       } else {
         setErroSequencias(comoErro(velas.reason))
       }
+      if (respostaRegra.status === 'fulfilled') {
+        setRegra(respostaRegra.value?.resultado ?? null)
+        setErroRegra(null)
+      } else {
+        setErroRegra(comoErro(respostaRegra.reason))
+      }
       setCarregando(false)
     }
     buscar()
@@ -68,5 +78,5 @@ export default function useRoboAoVivo() {
 
   const recarregar = useCallback(() => setRecarga((n) => n + 1), [])
 
-  return { operacoes, placar, sequencias, erroOperacoes, erroPlacar, erroSequencias, carregando, recarregar }
+  return { operacoes, placar, sequencias, regra, erroOperacoes, erroPlacar, erroSequencias, erroRegra, carregando, recarregar }
 }
