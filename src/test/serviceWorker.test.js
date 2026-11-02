@@ -37,10 +37,12 @@ const carregarSw = () => {
     },
   }
 
-  const executar = new Function('self', 'caches', 'fetch', 'URL', 'Promise', codigoDoSw)
-  executar(self, self.caches, vi.fn(async () => new Response('', { status: 200 })), URL, Promise)
+  const fetchFalso = vi.fn(async () => new Response('da rede', { status: 200 }))
 
-  return { listeners, self, cacheFalso }
+  const executar = new Function('self', 'caches', 'fetch', 'URL', 'Promise', codigoDoSw)
+  executar(self, self.caches, fetchFalso, URL, Promise)
+
+  return { listeners, self, cacheFalso, fetchFalso }
 }
 
 /** Monta o evento que o navegador entrega ao listener de fetch. */
@@ -151,6 +153,63 @@ describe('service worker — o que ele serve', () => {
     sw.listeners.fetch(evento)
 
     expect(evento.respondWith).toHaveBeenCalledTimes(1)
+  })
+})
+
+// A REGRA 3 do sw.js: falhar aqui não pode derrubar a página. Em 02/11/2026, num
+// Chrome com o CacheStorage quebrado, `caches.open` rejeitava, a rejeição subia
+// até o respondWith, e o site não abria mais, nem recarregando, com o servidor
+// no ar. O mesmo Chrome com o service worker desligado abria normalmente.
+describe('service worker — com o cache do navegador quebrado', () => {
+  const responder = async (url, opcoes) => {
+    const evento = eventoFetch(url, opcoes)
+    sw.listeners.fetch(evento)
+    return evento.respondWith.mock.calls[0][0]
+  }
+  const casos = [
+    ['a navegação', `${ORIGEM}/dashboard`, { modo: 'navigate' }],
+    ['o asset com hash', `${ORIGEM}/assets/pt-BPaE8Xe-.js`, {}],
+    ['o estático da raiz', `${ORIGEM}/favicon.svg`, {}],
+  ]
+
+  it.each(casos)('sem conseguir abrir o cache, %s segue pela rede', async (_, url, opcoes) => {
+    sw.self.caches.open.mockRejectedValue(new Error('Unexpected internal error'))
+
+    const resposta = await responder(url, opcoes)
+
+    expect(await resposta.text()).toBe('da rede')
+  })
+
+  it.each(casos)('sem conseguir ler do cache, %s segue pela rede', async (_, url, opcoes) => {
+    sw.cacheFalso.match.mockRejectedValue(new Error('leitura falhou'))
+
+    const resposta = await responder(url, opcoes)
+
+    expect(await resposta.text()).toBe('da rede')
+  })
+
+  it.each(casos)('sem conseguir guardar no cache, %s chega à página', async (_, url, opcoes) => {
+    sw.cacheFalso.put.mockRejectedValue(new Error('storage cheio'))
+
+    const resposta = await responder(url, opcoes)
+
+    expect(await resposta.text()).toBe('da rede')
+  })
+
+  it('sem rede e sem cache, a navegação devolve o erro da rede, e não o do cache', async () => {
+    sw.self.caches.open.mockRejectedValue(new Error('Unexpected internal error'))
+    sw.fetchFalso.mockRejectedValue(new TypeError('Failed to fetch'))
+
+    await expect(responder(`${ORIGEM}/dashboard`, { modo: 'navigate' })).rejects.toThrow('Failed to fetch')
+  })
+
+  it('sem rede e com o cache são, a navegação abre a página guardada', async () => {
+    sw.fetchFalso.mockRejectedValue(new TypeError('Failed to fetch'))
+    sw.cacheFalso.match.mockResolvedValue(new Response('guardada', { status: 200 }))
+
+    const resposta = await responder(`${ORIGEM}/dashboard`, { modo: 'navigate' })
+
+    expect(await resposta.text()).toBe('guardada')
   })
 })
 

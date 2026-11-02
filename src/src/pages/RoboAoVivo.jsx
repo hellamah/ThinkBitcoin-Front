@@ -35,7 +35,10 @@ import {
   executouAoReligar,
   instanteUtc,
   noitesDoRobo,
+  seriesDaRegra,
   seriesDoPlacar,
+  situacaoDoGatilho,
+  ultimaHoraDoRobo,
   ultimoDiaDoPlacar,
 } from '../utils/roboAoVivo'
 import { BUY_HOLD } from '../utils/zooEstrategia'
@@ -49,7 +52,9 @@ import { BUY_HOLD } from '../utils/zooEstrategia'
 // registrado antes de ligar e o diário das noites. No mesmo dia a conta foi
 // para o .NET (GET api/RoboAoVivo/placar), que a confere todo dia às 01:30
 // UTC, grava cada fechamento e avisa os administradores por email quando o
-// critério muda.
+// critério muda. Em 02/11 a tela passou a dizer também o que vem a seguir: o
+// fechamento que faz a regra mudar de lado, o preço contra a média e o que o
+// histórico dela diz sobre pausas e entradas (GET api/RoboAoVivo/regra).
 //
 // A curva do robô usa o caixa gravado depois de cada operação. Até o
 // Back-Python e523b78c (28/10), esse caixa voltava a 1.000 quando o worker
@@ -102,7 +107,7 @@ function nomeDaAcao(t, acao) {
 // lista vazia diz "nenhuma operação"; sem lista, não se sabe, e a linha mostra
 // "–" (em 26/10/2026 a rota falhava e a tela dizia que não houve operação,
 // com o fechamento de 24/10 no banco).
-function EstadoDeHoje({ estado, dose, operacoes, noites, carregando }) {
+function EstadoDeHoje({ estado, dose, patrimonio, ultimaHora, operacoes, noites, carregando }) {
   const ultima = operacoes?.[0]
   const ultimaNoite = noites?.[0]
   const { t, idioma } = useTranslation()
@@ -115,6 +120,9 @@ function EstadoDeHoje({ estado, dose, operacoes, noites, carregando }) {
         <Box>
           <Linha rotulo={t('robo.estado')}>
             <Box component="span" data-testid="robo-estado" sx={{ color: estado === 'dentro' ? 'var(--perf-up)' : 'var(--text-primary)' }}>{texto}</Box>
+          </Linha>
+          <Linha rotulo={t('robo.patrimonio')}>
+            <Box component="span" data-testid="robo-patrimonio">{num(patrimonio)}</Box>
           </Linha>
           <Linha rotulo={t('robo.dose')}>{dose === null ? '–' : formatarPercentual(dose, 0)}</Linha>
           <Linha rotulo={t('robo.moeda')}>{MOEDA_MOTOR}</Linha>
@@ -130,6 +138,11 @@ function EstadoDeHoje({ estado, dose, operacoes, noites, carregando }) {
             {ultima
               ? `${nomeDaAcao(t, ultima.acao)} · ${formatarInstante(ultima.dataHora, idioma.intl)}`
               : Array.isArray(operacoes) ? t('robo.semOperacao') : '–'}
+          </Linha>
+          <Linha rotulo={t('robo.ultimaHoraRobo')}>
+            <Box component="span" data-testid="robo-ultima-hora">
+              {ultimaHora === null ? '–' : formatarInstante(new Date(ultimaHora).toISOString(), idioma.intl)}
+            </Box>
           </Linha>
         </Box>
       )}
@@ -173,6 +186,237 @@ function TabelaDeOperacoes({ operacoes, erro }) {
             </TableBody>
           </Table>
         </TableContainer>
+      )}
+    </Painel>
+  )
+}
+
+// O preço contra a média de 50 dias: triângulos onde a regra mudou de lado e
+// losangos no que o robô executou. Só entram na legenda as marcas que existem.
+function GraficoDaRegra({ regra, operacoes }) {
+  const { t, idioma } = useTranslation()
+  const escuro = useTheme().palette.mode === 'dark'
+  const dataCurta = useMemo(() => padraoDeDataCurta(idioma.intl), [idioma.intl])
+  const series = useMemo(() => seriesDaRegra(regra, operacoes), [regra, operacoes])
+  const rotulos = useMemo(() => ({
+    preco: t('robo.gatilho.preco'),
+    media: t('robo.gatilho.media'),
+    regraComprou: t('robo.gatilho.regraComprou'),
+    regraVendeu: t('robo.gatilho.regraVendeu'),
+    roboComprou: t('robo.gatilho.roboComprou'),
+    roboVendeu: t('robo.gatilho.roboVendeu'),
+  }), [t])
+
+  const dados = useMemo(() => {
+    const alta = readToken('--perf-up')
+    const baixa = readToken('--perf-down')
+    const borda = readToken('--text-primary')
+    const marca = (rotulo, pontos, cor, extra) => ({
+      label: rotulo, data: pontos, showLine: false, backgroundColor: cor, borderColor: cor, pointBorderColor: cor, ...extra,
+    })
+    const daRegra = { pointStyle: 'triangle', pointRadius: 6, pointHoverRadius: 8, order: 1 }
+    const doRobo = { pointStyle: 'rectRot', pointRadius: 8, pointHoverRadius: 10, pointBorderColor: borda, pointBorderWidth: 2, order: 0 }
+    return {
+      datasets: [
+        {
+          label: rotulos.preco, data: series.preco, borderColor: readToken('--accent-ink'), backgroundColor: readToken('--accent-ink'),
+          borderWidth: 2, pointRadius: 0, pointHoverRadius: 3, order: 3,
+        },
+        {
+          label: rotulos.media, data: series.media, borderColor: readToken('--text-muted'), backgroundColor: readToken('--text-muted'),
+          borderDash: [6, 4], borderWidth: 1.5, pointRadius: 0, pointStyle: 'line', order: 2,
+        },
+        marca(rotulos.regraComprou, series.regraComprou, alta, daRegra),
+        marca(rotulos.regraVendeu, series.regraVendeu, baixa, { ...daRegra, rotation: 180 }),
+        marca(rotulos.roboComprou, series.roboComprou, alta, doRobo),
+        marca(rotulos.roboVendeu, series.roboVendeu, baixa, doRobo),
+      ].filter((conjunto) => conjunto.data.length > 0),
+    }
+  // `escuro` entra para reler os tokens quando o tema muda.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [series, rotulos, escuro])
+
+  const opcoes = useMemo(() => {
+    const base = eixoDeTempo(escuro, idioma, dataCurta)
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      // As marcas têm menos pontos que o preço: 'index' pegaria o ponto errado delas.
+      interaction: { mode: 'nearest', axis: 'x', intersect: false },
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            color: corDaLegenda(escuro),
+            usePointStyle: true,
+            boxWidth: 8,
+            padding: 14,
+            // A ordem de desenho põe as marcas por cima; a legenda segue a da lista.
+            sort: (a, b) => a.datasetIndex - b.datasetIndex,
+          },
+        },
+        tooltip: { ...tooltipBase(escuro), callbacks: { label: (ctx) => `${ctx.dataset.label}: ${num(ctx.parsed.y)}` } },
+      },
+      scales: comBordaDeEixo({
+        x: { ...base, time: { ...base.time, unit: 'month', tooltipFormat: `${dataCurta}/yyyy` } },
+        y: { ticks: { color: corDoTique(escuro), callback: (v) => num(v, 0), maxTicksLimit: 6 }, grid: { color: corDaGrade(escuro) } },
+      }, escuro),
+    }
+  }, [escuro, idioma, dataCurta])
+
+  return (
+    <Box>
+      <Typography variant="subtitle2" component="h3" sx={{ fontWeight: 600, mt: 2 }}>{t('robo.gatilho.graficoTitle')}</Typography>
+      <Typography variant="caption" component="p" sx={{ color: 'var(--text-muted)', mb: 1 }}>{t('robo.gatilho.graficoSub')}</Typography>
+      <Box sx={{ height: { xs: 280, md: 320 } }}>
+        <Line
+          data={dados}
+          options={opcoes}
+          aria-label={t('robo.gatilho.resumo', { preco: num(regra?.precoFechamento), media: num(regra?.media) })}
+        />
+      </Box>
+    </Box>
+  )
+}
+
+// O que vem a seguir: o fechamento que faz a regra mudar de lado na próxima
+// decisão, diante do preço de agora, e o gráfico que mostra isso acontecendo.
+function ProximoPasso({ regra, operacoes, erro }) {
+  const { t, idioma } = useTranslation()
+  if (erro) return <ErrorMessage message={t('robo.gatilho.erro')} />
+  const situacao = situacaoDoGatilho(regra)
+  const dentro = regra?.dentro === true
+  const carregando = regra === undefined
+  const dose = dentro ? regra?.dose : regra?.doseNoGatilho
+  return (
+    <Painel titulo={t(dentro ? 'robo.gatilho.titleDentro' : 'robo.gatilho.titleFora')} subtitulo={t('robo.gatilho.sub')}>
+      {carregando ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress sx={{ color: 'var(--accent-ink)' }} /></Box>
+      ) : !situacao ? (
+        <EstadoVazio mensagem={t('robo.gatilho.semDados')} />
+      ) : (
+        <>
+          <Typography variant="body1" data-testid="robo-gatilho" sx={{ fontWeight: 600, mb: 1 }}>
+            {t(`robo.gatilho.${situacao}`, {
+              gatilho: num(regra.gatilho),
+              falta: pctSemSinal(Math.abs(regra.faltaParaOGatilho)),
+            })}
+          </Typography>
+          <Box sx={{ display: 'grid', columnGap: 3, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' } }}>
+            <Linha rotulo={t('robo.gatilho.precoAgora')}>
+              {`${num(regra.precoAtual)} · ${formatarInstante(regra.ultimaHora, idioma.intl)}`}
+            </Linha>
+            <Linha rotulo={t('robo.gatilho.proximaDecisao')}>
+              <Box component="span" data-testid="robo-proxima-decisao">
+                {t('robo.gatilho.proximaDecisaoValor', { data: formatarInstante(regra.proximaVela, idioma.intl) })}
+              </Box>
+            </Linha>
+            <Linha rotulo={t('robo.gatilho.ultimoFechamento')}>
+              {`${num(regra.precoFechamento)} · ${formatarDia(instanteUtc(regra.ultimoFechamento), idioma.intl)}`}
+            </Linha>
+            <Linha rotulo={t('robo.gatilho.media')}>
+              {`${num(regra.media)} · ${pct(regra.distanciaDaMedia)}`}
+            </Linha>
+            <Linha rotulo={t('robo.gatilho.volatilidade')}>{pctSemSinal(regra.volatilidade)}</Linha>
+            <Linha rotulo={t(dentro ? 'robo.gatilho.doseHoje' : 'robo.gatilho.doseAoEntrar')}>
+              <Box component="span" data-testid="robo-dose-gatilho">{pctSemSinal(dose, 0)}</Box>
+            </Linha>
+          </Box>
+          <GraficoDaRegra regra={regra} operacoes={operacoes} />
+        </>
+      )}
+    </Painel>
+  )
+}
+
+function ItemComDetalhe({ rotulo, valor, detalhe, testId, semQuebra = false }) {
+  return (
+    <Box sx={{ py: 0.75, borderBottom: '1px solid var(--border)' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
+        <Typography variant="body2" sx={{ color: 'var(--text-secondary)' }}>{rotulo}</Typography>
+        <Typography
+          variant="body2"
+          component="div"
+          data-testid={testId}
+          sx={{ fontWeight: 600, textAlign: 'right', ...(semQuebra ? { whiteSpace: 'nowrap' } : {}) }}
+        >
+          {valor}
+        </Typography>
+      </Box>
+      <Typography variant="caption" sx={{ color: 'var(--text-muted)' }}>{detalhe}</Typography>
+    </Box>
+  )
+}
+
+// A regra refeita em todos os fechamentos: o que esperar dela. A tela só informa;
+// o critério registrado é que diz quando o motor é desligado.
+function IssoENormal({ regra, erro }) {
+  const { t, idioma } = useTranslation()
+  if (erro) return <ErrorMessage message={t('robo.normal.erro')} />
+  const h = regra?.historico
+  const dentro = regra?.dentro === true
+  const dias = (n) => (n === 1 ? t('robo.normal.umDia') : t('robo.normal.dias', { n }))
+  const duracao = dentro ? h?.periodosComprados : h?.pausas
+  const entradas = h?.entradas
+  return (
+    <Painel
+      titulo={t('robo.normal.title')}
+      subtitulo={h ? t('robo.normal.sub', { inicio: formatarDia(instanteUtc(h.inicio), idioma.intl) }) : undefined}
+    >
+      {regra === undefined ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}><CircularProgress size={28} sx={{ color: 'var(--accent-ink)' }} /></Box>
+      ) : !h || regra.dentro === null || regra.dentro === undefined ? (
+        <EstadoVazio mensagem={t('robo.normal.semDados')} />
+      ) : (
+        <Box>
+          <ItemComDetalhe
+            rotulo={t(dentro ? 'robo.normal.periodoAtual' : 'robo.normal.pausaAtual')}
+            valor={dias(h.diasNoEstadoAtual)}
+            detalhe={t(dentro ? 'robo.normal.periodoAtualDetalhe' : 'robo.normal.pausaAtualDetalhe', {
+              iguais: h.iguaisOuMaioresQueOAtual,
+              total: duracao?.quantidade ?? 0,
+            })}
+            testId="robo-normal-atual"
+          />
+          {duracao?.quantidade > 0 && (
+            <ItemComDetalhe
+              rotulo={t(dentro ? 'robo.normal.duracaoPeriodo' : 'robo.normal.duracaoPausa')}
+              valor={t('robo.normal.ateDias', { dias: dias(duracao.mediana) })}
+              detalhe={t('robo.normal.duracaoDetalhe', { p90: dias(duracao.percentil90), maior: dias(duracao.maior) })}
+              testId="robo-normal-duracao"
+            />
+          )}
+          <ItemComDetalhe
+            rotulo={t('robo.normal.tempoFora')}
+            valor={pctSemSinal(h.fracaoFora, 0)}
+            detalhe={t('robo.normal.tempoForaDetalhe', { dias: formatarNumero(h.dias, 0) })}
+            testId="robo-normal-fora"
+          />
+          {entradas?.quantidade > 0 && (
+            <ItemComDetalhe
+              rotulo={t('robo.normal.entradas')}
+              valor={t('robo.normal.entradasValor', {
+                comGanho: entradas.comGanho,
+                total: entradas.quantidade,
+                fracao: pctSemSinal(entradas.comGanho / entradas.quantidade, 0),
+              })}
+              detalhe={t('robo.normal.entradasDetalhe', { ganho: pct(entradas.ganhoMedio, 1), perda: pct(entradas.perdaMedia, 1) })}
+              testId="robo-normal-entradas"
+            />
+          )}
+          {entradas?.curtas > 0 && (
+            <ItemComDetalhe
+              rotulo={t('robo.normal.curtas', { dias: entradas.limiteDeCurta })}
+              valor={t('robo.normal.curtasValor', { perdas: entradas.curtasComPerda, total: entradas.curtas })}
+              detalhe={t('robo.normal.curtasDetalhe')}
+              testId="robo-normal-curtas"
+            />
+          )}
+          <Typography variant="body2" data-testid="robo-normal-conclusao" sx={{ mt: 1.5, fontWeight: 600 }}>
+            {t('robo.normal.conclusao')}
+          </Typography>
+        </Box>
       )}
     </Painel>
   )
@@ -276,15 +520,12 @@ function Situacao({ ok, testId }) {
 
 function ItemDoCriterio({ rotulo, valor, detalhe, ok, testId }) {
   return (
-    <Box sx={{ py: 0.75, borderBottom: '1px solid var(--border)' }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
-        <Typography variant="body2" sx={{ color: 'var(--text-secondary)' }}>{rotulo}</Typography>
-        <Typography variant="body2" component="div" sx={{ fontWeight: 600, textAlign: 'right', whiteSpace: 'nowrap' }}>
-          {valor} · <Situacao ok={ok} testId={testId} />
-        </Typography>
-      </Box>
-      <Typography variant="caption" sx={{ color: 'var(--text-muted)' }}>{detalhe}</Typography>
-    </Box>
+    <ItemComDetalhe
+      rotulo={rotulo}
+      valor={<>{valor} · <Situacao ok={ok} testId={testId} /></>}
+      detalhe={detalhe}
+      semQuebra
+    />
   )
 }
 
@@ -406,7 +647,7 @@ export default function RoboAoVivo() {
   const { t, idioma } = useTranslation()
   definirIdiomaDosNumeros(idioma.intl)
   const {
-    operacoes, placar, sequencias, erroOperacoes, erroPlacar, erroSequencias, carregando, recarregar,
+    operacoes, placar, sequencias, regra, erroOperacoes, erroPlacar, erroSequencias, erroRegra, carregando, recarregar,
   } = useRoboAoVivo()
 
   const hoje = useMemo(() => {
@@ -435,7 +676,19 @@ export default function RoboAoVivo() {
           </Button>
         </Box>
         <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: 'minmax(280px, 1fr) 2fr' }, alignItems: 'start' }}>
-          <EstadoDeHoje estado={hoje.estado} dose={hoje.dose} operacoes={operacoes} noites={noites} carregando={carregando} />
+          <EstadoDeHoje
+            estado={hoje.estado}
+            dose={hoje.dose}
+            patrimonio={placar?.patrimonioRobo}
+            ultimaHora={ultimaHoraDoRobo(sequencias?.registros)}
+            operacoes={operacoes}
+            noites={noites}
+            carregando={carregando}
+          />
+          <ProximoPasso regra={regra} operacoes={operacoes} erro={erroRegra} />
+        </Box>
+        <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: 'minmax(280px, 1fr) 2fr' }, alignItems: 'start' }}>
+          <IssoENormal regra={regra} erro={erroRegra} />
           <CurvaDoPlacar series={series} placar={placar} erro={erroPlacar} />
         </Box>
         <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: 'minmax(280px, 1fr) 2fr' }, alignItems: 'start' }}>

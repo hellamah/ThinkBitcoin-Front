@@ -58,6 +58,12 @@ Este roadmap organiza a evolução do frontend do ThinkBitcoin em quatro fases, 
 - a decisão de cada noite;
 - as operações, com a taxa.
 
+**Em 02/11/2026**, ela passou a dizer também o que vem a seguir (`GET api/RoboAoVivo/regra`):
+- o patrimônio em USDT e a última hora que o robô registrou;
+- o fechamento que faz a regra comprar ou vender na próxima decisão, diante do preço de agora;
+- o preço contra a média de 50 dias, com as mudanças de lado da regra e as operações do robô;
+- o que o histórico da regra diz sobre pausas e entradas, para saber o que esperar.
+
 O robô é o motor de risco, que opera só o BTC e com dinheiro de mentira.
 
 ### Dashboard

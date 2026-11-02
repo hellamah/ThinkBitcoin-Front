@@ -76,25 +76,46 @@ const ehAssetComHash = (url) => url.pathname.startsWith('/assets/')
 const ehEstaticoDaRaiz = (url) =>
   /\.(woff2?|svg|png|ico|webmanifest|txt)$/.test(url.pathname)
 
+// A REGRA 3 na prática: qualquer chamada à Cache API pode falhar (storage cheio,
+// perfil corrompido, disco com problema), e daqui para baixo nada fala com o
+// cache sem passar por estes dois. Em 02/11/2026, num Chrome com o CacheStorage
+// quebrado, a rejeição de `caches.open` subia até o respondWith, e o site não
+// abria mais, nem recarregando, com o servidor no ar.
+const lerDoCache = async (nome, chave) => {
+  try {
+    const cache = await caches.open(nome)
+    return await cache.match(chave)
+  } catch {
+    return undefined
+  }
+}
+
+const guardarNoCache = async (nome, chave, resposta) => {
+  try {
+    const cache = await caches.open(nome)
+    await cache.put(chave, resposta)
+  } catch {
+    // Fica sem cache: a resposta já está a caminho da página.
+  }
+}
+
 const cacheFirst = async (requisicao) => {
-  const cache = await caches.open(CACHE_ASSETS)
-  const guardado = await cache.match(requisicao)
+  const guardado = await lerDoCache(CACHE_ASSETS, requisicao)
   if (guardado) return guardado
 
   const resposta = await fetch(requisicao)
   // Só 200 de mesma origem entra. `opaque` (status 0) não dá para inspecionar
   // e ocuparia espaço para armazenar um erro disfarçado.
-  if (resposta.ok && resposta.status === 200) cache.put(requisicao, resposta.clone())
+  if (resposta.ok && resposta.status === 200) guardarNoCache(CACHE_ASSETS, requisicao, resposta.clone())
   return resposta
 }
 
 const revalidandoEmSegundoPlano = async (requisicao) => {
-  const cache = await caches.open(CACHE_ASSETS)
-  const guardado = await cache.match(requisicao)
+  const guardado = await lerDoCache(CACHE_ASSETS, requisicao)
 
   const daRede = fetch(requisicao)
     .then((resposta) => {
-      if (resposta.ok) cache.put(requisicao, resposta.clone())
+      if (resposta.ok) guardarNoCache(CACHE_ASSETS, requisicao, resposta.clone())
       return resposta
     })
     .catch(() => null)
@@ -109,14 +130,10 @@ const revalidandoEmSegundoPlano = async (requisicao) => {
 const redePrimeiro = async (requisicao) => {
   try {
     const resposta = await fetch(requisicao)
-    if (resposta.ok) {
-      const cache = await caches.open(CACHE_PAGINAS)
-      cache.put(PAGINA_RAIZ, resposta.clone())
-    }
+    if (resposta.ok) guardarNoCache(CACHE_PAGINAS, PAGINA_RAIZ, resposta.clone())
     return resposta
   } catch (erroDeRede) {
-    const cache = await caches.open(CACHE_PAGINAS)
-    const guardado = await cache.match(PAGINA_RAIZ)
+    const guardado = await lerDoCache(CACHE_PAGINAS, PAGINA_RAIZ)
     if (guardado) return guardado
     throw erroDeRede
   }

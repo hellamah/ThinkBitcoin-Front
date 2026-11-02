@@ -173,9 +173,11 @@ export const ApiEndpoint = Object.freeze({
   }),
   // O placar do robô ao vivo: a curva dele refeita pelas operações, a da regra no
   // zoo, a do buy & hold, o critério do motor e a última conferência diária
-  // (CalculoPlacarRobo no .NET). Cargo AcessoIA.
+  // (CalculoPlacarRobo no .NET). A regra: onde ela está, o fechamento que a faz mudar
+  // de lado, o preço contra a média e o histórico (CalculoRegraRobo). Cargo AcessoIA.
   ROBO_AO_VIVO: Object.freeze({
     PLACAR: '/api/RoboAoVivo/placar',
+    REGRA: '/api/RoboAoVivo/regra',
   }),
   // A decisão do robô em cada vela (TbSequenciaRetorno), da mais recente para a
   // mais antiga. O Tipo da vela das 23h é a decisão do dia. Cargo AcessoIA.
