@@ -64,6 +64,10 @@ Este roadmap organiza a evolução do frontend do ThinkBitcoin em quatro fases, 
 - o preço contra a média de 50 dias, com as mudanças de lado da regra e as operações do robô;
 - o que o histórico da regra diz sobre pausas e entradas, para saber o que esperar.
 
+A tela é um painel de instrumentos: o bloco de cima responde de relance onde o robô está, se ele
+está registrando e quanto falta para ele agir, com a régua do preço até o gatilho. Cada gráfico
+tem a tabela ao lado, para nenhum valor depender de passar o mouse.
+
 O robô é o motor de risco, que opera só o BTC e com dinheiro de mentira.
 
 ### Dashboard

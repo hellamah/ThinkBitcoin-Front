@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import CircularProgress from '@mui/material/CircularProgress'
@@ -11,9 +11,22 @@ import TableRow from '@mui/material/TableRow'
 import Typography from '@mui/material/Typography'
 import { useTheme } from '@mui/material/styles'
 import { Line } from 'react-chartjs-2'
-import { MdRefresh } from 'react-icons/md'
+import { MdArrowDropDown, MdArrowDropUp, MdCheckCircle, MdErrorOutline, MdRefresh } from 'react-icons/md'
 import ErrorMessage from '../components/ErrorMessage'
-import { comAlfa, comBordaDeEixo, corDaGrade, corDaLegenda, corDoTique, eixoDeTempo, tooltipBase } from '../components/treinamento/graficos'
+import {
+  BarraDeEntradas,
+  ChaveDaSerie,
+  EscalaDeDuracao,
+  Indicador,
+  LegendaDoGrafico,
+  MedidorDoLimite,
+  PontoDeEstado,
+  ReguaDoGatilho,
+  TabelaDoGrafico,
+} from '../components/robo/Instrumentos'
+import { FONTE_DOS_NUMEROS, FONTE_DOS_TITULOS, entradaEmOrdem } from '../components/robo/estilo'
+import { miraVertical, rotulosFinais } from '../components/robo/pluginsDoGrafico'
+import { comAlfa, comBordaDeEixo, corDaGrade, corDoTique, eixoDeTempo, tooltipBase } from '../components/treinamento/graficos'
 import { EstadoVazio, Painel } from '../components/treinamento/Painel'
 import {
   comSinal,
@@ -33,11 +46,14 @@ import {
   chaveDaAcao,
   estadoDeHoje,
   executouAoReligar,
+  formatarEspera,
   instanteUtc,
   noitesDoRobo,
+  saudeDoRobo,
   seriesDaRegra,
   seriesDoPlacar,
   situacaoDoGatilho,
+  tempoAteADecisao,
   ultimaHoraDoRobo,
   ultimoDiaDoPlacar,
 } from '../utils/roboAoVivo'
@@ -56,18 +72,23 @@ import { BUY_HOLD } from '../utils/zooEstrategia'
 // fechamento que faz a regra mudar de lado, o preço contra a média e o que o
 // histórico dela diz sobre pausas e entradas (GET api/RoboAoVivo/regra).
 //
+// A tela é um painel de instrumentos: o painel de cima responde de relance onde o
+// robô está e quanto falta para ele agir, e o resto explica e prova. Por isso os
+// gráficos ficam na coluna larga, à esquerda, e o contexto de cada um ao lado dele.
+//
 // A curva do robô usa o caixa gravado depois de cada operação. Até o
 // Back-Python e523b78c (28/10), esse caixa voltava a 1.000 quando o worker
 // reiniciava; desde a ativação, isso não afetou nenhuma operação, porque a
 // única foi a primeira.
 
 const estiloDoBotao = { color: 'var(--accent-ink)', textTransform: 'none', fontWeight: 600 }
+const COLUNAS_DA_TELA = { xs: 'minmax(0, 1fr)', md: 'minmax(0, 2fr) minmax(300px, 1fr)' }
 
 const pct = (v, casas = 2) => (v === null || v === undefined ? '–' : comSinal(formatarPercentual(v === 0 ? 0 : v, casas), v))
 const pctSemSinal = (v, casas = 2) => (v === null || v === undefined ? '–' : formatarPercentual(v, casas))
 const num = (v, casas = 2) => (v === null || v === undefined ? '–' : formatarNumero(v, casas))
-const corDoSinal = (v) => (v === null || v === undefined ? 'var(--text-muted)' : v >= 0 ? 'var(--perf-up)' : 'var(--perf-down)')
 const HORA_MS = 60 * 60 * 1000
+const MINUTO_MS = 60 * 1000
 
 // Data e hora em UTC, como a regra decide (a vela das 23h UTC).
 const formatarInstante = (valor, locale) => {
@@ -89,11 +110,13 @@ const textoDaDecisao = (t, noite) => {
   return noite.depois ? `${decisao} · ${t(`robo.${noite.depois}`)}` : decisao
 }
 
+// Uma linha de rótulo e valor em cima e embaixo: na coluna estreita, os dois lado a
+// lado quebravam no meio de cada frase.
 function Linha({ rotulo, children }) {
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, py: 0.5, borderBottom: '1px solid var(--border)' }}>
-      <Typography variant="body2" sx={{ color: 'var(--text-secondary)' }}>{rotulo}</Typography>
-      <Typography variant="body2" component="div" sx={{ fontWeight: 600, textAlign: 'right' }}>{children}</Typography>
+    <Box sx={{ py: 0.75, borderBottom: '1px solid var(--border)' }}>
+      <Typography variant="caption" component="div" sx={{ color: 'var(--text-muted)', lineHeight: 1.3 }}>{rotulo}</Typography>
+      <Typography variant="body2" component="div" sx={{ fontWeight: 600 }}>{children}</Typography>
     </Box>
   )
 }
@@ -103,30 +126,160 @@ function nomeDaAcao(t, acao) {
   return chave ? t(chave) : (acao || '–')
 }
 
+const Carregando = ({ py = 3, tamanho = 28 }) => (
+  <Box sx={{ display: 'flex', justifyContent: 'center', py }}><CircularProgress size={tamanho} sx={{ color: 'var(--accent-ink)' }} /></Box>
+)
+
+// A hora que passa na tela: a espera até a decisão anda sem pedir nada à API.
+function useAgora() {
+  const [agora, setAgora] = useState(() => Date.now())
+  useEffect(() => {
+    const relogio = setInterval(() => setAgora(Date.now()), MINUTO_MS)
+    return () => clearInterval(relogio)
+  }, [])
+  return agora
+}
+
+// A parte de cima do painel que depende da regra: a frase, a régua e os números dela.
+function OQueFalta({ regra, erro, placar, agora }) {
+  const { t, idioma } = useTranslation()
+  if (erro) return <ErrorMessage message={t('robo.gatilho.erro')} />
+  if (regra === undefined) return <Carregando py={5} tamanho={32} />
+  const situacao = situacaoDoGatilho(regra)
+  if (!situacao) return <EstadoVazio mensagem={t('robo.gatilho.semDados')} />
+
+  const dentro = regra.dentro === true
+  const falta = Math.abs(regra.faltaParaOGatilho)
+  const espera = formatarEspera(tempoAteADecisao(regra.proximaVela, agora))
+  const frase = t(`robo.gatilho.${situacao}`, { gatilho: num(regra.gatilho), falta: pctSemSinal(falta) })
+  return (
+    <>
+      <Box sx={{ display: 'grid', gap: { xs: 2, md: 4 }, gridTemplateColumns: { xs: 'minmax(0, 1fr)', md: 'minmax(0, 1fr) auto' }, alignItems: 'end' }}>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography variant="caption" component="div" sx={{ color: 'var(--accent-ink)', fontWeight: 600, letterSpacing: '0.04em', mb: 0.25 }}>
+            {t(dentro ? 'robo.gatilho.titleDentro' : 'robo.gatilho.titleFora')}
+          </Typography>
+          <Typography data-testid="robo-gatilho" sx={{ fontFamily: FONTE_DOS_TITULOS, fontWeight: 500, fontSize: { xs: '1.05rem', md: '1.3rem' }, lineHeight: 1.3, maxWidth: 640 }}>
+            {frase}
+          </Typography>
+          <Box sx={{ mt: 0.75, display: 'flex', flexWrap: 'wrap', columnGap: 1, alignItems: 'baseline' }}>
+            <Typography variant="caption" sx={{ color: 'var(--text-muted)' }}>{t('robo.gatilho.proximaDecisao')}</Typography>
+            <Typography variant="body2" data-testid="robo-proxima-decisao" sx={{ fontWeight: 600 }}>
+              {t('robo.gatilho.proximaDecisaoValor', { data: formatarInstante(regra.proximaVela, idioma.intl) })}
+            </Typography>
+            <Typography variant="body2" data-testid="robo-espera" sx={{ color: 'var(--text-secondary)' }}>
+              {espera ? t('robo.gatilho.emTempo', { tempo: espera }) : t('robo.gatilho.aguardando')}
+            </Typography>
+          </Box>
+        </Box>
+        <Box sx={{ textAlign: { xs: 'left', md: 'right' }, whiteSpace: 'nowrap' }}>
+          <Typography variant="caption" component="div" sx={{ color: 'var(--text-muted)' }}>{t(`robo.gatilho.distancia.${situacao}`)}</Typography>
+          <Typography component="div" data-testid="robo-falta" sx={{ fontFamily: FONTE_DOS_NUMEROS, fontSize: { xs: '3rem', md: '4rem' }, lineHeight: 1, color: 'var(--text-primary)' }}>
+            {pctSemSinal(falta)}
+          </Typography>
+        </Box>
+      </Box>
+
+      <Box sx={{ mt: 2.5 }}>
+        <ReguaDoGatilho
+          preco={regra.precoAtual}
+          gatilho={regra.gatilho}
+          rotuloPreco={t('robo.estado')}
+          rotuloGatilho={t('robo.gatilho.rotuloGatilho')}
+          valorPreco={num(regra.precoAtual)}
+          valorGatilho={num(regra.gatilho)}
+          resumo={frase}
+        />
+        <Typography variant="caption" component="p" sx={{ color: 'var(--text-muted)', mt: 1, mb: 0 }}>
+          {`${t('robo.estado')}: ${formatarInstante(regra.ultimaHora, idioma.intl)}. ${t('robo.gatilho.sub')}`}
+        </Typography>
+      </Box>
+
+      <Box sx={{ display: 'grid', gap: { xs: 1.5, md: 2.5 }, mt: 2, gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', sm: 'repeat(3, minmax(0, 1fr))', lg: 'repeat(6, minmax(0, 1fr))' } }}>
+        <Indicador rotulo={t('robo.patrimonio')} testId="robo-patrimonio">{num(placar?.patrimonioRobo)}</Indicador>
+        <Indicador rotulo={t('robo.nomeRobo')}>{pct(placar?.retornoRobo)}</Indicador>
+        <Indicador rotulo={t('robo.gatilho.ultimoFechamento')} detalhe={formatarDia(instanteUtc(regra.ultimoFechamento), idioma.intl)}>{num(regra.precoFechamento)}</Indicador>
+        <Indicador rotulo={t('robo.gatilho.media')} detalhe={pct(regra.distanciaDaMedia)}>{num(regra.media)}</Indicador>
+        <Indicador rotulo={t('robo.gatilho.volatilidade')}>{pctSemSinal(regra.volatilidade)}</Indicador>
+        <Indicador rotulo={t(dentro ? 'robo.gatilho.doseHoje' : 'robo.gatilho.doseAoEntrar')} testId="robo-dose-gatilho">
+          {pctSemSinal(dentro ? regra.dose : regra.doseNoGatilho, 0)}
+        </Indicador>
+      </Box>
+    </>
+  )
+}
+
+// O painel de instrumentos: onde o robô está, se está registrando e o que falta.
+function PainelDeInstrumentos({ estado, regra, erroRegra, placar, ultimaHora, carregando, ordem }) {
+  const { t, idioma } = useTranslation()
+  const agora = useAgora()
+  const texto = estado === 'dentro' ? t('robo.dentro') : estado === 'fora' ? t('robo.fora') : '–'
+  const saude = saudeDoRobo(ultimaHora, agora)
+  const diasDaRegra = regra?.historico?.diasNoEstadoAtual
+  const dias = (n) => (n === 1 ? t('robo.normal.umDia') : t('robo.normal.dias', { n }))
+  return (
+    <Painel
+      sx={{
+        ...entradaEmOrdem(ordem),
+        p: { xs: 2, md: 3 },
+        borderColor: 'var(--accent-a30)',
+        background: 'radial-gradient(circle at 100% 0%, var(--accent-a10), transparent 48%), var(--surface-subtle)',
+      }}
+    >
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2, flexWrap: 'wrap', mb: 2.5 }}>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography variant="caption" component="div" sx={{ color: 'var(--text-muted)' }}>{t('robo.estado')}</Typography>
+          {carregando && estado === undefined ? (
+            <Carregando py={1} />
+          ) : (
+            <Typography
+              component="div"
+              data-testid="robo-estado"
+              sx={{ fontFamily: FONTE_DOS_TITULOS, fontWeight: 800, fontSize: { xs: '1.75rem', md: '2.25rem' }, lineHeight: 1.1, color: estado === 'dentro' ? 'var(--perf-up)' : 'var(--text-primary)' }}
+            >
+              {texto}
+            </Typography>
+          )}
+          {diasDaRegra !== undefined && (
+            <Typography variant="body2" data-testid="robo-dias-estado" sx={{ color: 'var(--text-secondary)', mt: 0.25 }}>
+              {t(regra?.dentro ? 'robo.diasDentro' : 'robo.diasFora', { dias: dias(diasDaRegra) })}
+            </Typography>
+          )}
+        </Box>
+        {saude && (
+          <Box sx={{ display: 'inline-flex', alignItems: 'center', flexWrap: 'wrap', columnGap: 1, px: 1.25, py: 0.5, borderRadius: '999px', border: '1px solid var(--border)' }}>
+            <PontoDeEstado ativo={saude.ativo} />
+            <Typography variant="caption" data-testid="robo-saude" sx={{ color: 'var(--text-secondary)' }}>
+              {saude.ativo
+                ? t('robo.saude.ativo')
+                : t('robo.saude.parado', { tempo: saude.dias >= 2 ? dias(saude.dias) : `${saude.horas} h` })}
+            </Typography>
+            <Typography variant="caption" data-testid="robo-ultima-hora" sx={{ color: 'var(--text-muted)' }}>
+              {formatarInstante(new Date(ultimaHora).toISOString(), idioma.intl)}
+            </Typography>
+          </Box>
+        )}
+      </Box>
+      <OQueFalta regra={regra} erro={erroRegra} placar={placar} agora={agora} />
+    </Painel>
+  )
+}
+
+// O que fica registrado do robô: a regra em palavras e o que ele fez por último.
 // `operacoes`: undefined enquanto carrega ou quando a busca falhou. Só uma
 // lista vazia diz "nenhuma operação"; sem lista, não se sabe, e a linha mostra
 // "–" (em 26/10/2026 a rota falhava e a tela dizia que não houve operação,
 // com o fechamento de 24/10 no banco).
-function EstadoDeHoje({ estado, dose, patrimonio, ultimaHora, operacoes, noites, carregando }) {
+function Registro({ dose, operacoes, noites, carregando, ordem }) {
   const ultima = operacoes?.[0]
   const ultimaNoite = noites?.[0]
   const { t, idioma } = useTranslation()
-  const texto = estado === 'dentro' ? t('robo.dentro') : estado === 'fora' ? t('robo.fora') : '–'
   return (
-    <Painel titulo={t('robo.estadoTitle')} subtitulo={t('robo.regra')}>
-      {carregando && estado === undefined ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}><CircularProgress size={28} sx={{ color: 'var(--accent-ink)' }} /></Box>
+    <Painel titulo={t('robo.registroTitle')} subtitulo={t('robo.regra')} sx={entradaEmOrdem(ordem)}>
+      {carregando && operacoes === undefined && noites === undefined ? (
+        <Carregando />
       ) : (
         <Box>
-          <Linha rotulo={t('robo.estado')}>
-            <Box component="span" data-testid="robo-estado" sx={{ color: estado === 'dentro' ? 'var(--perf-up)' : 'var(--text-primary)' }}>{texto}</Box>
-          </Linha>
-          <Linha rotulo={t('robo.patrimonio')}>
-            <Box component="span" data-testid="robo-patrimonio">{num(patrimonio)}</Box>
-          </Linha>
-          <Linha rotulo={t('robo.dose')}>{dose === null ? '–' : formatarPercentual(dose, 0)}</Linha>
-          <Linha rotulo={t('robo.moeda')}>{MOEDA_MOTOR}</Linha>
-          <Linha rotulo={t('robo.desde')}>{formatarInstante(ATIVACAO_MOTOR, idioma.intl)}</Linha>
           <Linha rotulo={t('robo.ultimaDecisao')}>
             <Box component="span" data-testid="robo-ultima-decisao">
               {ultimaNoite
@@ -139,24 +292,22 @@ function EstadoDeHoje({ estado, dose, patrimonio, ultimaHora, operacoes, noites,
               ? `${nomeDaAcao(t, ultima.acao)} · ${formatarInstante(ultima.dataHora, idioma.intl)}`
               : Array.isArray(operacoes) ? t('robo.semOperacao') : '–'}
           </Linha>
-          <Linha rotulo={t('robo.ultimaHoraRobo')}>
-            <Box component="span" data-testid="robo-ultima-hora">
-              {ultimaHora === null ? '–' : formatarInstante(new Date(ultimaHora).toISOString(), idioma.intl)}
-            </Box>
-          </Linha>
+          <Linha rotulo={t('robo.dose')}>{dose === null ? '–' : formatarPercentual(dose, 0)}</Linha>
+          <Linha rotulo={t('robo.moeda')}>{MOEDA_MOTOR}</Linha>
+          <Linha rotulo={t('robo.desde')}>{formatarInstante(ATIVACAO_MOTOR, idioma.intl)}</Linha>
         </Box>
       )}
     </Painel>
   )
 }
 
-function TabelaDeOperacoes({ operacoes, erro }) {
+function TabelaDeOperacoes({ operacoes, erro, ordem }) {
   const { t, idioma } = useTranslation()
   if (erro) return <ErrorMessage message={t('robo.operacoesErro')} />
   return (
-    <Painel titulo={t('robo.operacoesTitle')} subtitulo={t('robo.operacoesSub')} corpoSx={{ mx: { xs: -2, md: -2.5 }, mb: { xs: -2, md: -2.5 } }}>
+    <Painel titulo={t('robo.operacoesTitle')} subtitulo={t('robo.operacoesSub')} sx={entradaEmOrdem(ordem)} corpoSx={{ mx: { xs: -2, md: -2.5 }, mb: { xs: -2, md: -2.5 } }}>
       {operacoes === undefined ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}><CircularProgress size={28} sx={{ color: 'var(--accent-ink)' }} /></Box>
+        <Carregando />
       ) : operacoes.length === 0 ? (
         <EstadoVazio mensagem={t('robo.semOperacao')} />
       ) : (
@@ -177,10 +328,10 @@ function TabelaDeOperacoes({ operacoes, erro }) {
                 <TableRow key={op.idHistoricoDecisao}>
                   <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatarInstante(op.dataHora, idioma.intl)}</TableCell>
                   <TableCell>{nomeDaAcao(t, op.acao)}</TableCell>
-                  <TableCell align="right">{num(op.quantidade, 5)}</TableCell>
-                  <TableCell align="right">{num(op.precoMercado)}</TableCell>
-                  <TableCell align="right">{num(op.valorOperacao)}</TableCell>
-                  <TableCell align="right">{num(op.taxa)}</TableCell>
+                  <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>{num(op.quantidade, 5)}</TableCell>
+                  <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>{num(op.precoMercado)}</TableCell>
+                  <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>{num(op.valorOperacao)}</TableCell>
+                  <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>{num(op.taxa)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -191,9 +342,32 @@ function TabelaDeOperacoes({ operacoes, erro }) {
   )
 }
 
-// O preço contra a média de 50 dias: triângulos onde a regra mudou de lado e
-// losangos no que o robô executou. Só entram na legenda as marcas que existem.
-function GraficoDaRegra({ regra, operacoes }) {
+// Marcas com o anel da superfície, para continuarem legíveis ao cruzar a linha.
+const marcaDoGrafico = (rotulo, pontos, cor, superficie, extra) => ({
+  label: rotulo,
+  data: pontos,
+  showLine: false,
+  backgroundColor: cor,
+  borderColor: cor,
+  pointBorderColor: superficie,
+  pointBorderWidth: 2,
+  pointHitRadius: 12,
+  ...extra,
+})
+
+const opcoesDoEixoY = (escuro, formato, marcarValor) => ({
+  border: { display: false },
+  ticks: { color: corDoTique(escuro), callback: formato, maxTicksLimit: 6, font: { family: FONTE_DOS_NUMEROS } },
+  grid: {
+    color: marcarValor === undefined
+      ? corDaGrade(escuro)
+      : (ctx) => (ctx.tick?.value === marcarValor ? (escuro ? 'rgba(255,255,255,0.28)' : 'rgba(0,0,0,0.32)') : corDaGrade(escuro)),
+  },
+})
+
+// O preço contra a média de 50 dias, com o gatilho que a próxima decisão usa, o preço
+// de agora, os triângulos onde a regra mudou de lado e os losangos do que o robô fez.
+function GraficoDaRegra({ regra, operacoes, ordem }) {
   const { t, idioma } = useTranslation()
   const escuro = useTheme().palette.mode === 'dark'
   const dataCurta = useMemo(() => padraoDeDataCurta(idioma.intl), [idioma.intl])
@@ -201,6 +375,8 @@ function GraficoDaRegra({ regra, operacoes }) {
   const rotulos = useMemo(() => ({
     preco: t('robo.gatilho.preco'),
     media: t('robo.gatilho.media'),
+    gatilho: t('robo.gatilho.rotuloGatilho'),
+    agora: t('robo.estado'),
     regraComprou: t('robo.gatilho.regraComprou'),
     regraVendeu: t('robo.gatilho.regraVendeu'),
     roboComprou: t('robo.gatilho.roboComprou'),
@@ -208,36 +384,45 @@ function GraficoDaRegra({ regra, operacoes }) {
   }), [t])
 
   const dados = useMemo(() => {
+    const destaque = readToken('--accent-ink')
     const alta = readToken('--perf-up')
     const baixa = readToken('--perf-down')
-    const borda = readToken('--text-primary')
-    const marca = (rotulo, pontos, cor, extra) => ({
-      label: rotulo, data: pontos, showLine: false, backgroundColor: cor, borderColor: cor, pointBorderColor: cor, ...extra,
-    })
+    const superficie = readToken('--surface-panel-solid')
+    const precoAcimaDoGatilho = regra?.precoAtual > regra?.gatilho
     const daRegra = { pointStyle: 'triangle', pointRadius: 6, pointHoverRadius: 8, order: 1 }
-    const doRobo = { pointStyle: 'rectRot', pointRadius: 8, pointHoverRadius: 10, pointBorderColor: borda, pointBorderWidth: 2, order: 0 }
+    const doRobo = { pointStyle: 'rectRot', pointRadius: 8, pointHoverRadius: 10, order: 0 }
     return {
       datasets: [
         {
-          label: rotulos.preco, data: series.preco, borderColor: readToken('--accent-ink'), backgroundColor: readToken('--accent-ink'),
-          borderWidth: 2, pointRadius: 0, pointHoverRadius: 3, order: 3,
+          label: rotulos.preco, data: series.preco, borderColor: destaque, backgroundColor: destaque,
+          borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, pointHitRadius: 8, order: 4,
         },
         {
           label: rotulos.media, data: series.media, borderColor: readToken('--text-muted'), backgroundColor: readToken('--text-muted'),
-          borderDash: [6, 4], borderWidth: 1.5, pointRadius: 0, pointStyle: 'line', order: 2,
+          borderDash: [6, 4], borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 3, pointHitRadius: 8, order: 5,
         },
-        marca(rotulos.regraComprou, series.regraComprou, alta, daRegra),
-        marca(rotulos.regraVendeu, series.regraVendeu, baixa, { ...daRegra, rotation: 180 }),
-        marca(rotulos.roboComprou, series.roboComprou, alta, doRobo),
-        marca(rotulos.roboVendeu, series.roboVendeu, baixa, doRobo),
+        {
+          label: rotulos.gatilho, data: series.gatilho, borderColor: readToken('--text-primary'), backgroundColor: readToken('--text-primary'),
+          borderDash: [2, 3], borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 0, order: 3,
+          rotuloFinal: `${rotulos.gatilho} ${num(regra?.gatilho, 0)}`, rotuloAcima: !precoAcimaDoGatilho,
+        },
+        marcaDoGrafico(rotulos.agora, series.agora, destaque, superficie, {
+          pointRadius: 5, pointHoverRadius: 7, order: 2,
+          rotuloFinal: `${rotulos.agora} ${num(regra?.precoAtual, 0)}`, rotuloAcima: precoAcimaDoGatilho,
+        }),
+        marcaDoGrafico(rotulos.regraComprou, series.regraComprou, alta, superficie, daRegra),
+        marcaDoGrafico(rotulos.regraVendeu, series.regraVendeu, baixa, superficie, { ...daRegra, rotation: 180 }),
+        marcaDoGrafico(rotulos.roboComprou, series.roboComprou, alta, superficie, doRobo),
+        marcaDoGrafico(rotulos.roboVendeu, series.roboVendeu, baixa, superficie, doRobo),
       ].filter((conjunto) => conjunto.data.length > 0),
     }
   // `escuro` entra para reler os tokens quando o tema muda.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [series, rotulos, escuro])
+  }, [series, rotulos, escuro, regra])
 
+  const fim = regra?.proximaVela ? instanteUtc(regra.proximaVela) : undefined
   const opcoes = useMemo(() => {
-    const base = eixoDeTempo(escuro, idioma, dataCurta)
+    const base = eixoDeTempo(escuro, idioma, dataCurta, { max: fim })
     return {
       responsive: true,
       maintainAspectRatio: false,
@@ -245,95 +430,181 @@ function GraficoDaRegra({ regra, operacoes }) {
       // As marcas têm menos pontos que o preço: 'index' pegaria o ponto errado delas.
       interaction: { mode: 'nearest', axis: 'x', intersect: false },
       plugins: {
-        legend: {
-          position: 'bottom',
-          labels: {
-            color: corDaLegenda(escuro),
-            usePointStyle: true,
-            boxWidth: 8,
-            padding: 14,
-            // A ordem de desenho põe as marcas por cima; a legenda segue a da lista.
-            sort: (a, b) => a.datasetIndex - b.datasetIndex,
-          },
+        legend: { display: false },
+        miraVertical: { cor: corDoTique(escuro) },
+        rotulosFinais: { cor: readToken('--text-primary'), fundo: readToken('--surface-panel-solid') },
+        tooltip: {
+          ...tooltipBase(escuro),
+          filter: (item) => item.dataset.label !== rotulos.gatilho,
+          callbacks: { label: (ctx) => `${num(ctx.parsed.y)}  ${ctx.dataset.label}` },
         },
-        tooltip: { ...tooltipBase(escuro), callbacks: { label: (ctx) => `${ctx.dataset.label}: ${num(ctx.parsed.y)}` } },
       },
       scales: comBordaDeEixo({
-        x: { ...base, time: { ...base.time, unit: 'month', tooltipFormat: `${dataCurta}/yyyy` } },
-        y: { ticks: { color: corDoTique(escuro), callback: (v) => num(v, 0), maxTicksLimit: 6 }, grid: { color: corDaGrade(escuro) } },
+        x: { ...base, time: { ...base.time, unit: 'month', tooltipFormat: `${dataCurta}/yyyy` }, grid: { display: false } },
+        y: opcoesDoEixoY(escuro, (v) => num(v, 0)),
       }, escuro),
     }
-  }, [escuro, idioma, dataCurta])
+  }, [escuro, idioma, dataCurta, fim, rotulos])
 
+  if (regra === undefined) {
+    return <Painel titulo={t('robo.gatilho.graficoTitle')} sx={entradaEmOrdem(ordem)}><Carregando py={6} tamanho={32} /></Painel>
+  }
+  if (!regra?.pontos?.length) return null
+
+  const chaves = [
+    { tipo: 'linha', cor: 'var(--accent-ink)', rotulo: rotulos.preco },
+    { tipo: 'tracejada', cor: 'var(--text-muted)', rotulo: rotulos.media },
+    series.gatilho.length && { tipo: 'tracejada', cor: 'var(--text-primary)', rotulo: rotulos.gatilho },
+    series.regraComprou.length && { tipo: 'sobe', cor: 'var(--perf-up)', rotulo: rotulos.regraComprou },
+    series.regraVendeu.length && { tipo: 'desce', cor: 'var(--perf-down)', rotulo: rotulos.regraVendeu },
+    series.roboComprou.length && { tipo: 'losango', cor: 'var(--perf-up)', rotulo: rotulos.roboComprou },
+    series.roboVendeu.length && { tipo: 'losango', cor: 'var(--perf-down)', rotulo: rotulos.roboVendeu },
+  ].filter(Boolean)
+  const linhasDaTabela = [
+    ...(regra.mudancas ?? []).map((m) => ({
+      ms: instanteUtc(m.data),
+      chave: `regra-${m.data}`,
+      valores: [formatarDia(instanteUtc(m.data), idioma.intl), m.tipo === 'entrada' ? rotulos.regraComprou : rotulos.regraVendeu, num(m.preco)],
+    })),
+    ...series.roboComprou.map((p) => ({ ms: p.x, chave: `compra-${p.x}`, valores: [formatarDia(p.x, idioma.intl), rotulos.roboComprou, num(p.y)] })),
+    ...series.roboVendeu.map((p) => ({ ms: p.x, chave: `venda-${p.x}`, valores: [formatarDia(p.x, idioma.intl), rotulos.roboVendeu, num(p.y)] })),
+  ].sort((a, b) => b.ms - a.ms)
   return (
-    <Box>
-      <Typography variant="subtitle2" component="h3" sx={{ fontWeight: 600, mt: 2 }}>{t('robo.gatilho.graficoTitle')}</Typography>
-      <Typography variant="caption" component="p" sx={{ color: 'var(--text-muted)', mb: 1 }}>{t('robo.gatilho.graficoSub')}</Typography>
-      <Box sx={{ height: { xs: 280, md: 320 } }}>
-        <Line
-          data={dados}
-          options={opcoes}
-          aria-label={t('robo.gatilho.resumo', { preco: num(regra?.precoFechamento), media: num(regra?.media) })}
-        />
+    <Painel titulo={t('robo.gatilho.graficoTitle')} subtitulo={t('robo.gatilho.graficoSub')} sx={entradaEmOrdem(ordem)} corpoSx={{ display: 'flex', flexDirection: 'column' }}>
+      <LegendaDoGrafico itens={chaves} />
+      {/* O gráfico preenche o que a coluna ao lado deixa, sem empurrar a altura dela. */}
+      <Box sx={{ position: 'relative', flex: '1 1 320px', minHeight: { xs: 280, md: 320 } }}>
+        <Box sx={{ position: 'absolute', inset: 0 }}>
+          <Line
+            data={dados}
+            options={opcoes}
+            plugins={[miraVertical, rotulosFinais]}
+            aria-label={t('robo.gatilho.resumo', { preco: num(regra.precoFechamento), media: num(regra.media) })}
+          />
+        </Box>
       </Box>
+      <TabelaDoGrafico
+        rotulo={t('robo.gatilho.verMudancas')}
+        colunas={[t('robo.noites.colDia'), t('robo.gatilho.colMudanca'), t('robo.colPreco')]}
+        linhas={linhasDaTabela}
+      />
+    </Painel>
+  )
+}
+
+// Os três retornos do período, cada um com a chave da sua linha no gráfico.
+function RetornoDoPeriodo({ tipo, cor, nome, valor }) {
+  return (
+    <Box sx={{ minWidth: 0 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+        <ChaveDaSerie tipo={tipo} cor={cor} />
+        <Typography variant="caption" sx={{ color: 'var(--text-secondary)' }}>{nome}</Typography>
+      </Box>
+      <Typography component="div" sx={{ fontFamily: FONTE_DOS_NUMEROS, fontSize: { xs: '1.15rem', md: '1.4rem' }, lineHeight: 1.3, color: 'var(--text-primary)' }}>
+        {pct(valor)}
+      </Typography>
     </Box>
   )
 }
 
-// O que vem a seguir: o fechamento que faz a regra mudar de lado na próxima
-// decisão, diante do preço de agora, e o gráfico que mostra isso acontecendo.
-function ProximoPasso({ regra, operacoes, erro }) {
+function CurvaDoPlacar({ series, placar, erro, ordem }) {
   const { t, idioma } = useTranslation()
-  if (erro) return <ErrorMessage message={t('robo.gatilho.erro')} />
-  const situacao = situacaoDoGatilho(regra)
-  const dentro = regra?.dentro === true
-  const carregando = regra === undefined
-  const dose = dentro ? regra?.dose : regra?.doseNoGatilho
+  const escuro = useTheme().palette.mode === 'dark'
+  const dataCurta = useMemo(() => padraoDeDataCurta(idioma.intl), [idioma.intl])
+  const nomeDoRobo = t('robo.nomeRobo')
+  const nomeDaRegra = t(`zoo.nomes.${ESTRATEGIA_MOTOR}`)
+  const nomeDoBh = t(`zoo.nomes.${BUY_HOLD}`)
+
+  const dados = useMemo(() => {
+    const conjunto = (rotulo, pontos, cor, extra = {}) => ({
+      label: rotulo, data: pontos, borderColor: cor, backgroundColor: cor, borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, pointHitRadius: 10, ...extra,
+    })
+    const destaque = readToken('--accent-ink')
+    // A regra no papel tracejada, no tom do robô: ele deveria ficar em cima dela.
+    return {
+      datasets: [
+        conjunto(nomeDoRobo, series.robo, destaque, { borderWidth: 2.5 }),
+        conjunto(nomeDaRegra, series.regra, comAlfa(destaque, 0.55), { borderDash: [6, 4], borderWidth: 1.5 }),
+        conjunto(nomeDoBh, series.bh, readToken('--text-muted'), { borderWidth: 1.5 }),
+      ],
+    }
+  // `escuro` entra para reler os tokens quando o tema muda.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [series, nomeDoRobo, nomeDaRegra, nomeDoBh, escuro])
+
+  const opcoes = useMemo(() => {
+    const base = eixoDeTempo(escuro, idioma, dataCurta)
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        miraVertical: { cor: corDoTique(escuro) },
+        tooltip: { ...tooltipBase(escuro), callbacks: { label: (ctx) => `${pct(ctx.parsed.y - 1)}  ${ctx.dataset.label}` } },
+      },
+      scales: comBordaDeEixo({
+        x: { ...base, time: { ...base.time, unit: 'day', tooltipFormat: `${dataCurta}/yyyy` }, grid: { display: false } },
+        // A linha do zero é a única forte: as três partem dela.
+        y: opcoesDoEixoY(escuro, (v) => pct(v - 1, 1), 1),
+      }, escuro),
+    }
+  }, [escuro, idioma, dataCurta])
+
+  if (erro) return <ErrorMessage message={t('robo.curvaErro')} />
+  const retornoRobo = placar?.retornoRobo ?? null
+  const retornoRegra = placar?.retornoRegra ?? null
+  const retornoBh = placar?.retornoBuyHold ?? null
+  const linhasDaTabela = [...(placar?.pontos ?? [])].reverse().map((p) => ({
+    chave: p.data,
+    valores: [
+      formatarDia(instanteUtc(p.data), idioma.intl),
+      p.robo === null || p.robo === undefined ? '–' : pct(p.robo - 1),
+      p.regra === null || p.regra === undefined ? '–' : pct(p.regra - 1),
+      p.buyHold === null || p.buyHold === undefined ? '–' : pct(p.buyHold - 1),
+    ],
+  }))
   return (
-    <Painel titulo={t(dentro ? 'robo.gatilho.titleDentro' : 'robo.gatilho.titleFora')} subtitulo={t('robo.gatilho.sub')}>
-      {carregando ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress sx={{ color: 'var(--accent-ink)' }} /></Box>
-      ) : !situacao ? (
-        <EstadoVazio mensagem={t('robo.gatilho.semDados')} />
+    <Painel titulo={t('robo.curvaTitle')} subtitulo={t('robo.curvaSub')} sx={entradaEmOrdem(ordem)} corpoSx={{ display: 'flex', flexDirection: 'column' }}>
+      {placar === undefined ? (
+        <Carregando py={6} tamanho={32} />
+      ) : series.regra.length === 0 ? (
+        <EstadoVazio mensagem={t('robo.curvaVazia')} />
       ) : (
         <>
-          <Typography variant="body1" data-testid="robo-gatilho" sx={{ fontWeight: 600, mb: 1 }}>
-            {t(`robo.gatilho.${situacao}`, {
-              gatilho: num(regra.gatilho),
-              falta: pctSemSinal(Math.abs(regra.faltaParaOGatilho)),
-            })}
-          </Typography>
-          <Box sx={{ display: 'grid', columnGap: 3, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' } }}>
-            <Linha rotulo={t('robo.gatilho.precoAgora')}>
-              {`${num(regra.precoAtual)} · ${formatarInstante(regra.ultimaHora, idioma.intl)}`}
-            </Linha>
-            <Linha rotulo={t('robo.gatilho.proximaDecisao')}>
-              <Box component="span" data-testid="robo-proxima-decisao">
-                {t('robo.gatilho.proximaDecisaoValor', { data: formatarInstante(regra.proximaVela, idioma.intl) })}
-              </Box>
-            </Linha>
-            <Linha rotulo={t('robo.gatilho.ultimoFechamento')}>
-              {`${num(regra.precoFechamento)} · ${formatarDia(instanteUtc(regra.ultimoFechamento), idioma.intl)}`}
-            </Linha>
-            <Linha rotulo={t('robo.gatilho.media')}>
-              {`${num(regra.media)} · ${pct(regra.distanciaDaMedia)}`}
-            </Linha>
-            <Linha rotulo={t('robo.gatilho.volatilidade')}>{pctSemSinal(regra.volatilidade)}</Linha>
-            <Linha rotulo={t(dentro ? 'robo.gatilho.doseHoje' : 'robo.gatilho.doseAoEntrar')}>
-              <Box component="span" data-testid="robo-dose-gatilho">{pctSemSinal(dose, 0)}</Box>
-            </Linha>
+          <Box data-testid="robo-retornos" sx={{ display: 'grid', gap: 2, mb: 1.5, gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(3, minmax(0, 1fr))' } }}>
+            <RetornoDoPeriodo tipo="linha" cor="var(--accent-ink)" nome={nomeDoRobo} valor={retornoRobo} />
+            <RetornoDoPeriodo tipo="tracejada" cor="var(--accent-a50)" nome={nomeDaRegra} valor={retornoRegra} />
+            <RetornoDoPeriodo tipo="linha" cor="var(--text-muted)" nome={nomeDoBh} valor={retornoBh} />
           </Box>
-          <GraficoDaRegra regra={regra} operacoes={operacoes} />
+          <Box sx={{ position: 'relative', flex: '1 1 260px', minHeight: { xs: 240, md: 260 } }}>
+            <Box sx={{ position: 'absolute', inset: 0 }}>
+              <Line
+                data={dados}
+                options={opcoes}
+                plugins={[miraVertical]}
+                aria-label={t('robo.curvaResumo', { robo: pct(retornoRobo), regra: pct(retornoRegra), bh: pct(retornoBh) })}
+              />
+            </Box>
+          </Box>
+          <TabelaDoGrafico
+            rotulo={t('robo.verEmTabela')}
+            colunas={[t('robo.noites.colDia'), nomeDoRobo, nomeDaRegra, nomeDoBh]}
+            linhas={linhasDaTabela}
+          />
         </>
       )}
     </Painel>
   )
 }
 
-function ItemComDetalhe({ rotulo, valor, detalhe, testId, semQuebra = false }) {
+// A regra refeita em todos os fechamentos: o que esperar dela. A tela só informa;
+// o critério registrado é que diz quando o motor é desligado.
+function ItemComDetalhe({ rotulo, valor, detalhe, testId, semQuebra = false, children }) {
   return (
-    <Box sx={{ py: 0.75, borderBottom: '1px solid var(--border)' }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
+    <Box sx={{ py: 1, borderBottom: '1px solid var(--border)' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 2 }}>
         <Typography variant="body2" sx={{ color: 'var(--text-secondary)' }}>{rotulo}</Typography>
         <Typography
           variant="body2"
@@ -344,14 +615,13 @@ function ItemComDetalhe({ rotulo, valor, detalhe, testId, semQuebra = false }) {
           {valor}
         </Typography>
       </Box>
+      {children}
       <Typography variant="caption" sx={{ color: 'var(--text-muted)' }}>{detalhe}</Typography>
     </Box>
   )
 }
 
-// A regra refeita em todos os fechamentos: o que esperar dela. A tela só informa;
-// o critério registrado é que diz quando o motor é desligado.
-function IssoENormal({ regra, erro }) {
+function IssoENormal({ regra, erro, ordem }) {
   const { t, idioma } = useTranslation()
   if (erro) return <ErrorMessage message={t('robo.normal.erro')} />
   const h = regra?.historico
@@ -363,9 +633,10 @@ function IssoENormal({ regra, erro }) {
     <Painel
       titulo={t('robo.normal.title')}
       subtitulo={h ? t('robo.normal.sub', { inicio: formatarDia(instanteUtc(h.inicio), idioma.intl) }) : undefined}
+      sx={entradaEmOrdem(ordem)}
     >
       {regra === undefined ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}><CircularProgress size={28} sx={{ color: 'var(--accent-ink)' }} /></Box>
+        <Carregando />
       ) : !h || regra.dentro === null || regra.dentro === undefined ? (
         <EstadoVazio mensagem={t('robo.normal.semDados')} />
       ) : (
@@ -378,7 +649,17 @@ function IssoENormal({ regra, erro }) {
               total: duracao?.quantidade ?? 0,
             })}
             testId="robo-normal-atual"
-          />
+          >
+            {duracao?.quantidade > 0 && (
+              <EscalaDeDuracao
+                atual={h.diasNoEstadoAtual}
+                marcas={[...new Set([duracao.mediana, duracao.percentil90, duracao.maior])]}
+                maior={Math.max(duracao.maior, h.diasNoEstadoAtual)}
+                rotuloAtual={t('robo.normal.hoje', { dias: dias(h.diasNoEstadoAtual) })}
+                resumo={t('robo.normal.duracaoDetalhe', { p90: dias(duracao.percentil90), maior: dias(duracao.maior) })}
+              />
+            )}
+          </ItemComDetalhe>
           {duracao?.quantidade > 0 && (
             <ItemComDetalhe
               rotulo={t(dentro ? 'robo.normal.duracaoPeriodo' : 'robo.normal.duracaoPausa')}
@@ -401,9 +682,16 @@ function IssoENormal({ regra, erro }) {
                 total: entradas.quantidade,
                 fracao: pctSemSinal(entradas.comGanho / entradas.quantidade, 0),
               })}
-              detalhe={t('robo.normal.entradasDetalhe', { ganho: pct(entradas.ganhoMedio, 1), perda: pct(entradas.perdaMedia, 1) })}
+              detalhe={t('robo.normal.entradasDetalhe')}
               testId="robo-normal-entradas"
-            />
+            >
+              <BarraDeEntradas
+                comGanho={entradas.comGanho}
+                total={entradas.quantidade}
+                rotuloGanho={t('robo.normal.ganharam', { n: entradas.comGanho, media: pct(entradas.ganhoMedio, 1) })}
+                rotuloPerda={t('robo.normal.perderam', { n: entradas.quantidade - entradas.comGanho, media: pct(entradas.perdaMedia, 1) })}
+              />
+            </ItemComDetalhe>
           )}
           {entradas?.curtas > 0 && (
             <ItemComDetalhe
@@ -413,7 +701,11 @@ function IssoENormal({ regra, erro }) {
               testId="robo-normal-curtas"
             />
           )}
-          <Typography variant="body2" data-testid="robo-normal-conclusao" sx={{ mt: 1.5, fontWeight: 600 }}>
+          <Typography
+            variant="body2"
+            data-testid="robo-normal-conclusao"
+            sx={{ mt: 1.5, pl: 1.25, fontWeight: 600, borderLeft: '2px solid var(--accent-ink)' }}
+          >
             {t('robo.normal.conclusao')}
           </Typography>
         </Box>
@@ -422,110 +714,32 @@ function IssoENormal({ regra, erro }) {
   )
 }
 
-function CurvaDoPlacar({ series, placar, erro }) {
-  const { t, idioma } = useTranslation()
-  const escuro = useTheme().palette.mode === 'dark'
-  const dataCurta = useMemo(() => padraoDeDataCurta(idioma.intl), [idioma.intl])
-  const nomeDoRobo = t('robo.nomeRobo')
-  const nomeDaRegra = t(`zoo.nomes.${ESTRATEGIA_MOTOR}`)
-  const nomeDoBh = t(`zoo.nomes.${BUY_HOLD}`)
-
-  const dados = useMemo(() => {
-    const conjunto = (rotulo, pontos, cor, extra = {}) => ({
-      label: rotulo, data: pontos, borderColor: cor, backgroundColor: cor, borderWidth: 2, pointRadius: 2, pointHoverRadius: 4, ...extra,
-    })
-    const destaque = readToken('--accent-ink')
-    // A regra no papel tracejada, no tom do robô: ele deveria ficar em cima dela.
-    return {
-      datasets: [
-        conjunto(nomeDoRobo, series.robo, destaque, { borderWidth: 2.5 }),
-        conjunto(nomeDaRegra, series.regra, comAlfa(destaque, 0.55), {
-          borderDash: [6, 4], borderWidth: 1.5, pointRadius: 0, pointStyle: 'line',
-        }),
-        conjunto(nomeDoBh, series.bh, readToken('--text-muted'), { borderWidth: 1.5 }),
-      ],
-    }
-  // `escuro` entra para reler os tokens quando o tema muda.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [series, nomeDoRobo, nomeDaRegra, nomeDoBh, escuro])
-
-  const opcoes = useMemo(() => {
-    const base = eixoDeTempo(escuro, idioma, dataCurta)
-    return {
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: false,
-      interaction: { mode: 'index', intersect: false },
-      plugins: {
-        legend: { position: 'bottom', labels: { color: corDaLegenda(escuro), usePointStyle: true, boxWidth: 8, padding: 14 } },
-        tooltip: { ...tooltipBase(escuro), callbacks: { label: (ctx) => `${ctx.dataset.label}: ${pct(ctx.parsed.y - 1)}` } },
-      },
-      scales: comBordaDeEixo({
-        x: { ...base, time: { ...base.time, unit: 'day', tooltipFormat: `${dataCurta}/yyyy` } },
-        y: { ticks: { color: corDoTique(escuro), callback: (v) => pct(v - 1, 1), maxTicksLimit: 6 }, grid: { color: corDaGrade(escuro) } },
-      }, escuro),
-    }
-  }, [escuro, idioma, dataCurta])
-
-  if (erro) return <ErrorMessage message={t('robo.curvaErro')} />
-  const retornoRobo = placar?.retornoRobo ?? null
-  const retornoRegra = placar?.retornoRegra ?? null
-  const retornoBh = placar?.retornoBuyHold ?? null
-  const retorno = (nome, valor) => (
-    <Typography variant="body2">
-      {`${nome}: `}
-      <Box component="span" sx={{ fontWeight: 700, color: corDoSinal(valor) }}>{pct(valor)}</Box>
-    </Typography>
-  )
-  return (
-    <Painel
-      titulo={t('robo.curvaTitle')}
-      subtitulo={t('robo.curvaSub')}
-      sx={{ height: { xs: 400, md: 440 } }}
-      // O gráfico ocupa a altura que sobra do painel.
-      corpoSx={{ display: 'flex', flexDirection: 'column' }}
-    >
-      {placar === undefined ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress sx={{ color: 'var(--accent-ink)' }} /></Box>
-      ) : series.regra.length === 0 ? (
-        <EstadoVazio mensagem={t('robo.curvaVazia')} />
-      ) : (
-        <>
-          <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', mb: 1 }} data-testid="robo-retornos">
-            {retorno(nomeDoRobo, retornoRobo)}
-            {retorno(nomeDaRegra, retornoRegra)}
-            {retorno(nomeDoBh, retornoBh)}
-          </Box>
-          <Box sx={{ flex: 1, minHeight: 0 }}>
-            <Line
-              data={dados}
-              options={opcoes}
-              aria-label={t('robo.curvaResumo', { robo: pct(retornoRobo), regra: pct(retornoRegra), bh: pct(retornoBh) })}
-            />
-          </Box>
-        </>
-      )}
-    </Painel>
-  )
-}
-
-// Dentro, fora ou sem resposta (sem dados, ou a regra não se aplica).
+// Dentro, fora ou sem resposta (sem dados, ou a regra não se aplica). A cor nunca
+// vem sozinha: o ícone e a palavra dizem o mesmo.
 function Situacao({ ok, testId }) {
   const { t } = useTranslation()
-  const [texto, cor] = ok === true
-    ? [t('robo.criterio.dentro'), 'var(--perf-up)']
-    : ok === false ? [t('robo.criterio.fora'), 'var(--perf-down)'] : ['–', 'var(--text-muted)']
-  return <Box component="span" data-testid={testId} sx={{ color: cor, fontWeight: 700 }}>{texto}</Box>
+  const [texto, cor, Icone] = ok === true
+    ? [t('robo.criterio.dentro'), 'var(--perf-up)', MdCheckCircle]
+    : ok === false ? [t('robo.criterio.fora'), 'var(--perf-down)', MdErrorOutline] : ['–', 'var(--text-muted)', null]
+  return (
+    <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, color: cor, fontWeight: 700 }}>
+      {Icone && <Icone aria-hidden="true" size={14} />}
+      <span data-testid={testId}>{texto}</span>
+    </Box>
+  )
 }
 
-function ItemDoCriterio({ rotulo, valor, detalhe, ok, testId }) {
+function ItemDoCriterio({ rotulo, valor, detalhe, ok, testId, uso }) {
   return (
     <ItemComDetalhe
       rotulo={rotulo}
-      valor={<>{valor} · <Situacao ok={ok} testId={testId} /></>}
+      valor={<Situacao ok={ok} testId={testId} />}
       detalhe={detalhe}
       semQuebra
-    />
+    >
+      <Typography component="div" sx={{ fontFamily: FONTE_DOS_NUMEROS, fontSize: '1.05rem', lineHeight: 1.4, color: 'var(--text-primary)' }}>{valor}</Typography>
+      <MedidorDoLimite fracao={uso} />
+    </ItemComDetalhe>
   )
 }
 
@@ -545,16 +759,17 @@ function UltimaConferencia({ conferencia }) {
   )
 }
 
-function Criterio({ criterio, conferencia, carregando }) {
+function Criterio({ criterio, conferencia, carregando, ordem }) {
   const { t } = useTranslation()
   const vazio = (v) => v === null || v === undefined
   const pontos = (d) => (vazio(d) ? '–' : t('robo.criterio.pontos', { valor: comSinal(formatarNumero(d * 100, 2), d) }))
+  const fracao = (v, limite) => (vazio(v) || !limite ? null : v / limite)
   // Os limites vêm do .NET com o critério: a tela não repete os números.
   const relativaAplica = criterio && !vazio(criterio.quedaBuyHold) && criterio.quedaBuyHold >= criterio.gatilhoQuedaBuyHold
   return (
-    <Painel titulo={t('robo.criterio.title')} subtitulo={t('robo.criterio.sub')}>
+    <Painel titulo={t('robo.criterio.title')} subtitulo={t('robo.criterio.sub')} sx={entradaEmOrdem(ordem)}>
       {carregando && !criterio ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}><CircularProgress size={28} sx={{ color: 'var(--accent-ink)' }} /></Box>
+        <Carregando />
       ) : !criterio || vazio(criterio.distancia) ? (
         <EstadoVazio mensagem={t('robo.criterio.semDados')} />
       ) : (
@@ -565,6 +780,7 @@ function Criterio({ criterio, conferencia, carregando }) {
             detalhe={t('robo.criterio.fidelidadeLimite', { limite: formatarNumero(criterio.limiteFidelidade * 100, 0) })}
             ok={criterio.fidelidadeOk}
             testId="robo-criterio-fidelidade"
+            uso={fracao(criterio.distancia, criterio.limiteFidelidade)}
           />
           <ItemDoCriterio
             rotulo={t('robo.criterio.queda')}
@@ -572,6 +788,7 @@ function Criterio({ criterio, conferencia, carregando }) {
             detalhe={t('robo.criterio.quedaLimite', { limite: pctSemSinal(criterio.limiteQueda, 0) })}
             ok={criterio.quedaOk}
             testId="robo-criterio-queda"
+            uso={fracao(criterio.quedaRobo, criterio.limiteQueda)}
           />
           <ItemDoCriterio
             rotulo={t('robo.criterio.relativa')}
@@ -585,6 +802,7 @@ function Criterio({ criterio, conferencia, carregando }) {
             })}
             ok={criterio.relativaOk}
             testId="robo-criterio-relativa"
+            uso={relativaAplica ? fracao(criterio.quedaRobo, criterio.limiteRelativo) : null}
           />
         </Box>
       )}
@@ -593,7 +811,7 @@ function Criterio({ criterio, conferencia, carregando }) {
   )
 }
 
-function Noites({ noites, erro }) {
+function Noites({ noites, erro, ordem }) {
   const { t, idioma } = useTranslation()
   if (erro) return <ErrorMessage message={t('robo.noites.erro')} />
   const operacao = (noite) => {
@@ -611,10 +829,16 @@ function Noites({ noites, erro }) {
     }
     return '–'
   }
+  // A noite em que ele agiu é a que importa: manter fica em segundo plano.
+  const agiu = (noite) => noite.decisao === 'comprar' || noite.decisao === 'vender'
+  const corDaDecisao = (noite) => {
+    if (!noite.rodou) return 'var(--perf-warn)'
+    return agiu(noite) ? 'var(--text-primary)' : 'var(--text-muted)'
+  }
   return (
-    <Painel titulo={t('robo.noites.title')} subtitulo={t('robo.noites.sub')} corpoSx={{ mx: { xs: -2, md: -2.5 }, mb: { xs: -2, md: -2.5 } }}>
+    <Painel titulo={t('robo.noites.title')} subtitulo={t('robo.noites.sub')} sx={entradaEmOrdem(ordem)} corpoSx={{ mx: { xs: -2, md: -2.5 }, mb: { xs: -2, md: -2.5 } }}>
       {noites === undefined ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}><CircularProgress size={28} sx={{ color: 'var(--accent-ink)' }} /></Box>
+        <Carregando />
       ) : noites.length === 0 ? (
         <EstadoVazio mensagem={t('robo.noites.vazio')} />
       ) : (
@@ -629,10 +853,16 @@ function Noites({ noites, erro }) {
             </TableHead>
             <TableBody>
               {noites.map((noite) => (
-                <TableRow key={noite.dia}>
-                  <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatarDia(noite.dia, idioma.intl)}</TableCell>
-                  <TableCell sx={{ color: noite.rodou ? 'inherit' : 'var(--perf-warn)' }}>{textoDaDecisao(t, noite)}</TableCell>
-                  <TableCell>{operacao(noite)}</TableCell>
+                <TableRow key={noite.dia} sx={agiu(noite) ? { backgroundColor: 'var(--accent-a05)' } : undefined}>
+                  <TableCell sx={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', color: agiu(noite) ? 'var(--text-primary)' : 'var(--text-muted)' }}>{formatarDia(noite.dia, idioma.intl)}</TableCell>
+                  <TableCell sx={{ color: corDaDecisao(noite), fontWeight: agiu(noite) ? 600 : 400 }}>
+                    <Box sx={{ display: 'inline-flex', alignItems: 'center' }}>
+                      {noite.decisao === 'comprar' && <MdArrowDropUp aria-hidden="true" size={20} color="var(--perf-up)" />}
+                      {noite.decisao === 'vender' && <MdArrowDropDown aria-hidden="true" size={20} color="var(--perf-down)" />}
+                      <span>{textoDaDecisao(t, noite)}</span>
+                    </Box>
+                  </TableCell>
+                  <TableCell sx={{ color: agiu(noite) ? 'var(--text-primary)' : 'var(--text-muted)' }}>{operacao(noite)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -663,43 +893,47 @@ export default function RoboAoVivo() {
     return noitesDoRobo(sequencias.registros, operacoes, { ultimoDiaDoZoo: ultimoDiaDoPlacar(placar), desde: sequencias.desde })
   }, [sequencias, operacoes, placar])
 
+  const linhaDaTela = { display: 'grid', gap: 2, gridTemplateColumns: COLUNAS_DA_TELA, alignItems: 'stretch' }
   return (
     <div className="dashboard-container">
-      <Box sx={{ p: { xs: 2, md: 4 }, color: 'var(--text-primary)', display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1, flexWrap: 'wrap' }}>
+      {/* Ao atualizar, a tela anterior fica apagada no lugar: sem pulo de layout nem spinner. */}
+      <Box sx={{ p: { xs: 2, md: 4 }, color: 'var(--text-primary)', display: 'flex', flexDirection: 'column', gap: 2, opacity: carregando && regra !== undefined ? 0.65 : 1, transition: 'opacity 200ms ease' }}>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1, flexWrap: 'wrap', ...entradaEmOrdem(0) }}>
           <Box sx={{ minWidth: 0 }}>
-            <Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>{t('robo.title')}</Typography>
+            <Typography variant="h5" component="h1" sx={{ fontFamily: FONTE_DOS_TITULOS, fontWeight: 800 }}>{t('robo.title')}</Typography>
             <Typography variant="body2" sx={{ color: 'var(--text-secondary)', maxWidth: 900, mt: 0.5 }}>{t('robo.intro')}</Typography>
           </Box>
           <Button size="small" startIcon={<MdRefresh />} onClick={recarregar} disabled={carregando} sx={estiloDoBotao}>
             {t('robo.atualizar')}
           </Button>
         </Box>
-        <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: 'minmax(280px, 1fr) 2fr' }, alignItems: 'start' }}>
-          <EstadoDeHoje
-            estado={hoje.estado}
-            dose={hoje.dose}
-            patrimonio={placar?.patrimonioRobo}
-            ultimaHora={ultimaHoraDoRobo(sequencias?.registros)}
-            operacoes={operacoes}
-            noites={noites}
-            carregando={carregando}
-          />
-          <ProximoPasso regra={regra} operacoes={operacoes} erro={erroRegra} />
+        <PainelDeInstrumentos
+          estado={hoje.estado}
+          regra={regra}
+          erroRegra={erroRegra}
+          placar={placar}
+          ultimaHora={ultimaHoraDoRobo(sequencias?.registros)}
+          carregando={carregando}
+          ordem={1}
+        />
+        <Box sx={linhaDaTela}>
+          <GraficoDaRegra regra={regra} operacoes={operacoes} ordem={2} />
+          <IssoENormal regra={regra} erro={erroRegra} ordem={3} />
         </Box>
-        <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: 'minmax(280px, 1fr) 2fr' }, alignItems: 'start' }}>
-          <IssoENormal regra={regra} erro={erroRegra} />
-          <CurvaDoPlacar series={series} placar={placar} erro={erroPlacar} />
-        </Box>
-        <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: 'minmax(280px, 1fr) 2fr' }, alignItems: 'start' }}>
+        <Box sx={linhaDaTela}>
+          <CurvaDoPlacar series={series} placar={placar} erro={erroPlacar} ordem={4} />
           <Criterio
             criterio={placar === undefined ? undefined : (placar?.criterio ?? null)}
             conferencia={placar?.ultimaConferencia ?? null}
             carregando={carregando}
+            ordem={5}
           />
-          <Noites noites={noites} erro={erroSequencias} />
         </Box>
-        <TabelaDeOperacoes operacoes={operacoes} erro={erroOperacoes} />
+        <Box sx={linhaDaTela}>
+          <Noites noites={noites} erro={erroSequencias} ordem={6} />
+          <Registro dose={hoje.dose} operacoes={operacoes} noites={noites} carregando={carregando} ordem={7} />
+        </Box>
+        <TabelaDeOperacoes operacoes={operacoes} erro={erroOperacoes} ordem={8} />
       </Box>
     </div>
   )

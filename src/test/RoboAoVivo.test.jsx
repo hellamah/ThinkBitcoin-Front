@@ -76,8 +76,9 @@ describe('Robô ao vivo', () => {
     expect(screen.getByText(/^0[.,]99$/)).toBeTruthy()
     // O robô (−0,38%: segurou a posição do DQN em 23/10), a regra (−0,10%) e o buy & hold (−0,62%).
     const retornos = (await screen.findByTestId('robo-retornos')).textContent
-    expect(retornos).toMatch(/robo\.nomeRobo: -0[.,]38%/)
+    expect(retornos).toMatch(/robo\.nomeRobo-0[.,]38%/)
     expect(retornos).toMatch(/-0[.,]10%/)
+    expect(retornos).toMatch(/-0[.,]62%/)
   })
 
   it('mostra a última decisão, as noites, o critério do servidor e que ainda não houve conferência', async () => {
@@ -151,12 +152,51 @@ describe('Robô ao vivo', () => {
     expect(screen.getByText('robo.gatilho.doseAoEntrar')).toBeTruthy()
   })
 
+  it('o painel de cima mostra a distância em destaque, a régua até o gatilho e há quanto tempo a regra está fora', async () => {
+    renderizar()
+    // Dados reais até 27/10: fechar acima de 81.955,68, com o preço a 80.909,77.
+    expect((await screen.findByTestId('robo-falta')).textContent).toMatch(/^1[.,]29%$/)
+    expect(screen.getByText('robo.gatilho.distancia.paraComprar')).toBeTruthy()
+    expect(screen.getByTestId('robo-regua').textContent).toMatch(/80[.,]909[.,]77.*81[.,]955[.,]68/)
+    expect(screen.getByTestId('robo-dias-estado').textContent).toBe('robo.diasFora')
+  })
+
+  it('a legenda repete a forma de cada marca, e o gráfico tem a tabela de mudanças ao lado', async () => {
+    renderizar()
+    const legenda = await screen.findByTestId('robo-legenda')
+    expect(legenda.textContent).toContain('robo.gatilho.preco')
+    expect(legenda.textContent).toContain('robo.gatilho.rotuloGatilho')
+    expect(legenda.textContent).toContain('robo.gatilho.regraVendeu')
+    // A venda de 23/10 existe; compra do robô ainda não houve, e a chave dela não aparece.
+    await waitFor(() => expect(legenda.textContent).toContain('robo.gatilho.roboVendeu'))
+    expect(legenda.textContent).not.toContain('robo.gatilho.roboComprou')
+    const tabelas = screen.getAllByTestId('robo-tabela-do-grafico')
+    expect(tabelas[0].textContent).toContain('robo.gatilho.verMudancas')
+    expect(tabelas[1].textContent).toContain('robo.verEmTabela')
+  })
+
   it('com o preço já acima do gatilho, diz que ele compra se fechar assim', async () => {
     apiRequest.mockImplementation(responder({
       regra: () => ({ resultado: { ...REGRA_ROBO, faltaParaOGatilho: -0.01 } }),
     }))
     renderizar()
     expect((await screen.findByTestId('robo-gatilho')).textContent).toBe('robo.gatilho.comprariaHoje')
+    expect(screen.getByText('robo.gatilho.distancia.comprariaHoje')).toBeTruthy()
+  })
+
+  it('o robô sem registro há horas aparece como parado, e não como ativo', async () => {
+    renderizar()
+    // A última vela do modo demo é de 27/10: bem mais de 3 horas atrás.
+    expect((await screen.findByTestId('robo-saude')).textContent).toBe('robo.saude.parado')
+  })
+
+  it('o robô que acabou de registrar aparece como ativo', async () => {
+    const agora = new Date(Math.floor(Date.now() / 3600000) * 3600000).toISOString().slice(0, 19)
+    apiRequest.mockImplementation(responder({
+      sequencias: () => ({ resultado: { totalRegistros: 1, registros: [{ idSequenciaRetorno: 'a', moeda: 'BTC', dataHora: agora, tipo: 0 }] } }),
+    }))
+    renderizar()
+    expect((await screen.findByTestId('robo-saude')).textContent).toBe('robo.saude.ativo')
   })
 
   it('dentro do mercado, diz o que o faria vender e a dose de hoje', async () => {
