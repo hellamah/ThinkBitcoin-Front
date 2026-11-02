@@ -249,6 +249,50 @@ export const ultimaHoraDoRobo = (registros) => {
   return instantes.length ? Math.max(...instantes) : null
 }
 
+const HORA_MS = 60 * 60 * 1000
+
+// A decisão da vela das 23h sai na ativação das 00:02 UTC, a primeira depois de
+// o coletor gravar a vela fechada (docs/motor-de-risco.md do Back-Python).
+const DA_VELA_ATE_A_DECISAO_MS = 62 * 60 * 1000
+
+/** Quanto falta para a decisão da vela, em ms: negativo depois da hora, e nulo sem vela. */
+export const tempoAteADecisao = (proximaVela, agora = Date.now()) => {
+  const vela = instanteUtc(proximaVela)
+  return Number.isNaN(vela) ? null : vela + DA_VELA_ATE_A_DECISAO_MS - agora
+}
+
+/** A espera em horas e minutos ("6 h 12 min"), ou nula se a hora já passou. */
+export const formatarEspera = (ms) => {
+  if (ms === null || ms === undefined || ms <= 0) return null
+  const minutos = Math.ceil(ms / 60000)
+  const horas = Math.floor(minutos / 60)
+  if (horas === 0) return `${minutos} min`
+  return minutos % 60 === 0 ? `${horas} h` : `${horas} h ${minutos % 60} min`
+}
+
+// O robô grava uma linha por hora, na ativação da vela fechada. Mais de 3 horas sem
+// linha é o robô parado (quase sempre, o PC do cluster desligado), e não um atraso.
+const HORAS_ATE_PARADO = 3
+
+/** Se o robô está registrando, pela última hora gravada. Nulo sem nenhuma linha. */
+export const saudeDoRobo = (ultimaHora, agora = Date.now()) => {
+  if (ultimaHora === null || ultimaHora === undefined) return null
+  const horas = Math.floor((agora - ultimaHora) / HORA_MS)
+  return { ativo: horas < HORAS_ATE_PARADO, horas, dias: Math.floor(horas / 24) }
+}
+
+/**
+ * As posições na régua (0 a 100) do preço e do gatilho, com uma folga igual dos dois
+ * lados. Com os dois quase iguais, a folga mínima impede a régua de virar um ponto só.
+ */
+export const posicoesDaRegua = (preco, gatilho) => {
+  const folga = Math.max(Math.abs(preco - gatilho), Math.abs(preco) * 0.002) * 0.22
+  const minimo = Math.min(preco, gatilho) - folga
+  const maximo = Math.max(preco, gatilho) + folga
+  const posicao = (valor) => ((valor - minimo) / (maximo - minimo)) * 100
+  return { preco: posicao(preco), gatilho: posicao(gatilho) }
+}
+
 /**
  * O que a próxima decisão faz diante do preço de agora. `faltaParaOGatilho` é o
  * gatilho sobre o preço, menos 1: positiva com o preço abaixo dele.
@@ -268,10 +312,14 @@ const ACOES_DE_VENDA = [ACOES.VENDER_TUDO, ACOES.VENDER_PARCIAL]
 /**
  * O gráfico do preço contra a média ({x, y}): os fechamentos, a média de 50 dias,
  * onde a regra mudou de lado e o que o robô executou desde a ativação. A operação
- * vai no dia da decisão que a originou: ela executa ao preço daquela vela.
+ * vai no dia da decisão que a originou: ela executa ao preço daquela vela. O gatilho
+ * é uma linha só no fim do gráfico, das últimas semanas até a próxima decisão, e
+ * `agora` é o preço da última hora coletada.
  */
 export const seriesDaRegra = (regra, operacoes) => {
   const pontos = regra?.pontos ?? []
+  const temGatilho = pontos.length > 0 && regra?.gatilho !== null && regra?.gatilho !== undefined && regra?.proximaVela
+  const temAgora = regra?.precoAtual !== null && regra?.precoAtual !== undefined && regra?.ultimaHora
   const mudancas = (tipo) => (regra?.mudancas ?? [])
     .filter((m) => m.tipo === tipo)
     .map((m) => ({ x: instanteUtc(m.data), y: Number(m.preco) }))
@@ -287,5 +335,12 @@ export const seriesDaRegra = (regra, operacoes) => {
     regraVendeu: mudancas('saida'),
     roboComprou: execucoes(ACOES_DE_COMPRA),
     roboVendeu: execucoes(ACOES_DE_VENDA),
+    gatilho: temGatilho
+      ? [
+        { x: instanteUtc(pontos[Math.max(0, pontos.length - 21)].data), y: Number(regra.gatilho) },
+        { x: instanteUtc(regra.proximaVela), y: Number(regra.gatilho) },
+      ]
+      : [],
+    agora: temAgora ? [{ x: instanteUtc(regra.ultimaHora), y: Number(regra.precoAtual) }] : [],
   }
 }

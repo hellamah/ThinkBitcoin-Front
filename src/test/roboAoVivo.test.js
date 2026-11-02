@@ -16,6 +16,10 @@ import {
   seriesDaRegra,
   seriesDoPlacar,
   situacaoDoGatilho,
+  formatarEspera,
+  posicoesDaRegua,
+  saudeDoRobo,
+  tempoAteADecisao,
   ultimaHoraDoRobo,
   ultimoDiaDoPlacar,
 } from '../src/utils/roboAoVivo'
@@ -69,6 +73,59 @@ describe('a regra nos fechamentos', () => {
     // A venda de 24/10 às 00h executou a decisão da vela das 23h de 23/10, ao preço dela.
     expect(series.roboVendeu).toEqual([{ x: Date.UTC(2026, 9, 23), y: 81189.43 }])
     expect(series.roboComprou).toEqual([{ x: Date.UTC(2026, 10, 2), y: 80000 }])
+  })
+
+  it('o gatilho é uma linha do fim do gráfico até a próxima decisão, e agora é o preço da última hora', () => {
+    const pontos = Array.from({ length: 30 }, (_, i) => ({
+      data: new Date(Date.UTC(2026, 9, 1 + i)).toISOString().slice(0, 19), fechamento: 80000 + i, media: 81000,
+    }))
+    const series = seriesDaRegra({
+      pontos, gatilho: 82086.67, proximaVela: '2026-11-02T23:00:00', precoAtual: 77944.01, ultimaHora: '2026-11-02T13:00:00',
+    })
+    expect(series.gatilho).toEqual([
+      { x: Date.UTC(2026, 9, 10), y: 82086.67 },
+      { x: Date.UTC(2026, 10, 2, 23), y: 82086.67 },
+    ])
+    expect(series.agora).toEqual([{ x: Date.UTC(2026, 10, 2, 13), y: 77944.01 }])
+  })
+
+  it('sem gatilho nem preço de agora, essas duas séries ficam vazias', () => {
+    const series = seriesDaRegra({ pontos: [{ data: '2026-10-22T00:00:00', fechamento: 1, media: null }], gatilho: null, precoAtual: null })
+    expect(series.gatilho).toEqual([])
+    expect(series.agora).toEqual([])
+  })
+
+  it('conta a espera até a decisão das 00:02 UTC da vela das 23h', () => {
+    const vela = '2026-11-02T23:00:00'
+    expect(tempoAteADecisao(vela, Date.UTC(2026, 10, 2, 15, 0))).toBe((9 * 60 + 2) * 60000)
+    expect(tempoAteADecisao(vela, Date.UTC(2026, 10, 3, 1, 0))).toBeLessThan(0)
+    expect(tempoAteADecisao(null)).toBeNull()
+    expect(formatarEspera((9 * 60 + 2) * 60000)).toBe('9 h 2 min')
+    expect(formatarEspera(120 * 60000)).toBe('2 h')
+    expect(formatarEspera(30 * 1000)).toBe('1 min')
+    expect(formatarEspera(0)).toBeNull()
+    expect(formatarEspera(null)).toBeNull()
+  })
+
+  it('diz se o robô está registrando pela última hora gravada', () => {
+    const agora = Date.UTC(2026, 10, 2, 15, 30)
+    expect(saudeDoRobo(Date.UTC(2026, 10, 2, 14), agora)).toMatchObject({ ativo: true, horas: 1 })
+    // O PC fora: cinco horas sem linha já não é atraso da vela.
+    expect(saudeDoRobo(Date.UTC(2026, 10, 2, 10), agora)).toMatchObject({ ativo: false, horas: 5, dias: 0 })
+    expect(saudeDoRobo(Date.UTC(2026, 9, 27, 23), agora)).toMatchObject({ ativo: false, dias: 5 })
+    expect(saudeDoRobo(null, agora)).toBeNull()
+  })
+
+  it('a régua dá a mesma folga aos dois lados, nos dois sentidos, e não vira um ponto só', () => {
+    const fora = posicoesDaRegua(77944.01, 82086.67)
+    expect(fora.preco).toBeCloseTo(100 - fora.gatilho, 6)
+    expect(fora.preco).toBeLessThan(fora.gatilho)
+    const dentro = posicoesDaRegua(84093.42, 81832.51)
+    expect(dentro.preco).toBeGreaterThan(dentro.gatilho)
+    const juntos = posicoesDaRegua(80000, 80000)
+    expect(juntos.preco).toBe(juntos.gatilho)
+    expect(juntos.preco).toBeGreaterThan(0)
+    expect(juntos.preco).toBeLessThan(100)
   })
 
   it('sem regra nem operações, as séries vêm vazias', () => {
