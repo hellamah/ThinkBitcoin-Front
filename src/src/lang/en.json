@@ -418,6 +418,7 @@
   "simulationTabSensitivity": "Sensitivity",
   "simulationTabRanking": "Comparison",
   "simulationTabJournal": "Journal",
+  "simulationTabSensitivityHelp": "Measures the stability of the strategy by slightly varying the stop and target distances.",
   "simulationTabPast": "Choose by the past",
   "simulationPast": "Does choosing by the past work?",
   "simulationPastHint": "Every {{teste}} days, picks the signal with the highest alpha over the previous {{treino}} days — what the top of the ranking suggests — and trades it over the next {{teste}}, with the exit rule on screen. The control picks, over the same training stretch, the signal that traded least, without looking at any result.",

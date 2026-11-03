@@ -342,8 +342,16 @@ export default function SimulationPanel({
                   aria-controls="simulacao-aba-painel"
                   className={`pill-toggle ${aba === valor ? 'ativo' : ''}`}
                   onClick={() => setAba((atual) => (atual === valor ? null : valor))}
+                  aria-label={t(chave)}
                 >
-                  {t(chave)}
+                  {valor === Aba.SENSIBILIDADE ? (
+                    <RotuloComAjuda 
+                      texto={t(chave)} 
+                      ajuda={t('simulationTabSensitivityHelp')} 
+                    />
+                  ) : (
+                    t(chave)
+                  )}
                 </button>
               ))}
             </div>
