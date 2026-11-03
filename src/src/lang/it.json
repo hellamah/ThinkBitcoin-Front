@@ -418,6 +418,7 @@
   "simulationTabSensitivity": "Sensibilità",
   "simulationTabRanking": "Confronto",
   "simulationTabJournal": "Diario",
+  "simulationTabSensitivityHelp": "Misura la stabilità della strategia variando leggermente le distanze di stop e target.",
   "simulationTabPast": "Scegliere dal passato",
   "simulationPast": "Scegliere dal passato funziona?",
   "simulationPastHint": "Ogni {{teste}} giorni, sceglie il segnale con l'alfa più alto nei {{treino}} giorni precedenti — ciò che suggerisce la cima della classifica — e lo opera nei {{teste}} successivi, con la regola di uscita a schermo. Il controllo sceglie, nello stesso tratto di taratura, il segnale che ha operato di meno, senza guardare alcun risultato.",
