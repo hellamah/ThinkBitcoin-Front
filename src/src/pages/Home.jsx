@@ -66,7 +66,8 @@ function Home() {
 
       {/* Hero Section */}
       <section className="home-section hero-v3">
-        <div className="hero-tag">ThinkBitcoin OS // Neural Network v4.0</div>
+        {/* Era "Neural Network v4.0": a IA foi aposentada em 04/11/2026. */}
+        <div className="hero-tag">ThinkBitcoin OS // Strategy Lab</div>
         {/* Duas chaves, e não uma com <br /> embutido: a quebra cai em pontos
             diferentes conforme o idioma, e marcação dentro do dicionário é o
             começo de um problema pior. */}
