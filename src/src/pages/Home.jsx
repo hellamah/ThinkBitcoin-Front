@@ -97,25 +97,30 @@ function Home() {
       </section>
 
       {/* Stats Section */}
+      {/* Números que o sistema sustenta (medidos em 04/11/2026): as 10 moedas
+          do zoo, o histórico diário medido (8,7 anos no BTC e no ETH; as mais
+          novas, SOL e PAXG, têm 5,6) e a taxa de 0,10% por lado que toda conta
+          desconta (REAL_FEE_RATE no Python). Antes eram 94,8% de "precisão da
+          IA", 1,5M dados por segundo e 99,9% de uptime, valores sem medição. */}
       <section className="home-section" style={{ paddingTop: 0 }}>
         <div className="stats-grid-v3">
           <div className="stat-item-v3">
             <div className="stat-num-v3">
-              <AnimatedNumber end={94.8} decimals={1} suffix="%" />
+              <AnimatedNumber end={10} />
             </div>
-            <div className="stat-label-v3">{t('statAiAccuracy')}</div>
+            <div className="stat-label-v3">{t('statMoedas')}</div>
           </div>
           <div className="stat-item-v3">
             <div className="stat-num-v3">
-              <AnimatedNumber end={1.5} decimals={1} suffix="M+" />
+              <AnimatedNumber end={8} />
             </div>
-            <div className="stat-label-v3">{t('statDataPerSecond')}</div>
+            <div className="stat-label-v3">{t('statAnosHistorico')}</div>
           </div>
           <div className="stat-item-v3">
             <div className="stat-num-v3">
-              <AnimatedNumber end={99.9} decimals={1} suffix="%" />
+              <AnimatedNumber end={0.1} decimals={2} suffix="%" />
             </div>
-            <div className="stat-label-v3">{t('statCoreUptime')}</div>
+            <div className="stat-label-v3">{t('statTaxa')}</div>
           </div>
         </div>
       </section>

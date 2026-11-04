@@ -1657,9 +1657,9 @@ const mockHandlers = [
         },
         {
           idPlanoPagamento: 1,
-          nome: 'Minerador (Acesso Completo + IA)',
+          nome: 'Minerador (Acesso Completo)',
           valor: 199.90,
-          descricao: 'Acesso completo ao robô de trade de alta performance com recomendações guiadas por inteligência artificial.',
+          descricao: 'Acesso à tela de estratégias e aos alertas de preço.',
           duracaoDias: 30,
           carencia: 0,
           liquidacao: 0,
