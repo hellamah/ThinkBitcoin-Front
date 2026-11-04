@@ -90,54 +90,9 @@ export const ApiEndpoint = Object.freeze({
     COBRANCA: (id) => `/ThinkBitcoin/planos-pagamento/cobranca/${id}`,
     COBRANCA_PENDENTE: '/ThinkBitcoin/planos-pagamento/cobranca/pendente',
   }),
-  TREINAMENTO_EPISODIO: Object.freeze({
-    LIST: ({ moeda, versaoModelo, dataInicio, dataFim, pagina, quantidade, ordenarAscendente } = {}) => {
-      const params = new URLSearchParams()
-      if (moeda) params.set('moeda', moeda)
-      if (versaoModelo) params.set('versaoModelo', versaoModelo)
-      if (dataInicio) params.set('dataInicio', dataInicio)
-      if (dataFim) params.set('dataFim', dataFim)
-      if (pagina != null) params.set('pagina', String(pagina))
-      if (quantidade != null) params.set('quantidade', String(quantidade))
-      if (ordenarAscendente != null) params.set('ordenarAscendente', String(ordenarAscendente))
-      const qs = params.toString()
-      return qs ? `/api/TreinamentoEpisodio?${qs}` : '/api/TreinamentoEpisodio'
-    },
-    RESUMO: ({ moeda, versaoModelo, dataInicio, dataFim } = {}) => {
-      const params = new URLSearchParams()
-      if (moeda) params.set('moeda', moeda)
-      if (versaoModelo) params.set('versaoModelo', versaoModelo)
-      if (dataInicio) params.set('dataInicio', dataInicio)
-      if (dataFim) params.set('dataFim', dataFim)
-      const qs = params.toString()
-      return qs ? `/api/TreinamentoEpisodio/resumo?${qs}` : '/api/TreinamentoEpisodio/resumo'
-    },
-    SERIE: ({ moeda, versaoModelo, dataInicio, dataFim, janela, limite } = {}) => {
-      const params = new URLSearchParams()
-      if (moeda) params.set('moeda', moeda)
-      if (versaoModelo) params.set('versaoModelo', versaoModelo)
-      if (dataInicio) params.set('dataInicio', dataInicio)
-      if (dataFim) params.set('dataFim', dataFim)
-      if (janela != null) params.set('janela', String(janela))
-      if (limite != null) params.set('limite', String(limite))
-      const qs = params.toString()
-      return qs ? `/api/TreinamentoEpisodio/serie?${qs}` : '/api/TreinamentoEpisodio/serie'
-    },
-    // Avaliação out-of-sample de cada sessão de treino, da mais recente para a mais antiga.
-    AVALIACOES: ({ versaoModelo, dataInicio, dataFim, quantidade } = {}) => {
-      const params = new URLSearchParams()
-      if (versaoModelo) params.set('versaoModelo', versaoModelo)
-      if (dataInicio) params.set('dataInicio', dataInicio)
-      if (dataFim) params.set('dataFim', dataFim)
-      if (quantidade != null) params.set('quantidade', String(quantidade))
-      const qs = params.toString()
-      return qs ? `/api/TreinamentoEpisodio/avaliacoes?${qs}` : '/api/TreinamentoEpisodio/avaliacoes'
-    },
-    // Opções dos filtros de todo o histórico: moedas e versões, com o período de cada uma.
-    FILTROS: '/api/TreinamentoEpisodio/filtros',
-  }),
   // Zoo de estratégias: regras simples medidas pela régua de risco (recurso pago).
-  // `janela`: 'teste-agente' para a janela do agente; omitida, o histórico.
+  // `janela`: 'teste-agente' lê as rodadas antigas da janela do agente (até 04/11/2026);
+  // omitida, o histórico, que é o que a tela pede.
   ZOO_ESTRATEGIA: Object.freeze({
     RODADA: ({ versaoZoo, dataHora, janela } = {}) => {
       const params = new URLSearchParams()
@@ -459,7 +414,6 @@ export const VariavelExternaEndpoint = ApiEndpoint.VARIAVEL_EXTERNA
 export const PatrimonioEndpoint = ApiEndpoint.PATRIMONIO
 export const AlertaPrecoEndpoint = ApiEndpoint.ALERTA_PRECO
 export const PlanosPagamentoEndpoint = ApiEndpoint.PLANOS_PAGAMENTO
-export const TreinamentoEpisodioEndpoint = ApiEndpoint.TREINAMENTO_EPISODIO
 export const ZooEstrategiaEndpoint = ApiEndpoint.ZOO_ESTRATEGIA
 export const HistoricoDecisaoEndpoint = ApiEndpoint.HISTORICO_DECISAO
 export const SequenciaRetornoEndpoint = ApiEndpoint.SEQUENCIA_RETORNO

@@ -10,9 +10,9 @@ import {
   fundoDoChip,
   textoSobre,
   tintaDaMoeda,
-} from '../src/components/treinamento/formato'
+} from '../src/components/comum/formato'
 
-describe('formato do treinamento › contraste', () => {
+describe('formato › contraste', () => {
   it('mede a razão WCAG: preto sobre branco é 21, cor sobre ela mesma é 1', () => {
     expect(contraste('#000000', '#ffffff')).toBeCloseTo(21)
     expect(contraste('#3065CC', '#3065CC')).toBeCloseTo(1)
@@ -52,7 +52,7 @@ describe('formato do treinamento › contraste', () => {
   })
 })
 
-describe('formato do treinamento › idioma dos números', () => {
+describe('formato › idioma dos números', () => {
   afterEach(() => definirIdiomaDosNumeros(undefined))
 
   it('segue o idioma definido pela página, não o do ambiente', () => {

@@ -7,7 +7,7 @@ import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import Typography from '@mui/material/Typography'
-import { estiloDeTabela } from '../treinamento/formato'
+import { estiloDeTabela } from '../comum/formato'
 import { posicoesDaRegua } from '../../utils/roboAoVivo'
 import { FONTE_DOS_NUMEROS, SEM_MOVIMENTO } from './estilo'
 

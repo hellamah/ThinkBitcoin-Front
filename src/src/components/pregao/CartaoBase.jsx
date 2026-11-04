@@ -1,7 +1,7 @@
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import useTranslation from '../../hooks/useTranslation'
-import { formatarDataCurta } from '../treinamento/formato'
+import { formatarDataCurta } from '../comum/formato'
 import { STATUS, frequenciaDoPedido, rotuloOuCru } from '../../utils/pedidoAlteracao'
 
 // A parte comum do cartão de um pedido do Pregão, na tela do administrador e na

@@ -21,13 +21,12 @@ import { useRef, useState, useEffect } from 'react'
 
 // Nome acessível de cada rota, reaproveitando os rótulos que a própria
 // navegação já usa — assim não existe um segundo lugar para traduzir.
-// Prefixo, e não igualdade: /treinamento-episodios/:id é a mesma página.
+// Prefixo, e não igualdade: uma rota com parâmetro é a mesma página.
 const ROTULO_DA_ROTA = [
   ['/dashboard', 'nav.dashboard'],
   ['/simulacao', 'nav.simulation'],
   ['/settings', 'nav.settings'],
   ['/heatmap', 'nav.heatmap'],
-  ['/treinamento-episodios', 'nav.training'],
   ['/estrategias', 'nav.strategies'],
   ['/pedidos-pregao', 'nav.pregao'],
   ['/pregao', 'pregaoPublico.title'],
@@ -302,9 +301,6 @@ function Layout({ children }) {
                     <MdPublic />
                     <span className="nav-label">{t('nav.heatmap')}</span>
                   </IconButton>
-                  {/* O treino de IA saiu daqui em 04/11/2026: o agente foi
-                      encerrado em 22/10, e a tela, histórico, mora no menu do
-                      administrador (MenuPregao). */}
                   <IconButton
                     component={NavLink}
                     to="/estrategias"

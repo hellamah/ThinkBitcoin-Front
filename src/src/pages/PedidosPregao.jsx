@@ -9,7 +9,7 @@ import ErrorMessage from '../components/ErrorMessage'
 import CartaoPedido from '../components/pregao/CartaoPedido'
 import DescartePorGrupo from '../components/pregao/DescartePorGrupo'
 import FiltroDeStatus from '../components/pregao/FiltroDeStatus'
-import { EstadoVazio, Painel } from '../components/treinamento/Painel'
+import { EstadoVazio, Painel } from '../components/comum/Painel'
 import usePedidosAlteracao from '../hooks/usePedidosAlteracao'
 import useTranslation from '../hooks/useTranslation'
 import {

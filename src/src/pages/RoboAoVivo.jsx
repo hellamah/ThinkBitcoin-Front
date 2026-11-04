@@ -26,15 +26,15 @@ import {
 } from '../components/robo/Instrumentos'
 import { FONTE_DOS_NUMEROS, FONTE_DOS_TITULOS, entradaEmOrdem } from '../components/robo/estilo'
 import { miraVertical, rotulosFinais } from '../components/robo/pluginsDoGrafico'
-import { comAlfa, comBordaDeEixo, corDaGrade, corDoTique, eixoDeTempo, tooltipBase } from '../components/treinamento/graficos'
-import { EstadoVazio, MoedaChip, Painel } from '../components/treinamento/Painel'
+import { comAlfa, comBordaDeEixo, corDaGrade, corDoTique, eixoDeTempo, tooltipBase } from '../components/comum/graficos'
+import { EstadoVazio, MoedaChip, Painel } from '../components/comum/Painel'
 import {
   comSinal,
   definirIdiomaDosNumeros,
   estiloDeTabela,
   formatarNumero,
   formatarPercentual,
-} from '../components/treinamento/formato'
+} from '../components/comum/formato'
 import useRoboAoVivo from '../hooks/useRoboAoVivo'
 import useTranslation from '../hooks/useTranslation'
 import { padraoDeDataCurta } from '../utils/dateUtils'

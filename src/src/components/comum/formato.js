@@ -1,4 +1,6 @@
-// Cores e formatação compartilhadas pelas partes da tela de treinamento.
+// Cores das moedas e formatação de números e datas, compartilhadas pelas telas de
+// dados (robô ao vivo, estratégias, Pregão). Nasceu na tela de treino do agente,
+// que saiu em 04/11/2026.
 
 // Paleta categórica validada (OKLCH L 0,48–0,67, croma ≥ 0,10, ΔE ≥ piso entre
 // vizinhos sob simulação de daltonismo, contraste ≥ 3:1 no tema escuro). As cores
@@ -9,17 +11,6 @@ const CORES_DAS_MOEDAS = {
   XRP: '#0E8BA8', ADA: '#966CD7', DOGE: '#79953E', LTC: '#419BD4',
   LINK: '#3065CC', PAXG: '#8E710F',
 }
-
-// Forma do ponto por moeda: segundo canal além da cor (daltonismo). Cada forma
-// emparelha uma cor quente com uma fria.
-const FORMAS_DAS_MOEDAS = {
-  BTC: 'circle', XRP: 'circle',
-  ETH: 'rect', PAXG: 'rect',
-  BNB: 'triangle', LINK: 'triangle',
-  SOL: 'rectRot', ADA: 'rectRot',
-  DOGE: 'rectRounded', LTC: 'rectRounded',
-}
-export const formaDaMoeda = (moeda) => FORMAS_DAS_MOEDAS[moeda] || 'circle'
 
 // Escurece uma cor hex por um fator (0-1). As cores de marca das moedas são
 // tons médios: ótimas como preenchimento, mas reprovam em contraste quando
@@ -125,10 +116,6 @@ export const textoSobre = (cor) =>
 export const MOEDAS_DA_PALETA = Object.freeze(Object.keys(CORES_DAS_MOEDAS))
 export { MINIMO_TEXTO }
 
-// Azul do epsilon. Não há token para ele; no claro escurece pelo mesmo motivo
-// da tinta das moedas (#5CB8FF sobre branco não chega a 2,5:1).
-export const azulEpsilon = (escuro) => (escuro ? '#5CB8FF' : escurecer('#5CB8FF', 0.55))
-
 const vazio = (v) => v === null || v === undefined || Number.isNaN(Number(v))
 
 // Idioma dos números da tela. As datas já seguiam o idioma escolhido no app
@@ -162,12 +149,6 @@ export const formatarPercentual = (valor, casas = 2) => {
   return `${formatarNumero(Number(valor) * 100, casas)}%`
 }
 
-export const formatarData = (valor, locale) => {
-  if (!valor) return '–'
-  const d = new Date(valor)
-  return Number.isNaN(d.getTime()) ? String(valor) : d.toLocaleString(locale)
-}
-
 export const formatarHora = (ms, locale, comSegundos = false) =>
   new Date(ms).toLocaleTimeString(locale, {
     hour: '2-digit',
@@ -188,62 +169,6 @@ export const formatarDia = (valor, locale) => {
  * Dia, mês e ano ("01/02/2023"). Para a janela de dados de um episódio, que
  * pode ser de outro ano: o treino percorre o histórico do dataset.
  */
-export const formatarDiaComAno = (valor, locale) => {
-  const d = new Date(valor)
-  return Number.isNaN(d.getTime())
-    ? ''
-    : d.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' })
-}
-
-// Rótulo curto de um intervalo: só as horas quando cabe no mesmo dia,
-// data e hora quando atravessa a meia-noite.
-export const formatarIntervalo = (inicio, fim, locale) => {
-  const a = new Date(inicio)
-  const b = new Date(fim)
-  const mesmoDia = a.toDateString() === b.toDateString()
-  const dia = (d) => d.toLocaleDateString(locale, { day: '2-digit', month: '2-digit' })
-  return mesmoDia
-    ? `${dia(a)} ${formatarHora(inicio, locale)}–${formatarHora(fim, locale)}`
-    : `${dia(a)} ${formatarHora(inicio, locale)} – ${dia(b)} ${formatarHora(fim, locale)}`
-}
-
-// Duração legível ("1 h 25 min", "45 min", "12 s"), pelo Intl quando há
-// suporte a unidades; sem ele, a abreviação internacional.
-export const formatarDuracao = (ms, locale) => {
-  const s = Math.max(0, Math.round(ms / 1000))
-  const un = (valor, unidade) => {
-    try {
-      return new Intl.NumberFormat(locale, { style: 'unit', unit: unidade, unitDisplay: 'short' }).format(valor)
-    } catch {
-      return `${valor} ${{ day: 'd', hour: 'h', minute: 'min' }[unidade] ?? 's'}`
-    }
-  }
-  if (s < 60) return un(s, 'second')
-  const min = Math.floor(s / 60)
-  if (min < 60) return un(min, 'minute')
-  const h = Math.floor(min / 60)
-  if (h >= 48 && h % 24 === 0 && min % 60 === 0) return un(h / 24, 'day')
-  const resto = min % 60
-  return resto > 0 ? `${un(h, 'hour')} ${un(resto, 'minute')}` : un(h, 'hour')
-}
-
-// "há 12 s", "há 3 min" — relativo ao agora, no idioma da tela.
-export const formatarHaQuanto = (ms, locale) => {
-  const s = Math.round(ms / 1000)
-  let rtf
-  try {
-    rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto', style: 'short' })
-  } catch {
-    rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto', style: 'short' })
-  }
-  if (s < 60) return rtf.format(-s, 'second')
-  const min = Math.round(s / 60)
-  if (min < 60) return rtf.format(-min, 'minute')
-  const h = Math.round(min / 60)
-  if (h < 48) return rtf.format(-h, 'hour')
-  return rtf.format(-Math.round(h / 24), 'day')
-}
-
 // Sinal explícito para variações ("+0,12", "−0,05").
 export const comSinal = (texto, valor) => (valor > 0 ? `+${texto}` : texto)
 
@@ -254,17 +179,4 @@ export const estiloDeTabela = {
   '& th': { color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap' },
   '& .MuiTableSortLabel-root, & .MuiTableSortLabel-root:hover, & .MuiTableSortLabel-root.Mui-active': { color: 'inherit' },
   '& .MuiTableSortLabel-icon': { color: 'inherit !important' },
-}
-
-// Comparação que aceita número, texto e ausente. Ausente vai sempre para o fim,
-// nos dois sentidos: um episódio sem win rate não é "o menor win rate".
-export const compararPor = (chave, ordem) => (a, b) => {
-  const va = chave === 'dataHora' ? new Date(a.dataHora).getTime() : a[chave]
-  const vb = chave === 'dataHora' ? new Date(b.dataHora).getTime() : b[chave]
-  const ausenteA = va === null || va === undefined || Number.isNaN(va)
-  const ausenteB = vb === null || vb === undefined || Number.isNaN(vb)
-  if (ausenteA || ausenteB) return ausenteA === ausenteB ? 0 : ausenteA ? 1 : -1
-  if (va === vb) return 0
-  const cmp = typeof va === 'string' ? va.localeCompare(vb) : va > vb ? 1 : -1
-  return ordem === 'asc' ? cmp : -cmp
 }

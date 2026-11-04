@@ -152,11 +152,9 @@ O robô é o motor de risco, que opera só o BTC e com dinheiro de mentira.
 - Indicadores técnicos.
 - Sinais gerados pelo algoritmo.
 
-### Métricas de treinamento (RL)
-- Reward por episódio.
-- Convergência do modelo.
-- Distribuição de ações.
-- Evolução do aprendizado.
+### ~~Métricas de treinamento (RL)~~ (retirado em 04/11/2026)
+A tela de treino existiu de 09/2026 a 04/11/2026 e saiu com o agente de aprendizado por reforço,
+aposentado sem vantagem sobre uma regra simples (`docs/aposentadoria-do-agente.md` do Back-Python).
 
 **Entregável final:** plataforma de pesquisa e experimentação de estratégias.
 

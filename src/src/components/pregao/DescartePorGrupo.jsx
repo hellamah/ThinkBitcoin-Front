@@ -6,7 +6,7 @@ import FormControlLabel from '@mui/material/FormControlLabel'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import ErrorMessage from '../ErrorMessage'
-import { Painel } from '../treinamento/Painel'
+import { Painel } from '../comum/Painel'
 import useTranslation from '../../hooks/useTranslation'
 import { DECISOES, TAMANHO_MOTIVO, conferirMotivo, gruposDeDescarte } from '../../utils/pedidoAlteracao'
 

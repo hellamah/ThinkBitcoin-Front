@@ -24,8 +24,9 @@ candles que o dashboard já carregou. O usuário escolhe um sinal de entrada, um
 regra de saída e um custo, e vê a curva de capital, as métricas e a lista de
 trades.
 
-**Não é** o backtest do agente. Esse já existe, em
-`ThinkBitcoin-Back-Python/src/ScriptComum/backtest/Backtester.py`, e faz outra
+**Não é** o backtest do agente. Esse existiu até 04/11/2026, em
+`ThinkBitcoin-Back-Python/src/ScriptComum/backtest/Backtester.py`, quando saiu com
+o agente aposentado (`docs/aposentadoria-do-agente.md` do Back-Python), e fazia outra
 coisa: replay do agente treinado (DQN/Q-Learning) sobre o histórico com
 `epsilon=0`. Os dois convivem — um mede *regra escolhida por humano*, o outro
 mede *política aprendida pela máquina*.

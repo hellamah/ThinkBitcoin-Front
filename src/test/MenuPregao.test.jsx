@@ -63,21 +63,12 @@ describe('Menu do Pregão no cabeçalho', () => {
     expect(screen.getByRole('button', { name: 'nav.pregaoMenu: nav.pregaoEsperando' })).toBeTruthy()
   })
 
-  it('abre as telas de administrador: a fila, a página aberta, o robô ao vivo e o histórico do treino', async () => {
+  // A tela de treino saiu em 04/11/2026, com o agente DQN aposentado.
+  it('abre as três telas de administrador: a fila, a página aberta e o robô ao vivo', async () => {
     renderizar(<Cabecalho />)
     fireEvent.click(screen.getByRole('button', { name: /nav\.pregaoMenu/ }))
     const itens = await screen.findAllByRole('menuitem')
-    expect(itens.map((i) => i.getAttribute('href'))).toEqual(['/pedidos-pregao', '/pregao', '/robo-ao-vivo', '/treinamento-episodios'])
-  })
-
-  // O detalhe de um episódio (/treinamento-episodios/:id) é a mesma tela.
-  it('marca o histórico do treino também no detalhe de um episódio', async () => {
-    renderizar(<Cabecalho />, '/treinamento-episodios/abc')
-    const botao = screen.getByRole('button', { name: /nav\.pregaoMenu/ })
-    expect(botao.classList.contains('active')).toBe(true)
-    fireEvent.click(botao)
-    const itens = await screen.findAllByRole('menuitem')
-    expect(itens[3].classList.contains('Mui-selected')).toBe(true)
+    expect(itens.map((i) => i.getAttribute('href'))).toEqual(['/pedidos-pregao', '/pregao', '/robo-ao-vivo'])
   })
 
   it('marca a tela em que se está, no botão e no item', async () => {

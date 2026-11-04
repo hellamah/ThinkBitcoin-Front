@@ -543,538 +543,12 @@ const criarMockCobranca = (body) => {
   return mockCobranca
 }
 
-// ─── Mock: Treinamento de IA (episódios) ──────────────────────────────────
-// Espelha o contrato de /api/TreinamentoEpisodio (LIST paginado por janela de
-// datas, RESUMO e SERIE) para que /treinamento-episodios funcione em modo mock
-// como as demais telas. Sem este mock, a página cai no backend real com o token
-// mockado, leva 401 e desloga a sessão inteira.
-//
-// Imita também o FORMATO dos dados reais, e não só o contrato. O mock anterior
-// tinha três treinos separados por pausas de 40 min, numeração corrida de 1 a
-// 465 e nove moedas em ordem fixa: nada do que a tela aprendeu com os dados
-// reais dava para conferir sem login. Agora, como no treinador
-// (ScriptComum/services/training_service.py) e na API:
-//   · cada treino tem 300 episódios e a numeração recomeça em 1, com 5 a 8 min
-//     entre um treino e o seguinte — abaixo do limiar de lacuna da tela (30
-//     min), então só o reinício da numeração separa os ciclos;
-//   · o epsilon volta a 1 a cada treino e cai ~1,5% por episódio (0,999985 por
-//     step, 1000 steps) até o piso de 0,05; o reward do começo é pior por isso;
-//   · a cada 23 episódios, três gravados no mesmo segundo, que a API devolve em
-//     ordem decrescente (#189 antes de #187);
-//   · dez moedas, em rodadas embaralhadas sobre a mesma janela de dados: o
-//     reward de uma rodada sobe e desce junto, porque é o mesmo mercado;
-//   · o loss é da rede, quase igual entre as moedas da mesma rodada;
-//   · totalSteps é a soma das ações, e rewardTotal = rewardMedio × steps;
-//   · a versão do modelo muda entre treinos, a cada 16h (a janela de 24h pega
-//     sempre ao menos uma troca);
-//   · cada episódio traz o acerto por trade (trades fechados, vencedores,
-//     retorno médio e acertoTrades, que a API calcula): explorando, muito giro
-//     e pouco acerto; no piso do epsilon, o contrário;
-//   · cada episódio traz a janela de dados que negociou (dataInicioDados e
-//     dataFimDados): 1000 velas horárias por rodada, andando para trás no
-//     dataset — o mercado que o agente viu não é o da hora em que ele rodou;
-//   · cada treino termina com a avaliação out-of-sample da sessão (validação,
-//     teste, campeão, promoção), em /api/TreinamentoEpisodio/avaliacoes;
-//   · três dias de histórico, para as janelas da análise terem o que mostrar;
-//   · antes do encerramento (TREINO_ENCERRADO_MS), o treino continuava depois
-//     do load, um episódio a cada 20 s; com o relógio de teste antes dessa
-//     data, ainda dá para exercitar o polling, o status e a virada de ciclo.
-// O calendário dos treinos é contado de uma data fixa, e não do load: o mesmo
-// episódio tem o mesmo id, a mesma hora e os mesmos números em qualquer
-// recarga. Ancorado no load, tudo andava alguns minutos a cada F5, e o link de
-// um episódio ou de um ciclo enquadrado deixava de bater com os dados.
-const TREINO_COINS = ['BTC', 'ETH', 'BNB', 'SOL', 'XRP', 'ADA', 'DOGE', 'LTC', 'LINK', 'PAXG']
-const TREINO_EPISODIOS_POR_CICLO = 300
-const TREINO_PASSO_MS = 20 * 1000
-const TREINO_PAUSAS_MIN = [5, 7, 6, 8]
-// Lote de 1000 velas e até 1000 steps por episódio: min(1000, 1000 − 1).
-const TREINO_STEPS = 999
-const TREINO_RAJADA_A_CADA = 23
-const TREINO_HISTORICO_MS = 72 * 3600 * 1000
-const TREINO_FUTURO_MS = 24 * 3600 * 1000
-const TREINO_EPOCA = Date.UTC(2026, 0, 1)
-// O treino acabou: o agente foi encerrado em 22/10/2026 (docs/agente-v9.md do
-// Back-Python), e o último episódio do banco é das 12:20 UTC desse dia. O
-// relógio do mock do treino para aí, para o modo demo (o do Trader) mostrar o
-// que o cliente vê no cluster: o treino parado, e não andando na hora do load.
-export const TREINO_ENCERRADO_MS = Date.UTC(2026, 9, 22, 12, 20, 33)
-const treinoAgora = () => Math.min(Date.now(), TREINO_ENCERRADO_MS)
-const TREINO_DURACAO_CICLO_MS = (TREINO_EPISODIOS_POR_CICLO - 1) * TREINO_PASSO_MS
-// As pausas se repetem de quatro em quatro ciclos: um bloco tem duração fixa.
-const TREINO_BLOCO_MS = TREINO_PAUSAS_MIN.reduce((soma, p) => soma + TREINO_DURACAO_CICLO_MS + p * 60 * 1000, 0)
-// A última é a v9 (docs/agente-v9.md no repositório Python): as sessões dela são
-// escolhidas pela régua do zoo, e a aba Validação as mostra pelo critério delas.
-const TREINO_VERSOES = ['v3.1.0', 'v3.2.1', 'v3.3.0', 'v9-diaria-so-comprado']
-const TREINO_VERSAO_V9 = 'v9-diaria-so-comprado'
-const TREINO_VERSAO_A_CADA_MS = 16 * 3600 * 1000
-
-// A janela de dados de cada rodada. O treinador percorre o dataset de trás para
-// a frente, um lote de 1000 velas horárias por rodada de moedas (as dez moedas
-// treinam no mesmo lote antes de o offset andar), e dá a volta ao chegar ao
-// começo. O dataset do mock são os 18 meses que terminam quatro meses antes do
-// mês corrente (os quatro meses seguintes fazem as vezes de holdout): contado
-// em mês, e não do load, para não mudar a cada recarga; e dentro dos dois anos
-// de velas do mock de mercado, para o contexto do episódio ter o que mostrar.
-const TREINO_VELAS_POR_LOTE = 1000
-const TREINO_HORA_MS = 3600 * 1000
-const treinoMesCorrente = new Date()
-const TREINO_DATASET_FIM = Date.UTC(treinoMesCorrente.getUTCFullYear(), treinoMesCorrente.getUTCMonth() - 4, 1)
-const TREINO_DATASET_INICIO = Date.UTC(treinoMesCorrente.getUTCFullYear(), treinoMesCorrente.getUTCMonth() - 22, 1)
-const TREINO_LOTES_NO_DATASET = Math.floor(
-  (TREINO_DATASET_FIM - TREINO_DATASET_INICIO) / (TREINO_VELAS_POR_LOTE * TREINO_HORA_MS)
-)
-const treinoJanelaDaRodada = (rodada) => {
-  const lote = rodada % TREINO_LOTES_NO_DATASET
-  const fim = TREINO_DATASET_FIM - (lote * TREINO_VELAS_POR_LOTE + 1) * TREINO_HORA_MS
-  return { inicio: fim - (TREINO_VELAS_POR_LOTE - 1) * TREINO_HORA_MS, fim }
-}
-// Quanto cada moeda soma ao reward. A PAXG, lastreada em ouro, quase não se
-// mexe e rende menos.
-const TREINO_VIES_DA_MOEDA = {
-  BTC: 0.03, ETH: 0.02, BNB: 0.01, SOL: 0, XRP: -0.01,
-  ADA: -0.02, DOGE: 0.015, LTC: 0.005, LINK: -0.005, PAXG: -0.05,
-}
-
-// dataHora sem marca de fuso (YYYY-MM-DDTHH:mm:ss), imitando o `Kind=Unspecified`
-// que o EF Core devolve — mas com os componentes em UTC, que é o que a API real
-// faz: o carimbo vem sem sufixo e os valores SÃO UTC.
-//
-// Saía com os componentes LOCAIS, e isso tornava o modo demo incoerente consigo
-// mesmo: o front carimba o Z que falta (marcarUtcQuandoFaltarFuso), então lia o
-// episódio como tendo acontecido `offset` horas antes do `_ms` pelo qual o
-// próprio mock filtra. Em UTC-3, os episódios das últimas três horas ficavam
-// invisíveis: a lista os pedia numa janela onde não estavam, e abrir um deles
-// por link direto dava "episódio não encontrado".
-const treinoUtcNaive = (ms) => new Date(ms).toISOString().slice(0, 19)
-
-// Ruído determinístico em [−1, 1]: o mesmo episódio sai sempre igual.
-const treinoRuido = (semente) => {
-  const x = Math.sin(semente * 12.9898 + 78.233) * 43758.5453
-  return (x - Math.floor(x)) * 2 - 1
-}
-
-// Ordem das moedas numa rodada (Fisher–Yates com o ruído como sorteio).
-const treinoRodada = (rodada) => {
-  const moedas = [...TREINO_COINS]
-  for (let i = moedas.length - 1; i > 0; i--) {
-    const j = Math.floor(((treinoRuido(rodada * 101 + i) + 1) / 2) * (i + 1)) % (i + 1)
-    ;[moedas[i], moedas[j]] = [moedas[j], moedas[i]]
-  }
-  return moedas
-}
-
-// Início do ciclo `c`, contado desde a época.
-const treinoInicioDoCiclo = (c) => {
-  const porBloco = TREINO_PAUSAS_MIN.length
-  let ms = TREINO_EPOCA + Math.floor(c / porBloco) * TREINO_BLOCO_MS
-  for (let k = 0; k < c % porBloco; k++) ms += TREINO_DURACAO_CICLO_MS + TREINO_PAUSAS_MIN[k] * 60 * 1000
-  return ms
-}
-
-let treinoCache = null
-// Os episódios dos três dias antes do load até um dia depois, em ordem de
-// gravação. Quem lê filtra pelo relógio (treinoFiltrar): o que ainda não
-// "aconteceu" não aparece.
-const buildTreinoEpisodios = () => {
-  if (treinoCache) return treinoCache
-  const N = TREINO_EPISODIOS_POR_CICLO
-  const agora = treinoAgora()
-  const desde = agora - TREINO_HISTORICO_MS
-  const ate = agora + TREINO_FUTURO_MS
-  let c = Math.floor((desde - TREINO_EPOCA) / TREINO_BLOCO_MS) * TREINO_PAUSAS_MIN.length
-  while (treinoInicioDoCiclo(c) + TREINO_DURACAO_CICLO_MS < desde) c++
-  const eps = []
-  for (; treinoInicioDoCiclo(c) <= ate; c++) {
-    const inicioDoCiclo = treinoInicioDoCiclo(c)
-    const nVersao = Math.floor((inicioDoCiclo - TREINO_EPOCA) / TREINO_VERSAO_A_CADA_MS) % TREINO_VERSOES.length
-    // Cada versão chega a um patamar um pouco diferente, e cada treino varia
-    // um tanto em volta dele.
-    const habilidade = 0.4 + 0.03 * nVersao + 0.02 * treinoRuido(c * 29 + 11)
-    for (let i = 0; i < N; i++) {
-      const seq = c * N + i
-      // Rajada: o 1º e o 2º episódios saem com o carimbo do 3º. Nunca a partir
-      // do 1º episódio do treino: ele levaria o carimbo do 3º, 40 s depois do
-      // início, e a pausa antes do treino passaria das de TREINO_PAUSAS_MIN
-      // (8 min viravam 8 min 40 s no treino múltiplo de 92).
-      const k = seq % TREINO_RAJADA_A_CADA
-      const emRajada = k <= 2 && i - k >= 1 && i - k + 2 < N
-      const ms = inicioDoCiclo + (emRajada ? i - k + 2 : i) * TREINO_PASSO_MS
-      const rodada = Math.floor(seq / TREINO_COINS.length)
-      const moeda = treinoRodada(rodada)[seq % TREINO_COINS.length]
-      const janela = treinoJanelaDaRodada(rodada)
-      const epsilon = Math.max(0.05, 0.985 ** i)
-      const mercado = 0.06 * treinoRuido(rodada * 7 + 3)
-      const rewardMedio = -0.06 + (1 - epsilon) * habilidade + TREINO_VIES_DA_MOEDA[moeda]
-        + mercado + 0.035 * treinoRuido(seq * 3 + 1)
-      // Com epsilon 1 o agente sorteia a ação; treinado, segura mais do que opera.
-      const pHold = epsilon / 3 + (1 - epsilon) * (0.58 + 0.05 * treinoRuido(seq * 17 + 7))
-      const pCompra = epsilon / 3 + (1 - epsilon) * (0.23 + 0.03 * treinoRuido(seq * 19 + 8))
-      const acoesHold = Math.round(pHold * TREINO_STEPS)
-      const acoesCompra = Math.round(pCompra * TREINO_STEPS)
-      // Acerto por trade, como o treinador conta (trades fechados, líquidos da
-      // taxa): explorando, o agente gira muito e acerta pouco; no piso do
-      // epsilon, gira menos e acerta mais.
-      const trades = Math.max(0, Math.round(TREINO_STEPS * (1 - pHold) * (0.08 + 0.22 * epsilon)
-        + 3 * treinoRuido(seq * 29 + 5)))
-      const acerto = Math.min(0.9, Math.max(0.05, 0.36 + 0.6 * (1 - epsilon) * (habilidade - 0.25)
-        + 2 * TREINO_VIES_DA_MOEDA[moeda] + 0.05 * treinoRuido(seq * 31 + 6)))
-      const tradesVencedores = Math.round(trades * acerto)
-      eps.push({
-        idTreinamentoEpisodio: `mock-treino-${seq}`,
-        episodio: i + 1,
-        dataHora: treinoUtcNaive(ms),
-        // O carimbo tem precisão de segundo; o filtro usa o mesmo instante.
-        _ms: Math.floor(ms / 1000) * 1000,
-        moeda,
-        versaoModelo: TREINO_VERSOES[nVersao],
-        rewardMedio,
-        rewardTotal: rewardMedio * TREINO_STEPS,
-        lossMedia: 0.05 + 0.55 * epsilon ** 1.5 + 0.008 * treinoRuido(rodada * 11 + 4)
-          + 0.002 * treinoRuido(seq * 13 + 6),
-        epsilon,
-        winRate: Math.min(0.9, Math.max(0.05, 0.32 + 0.45 * rewardMedio + 0.03 * treinoRuido(seq * 5 + 2))),
-        duracaoSegundos: 13 + 2.5 * treinoRuido(seq * 23 + 9),
-        acoesHold,
-        acoesCompra,
-        acoesVenda: TREINO_STEPS - acoesHold - acoesCompra,
-        totalSteps: TREINO_STEPS,
-        dataInicioDados: treinoUtcNaive(janela.inicio),
-        dataFimDados: treinoUtcNaive(janela.fim),
-        trades,
-        tradesVencedores,
-        retornoMedioTrade: trades > 0 ? -0.002 + 0.03 * (acerto - 0.4) + 0.0015 * treinoRuido(seq * 37 + 7) : null,
-        // Calculado pela API (TreinamentoEpisodioRespostaModelo.AcertoTrades).
-        acertoTrades: trades > 0 ? tradesVencedores / trades : null,
-      })
-    }
-  }
-  treinoCache = eps
-  return eps
-}
-
-const treinoQuery = (endpoint) =>
+// Auxiliares que os mocks do zoo, do robô e do Pregão usam. Até 04/11/2026
+// moravam na seção do treino do agente DQN, que saiu com a tela de treino.
+const lerQuery = (endpoint) =>
   endpoint.includes('?') ? new URLSearchParams(endpoint.split('?')[1]) : new URLSearchParams()
-// Remove o campo interno _ms antes de devolver ao front.
-const treinoStrip = ({ _ms, ...rest }) => rest
-
-// Primeiro índice da lista (em ordem de gravação) com _ms > ms, ou >= ms.
-const treinoIndiceDepois = (lista, ms, inclusive) => {
-  let lo = 0
-  let hi = lista.length
-  while (lo < hi) {
-    const meio = (lo + hi) >> 1
-    if (inclusive ? lista[meio]._ms <= ms : lista[meio]._ms < ms) lo = meio + 1
-    else hi = meio
-  }
-  return lo
-}
-
-const treinoInstante = (texto, padrao) => {
-  const ms = texto ? new Date(texto).getTime() : NaN
-  return Number.isFinite(ms) ? ms : padrao
-}
-
-// Os filtros da API: moeda e versão sem diferenciar maiúsculas, dataInicio e
-// dataFim INCLUSIVOS (DataHora >= início e <= fim), e nada depois do relógio.
-const treinoFiltrar = (q) => {
-  const todos = buildTreinoEpisodios()
-  const inicio = treinoInstante(q.get('dataInicio'), -Infinity)
-  const fim = Math.min(treinoInstante(q.get('dataFim'), Infinity), treinoAgora())
-  let lista = todos.slice(treinoIndiceDepois(todos, inicio, false), treinoIndiceDepois(todos, fim, true))
-  const moeda = q.get('moeda')?.toUpperCase()
-  const versao = q.get('versaoModelo')?.toUpperCase()
-  if (moeda) lista = lista.filter((e) => e.moeda === moeda)
-  if (versao) lista = lista.filter((e) => e.versaoModelo.toUpperCase() === versao)
-  return lista
-}
-
-const mockTreinoList = (endpoint) => {
-  const q = treinoQuery(endpoint)
-  const quantidade = Math.max(1, parseInt(q.get('quantidade'), 10) || 50)
-  const pagina = Math.max(1, parseInt(q.get('pagina'), 10) || 1)
-  const lista = treinoFiltrar(q)
-  // A API ordena só por DataHora. Em ordem decrescente, os episódios do mesmo
-  // segundo saem do maior para o menor — a ordenação da tela é que desempata.
-  const ordenada = q.get('ordenarAscendente') === 'true' ? lista : [...lista].reverse()
-  const totalRegistros = ordenada.length
-  return {
-    mensagem: 'Episódios de treinamento (mock)',
-    resultado: {
-      lista: ordenada.slice((pagina - 1) * quantidade, pagina * quantidade).map(treinoStrip),
-      totalRegistros,
-      totalPaginas: Math.ceil(totalRegistros / quantidade),
-      paginaAtual: pagina,
-    },
-  }
-}
-
-// Como ResumoTreinamentoEpisodioModelo: por moeda, o primeiro e o último
-// episódio por DataHora dentro dos filtros.
-const mockTreinoResumo = (endpoint) => {
-  const porMoeda = new Map()
-  for (const e of treinoFiltrar(treinoQuery(endpoint))) {
-    if (!porMoeda.has(e.moeda)) porMoeda.set(e.moeda, [])
-    porMoeda.get(e.moeda).push(e)
-  }
-  const resultado = [...porMoeda.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([moeda, eps]) => {
-      const primeiro = eps[0]
-      const ultimo = eps[eps.length - 1]
-      return {
-        moeda,
-        episodios: eps.length,
-        rewardInicial: primeiro.rewardMedio,
-        rewardAtual: eps.reduce((s, r) => s + r.rewardMedio, 0) / eps.length,
-        winRateInicial: primeiro.winRate,
-        winRateAtual: ultimo.winRate,
-        epsilonAtual: ultimo.epsilon,
-        lossMedio: eps.reduce((s, r) => s + r.lossMedia, 0) / eps.length,
-        dataHoraInicial: primeiro.dataHora,
-        dataHoraAtual: ultimo.dataHora,
-      }
-    })
-  return { mensagem: 'Resumo de treinamento (mock)', resultado }
-}
-
-// Como SerieTreinamentoEpisodioModelo: os `limite` mais recentes, em ordem, com
-// média móvel de `janela` (10 por padrão).
-const mockTreinoSerie = (endpoint) => {
-  const q = treinoQuery(endpoint)
-  const janela = parseInt(q.get('janela'), 10) > 0 ? parseInt(q.get('janela'), 10) : 10
-  const limite = parseInt(q.get('limite'), 10) > 0 ? parseInt(q.get('limite'), 10) : 500
-  const eps = treinoFiltrar(q).slice(-limite)
-  const mm = (i, chave) => {
-    const de = Math.max(0, i - janela + 1)
-    let soma = 0
-    for (let j = de; j <= i; j++) soma += eps[j][chave]
-    return soma / (i - de + 1)
-  }
-  const resultado = eps.map((e, i) => ({
-    moeda: e.moeda,
-    versaoModelo: e.versaoModelo,
-    dataHora: e.dataHora,
-    episodio: e.episodio,
-    rewardMedio: e.rewardMedio,
-    rewardMedioMediaMovel: mm(i, 'rewardMedio'),
-    winRate: e.winRate,
-    winRateMediaMovel: mm(i, 'winRate'),
-    lossMedia: e.lossMedia,
-    lossMediaMovel: mm(i, 'lossMedia'),
-    epsilon: e.epsilon,
-  }))
-  return { mensagem: 'Série de treinamento (mock)', resultado }
-}
-
-// Avaliação out-of-sample de cada sessão (/api/TreinamentoEpisodio/avaliacoes),
-// como AvaliacaoSessaoTreinoModelo: uma por treino, 2 min depois do último
-// episódio, dentro da pausa até o seguinte. Versões mais novas rendem mais; uma
-// sessão vira o campeão quando bate o passivo e o melhor das 12 anteriores.
-// Tudo calculado pelo índice do treino no calendário fixo, e não em cadeia a
-// partir do primeiro carregado: a mesma sessão dá o mesmo resultado em qualquer
-// recarga.
-const TREINO_AVALIACAO_APOS_MS = 2 * 60 * 1000
-const treinoScoreDaSessao = (c) => {
-  const nVersao = Math.floor((treinoInicioDoCiclo(c) - TREINO_EPOCA) / TREINO_VERSAO_A_CADA_MS) % TREINO_VERSOES.length
-  return -0.012 + 0.009 * nVersao + 0.018 * treinoRuido(c * 41 + 1)
-}
-const treinoParteDaAvaliacao = (mediana, semente, linhas) => ({
-  medianaSobrePassivo: mediana,
-  alfa: mediana + 0.09 + 0.02 * treinoRuido(semente + 1),
-  retornoAgente: mediana - 0.015 + 0.01 * treinoRuido(semente + 2),
-  retornoBuyHold: -0.11 + 0.03 * treinoRuido(semente + 3),
-  moedasBatendoPassivo: Math.max(0, Math.min(10, Math.round(5 + mediana * 120))),
-  moedasBatendoBuyHold: Math.max(0, Math.min(10, Math.round(8 + mediana * 40))),
-  moedasAvaliadas: 10,
-  trades: Math.round(280 + 60 * treinoRuido(semente + 4)),
-  linhas,
-})
-
-// A régua da v9 na validação de 30%: a média de 200 dias em cada janela (os
-// números reais, medidos em 08/10/2026) e o piso de acaso (09/10/2026).
-const TREINO_REGRA_V9 = { 'parte-1': -1.797, 'parte-2': 3.568, 'parte-3': -1.507, validacao: -0.837 }
-const TREINO_PISO_V9 = 1.1843
-
-// Uma sessão da v9: o Calmar do agente em cada janela anda em volta do da
-// validação inteira, e a escolha segue o worker (régua, lucro, piso, campeão).
-const treinoAvaliacaoV9 = (c, campeao) => {
-  const score = 0.75 + 0.75 * treinoRuido(c * 41 + 1)
-  const desvio = { 'parte-1': -0.9, 'parte-2': 2.6, 'parte-3': -0.4, validacao: 0 }
-  const regua = Object.entries(desvio).map(([janela, d], i) => {
-    const calmarAgente = janela === 'validacao' ? score : score + d + 0.6 * treinoRuido(c * 61 + i)
-    const aprovadasAgente = Math.max(0, Math.min(10, Math.round(2 + calmarAgente)))
-    return {
-      janela,
-      calmarAgente,
-      aprovadasAgente,
-      calmarRegra: TREINO_REGRA_V9[janela],
-      aprovadasRegra: 0,
-      bate: calmarAgente > TREINO_REGRA_V9[janela],
-    }
-  })
-  const batidas = regua.filter((j) => j.bate).length
-  let motivo = null
-  let motivoCodigo = null
-  let scoreCampeao = null
-  if (batidas < regua.length) {
-    motivo = `não bate a média de 200 dias na validação inteira e em cada parte (bate em ${batidas} de ${regua.length})`
-    motivoCodigo = 'abaixo-da-regra'
-  } else if (score <= 0) {
-    motivo = `bate a média de 200 dias, mas perde dinheiro na validação inteira (Calmar mediano ${score.toFixed(2)})`
-    motivoCodigo = 'sem-lucro-na-validacao'
-  } else if (score <= TREINO_PISO_V9) {
-    motivo = `Calmar mediano ${score.toFixed(2)} não passa do piso de acaso (${TREINO_PISO_V9.toFixed(2)}, o percentil 95 de redes sem treino)`
-    motivoCodigo = 'abaixo-do-acaso'
-  } else if (campeao !== null && score <= campeao) {
-    scoreCampeao = campeao
-    motivo = `o campeão atual tem Calmar mediano ${campeao.toFixed(2)} na mesma validação`
-    motivoCodigo = 'abaixo-do-campeao'
-  }
-  return { score, regua, motivo, motivoCodigo, scoreCampeao, promovido: motivo === null }
-}
-
-let treinoAvaliacoesCache = null
-const buildTreinoAvaliacoes = () => {
-  if (treinoAvaliacoesCache) return treinoAvaliacoesCache
-  const agora = treinoAgora()
-  const ate = agora + TREINO_FUTURO_MS
-  let c = Math.floor((agora - TREINO_HISTORICO_MS - TREINO_EPOCA) / TREINO_BLOCO_MS) * TREINO_PAUSAS_MIN.length
-  const avaliacoes = []
-  let campeaoV9 = null
-  for (; treinoInicioDoCiclo(c) <= ate; c++) {
-    const ms = Math.floor((treinoInicioDoCiclo(c) + TREINO_DURACAO_CICLO_MS + TREINO_AVALIACAO_APOS_MS) / 1000) * 1000
-    const nVersao = Math.floor((treinoInicioDoCiclo(c) - TREINO_EPOCA) / TREINO_VERSAO_A_CADA_MS) % TREINO_VERSOES.length
-    const versao = TREINO_VERSOES[nVersao]
-    if (versao === TREINO_VERSAO_V9) {
-      const v9 = treinoAvaliacaoV9(c, campeaoV9)
-      if (v9.promovido) campeaoV9 = v9.score
-      avaliacoes.push({
-        idAvaliacaoSessaoTreino: `mock-avaliacao-${c}`,
-        dataHora: treinoUtcNaive(ms),
-        _ms: ms,
-        modelo: 'DQNAgent_v9',
-        versaoModelo: versao,
-        episodios: 40,
-        criterio: 'regua-zoo-contra-200d-validacao-3-partes',
-        score: v9.score,
-        scoreCampeao: v9.scoreCampeao,
-        promovido: v9.promovido,
-        motivo: v9.motivo,
-        motivoCodigo: v9.motivoCodigo,
-        fracaoHoldout: 0.3,
-        fracaoTeste: 0.5,
-        taxaTreino: 0.001,
-        taxaAvaliacao: 0.001,
-        validacao: treinoParteDaAvaliacao(0.004 + 0.01 * treinoRuido(c * 67), c * 53, 8034),
-        // A v9 não mede o teste nas sessões: ele é medido uma vez, com o _melhor final.
-        teste: null,
-        pisoDeAcaso: TREINO_PISO_V9,
-        regua: v9.regua,
-      })
-      continue
-    }
-    const score = treinoScoreDaSessao(c)
-    let campeao = 0.004
-    for (let j = c - 12; j < c; j++) campeao = Math.max(campeao, treinoScoreDaSessao(j))
-    let promovido = false
-    let motivo = null
-    let motivoCodigo = null
-    let scoreCampeao = null
-    if (score <= 0) {
-      motivo = 'não bate o passivo na moeda mediana'
-      motivoCodigo = 'abaixo-do-passivo'
-    } else {
-      // O campeão é medido de novo na validação desta sessão. O número dele anda
-      // pouco: entre uma sessão e outra a validação só ganha as velas novas.
-      scoreCampeao = campeao + 0.001 * treinoRuido(c * 47 + 3)
-      if (score <= scoreCampeao) {
-        const pct = scoreCampeao * 100
-        motivo = `o campeão atual rende ${pct >= 0 ? '+' : ''}${pct.toFixed(2)}% na mesma validação`
-        motivoCodigo = 'abaixo-do-campeao'
-      } else {
-        promovido = true
-      }
-    }
-    avaliacoes.push({
-      idAvaliacaoSessaoTreino: `mock-avaliacao-${c}`,
-      dataHora: treinoUtcNaive(ms),
-      _ms: ms,
-      modelo: `DQNAgent_${versao}`,
-      versaoModelo: versao,
-      episodios: TREINO_EPISODIOS_POR_CICLO,
-      criterio: 'mediana-vs-passivo-validacao',
-      score,
-      scoreCampeao,
-      promovido,
-      motivo,
-      motivoCodigo,
-      fracaoHoldout: 0.2,
-      fracaoTeste: 0.5,
-      taxaTreino: 0.004,
-      taxaAvaliacao: 0.001,
-      validacao: treinoParteDaAvaliacao(score, c * 53, 4380),
-      // O teste é o número honesto: fica abaixo da validação, que escolheu.
-      teste: treinoParteDaAvaliacao(score - 0.008 + 0.015 * treinoRuido(c * 43 + 2), c * 59, 4381),
-      pisoDeAcaso: null,
-      regua: null,
-    })
-  }
-  treinoAvaliacoesCache = avaliacoes
-  return avaliacoes
-}
-
-const mockTreinoAvaliacoes = (endpoint) => {
-  const q = treinoQuery(endpoint)
-  const inicio = treinoInstante(q.get('dataInicio'), -Infinity)
-  const fim = Math.min(treinoInstante(q.get('dataFim'), Infinity), treinoAgora())
-  const versao = q.get('versaoModelo')?.toUpperCase()
-  const quantidade = Math.min(1000, Math.max(1, parseInt(q.get('quantidade'), 10) || 200))
-  const resultado = buildTreinoAvaliacoes()
-    .filter((a) => a._ms >= inicio && a._ms <= fim && (!versao || a.versaoModelo.toUpperCase() === versao))
-    .reverse()
-    .slice(0, quantidade)
-    .map(treinoStrip)
-  return { mensagem: resultado.length > 0 ? 'Avaliações de treinamento (mock)' : 'Dados não encontrados', resultado }
-}
-
-// Como FiltrosTreinamentoEpisodioModelo: moedas e versões de todo o histórico
-// até agora, da versão que treinou por último para a mais antiga. As versões do
-// mock voltam em rodízio, e o período de uma vai do primeiro ao último episódio
-// dela, como o MIN/MAX da API.
-const mockTreinoFiltros = () => {
-  const eps = treinoFiltrar(new URLSearchParams())
-  const porVersao = new Map()
-  for (const e of eps) {
-    const v = porVersao.get(e.versaoModelo)
-    if (!v) porVersao.set(e.versaoModelo, { primeiro: e, ultimo: e, episodios: 1, moedas: new Set([e.moeda]) })
-    else {
-      v.ultimo = e
-      v.episodios += 1
-      v.moedas.add(e.moeda)
-    }
-  }
-  const atual = eps[eps.length - 1]?.versaoModelo ?? null
-  const agora = treinoAgora()
-  // O _melhor da v9 não opera ao vivo: só o critério do v8 decide o "ao vivo".
-  const aoVivo = buildTreinoAvaliacoes()
-    .filter((a) => a._ms <= agora && a.promovido && a.criterio === 'mediana-vs-passivo-validacao')
-    .pop()?.versaoModelo ?? null
-  const versoes = [...porVersao.entries()]
-    .sort(([, a], [, b]) => b.ultimo._ms - a.ultimo._ms)
-    .map(([versao, v]) => ({
-      versao,
-      primeiroEpisodio: v.primeiro.dataHora,
-      ultimoEpisodio: v.ultimo.dataHora,
-      episodios: v.episodios,
-      moedas: [...v.moedas].sort(),
-      atual: versao === atual,
-      aoVivo: versao === aoVivo,
-    }))
-  return {
-    mensagem: versoes.length > 0 ? 'Filtros de treinamento (mock)' : 'Dados não encontrados',
-    resultado: { moedas: [...new Set(eps.map((e) => e.moeda))].sort(), versoes },
-  }
-}
+// Como a API devolve DateTime sem fuso: ISO até os segundos, sem o Z.
+const utcSemFuso = (ms) => new Date(ms).toISOString().slice(0, 19)
 
 // Alertas de preço do modo demo. Em memória de propósito: o valor do exercício
 // é ver a lista mudar ao criar e excluir, não sobreviver ao reload.
@@ -1228,7 +702,7 @@ const DIA_MS = 24 * 60 * 60 * 1000
 const mockZooRodada = () => ({ mensagem: 'Rodada do zoo (mock)', resultado: RODADA_ZOO })
 
 const mockZooCurva = (endpoint) => {
-  const q = treinoQuery(endpoint)
+  const q = lerQuery(endpoint)
   const moeda = (q.get('moeda') || '').trim().toUpperCase()
   if (!moeda) {
     const erro = new Error('Informe a moeda da curva.')
@@ -1275,7 +749,7 @@ const mockZooCurva = (endpoint) => {
 // velas das 23h reais de mockRoboAoVivo.js. Com a barra final, a rota segue no
 // mock antigo (buildSequenceResponse), que nenhuma tela usa.
 const mockSequenciasDoRobo = (endpoint) => {
-  const q = treinoQuery(endpoint)
+  const q = lerQuery(endpoint)
   const sigla = (q.get('siglaMoeda') || '').trim().toUpperCase()
   const utc = (v) => Date.parse(/([zZ]|[+-]\d{2}:?\d{2})$/.test(v) ? v : `${v}Z`)
   const dataInicio = q.get('dataInicio') ? utc(q.get('dataInicio')) : null
@@ -1303,7 +777,7 @@ const mockSequenciasDoRobo = (endpoint) => {
 // paginação da FuncaoObterHistoricoDecisao, sobre as decisões reais guardadas
 // em mockRoboAoVivo.js. A data sem fuso é UTC, como no banco.
 const mockHistoricoDecisoes = (endpoint) => {
-  const q = treinoQuery(endpoint)
+  const q = lerQuery(endpoint)
   const sigla = (q.get('siglaMoeda') || '').trim().toUpperCase()
   const status = (q.get('status') || '').trim().toUpperCase()
   const utc = (v) => Date.parse(/([zZ]|[+-]\d{2}:?\d{2})$/.test(v) ? v : `${v}Z`)
@@ -1369,9 +843,9 @@ const sessaoMock = (endpoint, body) => {
 //
 // As datas andam com o relógio (horas antes do load), para "última vez" não
 // envelhecer na demo, e saem sem marca de fuso, como a API as serializa
-// (treinoUtcNaive).
+// (utcSemFuso).
 const PEDIDO_AGORA = Date.now()
-const pedidoHaHoras = (horas) => treinoUtcNaive(PEDIDO_AGORA - horas * 3600 * 1000)
+const pedidoHaHoras = (horas) => utcSemFuso(PEDIDO_AGORA - horas * 3600 * 1000)
 // O nome da rodada no Pregão (a pasta do diário): AAAA-MM-DD_HHMM.
 const rodadaHaHoras = (horas) => pedidoHaHoras(horas).slice(0, 16).replace('T', '_').replace(':', '')
 const ORDEM_DOS_TIPOS = ['errado', 'automatico', 'confuso', 'falta']
@@ -1594,7 +1068,7 @@ const respostaDaLista = (resultado) =>
   ({ mensagem: resultado.length ? 'Operação realizada com sucesso' : 'Dados não encontrados', resultado })
 
 const mockListarPedidos = (endpoint) => {
-  const q = treinoQuery(endpoint)
+  const q = lerQuery(endpoint)
   const status = (q.get('status') || '').trim().toLowerCase()
   const tipo = (q.get('tipo') || '').trim().toLowerCase()
   const agente = (q.get('agente') || '').trim().toLowerCase()
@@ -1666,7 +1140,7 @@ const mockDecidirPedido = (endpoint, body) => {
     erroDoPedido(`O pedido está ${pedido.status}: só se decide um pedido ${AGUARDANDO_DECISAO.join(' ou ')}.`)
   }
 
-  const agora = treinoUtcNaive(Date.now())
+  const agora = utcSemFuso(Date.now())
   const quem = decodeAuthenticationToken(getStoredToken())?.email || 'admin@teste.local'
   mockPedidos = mockPedidos.map((p) => (p === pedido
     ? {
@@ -1699,26 +1173,6 @@ const mockHandlers = [
     method: 'POST',
     match: (endpoint) => ROTA_DECISAO.test(endpoint),
     response: (endpoint, body) => mockDecidirPedido(endpoint, body),
-  },
-  {
-    method: 'GET',
-    match: (endpoint) => endpoint.split('?')[0] === '/api/TreinamentoEpisodio/resumo',
-    response: (endpoint) => mockTreinoResumo(endpoint),
-  },
-  {
-    method: 'GET',
-    match: (endpoint) => endpoint.split('?')[0] === '/api/TreinamentoEpisodio/serie',
-    response: (endpoint) => mockTreinoSerie(endpoint),
-  },
-  {
-    method: 'GET',
-    match: (endpoint) => endpoint.split('?')[0] === '/api/TreinamentoEpisodio/avaliacoes',
-    response: (endpoint) => mockTreinoAvaliacoes(endpoint),
-  },
-  {
-    method: 'GET',
-    match: (endpoint) => endpoint.split('?')[0] === '/api/TreinamentoEpisodio/filtros',
-    response: () => mockTreinoFiltros(),
   },
   {
     method: 'GET',
@@ -1757,11 +1211,6 @@ const mockHandlers = [
     method: 'GET',
     match: (endpoint) => endpoint.split('?')[0] === '/api/RoboAoVivo/radar',
     response: () => ({ mensagem: 'Operação realizada com sucesso', resultado: RADAR_ROBO }),
-  },
-  {
-    method: 'GET',
-    match: (endpoint) => endpoint.split('?')[0] === '/api/TreinamentoEpisodio',
-    response: (endpoint) => mockTreinoList(endpoint),
   },
   {
     method: 'POST',

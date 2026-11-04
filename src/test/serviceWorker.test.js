@@ -70,7 +70,7 @@ describe('service worker — o que ele NUNCA pode guardar', () => {
     ['cotação', `${ORIGEM}/ThinkBitcoin/moeda/btc/valor?pagina=1&quantidade=1000`],
     ['patrimônio', `${ORIGEM}/ThinkBitcoin/patrimonio/7`],
     ['planos de pagamento', `${ORIGEM}/ThinkBitcoin/planos-pagamento`],
-    ['episódios de treinamento', `${ORIGEM}/api/TreinamentoEpisodio/resumo`],
+    ['rodada do zoo', `${ORIGEM}/api/ZooEstrategia/rodada`],
   ])('não intercepta %s — a requisição segue direto para a rede', (_, url) => {
     const evento = eventoFetch(url)
 
@@ -102,7 +102,7 @@ describe('service worker — o que ele NUNCA pode guardar', () => {
     // Abrir um endpoint direto na barra de endereços chega como `navigate`, e
     // sem a guarda o SW responderia com o index.html guardado no lugar do que
     // a API devolve.
-    const evento = eventoFetch(`${ORIGEM}/api/TreinamentoEpisodio`, { modo: 'navigate' })
+    const evento = eventoFetch(`${ORIGEM}/api/ZooEstrategia/rodada`, { modo: 'navigate' })
 
     sw.listeners.fetch(evento)
 

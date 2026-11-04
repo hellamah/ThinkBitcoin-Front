@@ -19,7 +19,6 @@ const Dashboard = lazy(() => import('./pages/Dashboard.jsx'))
 const Login = lazy(() => import('./pages/Login.jsx'))
 const Settings = lazy(() => import('./pages/Settings.jsx'))
 const GeoHeatmapView = lazy(() => import('./pages/GeoHeatmapView.jsx'))
-const TreinamentoEpisodios = lazy(() => import('./pages/TreinamentoEpisodios.jsx'))
 const RedefinirSenha = lazy(() => import('./pages/RedefinirSenha.jsx'))
 const DocumentoLegal = lazy(() => import('./pages/DocumentoLegal.jsx'))
 const Simulacao = lazy(() => import('./pages/Simulacao.jsx'))
@@ -104,25 +103,9 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              {/* Só administrador desde 04/11/2026: o agente foi encerrado em
-                  22/10, e a tela ficou como histórico do treino. Para o
-                  cliente, era um item do menu sobre uma IA que não decide. */}
-              <Route
-                path="/treinamento-episodios"
-                element={
-                  <ProtectedRoute cargos={[AuthRole.ADMINISTRADOR]}>
-                    <TreinamentoEpisodios />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/treinamento-episodios/:id"
-                element={
-                  <ProtectedRoute cargos={[AuthRole.ADMINISTRADOR]}>
-                    <TreinamentoEpisodios />
-                  </ProtectedRoute>
-                }
-              />
+              {/* A tela de treino (/treinamento-episodios) saiu em 04/11/2026, com o
+                  agente DQN aposentado: o endereço antigo cai no "*" abaixo e volta
+                  para a Início. */}
               <Route
                 path="/estrategias"
                 element={

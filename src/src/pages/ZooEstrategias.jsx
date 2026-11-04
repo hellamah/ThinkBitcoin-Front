@@ -15,8 +15,8 @@ import { Chart as ChartJS, LogarithmicScale } from 'chart.js'
 import { Line } from 'react-chartjs-2'
 import { MdCheckCircle, MdShowChart, MdWarning } from 'react-icons/md'
 import ErrorMessage from '../components/ErrorMessage'
-import { comBordaDeEixo, corDaGrade, corDaLegenda, corDoTique, comAlfa, eixoDeTempo, tooltipBase } from '../components/treinamento/graficos'
-import { EstadoVazio, MoedaChip, Painel } from '../components/treinamento/Painel'
+import { comBordaDeEixo, corDaGrade, corDaLegenda, corDoTique, comAlfa, eixoDeTempo, tooltipBase } from '../components/comum/graficos'
+import { EstadoVazio, MoedaChip, Painel } from '../components/comum/Painel'
 import {
   comSinal,
   definirIdiomaDosNumeros,
@@ -24,7 +24,7 @@ import {
   formatarDataCurta,
   formatarNumero,
   formatarPercentual,
-} from '../components/treinamento/formato'
+} from '../components/comum/formato'
 import { useAuth } from '../context/AuthContext'
 import useZooEstrategia, { useCurvaZoo } from '../hooks/useZooEstrategia'
 import useTranslation from '../hooks/useTranslation'

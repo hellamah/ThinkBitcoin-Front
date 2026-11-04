@@ -3,10 +3,9 @@ import Chip from '@mui/material/Chip'
 import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
 import { useTheme } from '@mui/material/styles'
-import { corDaVariacao, formatarVariacaoDaMetrica, setaDaVariacao } from './graficos'
 import { corDaMoeda, tintaDaMoeda } from './formato'
 
-// Moldura comum dos blocos da tela. As cores vêm dos tokens de tema, então o
+// Moldura comum dos blocos das telas de dados (robô ao vivo, estratégias, Pregão). As cores vêm dos tokens de tema, então o
 // painel acompanha claro/escuro sem receber o modo por prop. `ref` chega como
 // prop comum (React 19) e vai para a <section>.
 export function Painel({ titulo, subtitulo, acao, children, sx, corpoSx, ref }) {
@@ -59,8 +58,8 @@ export function MoedaChip({ moeda, onClick, rotulo, sx }) {
       size="small"
       clickable={Boolean(onClick)}
       onClick={onClick}
-      // Sem ação, o chip vira <span>: ele aparece dentro de botões (lista de
-      // episódios), e um <div> ali dentro é HTML inválido.
+      // Sem ação, o chip vira <span>: ele pode aparecer dentro de botões, e um
+      // <div> ali dentro é HTML inválido.
       component={onClick ? undefined : 'span'}
       aria-label={rotulo}
       sx={{
@@ -80,17 +79,6 @@ export function EstadoVazio({ mensagem, children }) {
     <Box sx={{ py: 5, textAlign: 'center', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5 }}>
       <Typography variant="body2">{mensagem}</Typography>
       {children}
-    </Box>
-  )
-}
-
-// Variação colorida pelo sentido da métrica, com seta e sinal. `–` quando não
-// há base de comparação.
-export function Variacao({ d, id = 'rewardMedio' }) {
-  if (d === null || d === undefined) return <span>–</span>
-  return (
-    <Box component="span" sx={{ color: corDaVariacao(id, d), fontWeight: 600, whiteSpace: 'nowrap' }}>
-      <span aria-hidden="true">{setaDaVariacao(d)} </span>{formatarVariacaoDaMetrica(id, d)}
     </Box>
   )
 }
