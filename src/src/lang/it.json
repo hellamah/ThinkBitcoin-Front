@@ -1161,6 +1161,23 @@
       "erro": "Impossibile caricare le decisioni del robot.",
       "vazio": "Nessuna notte dall'attivazione."
     },
+    "radar": {
+      "title": "La regola sulle 10 monete",
+      "sub": "La stessa regola, con lo stesso calcolo, su ogni moneta dello zoo, dalla più vicina a cambiare lato alla più lontana. Solo informativo: il robot opera solo su BTC.",
+      "resumo": "{{dentro}} su {{total}} nel mercato alla chiusura del {{data}}.",
+      "colLado": "Lato della regola",
+      "colMudar": "Per cambiare lato",
+      "dentro": "Dentro · dose {{dose}}",
+      "fora": "Fuori",
+      "ha": "da {{dias}}",
+      "haMaisDe": "da più di {{dias}}",
+      "subir": "deve salire del {{falta}}",
+      "cair": "deve scendere del {{falta}}",
+      "jaPassou": "ha già superato la soglia",
+      "oRobo": "il robot",
+      "semDados": "Non ci sono ancora abbastanza chiusure per misurare la regola sulle monete.",
+      "erro": "Impossibile caricare il radar delle monete."
+    },
     "gatilho": {
       "titleFora": "Che cosa gli manca per comprare",
       "titleDentro": "Che cosa lo farebbe vendere",

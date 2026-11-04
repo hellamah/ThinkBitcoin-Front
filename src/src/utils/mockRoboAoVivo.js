@@ -15,6 +15,8 @@
 //   das 23h, e o modo demo traz só ela.
 // - REGRA_ROBO: a regra nos fechamentos reais do BTC até 27/10, como a rota do
 //   .NET a devolve.
+// - RADAR_ROBO: a mesma regra nas 10 moedas do zoo, com os fechamentos reais até
+//   27/10 (lidos em 04/11/2026), como a rota do .NET a devolve.
 
 const BTC = '4fbfec54-ec8a-4d0e-aaf8-095102896310'
 
@@ -339,4 +341,27 @@ export const REGRA_ROBO = {
       curtasComPerda: 50,
     },
   },
+}
+
+// O radar como GET api/RoboAoVivo/radar o devolve: a regra do motor nas 10 moedas
+// do zoo, pela conta do .NET, sobre os fechamentos reais até as 23h de 27/10/2026.
+const moedaDoRadar = (moeda, dentro, dose, diasNoEstadoAtual, distanciaDaMedia, gatilho, precoAtual, faltaParaOGatilho) => ({
+  moeda, ultimoFechamento: '2026-10-27T00:00:00', dentro, dose, diasNoEstadoAtual, diasNoMinimo: false,
+  distanciaDaMedia, gatilho, precoAtual, faltaParaOGatilho,
+})
+
+export const RADAR_ROBO = {
+  estrategia: "media_50d_vol_alvo_40",
+  moedas: [
+    moedaDoRadar('BTC', false, 0, 6, -0.011917985799187791, 81955.68000000001, 80909.77, 0.012926869029537436),
+    moedaDoRadar('ETH', false, 0, 20, -0.07397535701843982, 2539.2010204081635, 2350.36, 0.08034557276679455),
+    moedaDoRadar('BNB', false, 0, 16, -0.006718854794600881, 749.9373469387757, 744.94, 0.006708388512867591),
+    moedaDoRadar('SOL', false, 0, 16, -0.07439203036469044, 109.62061224489796, 101.35, 0.08160446220915607),
+    moedaDoRadar('XRP', false, 0, 21, -0.050418477787938176, 1.4016775510204083, 1.3313, 0.052863780530615356),
+    moedaDoRadar('ADA', false, 0, 12, -0.10468259694201298, 0.23030204081632652, 0.206, 0.11797107192391532),
+    moedaDoRadar('DOGE', false, 0, 20, -0.08922969194127217, 0.08676183673469388, 0.07908, 0.09714006998854186),
+    moedaDoRadar('LINK', false, 0, 14, -0.08580620006977013, 12.673285714285711, 11.583, 0.09412809412809375),
+    moedaDoRadar('LTC', false, 0, 6, -0.06848681618204966, 61.561428571428564, 57.21, 0.07606062876120534),
+    moedaDoRadar('PAXG', false, 0, 45, -0.03322261046479624, 4205.792448979592, 4068.94, 0.03363343990808221),
+  ],
 }

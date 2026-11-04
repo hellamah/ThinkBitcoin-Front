@@ -306,6 +306,19 @@ export const situacaoDoGatilho = (regra) => {
   return falta > 0 ? 'paraComprar' : 'comprariaHoje'
 }
 
+/**
+ * As linhas do radar, da moeda mais perto de mudar de lado para a mais longe (pelo
+ * tamanho da falta até o gatilho), com as moedas sem medida no fim, e a contagem de
+ * quantas das medidas estão dentro do mercado.
+ */
+export const linhasDoRadar = (radar) => {
+  const moedas = (radar?.moedas ?? []).map((m) => ({ ...m, situacao: situacaoDoGatilho(m), robo: m.moeda === MOEDA_MOTOR }))
+  const distancia = (m) => (m.situacao ? Math.abs(m.faltaParaOGatilho) : Infinity)
+  const linhas = [...moedas].sort((a, b) => distancia(a) - distancia(b))
+  const medidas = moedas.filter((m) => m.situacao)
+  return { linhas, medidas: medidas.length, dentro: medidas.filter((m) => m.dentro).length }
+}
+
 const ACOES_DE_COMPRA = [ACOES.COMPRAR_TUDO, ACOES.COMPRAR_PARCIAL]
 const ACOES_DE_VENDA = [ACOES.VENDER_TUDO, ACOES.VENDER_PARCIAL]
 

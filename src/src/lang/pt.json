@@ -1161,6 +1161,23 @@
       "erro": "Não foi possível carregar as decisões do robô.",
       "vazio": "Nenhuma noite desde a ativação."
     },
+    "radar": {
+      "title": "A regra nas 10 moedas",
+      "sub": "A mesma regra, com a mesma conta, em cada moeda do zoo, da mais perto de mudar de lado para a mais longe. Só informa: o robô opera só o BTC.",
+      "resumo": "{{dentro}} de {{total}} dentro do mercado no fechamento de {{data}}.",
+      "colLado": "Lado da regra",
+      "colMudar": "Para mudar de lado",
+      "dentro": "Dentro · dose {{dose}}",
+      "fora": "Fora",
+      "ha": "há {{dias}}",
+      "haMaisDe": "há mais de {{dias}}",
+      "subir": "falta subir {{falta}}",
+      "cair": "falta cair {{falta}}",
+      "jaPassou": "já passou do gatilho",
+      "oRobo": "o robô",
+      "semDados": "Ainda não há fechamentos suficientes para medir a regra nas moedas.",
+      "erro": "Não foi possível carregar o radar das moedas."
+    },
     "gatilho": {
       "titleFora": "O que falta para ele comprar",
       "titleDentro": "O que faria ele vender",

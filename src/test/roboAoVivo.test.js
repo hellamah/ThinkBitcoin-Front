@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { HistoricoDecisaoEndpoint, RoboAoVivoEndpoint, SequenciaRetornoEndpoint } from '../src/utils/apiClient'
 import { getMockResponse } from '../src/utils/mockApi'
-import { DECISOES_ROBO, PLACAR_ROBO, REGRA_ROBO, SEQUENCIAS_ROBO } from '../src/utils/mockRoboAoVivo'
+import { DECISOES_ROBO, PLACAR_ROBO, RADAR_ROBO, REGRA_ROBO, SEQUENCIAS_ROBO } from '../src/utils/mockRoboAoVivo'
 import {
   ATIVACAO_MOTOR,
   carteirasDoRobo,
@@ -10,6 +10,7 @@ import {
   estadoDeHoje,
   executouAoReligar,
   instanteUtc,
+  linhasDoRadar,
   noitesDoRobo,
   operacoesDoMotor,
   sequenciasDaBusca,
@@ -126,6 +127,34 @@ describe('a regra nos fechamentos', () => {
     expect(juntos.preco).toBe(juntos.gatilho)
     expect(juntos.preco).toBeGreaterThan(0)
     expect(juntos.preco).toBeLessThan(100)
+  })
+
+  it('o radar vai da moeda mais perto de mudar de lado para a mais longe, e as sem medida ficam no fim', () => {
+    const { linhas, medidas, dentro } = linhasDoRadar({
+      moedas: [
+        { moeda: 'ETH', dentro: false, faltaParaOGatilho: 0.08 },
+        { moeda: 'SOL', dentro: null, faltaParaOGatilho: null },
+        { moeda: 'BTC', dentro: false, faltaParaOGatilho: 0.05 },
+        { moeda: 'BNB', dentro: true, faltaParaOGatilho: -0.02 },
+        { moeda: 'XRP', dentro: false, faltaParaOGatilho: -0.01 },
+      ],
+    })
+    expect(linhas.map((l) => l.moeda)).toEqual(['XRP', 'BNB', 'BTC', 'ETH', 'SOL'])
+    expect(linhas.map((l) => l.situacao)).toEqual(['comprariaHoje', 'paraVender', 'paraComprar', 'paraComprar', null])
+    expect(linhas.find((l) => l.moeda === 'BTC').robo).toBe(true)
+    expect(medidas).toBe(4)
+    expect(dentro).toBe(1)
+    expect(linhasDoRadar(undefined)).toEqual({ linhas: [], medidas: 0, dentro: 0 })
+  })
+
+  it('o radar do modo demo concorda com a regra do BTC no mesmo dia', () => {
+    const resposta = getMockResponse({ endpoint: RoboAoVivoEndpoint.RADAR, method: 'GET' })
+    expect(resposta.resultado).toEqual(RADAR_ROBO)
+    const btc = RADAR_ROBO.moedas.find((m) => m.moeda === 'BTC')
+    expect(btc.ultimoFechamento).toBe(REGRA_ROBO.ultimoFechamento)
+    expect(btc.diasNoEstadoAtual).toBe(REGRA_ROBO.historico.diasNoEstadoAtual)
+    expect(btc.faltaParaOGatilho).toBeCloseTo(REGRA_ROBO.faltaParaOGatilho, 10)
+    expect(RADAR_ROBO.moedas).toHaveLength(10)
   })
 
   it('sem regra nem operações, as séries vêm vazias', () => {

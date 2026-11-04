@@ -2,7 +2,7 @@
 // import dinâmico e não viajar no bundle de produção.
 
 import { CURVAS_ZOO, RODADA_ZOO } from './mockZooEstrategia'
-import { DECISOES_ROBO, PLACAR_ROBO, REGRA_ROBO, SEQUENCIAS_ROBO } from './mockRoboAoVivo'
+import { DECISOES_ROBO, PLACAR_ROBO, RADAR_ROBO, REGRA_ROBO, SEQUENCIAS_ROBO } from './mockRoboAoVivo'
 import { CURVAS_ZOO_JANELA, RODADA_ZOO_JANELA } from './mockZooJanelaAgente'
 import { AuthRole, decodeAuthenticationToken, temCargo } from './authentication'
 import { getStoredToken } from './preferences'
@@ -1755,6 +1755,12 @@ const mockHandlers = [
     method: 'GET',
     match: (endpoint) => endpoint.split('?')[0] === '/api/RoboAoVivo/regra',
     response: () => ({ mensagem: 'Operação realizada com sucesso', resultado: REGRA_ROBO }),
+  },
+  // A regra nas 10 moedas do zoo, pronta como o .NET a devolve (mockRoboAoVivo.js).
+  {
+    method: 'GET',
+    match: (endpoint) => endpoint.split('?')[0] === '/api/RoboAoVivo/radar',
+    response: () => ({ mensagem: 'Operação realizada com sucesso', resultado: RADAR_ROBO }),
   },
   {
     method: 'GET',

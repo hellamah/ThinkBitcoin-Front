@@ -27,7 +27,7 @@ import {
 import { FONTE_DOS_NUMEROS, FONTE_DOS_TITULOS, entradaEmOrdem } from '../components/robo/estilo'
 import { miraVertical, rotulosFinais } from '../components/robo/pluginsDoGrafico'
 import { comAlfa, comBordaDeEixo, corDaGrade, corDoTique, eixoDeTempo, tooltipBase } from '../components/treinamento/graficos'
-import { EstadoVazio, Painel } from '../components/treinamento/Painel'
+import { EstadoVazio, MoedaChip, Painel } from '../components/treinamento/Painel'
 import {
   comSinal,
   definirIdiomaDosNumeros,
@@ -48,6 +48,7 @@ import {
   executouAoReligar,
   formatarEspera,
   instanteUtc,
+  linhasDoRadar,
   noitesDoRobo,
   saudeDoRobo,
   seriesDaRegra,
@@ -714,6 +715,96 @@ function IssoENormal({ regra, erro, ordem }) {
   )
 }
 
+// A mesma regra nas 10 moedas do zoo, da mais perto de mudar de lado para a mais
+// longe. Responde se a pausa do BTC é dele ou do mercado. Só informa: o robô opera
+// só no BTC, e mudar a moeda dele seria outra tentativa (docs/motor-de-risco.md).
+function Radar({ radar, erro, ordem }) {
+  const { t, idioma } = useTranslation()
+  if (erro) return <ErrorMessage message={t('robo.radar.erro')} />
+  const { linhas, medidas, dentro } = linhasDoRadar(radar)
+  const ultimo = linhas.map((l) => instanteUtc(l.ultimoFechamento)).filter((ms) => !Number.isNaN(ms)).sort((a, b) => b - a)[0]
+  const dias = (n) => (n === 1 ? t('robo.normal.umDia') : t('robo.normal.dias', { n }))
+  const quanto = (linha) => {
+    if (!linha.situacao) return '–'
+    const falta = pctSemSinal(Math.abs(linha.faltaParaOGatilho))
+    const [Icone, cor] = linha.situacao === 'paraComprar' ? [MdArrowDropUp, 'var(--perf-up)']
+      : linha.situacao === 'paraVender' ? [MdArrowDropDown, 'var(--perf-down)'] : [null, null]
+    if (!Icone) return <Box component="span" sx={{ color: 'var(--perf-warn)' }}>{t('robo.radar.jaPassou')}</Box>
+    // No celular, a seta e o número bastam: a frase inteira empurrava a coluna para fora.
+    return (
+      <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+        <Icone aria-hidden="true" size={20} color={cor} />
+        <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+          {t(linha.situacao === 'paraComprar' ? 'robo.radar.subir' : 'robo.radar.cair', { falta })}
+        </Box>
+        <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>{falta}</Box>
+      </Box>
+    )
+  }
+  return (
+    <Painel
+      titulo={t('robo.radar.title')}
+      subtitulo={t('robo.radar.sub')}
+      sx={entradaEmOrdem(ordem)}
+      corpoSx={{ mx: { xs: -2, md: -2.5 }, mb: { xs: -2, md: -2.5 } }}
+    >
+      {radar === undefined ? (
+        <Carregando />
+      ) : medidas === 0 ? (
+        <EstadoVazio mensagem={t('robo.radar.semDados')} />
+      ) : (
+        <>
+          <Typography variant="body2" data-testid="robo-radar-resumo" sx={{ px: { xs: 2, md: 2.5 }, pb: 1, fontWeight: 600 }}>
+            {t('robo.radar.resumo', { dentro, total: medidas, data: ultimo ? formatarDia(ultimo, idioma.intl) : '–' })}
+          </Typography>
+          <TableContainer>
+            <Table size="small" sx={{ ...estiloDeTabela, '& th': { ...estiloDeTabela['& th'], whiteSpace: { xs: 'normal', sm: 'nowrap' } } }} data-testid="robo-radar">
+              <TableHead>
+                <TableRow>
+                  <TableCell>{t('robo.moeda')}</TableCell>
+                  <TableCell>{t('robo.radar.colLado')}</TableCell>
+                  <TableCell align="right">{t('robo.radar.colMudar')}</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {linhas.map((linha) => (
+                  <TableRow key={linha.moeda} data-moeda={linha.moeda} sx={linha.robo ? { backgroundColor: 'var(--accent-a05)' } : undefined}>
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                      <MoedaChip moeda={linha.moeda} />
+                      {linha.robo && (
+                        <Typography
+                          component="span"
+                          variant="caption"
+                          sx={{ display: { xs: 'block', sm: 'inline' }, ml: { xs: 0, sm: 0.75 }, color: 'var(--accent-ink)', fontWeight: 600 }}
+                        >
+                          {t('robo.radar.oRobo')}
+                        </Typography>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {!linha.situacao ? '–' : (
+                        <>
+                          <Box component="span" sx={{ color: linha.dentro ? 'var(--perf-up)' : 'var(--text-primary)', fontWeight: 600 }}>
+                            {linha.dentro ? t('robo.radar.dentro', { dose: pctSemSinal(linha.dose, 0) }) : t('robo.radar.fora')}
+                          </Box>
+                          <Typography component="div" variant="caption" sx={{ color: 'var(--text-muted)' }}>
+                            {t(linha.diasNoMinimo ? 'robo.radar.haMaisDe' : 'robo.radar.ha', { dias: dias(linha.diasNoEstadoAtual) })}
+                          </Typography>
+                        </>
+                      )}
+                    </TableCell>
+                    <TableCell align="right" sx={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{quanto(linha)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </>
+      )}
+    </Painel>
+  )
+}
+
 // Dentro, fora ou sem resposta (sem dados, ou a regra não se aplica). A cor nunca
 // vem sozinha: o ícone e a palavra dizem o mesmo.
 function Situacao({ ok, testId }) {
@@ -877,7 +968,7 @@ export default function RoboAoVivo() {
   const { t, idioma } = useTranslation()
   definirIdiomaDosNumeros(idioma.intl)
   const {
-    operacoes, placar, sequencias, regra, erroOperacoes, erroPlacar, erroSequencias, erroRegra, carregando, recarregar,
+    operacoes, placar, sequencias, regra, radar, erroOperacoes, erroPlacar, erroSequencias, erroRegra, erroRadar, carregando, recarregar,
   } = useRoboAoVivo()
 
   const hoje = useMemo(() => {
@@ -922,18 +1013,21 @@ export default function RoboAoVivo() {
         </Box>
         <Box sx={linhaDaTela}>
           <CurvaDoPlacar series={series} placar={placar} erro={erroPlacar} ordem={4} />
+          <Radar radar={radar} erro={erroRadar} ordem={5} />
+        </Box>
+        <Box sx={linhaDaTela}>
+          <Noites noites={noites} erro={erroSequencias} ordem={6} />
           <Criterio
             criterio={placar === undefined ? undefined : (placar?.criterio ?? null)}
             conferencia={placar?.ultimaConferencia ?? null}
             carregando={carregando}
-            ordem={5}
+            ordem={7}
           />
         </Box>
         <Box sx={linhaDaTela}>
-          <Noites noites={noites} erro={erroSequencias} ordem={6} />
-          <Registro dose={hoje.dose} operacoes={operacoes} noites={noites} carregando={carregando} ordem={7} />
+          <TabelaDeOperacoes operacoes={operacoes} erro={erroOperacoes} ordem={8} />
+          <Registro dose={hoje.dose} operacoes={operacoes} noites={noites} carregando={carregando} ordem={9} />
         </Box>
-        <TabelaDeOperacoes operacoes={operacoes} erro={erroOperacoes} ordem={8} />
       </Box>
     </div>
   )

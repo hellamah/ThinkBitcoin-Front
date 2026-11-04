@@ -1161,6 +1161,23 @@
       "erro": "Could not load the robot's decisions.",
       "vazio": "No nights since activation."
     },
+    "radar": {
+      "title": "The rule across the 10 coins",
+      "sub": "The same rule, with the same math, on each zoo coin, from the closest to changing sides to the furthest. Information only: the robot trades BTC alone.",
+      "resumo": "{{dentro}} of {{total}} in the market at the {{data}} close.",
+      "colLado": "Rule's side",
+      "colMudar": "To change sides",
+      "dentro": "In · dose {{dose}}",
+      "fora": "Out",
+      "ha": "for {{dias}}",
+      "haMaisDe": "for more than {{dias}}",
+      "subir": "needs to rise {{falta}}",
+      "cair": "needs to fall {{falta}}",
+      "jaPassou": "already past the trigger",
+      "oRobo": "the robot",
+      "semDados": "There are not enough closes yet to measure the rule across the coins.",
+      "erro": "Could not load the coin radar."
+    },
     "gatilho": {
       "titleFora": "What it takes for it to buy",
       "titleDentro": "What would make it sell",

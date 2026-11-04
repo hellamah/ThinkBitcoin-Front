@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { apiRequest, HistoricoDecisaoEndpoint, RoboAoVivoEndpoint, SequenciaRetornoEndpoint } from '../src/utils/apiClient'
-import { PLACAR_ROBO, REGRA_ROBO, SEQUENCIAS_ROBO } from '../src/utils/mockRoboAoVivo'
+import { PLACAR_ROBO, RADAR_ROBO, REGRA_ROBO, SEQUENCIAS_ROBO } from '../src/utils/mockRoboAoVivo'
 import RoboAoVivo from '../src/pages/RoboAoVivo'
 
 // A tela do robô ao vivo: pede as operações desde a ativação do motor, o placar
@@ -39,10 +39,11 @@ const operacao = {
 // As velas das 23h reais de 23 a 27/10, os mesmos dias do placar.
 const velas = { totalRegistros: SEQUENCIAS_ROBO.length, registros: SEQUENCIAS_ROBO }
 
-const responder = ({ ops, placar, sequencias, regra } = {}) => async (endpoint) => {
+const responder = ({ ops, placar, sequencias, regra, radar } = {}) => async (endpoint) => {
   if (endpoint.startsWith('/ThinkBitcoin/historicoDecisoes')) return ops ? ops() : { resultado: { totalRegistros: 1, registros: [operacao] } }
   if (endpoint.startsWith('/ThinkBitcoin/sequenciasRetorno')) return sequencias ? sequencias() : { resultado: velas }
   if (endpoint === RoboAoVivoEndpoint.REGRA) return regra ? regra() : { resultado: REGRA_ROBO }
+  if (endpoint === RoboAoVivoEndpoint.RADAR) return radar ? radar() : { resultado: RADAR_ROBO }
   return placar ? placar() : { resultado: PLACAR_ROBO }
 }
 const falha = () => { throw new Error('fora do ar') }
@@ -55,10 +56,11 @@ beforeEach(() => {
 const renderizar = () => render(<MemoryRouter><RoboAoVivo /></MemoryRouter>)
 
 describe('Robô ao vivo', () => {
-  it('pede as operações desde a ativação, o placar, as velas e a regra', async () => {
+  it('pede as operações desde a ativação, o placar, as velas, a regra e o radar', async () => {
     renderizar()
-    await waitFor(() => expect(apiRequest).toHaveBeenCalledTimes(4))
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledTimes(5))
     expect(apiRequest).toHaveBeenCalledWith(RoboAoVivoEndpoint.REGRA)
+    expect(apiRequest).toHaveBeenCalledWith(RoboAoVivoEndpoint.RADAR)
     expect(apiRequest).toHaveBeenCalledWith(
       HistoricoDecisaoEndpoint.LIST({ siglaMoeda: 'BTC', dataInicio: '2026-10-23T11:49:00Z', quantidade: 200 })
     )
@@ -231,6 +233,25 @@ describe('Robô ao vivo', () => {
     expect(await screen.findByText('robo.gatilho.semDados')).toBeTruthy()
     expect(screen.getByText('robo.normal.semDados')).toBeTruthy()
     expect(screen.queryByTestId('robo-gatilho')).toBeNull()
+  })
+
+  // Os dados reais até 27/10: as 10 fora, a BNB a 0,67% do gatilho e o BTC a 1,29%.
+  it('o radar mostra as 10 moedas da mais perto de mudar de lado para a mais longe, com o BTC marcado', async () => {
+    renderizar()
+    const radar = await screen.findByTestId('robo-radar')
+    const ordem = [...radar.querySelectorAll('tbody tr')].map((tr) => tr.getAttribute('data-moeda'))
+    expect(ordem).toEqual(['BNB', 'BTC', 'PAXG', 'XRP', 'LTC', 'ETH', 'SOL', 'LINK', 'DOGE', 'ADA'])
+    expect(radar.querySelector('tr[data-moeda="BTC"]').textContent).toContain('robo.radar.oRobo')
+    expect(radar.querySelector('tr[data-moeda="BNB"]').textContent).toContain('robo.radar.subir')
+    expect(screen.getByTestId('robo-radar-resumo').textContent).toBe('robo.radar.resumo')
+  })
+
+  it('a falha do radar não esconde o resto', async () => {
+    apiRequest.mockImplementation(responder({ radar: falha }))
+    renderizar()
+    expect(await screen.findByText('robo.radar.erro')).toBeTruthy()
+    expect((await screen.findByTestId('robo-gatilho')).textContent).toBe('robo.gatilho.paraComprar')
+    expect(await screen.findByTestId('robo-retornos')).toBeTruthy()
   })
 
   it('a falha da regra não esconde o resto', async () => {
