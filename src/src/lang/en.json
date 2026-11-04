@@ -1215,7 +1215,7 @@
     },
     "normal": {
       "title": "Is this normal?",
-      "sub": "The same rule replayed on every BTC close since {{inicio}}. It tells you what to expect; it is not a reason to change the rule.",
+      "sub": "The same rule replayed on every BTC close since {{inicio}}. It tells you what to expect, not whether to change the rule. It starts earlier than the zoo because it only needs the 50-day average; the zoo waits for the 200-day one to put every rule on the same period.",
       "dias": "{{n}} days",
       "umDia": "1 day",
       "pausaAtual": "Current pause",

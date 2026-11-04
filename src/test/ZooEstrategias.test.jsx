@@ -73,5 +73,15 @@ describe('ZooEstrategias', () => {
     expect(calmar).toBeTruthy()
     expect(calmar.textContent.toLowerCase()).not.toContain('mediana')
     expect(RODADA_ZOO.estrategias.length).toBeGreaterThan(0)
+    // A aprovação é só sim ou não: a contagem dos anos já está em "Anos ok".
+    const celulas = within(primeiraLinha).getAllByRole('cell')
+    expect([t('zoo.yes'), t('zoo.no')]).toContain(celulas.at(-1).textContent)
+  })
+
+  // O robô refaz a mesma regra desde 2017, e o zoo começa o BTC em 2018: sem dizer por quê,
+  // os dois históricos pareciam contradizer um ao outro.
+  it('o histórico da regra na tela do robô diz por que começa antes do zoo', () => {
+    expect(pt.robo.normal.sub).toMatch(/50 dias/)
+    expect(pt.robo.normal.sub).toMatch(/200 dias/)
   })
 })

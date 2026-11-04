@@ -1215,7 +1215,7 @@
     },
     "normal": {
       "title": "Isso é normal?",
-      "sub": "A mesma regra refeita em cada fechamento do BTC desde {{inicio}}. Serve para saber o que esperar, não para mudar a regra.",
+      "sub": "A mesma regra refeita em cada fechamento do BTC desde {{inicio}}. Serve para saber o que esperar, não para mudar a regra. Começa antes do zoo porque só precisa da média de 50 dias; o zoo espera a de 200 dias para pôr todas as regras no mesmo período.",
       "dias": "{{n}} dias",
       "umDia": "1 dia",
       "pausaAtual": "Pausa atual",
