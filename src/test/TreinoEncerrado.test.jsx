@@ -4,6 +4,7 @@ import { cleanup, render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import pt from '../src/lang/pt.json'
 import TreinamentoEpisodios from '../src/pages/TreinamentoEpisodios'
+import Cabecalho from '../src/components/treinamento/Cabecalho'
 
 // O agente de IA foi encerrado em 22/10/2026, e desde 23/10 quem decide ao vivo
 // é o motor de risco. A tela de treino continua, como histórico, e diz isso no
@@ -33,6 +34,17 @@ describe('Tela de treino depois do encerramento do agente', () => {
     expect(pt.treinamento.encerrado).toMatch(/22\/10\/2026/)
     expect(pt.treinamento.encerrado).toMatch(/motor de risco/)
     expect(pt.treinamento.encerrado).toMatch(/histórico/)
+  })
+
+  // Sem versão filtrada, o selo usava a chave com {{versao}} sem passar a versão,
+  // e a tela mostrava "{{versao}} Concluído" literal.
+  it('o selo do treino concluído, sem versão filtrada, não tem marcador para preencher', () => {
+    const treze = Date.now() - 13 * 24 * 3_600_000
+    render(<Cabecalho ultimoMs={treze} cadenciaMs={7_500} terminouTreino versaoFiltrada={null} onAtualizar={() => {}} />)
+    expect(screen.getByText('treinamento.statusTrainingCompleted')).toBeTruthy()
+    expect(pt.treinamento.statusTrainingCompleted).not.toMatch(/\{\{/)
+    // E o "atualizado às" não promete mais atualizar sozinho.
+    expect(pt.treinamento.updatedAt).not.toMatch(/60/)
   })
 
   it('subtítulo, aba, selo e cartão não chamam mais o modelo de "ao vivo"', () => {

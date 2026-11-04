@@ -104,10 +104,13 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              {/* Só administrador desde 04/11/2026: o agente foi encerrado em
+                  22/10, e a tela ficou como histórico do treino. Para o
+                  cliente, era um item do menu sobre uma IA que não decide. */}
               <Route
                 path="/treinamento-episodios"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute cargos={[AuthRole.ADMINISTRADOR]}>
                     <TreinamentoEpisodios />
                   </ProtectedRoute>
                 }
@@ -115,7 +118,7 @@ function App() {
               <Route
                 path="/treinamento-episodios/:id"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute cargos={[AuthRole.ADMINISTRADOR]}>
                     <TreinamentoEpisodios />
                   </ProtectedRoute>
                 }

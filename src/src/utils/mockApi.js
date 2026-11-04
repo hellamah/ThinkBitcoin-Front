@@ -3,7 +3,6 @@
 
 import { CURVAS_ZOO, RODADA_ZOO } from './mockZooEstrategia'
 import { DECISOES_ROBO, PLACAR_ROBO, RADAR_ROBO, REGRA_ROBO, SEQUENCIAS_ROBO } from './mockRoboAoVivo'
-import { CURVAS_ZOO_JANELA, RODADA_ZOO_JANELA } from './mockZooJanelaAgente'
 import { AuthRole, decodeAuthenticationToken, temCargo } from './authentication'
 import { getStoredToken } from './preferences'
 import { AGUARDANDO_DECISAO, DECISOES, STATUS, STATUS_PUBLICOS, TAMANHO_MOTIVO, podeDescartar } from './pedidoAlteracao'
@@ -1220,17 +1219,13 @@ const mockCriarAlerta = (body) => {
   return { mensagem: 'Alerta mock criado com sucesso' }
 }
 
-// Zoo de estratégias (/api/ZooEstrategia/*): as rodadas reais guardadas em
-// mockZooEstrategia.js (histórico) e mockZooJanelaAgente.js (janela do agente,
-// ?janela=teste-agente). A curva vem como a API a devolve — uma por estratégia,
+// Zoo de estratégias (/api/ZooEstrategia/*): a rodada real guardada em
+// mockZooEstrategia.js. A janela do agente (?janela=teste-agente) saiu da tela
+// em 04/11/2026, com o agente encerrado; o modo demo responde só o histórico. A curva vem como a API a devolve — uma por estratégia,
 // em ordem de nome —, só que com menos pontos.
 const DIA_MS = 24 * 60 * 60 * 1000
 
-const zooDaJanela = (endpoint) => (treinoQuery(endpoint).get('janela') === 'teste-agente'
-  ? { rodada: RODADA_ZOO_JANELA, curvas: CURVAS_ZOO_JANELA }
-  : { rodada: RODADA_ZOO, curvas: CURVAS_ZOO })
-
-const mockZooRodada = (endpoint) => ({ mensagem: 'Rodada do zoo (mock)', resultado: zooDaJanela(endpoint).rodada })
+const mockZooRodada = () => ({ mensagem: 'Rodada do zoo (mock)', resultado: RODADA_ZOO })
 
 const mockZooCurva = (endpoint) => {
   const q = treinoQuery(endpoint)
@@ -1240,7 +1235,8 @@ const mockZooCurva = (endpoint) => {
     erro.status = 400
     throw erro
   }
-  const { rodada, curvas } = zooDaJanela(endpoint)
+  const rodada = RODADA_ZOO
+  const curvas = CURVAS_ZOO
   const pedidas = (q.get('estrategias') || '').split(',').map((e) => e.trim()).filter(Boolean)
   const nomes = pedidas.length > 0 ? pedidas : rodada.estrategias.map((e) => e.estrategia)
   // dataInicio/dataFim filtram como na API. A tela do robô ao vivo pedia datas

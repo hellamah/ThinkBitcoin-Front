@@ -42,7 +42,6 @@ import { readToken } from '../utils/themeTokens'
 import {
   ATIVACAO_MOTOR,
   ESTRATEGIA_MOTOR,
-  MOEDA_MOTOR,
   chaveDaAcao,
   estadoDeHoje,
   executouAoReligar,
@@ -73,6 +72,11 @@ import { BUY_HOLD } from '../utils/zooEstrategia'
 // fechamento que faz a regra mudar de lado, o preço contra a média e o que o
 // histórico dela diz sobre pausas e entradas (GET api/RoboAoVivo/regra).
 //
+// Em 04/11/2026 saíram o painel "Registro" e a tabela "Operações" como painel
+// próprio: repetiam a primeira linha das noites e a coluna Operação delas. A
+// regra em palavras subiu para o topo, e as operações, com quantidade, preço e
+// taxa, viraram a tabela que abre dentro das noites.
+//
 // A tela é um painel de instrumentos: o painel de cima responde de relance onde o
 // robô está e quanto falta para ele agir, e o resto explica e prova. Por isso os
 // gráficos ficam na coluna larga, à esquerda, e o contexto de cada um ao lado dele.
@@ -88,7 +92,6 @@ const COLUNAS_DA_TELA = { xs: 'minmax(0, 1fr)', md: 'minmax(0, 2fr) minmax(300px
 const pct = (v, casas = 2) => (v === null || v === undefined ? '–' : comSinal(formatarPercentual(v === 0 ? 0 : v, casas), v))
 const pctSemSinal = (v, casas = 2) => (v === null || v === undefined ? '–' : formatarPercentual(v, casas))
 const num = (v, casas = 2) => (v === null || v === undefined ? '–' : formatarNumero(v, casas))
-const HORA_MS = 60 * 60 * 1000
 const MINUTO_MS = 60 * 1000
 
 // Data e hora em UTC, como a regra decide (a vela das 23h UTC).
@@ -109,17 +112,6 @@ const textoDaDecisao = (t, noite) => {
   if (!noite.rodou) return t('robo.noites.naoRodou')
   const decisao = noite.decisao ? t(`robo.noites.${noite.decisao}`) : '–'
   return noite.depois ? `${decisao} · ${t(`robo.${noite.depois}`)}` : decisao
-}
-
-// Uma linha de rótulo e valor em cima e embaixo: na coluna estreita, os dois lado a
-// lado quebravam no meio de cada frase.
-function Linha({ rotulo, children }) {
-  return (
-    <Box sx={{ py: 0.75, borderBottom: '1px solid var(--border)' }}>
-      <Typography variant="caption" component="div" sx={{ color: 'var(--text-muted)', lineHeight: 1.3 }}>{rotulo}</Typography>
-      <Typography variant="body2" component="div" sx={{ fontWeight: 600 }}>{children}</Typography>
-    </Box>
-  )
 }
 
 function nomeDaAcao(t, acao) {
@@ -262,83 +254,6 @@ function PainelDeInstrumentos({ estado, regra, erroRegra, placar, ultimaHora, ca
         )}
       </Box>
       <OQueFalta regra={regra} erro={erroRegra} placar={placar} agora={agora} />
-    </Painel>
-  )
-}
-
-// O que fica registrado do robô: a regra em palavras e o que ele fez por último.
-// `operacoes`: undefined enquanto carrega ou quando a busca falhou. Só uma
-// lista vazia diz "nenhuma operação"; sem lista, não se sabe, e a linha mostra
-// "–" (em 26/10/2026 a rota falhava e a tela dizia que não houve operação,
-// com o fechamento de 24/10 no banco).
-function Registro({ dose, operacoes, noites, carregando, ordem }) {
-  const ultima = operacoes?.[0]
-  const ultimaNoite = noites?.[0]
-  const { t, idioma } = useTranslation()
-  return (
-    <Painel titulo={t('robo.registroTitle')} subtitulo={t('robo.regra')} sx={entradaEmOrdem(ordem)}>
-      {carregando && operacoes === undefined && noites === undefined ? (
-        <Carregando />
-      ) : (
-        <Box>
-          <Linha rotulo={t('robo.ultimaDecisao')}>
-            <Box component="span" data-testid="robo-ultima-decisao">
-              {ultimaNoite
-                ? `${textoDaDecisao(t, ultimaNoite)} · ${formatarInstante(new Date(ultimaNoite.dia + 23 * HORA_MS).toISOString(), idioma.intl)}`
-                : '–'}
-            </Box>
-          </Linha>
-          <Linha rotulo={t('robo.ultima')}>
-            {ultima
-              ? `${nomeDaAcao(t, ultima.acao)} · ${formatarInstante(ultima.dataHora, idioma.intl)}`
-              : Array.isArray(operacoes) ? t('robo.semOperacao') : '–'}
-          </Linha>
-          <Linha rotulo={t('robo.dose')}>{dose === null ? '–' : formatarPercentual(dose, 0)}</Linha>
-          <Linha rotulo={t('robo.moeda')}>{MOEDA_MOTOR}</Linha>
-          <Linha rotulo={t('robo.desde')}>{formatarInstante(ATIVACAO_MOTOR, idioma.intl)}</Linha>
-        </Box>
-      )}
-    </Painel>
-  )
-}
-
-function TabelaDeOperacoes({ operacoes, erro, ordem }) {
-  const { t, idioma } = useTranslation()
-  if (erro) return <ErrorMessage message={t('robo.operacoesErro')} />
-  return (
-    <Painel titulo={t('robo.operacoesTitle')} subtitulo={t('robo.operacoesSub')} sx={entradaEmOrdem(ordem)} corpoSx={{ mx: { xs: -2, md: -2.5 }, mb: { xs: -2, md: -2.5 } }}>
-      {operacoes === undefined ? (
-        <Carregando />
-      ) : operacoes.length === 0 ? (
-        <EstadoVazio mensagem={t('robo.semOperacao')} />
-      ) : (
-        <TableContainer>
-          <Table size="small" sx={estiloDeTabela}>
-            <TableHead>
-              <TableRow>
-                <TableCell>{t('robo.colData')}</TableCell>
-                <TableCell>{t('robo.colAcao')}</TableCell>
-                <TableCell align="right">{t('robo.colQuantidade')}</TableCell>
-                <TableCell align="right">{t('robo.colPreco')}</TableCell>
-                <TableCell align="right">{t('robo.colValor')}</TableCell>
-                <TableCell align="right">{t('robo.colTaxa')}</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {operacoes.map((op) => (
-                <TableRow key={op.idHistoricoDecisao}>
-                  <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatarInstante(op.dataHora, idioma.intl)}</TableCell>
-                  <TableCell>{nomeDaAcao(t, op.acao)}</TableCell>
-                  <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>{num(op.quantidade, 5)}</TableCell>
-                  <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>{num(op.precoMercado)}</TableCell>
-                  <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>{num(op.valorOperacao)}</TableCell>
-                  <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>{num(op.taxa)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
     </Painel>
   )
 }
@@ -902,9 +817,23 @@ function Criterio({ criterio, conferencia, carregando, ordem }) {
   )
 }
 
-function Noites({ noites, erro, ordem }) {
+// As noites e, numa tabela que abre embaixo, cada operação com quantidade, preço,
+// valor e taxa. `operacoes`: undefined enquanto carrega ou quando a busca falhou.
+// Só a falha da busca vira aviso: sem operação, a tabela simplesmente não aparece,
+// e a coluna Operação das noites já diz que nada foi executado.
+function Noites({ noites, erro, operacoes, erroOperacoes, ordem }) {
   const { t, idioma } = useTranslation()
-  if (erro) return <ErrorMessage message={t('robo.noites.erro')} />
+  const linhasDasOperacoes = (operacoes ?? []).map((op) => ({
+    chave: op.idHistoricoDecisao,
+    valores: [
+      formatarInstante(op.dataHora, idioma.intl),
+      nomeDaAcao(t, op.acao),
+      num(op.quantidade, 5),
+      num(op.precoMercado),
+      num(op.valorOperacao),
+      num(op.taxa),
+    ],
+  }))
   const operacao = (noite) => {
     if (noite.operacoes?.length) {
       return noite.operacoes.map((op) => (
@@ -928,7 +857,10 @@ function Noites({ noites, erro, ordem }) {
   }
   return (
     <Painel titulo={t('robo.noites.title')} subtitulo={t('robo.noites.sub')} sx={entradaEmOrdem(ordem)} corpoSx={{ mx: { xs: -2, md: -2.5 }, mb: { xs: -2, md: -2.5 } }}>
-      {noites === undefined ? (
+      {/* A falha das velas tira as noites, mas não as operações, que vêm de outra busca. */}
+      {erro ? (
+        <Box sx={{ px: { xs: 2, md: 2.5 } }}><ErrorMessage message={t('robo.noites.erro')} /></Box>
+      ) : noites === undefined ? (
         <Carregando />
       ) : noites.length === 0 ? (
         <EstadoVazio mensagem={t('robo.noites.vazio')} />
@@ -960,6 +892,17 @@ function Noites({ noites, erro, ordem }) {
           </Table>
         </TableContainer>
       )}
+      <Box sx={{ px: { xs: 2, md: 2.5 }, pb: { xs: 2, md: 2.5 } }}>
+        {erroOperacoes ? (
+          <ErrorMessage message={t('robo.operacoesErro')} />
+        ) : (
+          <TabelaDoGrafico
+            rotulo={t('robo.noites.verOperacoes')}
+            colunas={[t('robo.colData'), t('robo.colAcao'), t('robo.colQuantidade'), t('robo.colPreco'), t('robo.colValor'), t('robo.colTaxa')]}
+            linhas={linhasDasOperacoes}
+          />
+        )}
+      </Box>
     </Painel>
   )
 }
@@ -971,9 +914,9 @@ export default function RoboAoVivo() {
     operacoes, placar, sequencias, regra, radar, erroOperacoes, erroPlacar, erroSequencias, erroRegra, erroRadar, carregando, recarregar,
   } = useRoboAoVivo()
 
-  const hoje = useMemo(() => {
-    if (operacoes === undefined && placar === undefined) return { estado: undefined, dose: null }
-    return estadoDeHoje(operacoes ?? [], placar?.doseRegra ?? null)
+  const estado = useMemo(() => {
+    if (operacoes === undefined && placar === undefined) return undefined
+    return estadoDeHoje(operacoes ?? [], placar?.doseRegra ?? null).estado
   }, [operacoes, placar])
 
   // As três curvas do período, prontas no .NET (GET api/RoboAoVivo/placar).
@@ -993,13 +936,19 @@ export default function RoboAoVivo() {
           <Box sx={{ minWidth: 0 }}>
             <Typography variant="h5" component="h1" sx={{ fontFamily: FONTE_DOS_TITULOS, fontWeight: 800 }}>{t('robo.title')}</Typography>
             <Typography variant="body2" sx={{ color: 'var(--text-secondary)', maxWidth: 900, mt: 0.5 }}>{t('robo.intro')}</Typography>
+            {/* A regra em palavras e desde quando ela decide: moravam no painel
+                "Registro", no fim da tela. */}
+            <Typography variant="body2" data-testid="robo-regra" sx={{ color: 'var(--text-secondary)', maxWidth: 900, mt: 0.5 }}>{t('robo.regra')}</Typography>
+            <Typography variant="caption" component="p" sx={{ color: 'var(--text-muted)', mt: 0.25 }}>
+              {`${t('robo.desde')}: ${formatarInstante(ATIVACAO_MOTOR, idioma.intl)}`}
+            </Typography>
           </Box>
           <Button size="small" startIcon={<MdRefresh />} onClick={recarregar} disabled={carregando} sx={estiloDoBotao}>
             {t('robo.atualizar')}
           </Button>
         </Box>
         <PainelDeInstrumentos
-          estado={hoje.estado}
+          estado={estado}
           regra={regra}
           erroRegra={erroRegra}
           placar={placar}
@@ -1016,17 +965,13 @@ export default function RoboAoVivo() {
           <Radar radar={radar} erro={erroRadar} ordem={5} />
         </Box>
         <Box sx={linhaDaTela}>
-          <Noites noites={noites} erro={erroSequencias} ordem={6} />
+          <Noites noites={noites} erro={erroSequencias} operacoes={operacoes} erroOperacoes={erroOperacoes} ordem={6} />
           <Criterio
             criterio={placar === undefined ? undefined : (placar?.criterio ?? null)}
             conferencia={placar?.ultimaConferencia ?? null}
             carregando={carregando}
             ordem={7}
           />
-        </Box>
-        <Box sx={linhaDaTela}>
-          <TabelaDeOperacoes operacoes={operacoes} erro={erroOperacoes} ordem={8} />
-          <Registro dose={hoje.dose} operacoes={operacoes} noites={noites} carregando={carregando} ordem={9} />
         </Box>
       </Box>
     </div>

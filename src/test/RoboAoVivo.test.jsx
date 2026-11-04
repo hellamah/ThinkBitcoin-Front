@@ -85,10 +85,12 @@ describe('Robô ao vivo', () => {
 
   it('mostra a última decisão, as noites, o critério do servidor e que ainda não houve conferência', async () => {
     renderizar()
-    // A vela das 23h de 27/10, no formato de data do idioma do ambiente.
-    expect((await screen.findByTestId('robo-ultima-decisao')).textContent).toMatch(/^robo\.noites\.manter · robo\.fora · .*27.*UTC$/)
     const noites = await screen.findByTestId('robo-noites')
     expect(noites.querySelectorAll('tbody tr')).toHaveLength(5)
+    // A última decisão é a primeira noite: a vela das 23h de 27/10, manter.
+    const primeira = noites.querySelector('tbody tr').textContent
+    expect(primeira).toMatch(/27/)
+    expect(primeira).toContain('robo.noites.manter · robo.fora')
     expect(noites.textContent).toContain('robo.noites.vender · robo.fora')
     expect(screen.getByTestId('robo-criterio-fidelidade').textContent).toBe('robo.criterio.dentro')
     expect(screen.getByTestId('robo-criterio-queda').textContent).toBe('robo.criterio.dentro')
@@ -175,6 +177,24 @@ describe('Robô ao vivo', () => {
     const tabelas = screen.getAllByTestId('robo-tabela-do-grafico')
     expect(tabelas[0].textContent).toContain('robo.gatilho.verMudancas')
     expect(tabelas[1].textContent).toContain('robo.verEmTabela')
+  })
+
+  // Até 04/11/2026 havia o painel "Registro" e a tabela "Operações" no fim da
+  // tela, que repetiam as noites. A regra subiu para o topo, e as operações
+  // abrem dentro das noites, com quantidade, preço, valor e taxa.
+  it('a regra fica no topo, e as operações abrem dentro das noites, sem painel repetido', async () => {
+    renderizar()
+    expect(screen.getByTestId('robo-regra').textContent).toBe('robo.regra')
+    expect(screen.queryByText('robo.registroTitle')).toBeNull()
+    expect(screen.queryByText('robo.operacoesTitle')).toBeNull()
+    const noites = await screen.findByTestId('robo-noites')
+    const operacoes = (await screen.findByText('robo.noites.verOperacoes')).closest('details')
+    // Logo depois da tabela das noites, no mesmo painel.
+    expect(noites.compareDocumentPosition(operacoes) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(noites.parentElement.parentElement.contains(operacoes)).toBe(true)
+    expect(operacoes.querySelectorAll('tbody tr')).toHaveLength(1)
+    expect(operacoes.textContent).toContain('robo.acoes.VenderTudo')
+    expect(operacoes.textContent).toMatch(/0[.,]99/)
   })
 
   it('com o preço já acima do gatilho, diz que ele compra se fechar assim', async () => {

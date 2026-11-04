@@ -1,16 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { getMockResponse } from '../src/utils/mockApi'
 import { RODADA_ZOO } from '../src/utils/mockZooEstrategia'
-import { RODADA_ZOO_JANELA } from '../src/utils/mockZooJanelaAgente'
-import { ZooEstrategiaEndpoint } from '../src/utils/apiClient'
 import {
-  AGENTE,
-  JANELAS,
   estrategiaDaRodada,
   estrategiaPadrao,
-  janelaDaUrl,
-  mesesDaJanela,
-  parametroDaJanela,
   formatarDiaUtc,
   HORAS_PARA_ATRASO,
   horasDesdeARodada,
@@ -172,66 +165,14 @@ describe('zoo › modo demo', () => {
     expect(() => getMockResponse({ endpoint: '/api/ZooEstrategia/curva', method: 'GET' })).toThrow(/moeda/)
   })
 
-  it('entrega a janela do agente separada do histórico, com o agente e o modelo', () => {
-    const { resultado: historico } = getMockResponse({ endpoint: '/api/ZooEstrategia/rodada', method: 'GET' })
-    const { resultado: janela } = getMockResponse({ endpoint: '/api/ZooEstrategia/rodada?janela=teste-agente', method: 'GET' })
-
-    expect(historico.estrategias.map((e) => e.estrategia)).not.toContain(AGENTE)
-    expect(janela.janela).toBe(JANELAS.TESTE_AGENTE)
-    expect(janela.estrategias.map((e) => e.estrategia)).toContain(AGENTE)
-    expect(janela.modeloAgente).toMatch(/_melhor$/)
-    expect(Date.parse(janela.janelaFim)).toBeGreaterThan(Date.parse(janela.janelaInicio))
-    expect(estrategiaPadrao(janela)).toBe(AGENTE)
-  })
-
-  it('entrega a curva da janela, que parte de 1 no início dela', () => {
-    const { resultado } = getMockResponse({
-      endpoint: '/api/ZooEstrategia/curva?moeda=BTC&estrategias=agente_dqn,buy_hold&janela=teste-agente',
-      method: 'GET',
-    })
-    expect(resultado.map((c) => c.estrategia)).toEqual([AGENTE, 'buy_hold'])
-    const agente = resultado[0]
-    expect(agente.pontos[0].patrimonio).toBeCloseTo(1, 2)
-    // Só comprado, como a decisão ao vivo: a exposição nunca fica negativa.
-    expect(agente.pontos.some((p) => p.exposicao > 0)).toBe(true)
-    expect(agente.pontos.every((p) => p.exposicao == null || p.exposicao >= 0)).toBe(true)
-  })
 })
 
-describe('zoo › janelas', () => {
-  it('lê a janela da URL: só teste-agente muda a aba', () => {
-    expect(janelaDaUrl('teste-agente')).toBe(JANELAS.TESTE_AGENTE)
-    expect(janelaDaUrl(null)).toBe(JANELAS.HISTORICO)
-    expect(janelaDaUrl('validacao')).toBe(JANELAS.HISTORICO)
-  })
-
-  it('o histórico vai à API sem o parâmetro, como antes da janela existir', () => {
-    expect(parametroDaJanela(JANELAS.HISTORICO)).toBeUndefined()
-    expect(parametroDaJanela(JANELAS.TESTE_AGENTE)).toBe('teste-agente')
-    expect(ZooEstrategiaEndpoint.RODADA({ janela: parametroDaJanela(JANELAS.HISTORICO) })).toBe('/api/ZooEstrategia/rodada')
-    expect(ZooEstrategiaEndpoint.RODADA({ janela: 'teste-agente' })).toBe('/api/ZooEstrategia/rodada?janela=teste-agente')
-    expect(ZooEstrategiaEndpoint.CURVA({ moeda: 'BTC', janela: 'teste-agente' })).toBe('/api/ZooEstrategia/curva?moeda=BTC&janela=teste-agente')
-  })
-
-  it('na janela, a escolha padrão é o agente; no histórico, a candidata', () => {
-    const janela = { janela: JANELAS.TESTE_AGENTE, estrategias: [{ estrategia: 'acima_media_200d' }, { estrategia: AGENTE }] }
-    expect(estrategiaPadrao(janela)).toBe(AGENTE)
-    expect(estrategiaPadrao({ ...janela, janela: JANELAS.HISTORICO })).toBe('acima_media_200d')
-    // Janela sem o agente (ele falhou na rodada): volta à regra.
-    expect(estrategiaPadrao({ janela: JANELAS.TESTE_AGENTE, estrategias: [{ estrategia: 'acima_media_200d' }] })).toBe('acima_media_200d')
-  })
-
-  it('a escolha de uma aba que não existe na outra cai na padrão', () => {
-    const historico = { janela: JANELAS.HISTORICO, estrategias: [{ estrategia: 'buy_hold' }, { estrategia: 'acima_media_50d' }] }
-    expect(estrategiaDaRodada(historico, AGENTE)).toBe('acima_media_50d')
+describe('zoo › escolha guardada', () => {
+  it('a escolha que não existe na rodada cai na padrão', () => {
+    const historico = { estrategias: [{ estrategia: 'buy_hold' }, { estrategia: 'acima_media_50d' }] }
+    expect(estrategiaDaRodada(historico, 'agente_dqn')).toBe('acima_media_50d')
     expect(estrategiaDaRodada(historico, 'buy_hold')).toBe('buy_hold')
-    expect(estrategiaDaRodada(null, AGENTE)).toBeNull()
-  })
-
-  it('conta os meses da janela', () => {
-    expect(mesesDaJanela('2026-02-27T00:00:00Z', '2026-10-07T00:00:00Z')).toBe(7)
-    expect(mesesDaJanela('2026-10-01T00:00:00Z', '2026-10-03T00:00:00Z')).toBe(1)
-    expect(mesesDaJanela(undefined, '2026-10-07T00:00:00Z')).toBeNull()
+    expect(estrategiaDaRodada(null, 'agente_dqn')).toBeNull()
   })
 })
 
@@ -240,7 +181,6 @@ describe('as rodadas gravadas do modo demonstração', () => {
   // de uma estratégia com as 10 moedas reprovadas, e o Trader passou a ver a contradição na tela.
   it.each([
     ['zoo', RODADA_ZOO],
-    ['janela do agente', RODADA_ZOO_JANELA],
   ])('o resumo de cada estratégia bate com as moedas dela (%s)', (_, rodada) => {
     rodada.estrategias.forEach((e) => {
       const aprovadas = e.porMoeda.filter((m) => m.aprovada).length

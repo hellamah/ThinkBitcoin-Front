@@ -3,14 +3,13 @@ import { apiRequest, TreinamentoEpisodioEndpoint } from '../utils/apiClient'
 import { toUTCISO } from '../utils/dateUtils'
 import {
   QUATRO_HORAS_MS,
-  UM_MINUTO_MS,
   extrairLista,
   inicioDoGrupo,
   mesclarEpisodios,
 } from '../utils/treinamento'
 
-// Carga dos episódios de treinamento: primeira janela, períodos sob demanda e
-// polling. Saiu da página, onde dividia o componente com oito gráficos, para a
+// Carga dos episódios de treinamento: primeira janela e períodos sob demanda.
+// Saiu da página, onde dividia o componente com oito gráficos, para a
 // tela poder trocar de layout sem mexer em nada disto.
 
 // Busca TODOS os episódios de [inicioMs, fimMs), paginando se preciso.
@@ -48,9 +47,6 @@ const buscarPeriodo = async (moeda, versaoModelo, inicioMs, fimMs, opcoes) => {
   return todos
 }
 
-const INTERVALO_POLLING_MS = 60_000
-const INTERVALO_MINIMO_NA_VOLTA_MS = 15_000
-
 /**
  * @param {object} opcoes
  * @param {string|null} opcoes.moeda  filtro do servidor (só com UMA moeda)
@@ -75,7 +71,6 @@ export default function useTreinamentoEpisodios({ moeda, versao, alvoMs }) {
   // Invalida respostas de uma geração antiga (troca de filtro ou recarga).
   const geracaoRef = useRef(0)
   const emAndamentoRef = useRef(0)
-  const ultimaBuscaRef = useRef(0)
 
   // O alvo entra por ref: ele muda a cada episódio aberto, e refazer a carga
   // inteira por isso jogaria fora tudo o que já estava na tela.
@@ -127,7 +122,6 @@ export default function useTreinamentoEpisodios({ moeda, versao, alvoMs }) {
         )
         if (cancelado) return
         grupos.forEach((g) => gruposRef.current.add(g))
-        ultimaBuscaRef.current = Date.now()
         setItens(mesclarEpisodios([], lotes.flat()))
         setAtualizadoEm(Date.now())
       } catch (e) {
@@ -180,51 +174,9 @@ export default function useTreinamentoEpisodios({ moeda, versao, alvoMs }) {
       })
   }, [moeda, versao])
 
-  // Polling: a cada 60s busca o que chegou desde a última consulta, com folga
-  // de 2min. Buscava só o grupo de 4h do relógio, e na virada do grupo os
-  // episódios dos últimos segundos do anterior ficavam de fora até o próximo
-  // refresh. Pausa com a aba em segundo plano; na volta, a folga pela última
-  // busca cobre o intervalo parado.
-  useEffect(() => {
-    const geracao = geracaoRef.current
-    let emVoo = false
-    const tick = async () => {
-      if (document.hidden || emVoo) return
-      const agora = Date.now()
-      const ultima = ultimaBuscaRef.current
-      // Mais de 4h parada: a busca incremental era cortada em 4h, e o trecho
-      // anterior a isso sumia — o grupo daquela hora já constava como
-      // carregado, então nenhuma janela o pedia de novo. Recarregar é o que a
-      // pessoa faria à mão.
-      if (ultima > 0 && agora - ultima > QUATRO_HORAS_MS) {
-        setRecarga((n) => n + 1)
-        return
-      }
-      const desde = ultima > 0 ? ultima - 2 * UM_MINUTO_MS : agora - QUATRO_HORAS_MS
-      emVoo = true
-      try {
-        const novos = await buscarPeriodo(moeda, versao, desde, agora + UM_MINUTO_MS, { emSegundoPlano: true })
-        if (geracaoRef.current !== geracao) return
-        ultimaBuscaRef.current = agora
-        setItens((atuais) => mesclarEpisodios(atuais, novos))
-        setAtualizadoEm(agora)
-      } catch { /* silencioso: a próxima rodada tenta de novo */ } finally {
-        emVoo = false
-      }
-    }
-    // Na volta à aba, atualiza na hora: esperar o próximo tique deixava a tela
-    // até um minuto mostrando "Parado, último episódio há 40 min" de um treino
-    // que nunca parou. Volta rápida (menos que 15 s fora) não refaz a busca.
-    const aoVoltar = () => {
-      if (!document.hidden && Date.now() - ultimaBuscaRef.current >= INTERVALO_MINIMO_NA_VOLTA_MS) tick()
-    }
-    const id = setInterval(tick, INTERVALO_POLLING_MS)
-    document.addEventListener('visibilitychange', aoVoltar)
-    return () => {
-      clearInterval(id)
-      document.removeEventListener('visibilitychange', aoVoltar)
-    }
-  }, [moeda, versao, recarga])
+  // Sem polling desde 04/11/2026. A tela buscava a cada 60 s o que tinha
+  // chegado, mas o treino parou em 22/10 (o agente foi encerrado) e nenhum
+  // episódio novo chega. O botão Atualizar continua refazendo a carga.
 
   const recarregar = useCallback(() => setRecarga((n) => n + 1), [])
 

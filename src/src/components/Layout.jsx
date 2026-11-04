@@ -1,5 +1,5 @@
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { MdHome, MdLogin, MdDashboard, MdLogout, MdSettings, MdPublic, MdPsychology, MdWorkspacePremium, MdClose, MdPlayCircleOutline, MdScience } from 'react-icons/md'
+import { MdHome, MdLogin, MdDashboard, MdLogout, MdSettings, MdPublic, MdWorkspacePremium, MdClose, MdPlayCircleOutline, MdScience } from 'react-icons/md'
 import AppBar from '@mui/material/AppBar'
 import Toolbar from '@mui/material/Toolbar'
 import IconButton from '@mui/material/IconButton'
@@ -197,16 +197,6 @@ function Layout({ children }) {
       </IconButton>
       <IconButton
         component={NavLink}
-        to="/treinamento-episodios"
-        className="nav-item"
-        title={t('nav.training')}
-        aria-label={t('nav.training')}
-      >
-        <MdPsychology />
-        <span className="nav-label">{t('nav.training')}</span>
-      </IconButton>
-      <IconButton
-        component={NavLink}
         to="/estrategias"
         className="nav-item"
         title={t('nav.strategies')}
@@ -312,16 +302,9 @@ function Layout({ children }) {
                     <MdPublic />
                     <span className="nav-label">{t('nav.heatmap')}</span>
                   </IconButton>
-                  <IconButton
-                    component={NavLink}
-                    to="/treinamento-episodios"
-                    className="nav-item"
-                    title={t('nav.training')}
-                    aria-label={t('nav.training')}
-                  >
-                    <MdPsychology />
-                    <span className="nav-label">{t('nav.training')}</span>
-                  </IconButton>
+                  {/* O treino de IA saiu daqui em 04/11/2026: o agente foi
+                      encerrado em 22/10, e a tela, histórico, mora no menu do
+                      administrador (MenuPregao). */}
                   <IconButton
                     component={NavLink}
                     to="/estrategias"

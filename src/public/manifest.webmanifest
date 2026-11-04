@@ -36,11 +36,6 @@
       "name": "Geopolítica",
       "url": "/heatmap",
       "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
-    },
-    {
-      "name": "Treinamento IA",
-      "url": "/treinamento-episodios",
-      "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
     }
   ]
 }

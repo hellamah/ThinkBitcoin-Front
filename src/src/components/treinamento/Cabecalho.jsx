@@ -35,7 +35,9 @@ function StatusDoTreino({ ultimoMs, cadenciaMs, terminouTreino, versaoFiltrada }
     : status.entreTreinos
       ? t('treinamento.statusBetweenRuns')
       : terminouTreino
-        ? (versaoFiltrada ? t('treinamento.statusCompleted', { versao: versaoFiltrada }) : t('treinamento.statusCompleted'))
+        // Sem versão filtrada, a chave sem marcador: a com {{versao}} saía
+        // literal no selo ("{{versao}} Concluído").
+        ? (versaoFiltrada ? t('treinamento.statusCompleted', { versao: versaoFiltrada }) : t('treinamento.statusTrainingCompleted'))
         : (versaoFiltrada ? t('treinamento.statusVersionIdle', { versao: versaoFiltrada }) : t('treinamento.statusStopped'))
   return (
     <Box
