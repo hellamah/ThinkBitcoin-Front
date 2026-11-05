@@ -598,7 +598,7 @@ function Settings() {
               />
             ))}
 
-            {renderField(t('preferredCoinSettings'), (
+            {renderField(t('preferredCoin'), (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                 <Select
                   value={localPrefs?.siglaMoedaPreferida || ''}
@@ -708,36 +708,43 @@ function Settings() {
               </Grid>
               <Grid size={{ xs: 12, md: 6 }}>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                  {renderField(t('safetyBalance'), ( // Clarifica se o saldo é retido ou apenas informativo
-                    <Box sx={{ display: 'flex', gap: 1, width: '100%' }}>
-                      <TextField
-                        type="number"
-                        size="small"
-                        placeholder="0.00"
-                        value={localPrefs?.saldoSeguranca ?? 0}
-                        onChange={(e) => setLocalPrefs(p => ({ ...p, saldoSeguranca: e.target.value }))}
-                        onBlur={(e) => {
-                          const val = parseFloat(e.target.value) || 0
-                          salvarPreferencia({ saldoSeguranca: val })
-                        }}
-                        sx={inputSx}
-                      />
+                  {/* A moeda do saldo é a do seletor ao lado, não do rótulo. E o valor só é
+                      guardado: nenhuma conta da plataforma o bloqueia ou desconta (05/11/2026). */}
+                  {renderField(t('safetyBalance'), (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, width: '100%' }}>
+                      <Box sx={{ display: 'flex', gap: 1, width: '100%' }}>
+                        <TextField
+                          type="number"
+                          size="small"
+                          placeholder="0.00"
+                          value={localPrefs?.saldoSeguranca ?? 0}
+                          onChange={(e) => setLocalPrefs(p => ({ ...p, saldoSeguranca: e.target.value }))}
+                          onBlur={(e) => {
+                            const val = parseFloat(e.target.value) || 0
+                            salvarPreferencia({ saldoSeguranca: val })
+                          }}
+                          sx={inputSx}
+                        />
 
-                      <Select
-                        value={localPrefs?.siglaMoedaSaldoSeguranca || ''}
-                        onChange={(e) => {
-                          const val = e.target.value
-                          setLocalPrefs(p => ({ ...p, siglaMoedaSaldoSeguranca: val }))
-                          salvarPreferencia({ siglaMoedaSaldoSeguranca: val })
-                        }}
-                        size="small"
-                        sx={{ ...selectSx, minWidth: 90 }}
-                      >
-                        <MenuItem value=""><em>--</em></MenuItem>
-                        {opcoesDeMoeda(localPrefs?.siglaMoedaSaldoSeguranca).map(m => (
-                          <MenuItem key={m.sigla} value={m.sigla}>{m.sigla}</MenuItem>
-                        ))}
-                      </Select>
+                        <Select
+                          value={localPrefs?.siglaMoedaSaldoSeguranca || ''}
+                          onChange={(e) => {
+                            const val = e.target.value
+                            setLocalPrefs(p => ({ ...p, siglaMoedaSaldoSeguranca: val }))
+                            salvarPreferencia({ siglaMoedaSaldoSeguranca: val })
+                          }}
+                          size="small"
+                          sx={{ ...selectSx, minWidth: 90 }}
+                        >
+                          <MenuItem value=""><em>--</em></MenuItem>
+                          {opcoesDeMoeda(localPrefs?.siglaMoedaSaldoSeguranca).map(m => (
+                            <MenuItem key={m.sigla} value={m.sigla}>{m.sigla}</MenuItem>
+                          ))}
+                        </Select>
+                      </Box>
+                      <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-faint)' }}>
+                        {t('safetyBalanceDescription')}
+                      </Typography>
                     </Box>
                   ))}
                 </Box>

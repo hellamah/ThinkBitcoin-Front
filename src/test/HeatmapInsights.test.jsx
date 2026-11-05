@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import pt from '../src/lang/pt.json'
 import HeatmapInsights from '../src/components/heatmap/HeatmapInsights'
 
@@ -76,5 +76,27 @@ describe('HeatmapInsights', () => {
 
     // Verifica se o texto da chave 'distribuida' está presente
     expect(screen.getByText(/Narrativa globalizada/i)).toBeTruthy()
+  })
+
+  // Até 05/11/2026 as duas dicas ficavam num Tooltip por fora do StatChip, que não repassa os
+  // eventos: nunca abriam, e a da volatilidade ainda dizia "preço" para um número de busca.
+  it('abre a dica da volatilidade e a do pico ao passar o mouse', async () => {
+    const mockTrend = {
+      valorAtual: 50,
+      volatilidade15: 10,
+      minutosDesdePico: 30,
+      geoHHI: 2000,
+      isTimeseriesOk: true,
+      isGeoOk: true,
+    }
+
+    render(<HeatmapInsights trend={mockTrend} fear={{ valor: 50, timeUntilUpdateSeg: 60 }} t={t} locale="pt-BR" />)
+
+    fireEvent.mouseOver(screen.getByText(pt.heatmap.volatilidade))
+    expect(await screen.findByText(pt.heatmap.volatilidadeTooltip)).toBeTruthy()
+    expect(pt.heatmap.volatilidadeTooltip).toMatch(/interesse de busca/)
+
+    fireEvent.mouseOver(screen.getByText(pt.heatmap.picoHa))
+    expect(await screen.findByText(pt.heatmap.picoTooltip)).toBeTruthy()
   })
 })

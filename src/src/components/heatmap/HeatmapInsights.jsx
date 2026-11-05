@@ -187,15 +187,13 @@ export default function HeatmapInsights({ trend, fear, t, locale }) {
           {delta15 !== null && (
             <StatChip label={t('heatmap.momentum15')} value="" delta={delta15} />
           )}
+          {/* A dica vai pelo `hint`: um Tooltip por fora do StatChip nunca abria,
+              porque o StatChip não repassa os eventos nem a ref (até 05/11/2026). */}
           {volatilidade !== null && (
-            <Tooltip title={t('heatmap.volatilidadeTooltip')}>
-              <StatChip label={t('heatmap.volatilidade')} value={volatilidade.toFixed(1)} />
-            </Tooltip>
+            <StatChip label={t('heatmap.volatilidade')} value={volatilidade.toFixed(1)} hint={t('heatmap.volatilidadeTooltip')} />
           )}
           {pico !== null && (
-            <Tooltip title={t('heatmap.picoTooltip')}>
-              <StatChip label={t('heatmap.picoHa')} value={pico} />
-            </Tooltip>
+            <StatChip label={t('heatmap.picoHa')} value={pico} hint={t('heatmap.picoTooltip')} />
           )}
         </Box>
       )}

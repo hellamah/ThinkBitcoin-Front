@@ -45,6 +45,18 @@ import { getTourHeatmapVisto, setTourHeatmapVisto } from '../utils/preferences'
 import { contarAtivos } from '../utils/alertaPreco'
 import { exportarHeatmapDados } from '../utils/exportUtils'
 
+// Os intervalos do mapa, numa lista só: o botão, a leitura da URL e o recorte
+// de horas saem daqui. Em 25/10/2026 o botão 1D passou a mandar '1d' enquanto
+// a URL e o recorte só conheciam '24h': a tela abria sem botão aceso e o
+// intervalo se perdia ao recarregar.
+const INTERVALOS_DO_MAPA = Object.freeze([
+  { rotulo: '1H', valor: '1h', horas: 1 },
+  { rotulo: '1D', valor: '24h', horas: 24 },
+  { rotulo: '1M', valor: '1m', horas: 24 * 30 },
+])
+const INTERVALO_PADRAO = '24h'
+const intervaloValido = (valor) => INTERVALOS_DO_MAPA.some((i) => i.valor === valor)
+
 // Componente de Gráfico Nativo à prova de loops no React 19
 const NativeGeoChart = ({ data, options, onSelect, onChartReady, language }) => {
   const containerRef = useRef(null)
@@ -197,10 +209,10 @@ export default function GeoHeatmapView() {
     return Object.values(MapRegion).includes(qRegiao) ? qRegiao : MapRegion.WORLD
   })
   const [intervaloMapa, setIntervaloMapa] = useState(() => {
-    if (typeof window === 'undefined') return '24h'
+    if (typeof window === 'undefined') return INTERVALO_PADRAO
     const params = new URLSearchParams(window.location.search)
     const qIntervalo = params.get('intervalo')
-    return ['1h', '24h', '1m'].includes(qIntervalo) ? qIntervalo : '24h'
+    return intervaloValido(qIntervalo) ? qIntervalo : INTERVALO_PADRAO
   })
   const [metricaMapa, setMetricaMapa] = useState(() => {
     if (typeof window === 'undefined') return MapMetric.LIDERANCA
@@ -274,7 +286,7 @@ export default function GeoHeatmapView() {
         setMoedaSelecionada(match.simbolo)
       }
     }
-    if (qIntervalo && ['1h', '24h', '1m'].includes(qIntervalo) && qIntervalo !== intervaloMapa) {
+    if (intervaloValido(qIntervalo) && qIntervalo !== intervaloMapa) {
       setIntervaloMapa(qIntervalo)
     }
     if (qRegiao && Object.values(MapRegion).includes(qRegiao) && qRegiao !== regionSelecionada) {
@@ -306,7 +318,7 @@ export default function GeoHeatmapView() {
       if (match) setMoedaSelecionada(match.simbolo)
     }
     const qIntervalo = params.get('intervalo')
-    if (qIntervalo && ['1h', '24h', '1m'].includes(qIntervalo)) setIntervaloMapa(qIntervalo)
+    if (intervaloValido(qIntervalo)) setIntervaloMapa(qIntervalo)
     const qRegiao = params.get('regiao')
     if (qRegiao && Object.values(MapRegion).includes(qRegiao)) setRegionSelecionada(qRegiao)
     const qPais = params.get('pais')
@@ -530,9 +542,9 @@ export default function GeoHeatmapView() {
     try {
       // O backend real não conhece `intervalo`: o recorte temporal é feito por
       // dataInicio/dataFim. O `intervalo` continua na URL apenas para o mock.
-      const horasPorIntervalo = { '1h': 1, '24h': 24, '1m': 24 * 30 }
+      const horas = INTERVALOS_DO_MAPA.find((i) => i.valor === intervaloMapa)?.horas ?? 24
       const agora = new Date()
-      const inicio = new Date(agora.getTime() - (horasPorIntervalo[intervaloMapa] || 24) * 60 * 60 * 1000)
+      const inicio = new Date(agora.getTime() - horas * 60 * 60 * 1000)
 
       const params = new URLSearchParams()
       if (moedaId) params.set('idMoeda', moedaId)
@@ -838,22 +850,18 @@ export default function GeoHeatmapView() {
           <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center', flexShrink: 0 }}>
             {/* Seletor de intervalo */}
             <div className="interval-selector-mini" data-tour="intervalos" ref={refIntervalos}>
-              {[
-                { label: '1H', value: '1h' },
-                { label: '1D', value: '1d' },
-                { label: '1M', value: '1m' },
-              ].map((opt) => (
+              {INTERVALOS_DO_MAPA.map((opt) => (
                 <button
-                  key={opt.value}
-                  className={`interval-btn-mini ${intervaloMapa === opt.value ? 'active' : ''}`}
+                  key={opt.valor}
+                  className={`interval-btn-mini ${intervaloMapa === opt.valor ? 'active' : ''}`}
                   onClick={() => {
-                    setIntervaloMapa(opt.value)
+                    setIntervaloMapa(opt.valor)
                     // Limpa cache ao mudar intervalo para forçar reload
                     setDadosDoCacheAtivo(false)
                     setHeatmapRaw(null)
                   }}
                 >
-                  {opt.label}
+                  {opt.rotulo}
                 </button>
               ))}
             </div>
