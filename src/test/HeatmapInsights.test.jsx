@@ -73,9 +73,10 @@ describe('HeatmapInsights', () => {
     }
 
     render(<HeatmapInsights trend={mockTrend} fear={mockFear} t={t} locale="pt-BR" />)
-
-    // Verifica se o texto da chave 'distribuida' está presente
+ 
+    // Verifica se o texto da chave 'distribuida' está presente e o valor formatado
     expect(screen.getByText(/Narrativa globalizada/i)).toBeTruthy()
+    expect(screen.getByText(/20.0%/i)).toBeTruthy()
   })
 
   // Até 05/11/2026 as duas dicas ficavam num Tooltip por fora do StatChip, que não repassa os
