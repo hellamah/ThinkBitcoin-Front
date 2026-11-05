@@ -20,9 +20,12 @@ const LISTA = {
   ],
 }
 
-// Duas moedas no carrossel, três requisições por moeda.
-const POR_RODADA = 6
+// Duas moedas no carrossel. Sem tela pedindo sentimento, uma requisição por
+// moeda (o preço); com o Heatmap aberto, três (preço, medo/ganância, tendência).
+const POR_RODADA = 2
+const POR_RODADA_COM_SENTIMENTO = 6
 const LISTA_E_RODADA = 1 + POR_RODADA
+const ehSentimento = (endpoint) => endpoint.includes('/variavel-externa/')
 
 const criarApi = () => {
   const chamadas = []
@@ -159,6 +162,139 @@ describe('cotações do carrossel', () => {
     await avancar(INTERVALO_COTACOES_MS)
     expect(loja.getSnapshot().moedas.map((m) => m.simbolo)).toEqual(['BTC', 'ETH'])
     expect(loja.getSnapshot().erro).toBe('')
+  })
+})
+
+// O painel abria com ~36 pedidos ao mesmo tempo, 20 deles de medo/ganância e
+// tendência que o carrossel do painel nem mostra. A API, com controllers
+// síncronos e 1 CPU, atendia a rajada em fila: 18 a 33 s para o painel encher
+// (04/11/2026). Agora só o Heatmap pede sentimento, e quem chega a ele vindo do
+// painel não fica sem: sai uma rodada completa na entrada.
+describe('sentimento só para quem pede', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.spyOn(console, 'error').mockImplementation(nada)
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.restoreAllMocks()
+  })
+
+  it('o painel pede só o preço, e o sentimento fica nulo', async () => {
+    const api = criarApi()
+    const loja = criarCotacoesCarrossel({ requisitar: api.requisitar, abaOculta: () => false })
+
+    loja.subscribe(nada)
+    await avancar(0)
+
+    expect(api.chamadas.filter(ehSentimento)).toHaveLength(0)
+    const { moedas } = loja.getSnapshot()
+    expect(moedas[0].valor).toBe(100)
+    expect(moedas[0].fear).toBeNull()
+    expect(moedas[0].trend).toBeNull()
+  })
+
+  it('o Heatmap pede preço, medo/ganância e tendência de cada moeda', async () => {
+    const api = criarApi()
+    const loja = criarCotacoesCarrossel({ requisitar: api.requisitar, abaOculta: () => false })
+
+    loja.subscribe(nada, { comSentimento: true })
+    await avancar(0)
+
+    expect(api.chamadas).toHaveLength(1 + POR_RODADA_COM_SENTIMENTO)
+    const { moedas } = loja.getSnapshot()
+    expect(moedas[0].fear).toEqual({ valor: 50 })
+    expect(moedas[0].trend).toEqual({ valor: 50 })
+  })
+
+  it('do painel ao Heatmap dentro do minuto: rodada completa na hora, e o relógio recomeça dela', async () => {
+    const api = criarApi()
+    const loja = criarCotacoesCarrossel({ requisitar: api.requisitar, abaOculta: () => false })
+
+    const sairDoPainel = loja.subscribe(nada)
+    await avancar(0)
+    sairDoPainel()
+
+    await avancar(10_000)
+    loja.subscribe(nada, { comSentimento: true })
+    await avancar(0)
+
+    expect(api.chamadas).toHaveLength(LISTA_E_RODADA + POR_RODADA_COM_SENTIMENTO)
+    expect(loja.getSnapshot().moedas[0].trend).toEqual({ valor: 50 })
+
+    // A rodada do horário antigo (50 s depois) não sai: a seguinte vem um
+    // intervalo inteiro depois da rodada da entrada.
+    await avancar(INTERVALO_COTACOES_MS - 1)
+    expect(api.chamadas).toHaveLength(LISTA_E_RODADA + POR_RODADA_COM_SENTIMENTO)
+    await avancar(1)
+    expect(api.chamadas).toHaveLength(LISTA_E_RODADA + 2 * POR_RODADA_COM_SENTIMENTO)
+  })
+
+  it('voltar ao Heatmap dentro do minuto de uma rodada com sentimento não repete a rodada', async () => {
+    const api = criarApi()
+    const loja = criarCotacoesCarrossel({ requisitar: api.requisitar, abaOculta: () => false })
+
+    const sair = loja.subscribe(nada, { comSentimento: true })
+    await avancar(0)
+    sair()
+
+    await avancar(10_000)
+    loja.subscribe(nada, { comSentimento: true })
+    await avancar(0)
+
+    expect(api.chamadas).toHaveLength(1 + POR_RODADA_COM_SENTIMENTO)
+  })
+
+  it('do Heatmap ao painel: a rodada seguinte é só de preço e guarda o sentimento anterior', async () => {
+    const api = criarApi()
+    const loja = criarCotacoesCarrossel({ requisitar: api.requisitar, abaOculta: () => false })
+
+    const sairDoHeatmap = loja.subscribe(nada, { comSentimento: true })
+    await avancar(0)
+    sairDoHeatmap()
+    loja.subscribe(nada)
+
+    await avancar(INTERVALO_COTACOES_MS)
+    expect(api.chamadas).toHaveLength(1 + POR_RODADA_COM_SENTIMENTO + POR_RODADA)
+    expect(api.chamadas.slice(-POR_RODADA).filter(ehSentimento)).toHaveLength(0)
+    expect(loja.getSnapshot().moedas[0].fear).toEqual({ valor: 50 })
+  })
+
+  it('o Heatmap chega no meio de uma rodada só de preço: espera ela e pede uma completa, sem duplicar', async () => {
+    const api = criarApi()
+    let prender = true
+    let liberarPreco
+    const precoPreso = new Promise((resolve) => {
+      liberarPreco = () => {
+        prender = false
+        resolve()
+      }
+    })
+    const requisitar = vi.fn(async (endpoint) => {
+      if (prender && endpoint.includes('/valor')) {
+        api.chamadas.push(endpoint)
+        await precoPreso
+        return { resultado: { registros: [{ precoFechamento: 100 }] } }
+      }
+      return api.requisitar(endpoint)
+    })
+    const loja = criarCotacoesCarrossel({ requisitar, abaOculta: () => false })
+
+    loja.subscribe(nada)
+    await avancar(0)
+    // A rodada do painel está no ar, esperando os preços.
+    expect(api.chamadas).toHaveLength(LISTA_E_RODADA)
+
+    loja.subscribe(nada, { comSentimento: true })
+    await avancar(0)
+    // Nenhum pedido novo enquanto a rodada em curso não termina.
+    expect(api.chamadas).toHaveLength(LISTA_E_RODADA)
+
+    liberarPreco()
+    await avancar(0)
+    expect(api.chamadas).toHaveLength(LISTA_E_RODADA + POR_RODADA_COM_SENTIMENTO)
+    expect(loja.getSnapshot().moedas[0].trend).toEqual({ valor: 50 })
   })
 })
 

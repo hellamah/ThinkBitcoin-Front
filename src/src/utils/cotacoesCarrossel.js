@@ -15,6 +15,13 @@ import { apiRequest, MarketEndpoint, VariavelExternaEndpoint } from './apiClient
  * só agenda a próxima para quando ela vencer.
  *
  * É uma fábrica, além do singleton, para os testes injetarem a requisição.
+ *
+ * Medo/ganância e tendência só são pedidos enquanto alguma tela inscrita os quer
+ * (`subscribe(avisar, { comSentimento: true })`), hoje só o Heatmap. O carrossel
+ * do painel e o da simulação mostram só o preço, e pedir os dois por moeda dava
+ * 20 dos ~36 pedidos que o painel fazia ao abrir, repetidos a cada minuto. Com a
+ * API atendendo uma rajada dessas em fila, o painel levava de 18 a 33 s para
+ * encher (medido em 04/11/2026).
  */
 
 export const INTERVALO_COTACOES_MS = 60_000
@@ -77,8 +84,26 @@ export const aplicarCotacao = (moeda, resPreco, resFear, resTrend) => {
   }
 }
 
-const buscarCotacao = async (moeda, requisitar, opcoes) => {
+const buscarCotacao = async (moeda, requisitar, opcoes, comSentimento) => {
   try {
+    if (!comSentimento) {
+      const resPreco = await requisitar(
+        MarketEndpoint.COIN_VALUE(moeda.simbolo.toLowerCase(), {
+          pagina: 1,
+          quantidade: 1,
+          ordemAsc: false,
+        }),
+        opcoes
+      )
+      // Sem pedir, o sentimento da última rodada que o trouxe fica como estava:
+      // são leituras horárias, e quem volta ao Heatmap ganha uma rodada nova na
+      // entrada (ver `garantirSentimento`).
+      return {
+        ...aplicarCotacao(moeda, resPreco, null, null),
+        fear: moeda.fear ?? null,
+        trend: moeda.trend ?? null,
+      }
+    }
     // Os três parâmetros vão EXPLÍCITOS. O carrossel só consome `registros[0]`,
     // então pedir uma página inteira de candles por moeda, a cada minuto, era
     // desperdício. E `ordemAsc` é correção, não economia: ler o índice 0 como
@@ -116,17 +141,21 @@ export const criarCotacoesCarrossel = ({
   // português nos outros quatro idiomas.
   let estado = { moedas: [], erro: '' }
   let ultimaRodada = -Infinity
+  let ultimaRodadaComSentimento = -Infinity
   let listaFalhando = false
   let rodadaEmCurso = null
+  let rodadaEmCursoComSentimento = false
   let timer = null
   // Muda a cada início e fim do polling. Um timer que disparou antes de a
   // última tela sair, e ainda aguarda a rodada, não pode se reagendar depois.
   let geracao = 0
   const inscritos = new Set()
+  // As fichas (uma por `subscribe`) que querem medo/ganância e tendência.
+  const comSentimento = new Set()
 
   const publicar = (mudanca) => {
     estado = { ...estado, ...mudanca }
-    inscritos.forEach((avisar) => avisar())
+    inscritos.forEach((ficha) => ficha.avisar())
   }
 
   // Uma rodada por vez. Duas telas chegando juntas — ou o duplo montar do
@@ -139,6 +168,11 @@ export const criarCotacoesCarrossel = ({
   const rodar = ({ emSegundoPlano = false } = {}) => {
     if (rodadaEmCurso) return rodadaEmCurso
     const opcoes = { emSegundoPlano }
+    // Decidido no início: uma tela que chega no meio da rodada não muda o que
+    // ela pede. Se essa tela quer sentimento, `garantirSentimento` espera esta
+    // terminar e pede outra.
+    const pedirSentimento = comSentimento.size > 0
+    rodadaEmCursoComSentimento = pedirSentimento
     rodadaEmCurso = (async () => {
       let moedas = estado.moedas
       if (moedas.length === 0) {
@@ -157,13 +191,33 @@ export const criarCotacoesCarrossel = ({
         listaFalhando = false
         publicar({ moedas, erro: '' })
       }
-      const atualizadas = await Promise.all(moedas.map((m) => buscarCotacao(m, requisitar, opcoes)))
+      const atualizadas = await Promise.all(
+        moedas.map((m) => buscarCotacao(m, requisitar, opcoes, pedirSentimento))
+      )
       ultimaRodada = agora()
+      if (pedirSentimento) ultimaRodadaComSentimento = ultimaRodada
       publicar({ moedas: atualizadas })
     })().finally(() => {
       rodadaEmCurso = null
+      rodadaEmCursoComSentimento = false
     })
     return rodadaEmCurso
+  }
+
+  // Quem quer sentimento e chega depois de uma rodada sem ele (do painel para o
+  // Heatmap, dentro do minuto) não espera o próximo minuto: sai uma rodada
+  // completa agora, e o relógio do polling recomeça a partir dela.
+  const garantirSentimento = async () => {
+    if (rodadaEmCurso) {
+      if (rodadaEmCursoComSentimento) return
+      await rodadaEmCurso
+    }
+    if (comSentimento.size === 0) return
+    if (agora() - ultimaRodadaComSentimento < intervaloMs) return
+    const minhaGeracao = ++geracao
+    clearTimeout(timer)
+    await rodar({ emSegundoPlano: estado.moedas.length > 0 })
+    if (minhaGeracao === geracao) programar(intervaloMs, minhaGeracao)
   }
 
   const programar = (espera, minhaGeracao) => {
@@ -174,8 +228,12 @@ export const criarCotacoesCarrossel = ({
     }, espera)
   }
 
-  const subscribe = (avisar) => {
-    inscritos.add(avisar)
+  const subscribe = (avisar, { comSentimento: querSentimento = false } = {}) => {
+    // Uma ficha por inscrição: a mesma função pode se inscrever com e sem
+    // sentimento, e cada saída tira só a sua.
+    const ficha = { avisar }
+    inscritos.add(ficha)
+    if (querSentimento) comSentimento.add(ficha)
     if (inscritos.size === 1) {
       const minhaGeracao = ++geracao
       const idade = agora() - ultimaRodada
@@ -188,8 +246,10 @@ export const criarCotacoesCarrossel = ({
         programar(intervaloMs - idade, minhaGeracao)
       }
     }
+    if (querSentimento) garantirSentimento()
     return () => {
-      inscritos.delete(avisar)
+      inscritos.delete(ficha)
+      comSentimento.delete(ficha)
       if (inscritos.size === 0) {
         geracao++
         clearTimeout(timer)

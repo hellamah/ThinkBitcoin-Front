@@ -157,7 +157,10 @@ export default function GeoHeatmapView() {
   const { token, user: usuario, prefs } = useAuth()
   const { refreshTrigger, moedaSelecionada, setMoedaSelecionada } = useDashboard()
   const { t } = useTranslation()
-  const { moedas: moedasCarousel, erro: erroMoedas, setErro: setErroMoedas } = useCoinPrices()
+  // Única tela que mostra o sentimento por moeda: o país líder de buscas
+  // (`trend.geoTop1Code`) filtra o carrossel, e o painel de insights lê
+  // `trend` e `fear` da moeda escolhida.
+  const { moedas: moedasCarousel, erro: erroMoedas, setErro: setErroMoedas } = useCoinPrices({ comSentimento: true })
 
   const {
     alertas,
