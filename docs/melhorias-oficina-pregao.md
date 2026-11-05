@@ -2,6 +2,25 @@
 
 Anotadas em 05/11/2026, na revisão dos 8 PRs abertos da Oficina (156 a 164, dos quais só 158 e 163 entraram) e na triagem dos 199 pedidos que esperavam decisão. Cada item diz o que aconteceu, com o exemplo, e o que mudaria. O objetivo é que menos PR chegue ao Azure para ser abandonado.
 
+## O que já entrou (05/11/2026)
+
+As duas listas abaixo foram levadas no mesmo dia, cada uma numa sessão própria, com testes. As duas foram para a `Desenv` e para os dois remotos.
+
+**Oficina, `Desenv` em `8c3f35a`** (8 commits, de `84064bb` a `8c3f35a`; a suíte foi de 600 para 662 testes; o README ganhou a seção "O que a revisão de 05/11/2026 mudou"). Feitos: 2, 4, 5, 7, 7a, 8a, 8b, 8c e 8d. Em parte:
+- **1:** o localizador segue o valor até a conta em `src/src/utils` e manda a conta ao modelo. O prompt pede a linha que sustenta cada afirmação, e o Triador marca "precisa de você". Ficou de fora barrar o PR antes do push: a régua barraria 23 dos 40 PRs só de texto medidos, e só 7 deles eram rótulos falsos conhecidos.
+- **3:** a etiqueta "não vi o efeito" foi feita, e o Triador abre a aba do componente. Só entende o padrão `aba === Aba.X &&`, e nada disso foi conferido no navegador.
+- **6:** há aviso de texto repetido na seção e na tela. O texto renderizado em volta do trecho não vai ao modelo.
+- **8:** o veredito sai dos quatro itens. Os PRs 156 a 164 entraram no `testes/revisor/medir.py`, mas a medição não foi rodada, porque precisa do Ollama com a placa livre.
+- Também apareceu: `decisoes.reaprovado` procura uma marca que a rota pública não manda, e provavelmente nunca dá verdadeiro.
+
+**Pregão, `Desenv` em `480296c`** (5 commits; 219 testes). Feitos: 9, 13, 14 e 16. Em parte:
+- **9:** a regex `DAY_TRADE` do front não pega "janelas de 1min, 5min e 15min". Mudá-la é mexer nos dois repositórios.
+- **10:** só pega a "Curva de capital". Sharpe, Profit factor e Queda máx. ficam atrás do "Aprofundar", que o roteiro não abre.
+- **11:** o pedido novo parecido vai junto do anterior, com "Visto também como". O par em que os dois já foram ao time continua indo ao administrador, e mandar a chave do outro pede um campo novo no contrato do .NET e do Front.
+- **12:** só foi investigado. O Trader já aceita `"dados": "reais"`. Faltam a conta de teste no .NET local, o `agendado.ps1` subir o front com `VITE_USE_MOCK=false` e os backends no ar nas rodadas. Com dados reais, os alertas que o Trader cria mandam e-mail de verdade.
+
+A rodada das 13h de 05/11 foi a primeira com o código novo. Ela tirou da fila 11 contas de arredondamento, 2 contas entre medianas, 60 achados por decisão do dono e 24 recursos novos. A queda de energia logo depois cortou a publicação; a consolidação da rodada seguinte cobre os mesmos diários.
+
 ## Oficina (`ThinkBitcoin-Back-Python-Agents-Oficina`, pasta `Agents-Front`)
 
 ### 1. Texto novo sem apoio no cálculo
