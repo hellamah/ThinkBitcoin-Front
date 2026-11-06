@@ -82,6 +82,12 @@ O item 1 já aconteceu. Na triagem de 05/11, quatro correções antigas da Ofici
 
 Os quatro pedidos foram aprovados de novo, com o motivo da aprovação apontando o erro.
 
+Em 06/11 apareceram mais dois, também da Oficina:
+- `bc5016e` (28/10): "Custo total acumulado (USD, inc. slippage)". A simulação não tem slippage nenhum; o custo é só a taxa (`backtest.js`, `custoPago`).
+- `0076d0d` (27/10): "Define a periodicidade de atualização de dados na interface", para a frequência de review, que nada usa.
+
+Por causa do primeiro, em 05/11 cinco pedidos de slippage foram descartados com um motivo errado ("o custo da Simulação já inclui slippage"). O descarte não volta atrás.
+
 Proposta: além do item 1, quando a correção troca uma constante, conferir a constante nova contra os valores que o código aceita (no PR 60, a lista da linha 203).
 
 ### 8b. Correção que edita o mock para a conta fechar
@@ -98,6 +104,34 @@ Proposta: levar o motivo da aprovação como `nota`, pela conta de sistema que a
 A regra que devolve o pedido quando o número nasce no `mockApi.js` devolveu o b87233bd ("Significado de IC 95%"), que é sobre um rótulo, e o 166bd58a (whitelist de IPs), que não tem número nenhum.
 
 Proposta: aplicar a regra só quando o pedido é sobre um número que não fecha (tipo `errado` com conta no trecho).
+
+### Revisão de 06/11/2026: 14 PRs, 4 entraram
+Os PRs 167 a 178 saíram da execução de 05/11 às 10h, ainda com o código antigo; o 179 e o 180, da de 06/11, já com o novo. Entraram o 169 (rótulos da volatilidade e do pico), o 171 (dica "Participação no top 5" na lista de países), o 172 (valor do HHI também no "distribuída") e o 174 (o critério das linhas esmaecidas). Os motivos dos outros 10 estão nos comentários de cada PR.
+
+#### 17. Etiquetas que não separam nada
+Os 14 PRs chegaram com "precisa de você" e "revisor em dúvida", e 5 deles também com "não vi o efeito". Quando tudo leva a mesma etiqueta, ela não ajuda a escolher o que revisar primeiro.
+
+Proposta: medir as etiquetas contra as decisões de 05/11 e 06/11 (6 merges, 16 abandonos) e só pôr "precisa de você" no que de fato difere dos que entraram.
+
+#### 18. "Não aparece desde" com o texto ainda na tela
+O item 5 devolveu o cfc7447c (ACTIVE_GROWTH), o ef656090 (Alfa) e o 2947ae85 (dominância de busca) como "não aparece desde 22/10". Mas os três textos continuam na tela (`PatrimonioCard.jsx`, linha 60; `heatmap.centralDescricao`): o Trader só não voltou a falar deles. E a regra foi aplicada a um `falta` (e282abfe), em que "sumir" não faz sentido.
+
+Proposta: antes de devolver, procurar o trecho na captura da tela (`bruto.json` do Pregão, como o item 14 já faz). Se ele ainda aparece, o problema segue. Não aplicar a regra a `falta`.
+
+#### 19. "O front não tem o dado" quando o backend tem
+O bcd792e4 voltou com "o front-end não possui a unidade de medida nem a escala de `trend.delta5`". A conta está em `TrendHelper.cs` do Back-DotNet (`valorAtual - serie[^6]`, na escala de 0 a 100 do interesse de busca). O d636070d voltou com "o motor fornece apenas um valor total", quando a resposta certa era tirar do rótulo um slippage que não existe.
+
+Proposta: no item 1, seguir também o campo da API até a função que o calcula no backend, antes de responder "sem correção no front".
+
+#### 20. A Oficina desfaz correção feita à mão, e abre PR sem código
+O PR 168 trocou de volta para `'1d'` o valor do botão 1D que o dono tinha corrigido à mão em `b579bbd`. O item 4 só protege linhas vindas de ramos `pregao/` com pedido validado. O PR 179 não tinha código nenhum, só o histórico, porque a correção já estava no Desenv.
+
+Proposta: proteger também as linhas de commits recentes do dono que citam o pedido ou o problema. E não abrir PR cujo diff só tem `docs/`: devolver como "já está assim no Desenv".
+
+#### 21. Texto de idioma que o i18n não interpola
+O PR 176 escreveu `"{{count}} candles ({intervalo}) {{isFixed ? 'no período selecionado' : 'no histórico total'}}"`: chave simples, e um ternário dentro de `{{ }}`. A tela mostraria o texto cru.
+
+Proposta: uma checagem que recusa, nos arquivos de idioma, qualquer `{x}` simples e qualquer `{{ }}` que não seja um nome passado na chamada `t(...)`.
 
 ## Pregão (`ThinkBitcoin-Back-Python-Agents-Pregao`)
 
