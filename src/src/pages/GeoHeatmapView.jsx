@@ -1225,9 +1225,11 @@ export default function GeoHeatmapView() {
                                 {nomePais(reg.country)}
                               </Typography>
                             </Box>
-                            <Typography variant="body2" sx={{ fontWeight: 700, color: 'var(--accent-ink)', fontSize: '0.88rem', fontFamily: 'Share Tech Mono, monospace' }}>
-                              {reg.displayVal}%
-                            </Typography>
+                            <Tooltip title={t('heatmap.participacaoTop5')} arrow>
+                              <Typography sx={{ fontWeight: 700, color: 'var(--accent-ink)', fontSize: '0.88rem', fontFamily: 'Share Tech Mono, monospace' }}>
+                                {reg.displayVal}%
+                              </Typography>
+                            </Tooltip>
                           </Box>
                           <LinearProgress
                             variant="determinate"
