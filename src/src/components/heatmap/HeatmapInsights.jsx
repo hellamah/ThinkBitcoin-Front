@@ -210,7 +210,9 @@ export default function HeatmapInsights({ trend, fear, t, locale }) {
               </Tooltip>
             </Box>
           ) : (
-            `🌍 ${t('heatmap.distribuida')}`
+            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+              🌍 {t('heatmap.distribuida')} ({(hhi * 100).toFixed(1)}%)
+            </Box>
           )}
           percent={hhi * 100}
           cor="var(--accent-ink)"
