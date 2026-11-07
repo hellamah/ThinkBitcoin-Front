@@ -130,7 +130,7 @@ function TabelaRanking({ estrategias, selecionada, onSelecionar }) {
     { id: 'cagr', rotulo: t('zoo.colCagr'), numerica: true },
     { id: 'cagrBh', rotulo: t('zoo.colCagrBh'), numerica: true },
     { id: 'queda', rotulo: t('zoo.colDrawdown'), numerica: true },
-    { id: 'quedaBh', rotulo: t('zoo.colDrawdownBh'), numerica: true },
+    { id: 'quedaBh', rotulo: t('zoo.colDrawdownBhRanking'), numerica: true }, // Adiciona (Mediana) para diferenciar da métrica individual na tabela Ranking
     { id: 'calmar', rotulo: t('zoo.colCalmar'), dica: t('zoo.colCalmarHint'), numerica: true },
     { id: 'alta', rotulo: t('zoo.colUpCapture'), dica: t('zoo.colUpCaptureHint'), numerica: true },
     { id: 'quedaCap', rotulo: t('zoo.colDownCapture'), dica: t('zoo.colDownCaptureHint'), numerica: true },

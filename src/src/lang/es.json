@@ -1011,6 +1011,7 @@
     "colDrawdown": "Caída máx. (Mediana)",
     "colDrawdownDetail": "Caída máx. (Moneda)",
     "colDrawdownBh": "Caída B&H",
+    "colDrawdownBhRanking": "Caída B&H (Mediana)",
     "colCalmar": "Calmar Mediano (Ret./Caída)",
     "colCalmarHint": "Mediana del grupo de monedas: el retorno anual dividido por la caída máxima",
     "colCalmarMoeda": "Calmar (Ret./Caída)",
