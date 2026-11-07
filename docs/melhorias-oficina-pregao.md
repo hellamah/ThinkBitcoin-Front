@@ -17,7 +17,7 @@ As duas listas abaixo foram levadas no mesmo dia, cada uma numa sessão própria
 - **9:** a regex `DAY_TRADE` do front não pega "janelas de 1min, 5min e 15min". Mudá-la é mexer nos dois repositórios.
 - **10:** só pega a "Curva de capital". Sharpe, Profit factor e Queda máx. ficam atrás do "Aprofundar", que o roteiro não abre.
 - **11:** o pedido novo parecido vai junto do anterior, com "Visto também como". O par em que os dois já foram ao time continua indo ao administrador, e mandar a chave do outro pede um campo novo no contrato do .NET e do Front.
-- **12:** só foi investigado. O Trader já aceita `"dados": "reais"`. Faltam a conta de teste no .NET local, o `agendado.ps1` subir o front com `VITE_USE_MOCK=false` e os backends no ar nas rodadas. Com dados reais, os alertas que o Trader cria mandam e-mail de verdade.
+- **12:** entrou no Desenv em 07/11/2026 (`c0e4778`). Com `"dados": "reais"`, o `agendado.ps1` sobe o front sem o mock e pula a rodada se o DotNet não responde. Antes do navegador, a rodada confere a conta (cargo Minerador, preferências de volta à semente, notificações desligadas), e uma trava de rede bloqueia cadastro, troca de senha, plano, decisão de pedido e todo DELETE. Falta só o dono criar a conta de teste e pôr o e-mail e a senha no `config.local.json`.
 
 A rodada das 13h de 05/11 foi a primeira com o código novo. Ela tirou da fila 11 contas de arredondamento, 2 contas entre medianas, 60 achados por decisão do dono e 24 recursos novos. A queda de energia logo depois cortou a publicação; a consolidação da rodada seguinte cobre os mesmos diários.
 
@@ -133,6 +133,26 @@ O PR 176 escreveu `"{{count}} candles ({intervalo}) {{isFixed ? 'no período sel
 
 Proposta: uma checagem que recusa, nos arquivos de idioma, qualquer `{x}` simples e qualquer `{{ }}` que não seja um nome passado na chamada `t(...)`.
 
+### Revisão de 07/11/2026: 5 PRs, 5 entraram
+Os PRs 181 a 185 saíram da execução de 07/11 às 10h, já com a nota do administrador (item 8c) e as melhorias de 05/11:
+- 185: o "inc. slippage" saiu do custo total. No d636070d de 06/11, a resposta tinha sido a contrária (item 19).
+- 184: a mediana da volatilidade e do ticket passou a dizer "do ativo". O PR cita a nota do administrador.
+- 183: a frequência de review parou de prometer uma atualização que não existe.
+- 182: "Otimização" passou a dizer "trecho de ajuste".
+- 181: a "Queda B&H" do Ranking ganhou "(Mediana)".
+
+#### 22. A coluna irmã corrigida pela metade
+O 733cac6a citava a "Queda máx." do Ranking, que já dizia "(Mediana)". O PR 181 acrescentou "(Mediana)" à coluna vizinha, a "Queda B&H". Mas outras colunas do Ranking também são medianas entre as moedas e continuam sem dizer: "Retorno/ano", "Buy & hold/ano", as capturas, a exposição e a taxa paga (`medianaCagr`, `medianaCagrBuyHold` etc. em `ZooEstrategias.jsx`). O PR também deixou no JSX um comentário que narra a mudança ("// Adiciona (Mediana) para diferenciar…").
+
+Proposta:
+- Quando a correção é o rótulo de uma coluna, listar as colunas irmãs que mostram o mesmo tipo de valor (o mesmo prefixo `mediana*` no JSX) e corrigir todas, ou dizer no PR por que não.
+- Comentário no código explica o porquê, não narra o diff.
+
+#### 23. A nota do administrador cabe em 500 caracteres
+O DotNet recusa o motivo da decisão acima de 500 caracteres. Duas notas de aprovação de 07/11 tiveram de ser encurtadas: o 46f71e5e e o 5235da0f. Elas diziam a chave, o texto atual, o texto sugerido e o arquivo da conta. Essa nota é justamente o que fez o 184 acertar (item 8c), e 500 caracteres mal dão para isso.
+
+Proposta (no Back-DotNet): subir o limite do motivo da aprovação para uns 1500 caracteres, ou separar a nota para a Oficina do motivo que vai para o histórico.
+
 ## Pregão (`ThinkBitcoin-Back-Python-Agents-Pregao`)
 
 ### 9. Day trade fora das decisões do Pregão
@@ -177,3 +197,21 @@ Proposta para a Oficina: no pedido de simplificar, o texto novo mantém cada fat
 Dos 103 pedidos de falta, 47 eram de day trade (item 9) e 32 eram recursos novos: 2FA, notificação push, vários gráficos lado a lado, correlação entre busca e preço, alertas por indicador, fuso horário. Todos foram descartados como roadmap, porque a Oficina corrige tela e não constrói recurso, e o descarte não volta atrás.
 
 Proposta: o Pregão manda o `falta` que não é ajuste de tela para uma lista de sugestões no relatório, para o dono, e não para a fila do administrador.
+
+### 24. Reabertura de um pedido que a tela já atende (07/11/2026)
+- **7a634960:** foi reaberto citando "Compra líquida no período". O trecho está na tela, porque é o começo do rótulo atual, "Compra líquida no período selecionado (Ativo)". Por isso a regra do item 14 deixou passar. Mas o ajuste pede o escopo "(Ativo)" e uma dica sobre o período, e as duas coisas já existem desde o PR 158.
+- **bc62f248:** foi reaberto com o Alfa "+90.23%", uma diferença de 0,01 que é arredondamento (item 13). A peneira de arredondamento só roda nos achados novos, e não na volta de um corrigido.
+
+Proposta:
+- Na volta de um corrigido, passar o achado pelas mesmas peneiras dos novos: o arredondamento e a conta entre medianas.
+- Conferir também o ajuste contra a captura. Se o que ele pede (o termo entre aspas ou parênteses) já está no texto da tela, o pedido não reabre.
+
+### 25. Defeito do modo demonstração que vira pedido (07/11/2026)
+Três dos 20 pedidos de 07/11 eram defeitos do front-dev, e não da plataforma:
+- **38228ae8 ("4 4 88 88"):** o heatmap do `mockApi.js` só traz a liderança, e a tela a repete no lugar da intensidade.
+- **a4d99967 (Europa leva mais de 5 s):** com dados reais, o clique responde em 60 a 80 ms.
+- **09b1f2e4:** a rodada do zoo tem data fixa no mock.
+
+O item 12 já entrou no Pregão e só espera a conta de teste.
+
+Proposta: enquanto a conta não existe, não publicar achado de tempo de resposta medido no modo demonstração, porque o front-dev do Vite é mais lento que o build. E juntar aos pedidos de demonstração um aviso de "pode ser do mock" quando o número citado vem de um campo que o `mockApi.js` não preenche.
