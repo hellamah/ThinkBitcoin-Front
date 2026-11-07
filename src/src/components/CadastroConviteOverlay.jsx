@@ -26,6 +26,7 @@ import useTranslation from '../hooks/useTranslation'
 import { DEFAULT_PREFERENCES } from '../utils/preferences'
 import { LANGUAGES } from '../lang'
 import { useDialogoAcessivel } from '../hooks/useDialogoAcessivel'
+import { CargoTipo } from '../utils/authentication'
 
 
 /**
@@ -50,7 +51,11 @@ const CadastroConviteOverlay = ({ onFechar }) => {
   const [nome, setNome] = useState('')
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
-  const [cargo, setCargo] = useState(0)
+  // Minerador de saída, como sempre foi a intenção: o cadastro original
+  // comentava "0 = Minerador, 1 = Consultor", só que 0 é Administrador no
+  // CargoTipoEnum. Quem não é administrador vira Consultor de qualquer forma
+  // (a API ignora o cargo escolhido); a escolha vale para o convite do admin.
+  const [cargo, setCargo] = useState(CargoTipo.MINERADOR)
 
   const [preferencias, setPreferencias] = useState({
     ...DEFAULT_PREFERENCES,
@@ -408,8 +413,8 @@ const CadastroConviteOverlay = ({ onFechar }) => {
                             disableUnderline
                             MenuProps={menuProps}
                           >
-                            <MenuItem value={0}>{t('miner')}</MenuItem>
-                            <MenuItem value={1}>{t('consultant')}</MenuItem>
+                            <MenuItem value={CargoTipo.MINERADOR}>{t('miner')}</MenuItem>
+                            <MenuItem value={CargoTipo.CONSULTOR}>{t('consultant')}</MenuItem>
                           </Select>
                         </FormControl>
                       </Grid>
