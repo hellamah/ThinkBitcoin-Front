@@ -22,6 +22,23 @@ export const AuthRole = Object.freeze({
   SISTEMA: 'Sistema',
 })
 
+/**
+ * Os mesmos cargos como o backend os LÊ: o número do CargoTipoEnum, na ordem
+ * em que ele está declarado. É o que vai no `cargo` do cadastro.
+ *
+ * O claim do token traz o nome (AuthRole); o corpo do cadastro, o número, e a
+ * API não tem conversor de enum por nome. O formulário de convite mandava
+ * 0 achando que era Minerador e 1 achando que era Consultor: como o
+ * administrador é o único que escolhe o cargo, cada convite de "Acesso
+ * completo" criava outro Administrador e cada "Consultor" criava um Minerador.
+ */
+export const CargoTipo = Object.freeze({
+  ADMINISTRADOR: 0,
+  MINERADOR: 1,
+  CONSULTOR: 2,
+  SISTEMA: 3,
+})
+
 // O claim de role vem como string quando há um cargo só e como array quando há
 // vários — é assim que o .NET serializa, e tratar só um dos casos deixa o outro
 // silenciosamente sem cargo nenhum.
