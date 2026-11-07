@@ -192,7 +192,7 @@
   "netSelling": "Venda líquida no período selecionado (Ativo)",
   "volatility": "Volatilidade (Candle)",
   "periodAverage": "Média do período selecionado",
-  "vsMedian": "{{value}}× a mediana",
+  "vsMedian": "{{value}}× a mediana do ativo",
   "noReading": "Sem leitura no período",
   "periodPerformance": "Desempenho do Período",
   "cumulativeReturn": "Retorno Acumulado",

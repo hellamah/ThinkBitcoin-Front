@@ -192,7 +192,7 @@
   "netSelling": "Net selling in the selected period (Asset)",
   "volatility": "Volatility (Candle)",
   "periodAverage": "Selected period average",
-  "vsMedian": "{{value}}× the median",
+  "vsMedian": "{{value}}× the asset's median",
   "noReading": "No reading in period",
   "periodPerformance": "Period Performance",
   "cumulativeReturn": "Cumulative Return",
