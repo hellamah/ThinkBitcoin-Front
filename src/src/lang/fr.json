@@ -192,7 +192,7 @@
   "netSelling": "Vente nette sur la période sélectionnée (Actif)",
   "volatility": "Volatilité (Candle)",
   "periodAverage": "Moyenne de la période sélectionnée",
-  "vsMedian": "{{value}} × la médiane",
+  "vsMedian": "{{value}} × la médiane de l'actif",
   "noReading": "Aucune lecture sur la période",
   "periodPerformance": "Performance de la période",
   "cumulativeReturn": "Rendement cumulé",
