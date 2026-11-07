@@ -1011,6 +1011,7 @@
     "colDrawdown": "Baisse max. (Médiane)",
     "colDrawdownDetail": "Baisse max. (Monnaie)",
     "colDrawdownBh": "Baisse B&H",
+    "colDrawdownBhRanking": "Baisse B&H (Médiane)",
     "colCalmar": "Calmar Médian (Rend./Baisse)",
     "colCalmarHint": "Médiane du groupe de cryptos : le rendement annuel divisé par la baisse maximale",
     "colCalmarMoeda": "Calmar (Rend./Baisse)",

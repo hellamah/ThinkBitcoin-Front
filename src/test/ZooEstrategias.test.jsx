@@ -46,6 +46,15 @@ describe('ZooEstrategias', () => {
     expect(screen.getByText(t('zoo.rankingTitle'))).toBeTruthy()
   })
 
+  it('mostra os rótulos de mediana na tabela de ranking', () => {
+    renderizar(['Administrador'])
+    const tabelas = screen.getAllByRole('table')
+    const ranking = tabelas[0]
+    const cabecalho = within(ranking).getAllByRole('columnheader')
+    // O cabeçalho de quedaBh (índice 6) deve conter "(Mediana)"
+    expect(cabecalho[6].textContent).toContain('(Mediana)')
+  })
+
   it('marca a regra do robô, com o caminho até a tela dele, para administrador', () => {
     renderizar(['Administrador'])
     const marcas = screen.getAllByTestId('zoo-regra-do-robo')

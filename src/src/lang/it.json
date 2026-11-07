@@ -1011,6 +1011,7 @@
     "colDrawdown": "Calo max. (Mediana)",
     "colDrawdownDetail": "Calo max. (Moneta)",
     "colDrawdownBh": "Calo B&H",
+    "colDrawdownBhRanking": "Calo B&H (Mediana)",
     "colCalmar": "Calmar Mediano (Rend./Calo)",
     "colCalmarHint": "Mediana del gruppo di monete: il rendimento annuo diviso per il calo massimo",
     "colCalmarMoeda": "Calmar (Rend./Calo)",
