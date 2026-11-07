@@ -130,7 +130,7 @@
   "safetyBalance": "Safety Balance",
   "safetyBalanceDescription": "Saved with your preferences: the platform does not lock or deduct this amount.",
   "reviewFrequency": "Review Frequency",
-  "reviewFrequencyDescription": "Defines the data update frequency in the interface.",
+  "reviewFrequencyDescription": "Saved as a user preference.",
   "daily": "Daily",
   "weekly": "Weekly",
   "monthly": "Monthly",
