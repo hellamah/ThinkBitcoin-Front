@@ -130,7 +130,7 @@
   "safetyBalance": "Saldo de Segurança",
   "safetyBalanceDescription": "Fica guardado com as suas preferências: a plataforma não bloqueia nem desconta este valor.",
   "reviewFrequency": "Frequência de Review",
-  "reviewFrequencyDescription": "Define a periodicidade de atualização de dados na interface.",
+  "reviewFrequencyDescription": "Fica guardado como uma preferência do usuário.",
   "daily": "Diária",
   "weekly": "Semanal",
   "monthly": "Mensal",

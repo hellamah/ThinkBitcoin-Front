@@ -130,7 +130,7 @@
   "safetyBalance": "Solde de sécurité",
   "safetyBalanceDescription": "Enregistré avec vos préférences : la plateforme ne bloque ni ne déduit ce montant.",
   "reviewFrequency": "Fréquence de révision",
-  "reviewFrequencyDescription": "Définit la fréquence de mise à jour des données dans l'interface.",
+  "reviewFrequencyDescription": "Enregistré comme une préférence de l'utilisateur.",
   "daily": "Quotidienne",
   "weekly": "Hebdomadaire",
   "monthly": "Mensuelle",
