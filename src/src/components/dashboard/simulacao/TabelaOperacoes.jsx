@@ -4,6 +4,7 @@ import * as mathUtils from '../../../utils/mathUtils'
 import { ExitReason, StopMode } from '../../../utils/enums'
 import { toLocalChartLabel } from '../../../utils/dateUtils'
 import { classeSinal, pct } from './formatacao'
+import RotuloComAjuda from '../RotuloComAjuda'
 
 /**
  * Lista de todas as operações.
@@ -39,7 +40,7 @@ export default function TabelaOperacoes({ resultado, foco, onFocar, t, locale })
               <th scope="col">{t('simulationTradeExit')}</th>
               <th scope="col">{t('simulationTradeBars')}</th>
               <th scope="col">{t('simulationTradeReason')}</th>
-              <th scope="col">{t('simulationTradeExcursion')}</th>
+              <th scope="col"><RotuloComAjuda texto={t('simulationTradeExcursion')} ajuda={t('simulationTradeExcursionHelp')} /></th>
               {dimensionado && <th scope="col">{t('simulationTradeSize')}</th>}
               <th scope="col">{t('simulationTradeResult')}</th>
             </tr>

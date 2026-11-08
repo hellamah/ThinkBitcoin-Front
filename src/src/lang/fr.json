@@ -448,6 +448,7 @@
   "simulationStopLine": "Stop initial",
   "simulationTargetLine": "Objectif",
   "simulationTradeExcursion": "MAE / MFE",
+  "simulationTradeExcursionHelp": "MAE (Max Adverse Excursion): pourcentage maximum que le prix s'est déplacé contre la position par rapport au prix d'entrée. MFE (Max Favorable Excursion): pourcentage maximum que le prix s'est déplacé en faveur de la position par rapport au prix d'entrée.",
   "simulationTradeSize": "Capital",
   "simulationTradeFocus": "Voir l'opération {{numero}} sur le graphique",
   "simulationExcursion": "Excursion des opérations",
