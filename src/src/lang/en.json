@@ -298,6 +298,7 @@
   "simulationReturn": "Return",
   "simulationBuyHold": "Buy & Hold",
   "simulationAlpha": "Alpha",
+  "ajuda.simAlpha": "The Alpha value already deducts the strategy's operating costs.",
   "simulationDrawdown": "Max drawdown",
   "simulationSharpe": "Sharpe",
   "simulationVolatility": "Volatility (Candle)",
