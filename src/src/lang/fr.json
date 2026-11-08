@@ -1021,7 +1021,7 @@
     "colDownCapture": "Part de baisse",
     "colDownCaptureHint": "Les mois de baisse du buy & hold, quelle part de la baisse la stratégie a subie",
     "colExposure": "Exposition Moyenne",
-    "colExposureHint": "Part moyenne du patrimoine investie dans l'actif sur la période",
+    "colExposureHint": "En moyenne, quelle part du capital propre de la stratégie a été appliquée à l'actif sur la période (de 0% à 100%). Ce n'est pas le poids de l'actif dans votre portefeuille.",
     "colFees": "Frais payés",
     "colFeesHint": "Part du patrimoine partie en frais sur la période",
     "approved": "Approbation",

@@ -1021,7 +1021,7 @@
     "colDownCapture": "Downside capture",
     "colDownCaptureHint": "In buy & hold's down months, how much of the fall the strategy took",
     "colExposure": "Average Exposure",
-    "colExposureHint": "Average share of the portfolio held in the asset over the period",
+    "colExposureHint": "On average, how much of the strategy's own capital was applied to the asset over the period (from 0% to 100%). It is not the asset's weight in your portfolio.",
     "colFees": "Fees paid",
     "colFeesHint": "How much of the portfolio went to fees over the period",
     "approved": "Approval",
