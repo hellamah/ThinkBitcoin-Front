@@ -120,7 +120,7 @@ export const conferirMotivo = (decisao, motivo) => {
 const TELAS_ENCERRADAS = Object.freeze(['Treinamento IA', 'Detalhe do episódio'])
 const NAO_SAO_TELA = Object.freeze(['?', 'Cruzamentos entre telas'])
 const VITRINE = /94[,.]8|precis[aã]o da ia|marketing|vitrine|uptime do core|dados\s*\/\s*seg|domina o mercado/i
-const DAY_TRADE = /order ?book|livro de (?:ofertas|ordens)|depth|profundidade|order flow|fluxo de ordens|volume profile|execu[cç][aã]o|executar|ordem|alavancagem|leverage|api keys?|chaves? de api|webhooks?|take profit|stop loss|scalp|timeframe|intraday|paper trading|linhas de tend[eê]ncia/i
+const DAY_TRADE = /order ?book|livro de (?:ofertas|ordens)|depth|profundidade|order flow|fluxo de ordens|volume profile|execu[cç][aã]o|executar|ordem|alavancagem|leverage|api keys?|chaves? de api|webhooks?|take profit|stop loss|scalp|timeframe|intraday|paper trading|linhas de tend[eê]ncia|filtro de hor[aá]rio|hor[aá]rio de (?:negocia[cç][aã]o|preg[aã]o|mercado)|\(sess[oõ]es\)|sess(?:[aã]o|[oõ]es) (?:de (?:nova york|londres|t[oó]quio|negocia[cç][aã]o|mercado)|asi[aá]tica|americana|europeia)|day ?trad/i
 
 const telasDoPedido = (pedido) => (pedido?.telas || '')
   .split('·')

@@ -41,6 +41,14 @@ describe('pregão › grupos de descarte', () => {
     expect(ids('dayTrade')).toEqual(['g', 'h'])
   })
 
+  it('o filtro de horário das sessões de mercado é day trade, e a sessão do login não', () => {
+    // 08/11/2026: "Filtro de Horário (Sessões)", sobre a sessão de Nova York, chegou à fila.
+    const sessoes = pedido('s', 'Filtro de Horário (Sessões)', 'Simulação', { tipo: 'falta' })
+    const login = pedido('t', 'Falta aviso de sessão expirada', 'Configurações', { tipo: 'falta' })
+    const dayTrade = gruposDeDescarte([sessoes, login]).find((g) => g.id === 'dayTrade')
+    expect(dayTrade.pedidos.map((p) => p.idPedidoAlteracao)).toEqual(['s'])
+  })
+
   it('não traz o que não espera decisão nem o que nenhum grupo pega', () => {
     const todos = grupos.flatMap((g) => g.pedidos.map((p) => p.idPedidoAlteracao))
     expect(todos).not.toContain('k')

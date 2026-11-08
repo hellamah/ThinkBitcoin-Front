@@ -21,6 +21,15 @@ As duas listas abaixo foram levadas no mesmo dia, cada uma numa sessão própria
 
 A rodada das 13h de 05/11 foi a primeira com o código novo. Ela tirou da fila 11 contas de arredondamento, 2 contas entre medianas, 60 achados por decisão do dono e 24 recursos novos. A queda de energia logo depois cortou a publicação; a consolidação da rodada seguinte cobre os mesmos diários.
 
+## O que já entrou (07 e 08/11/2026)
+
+Os itens 17 a 25 foram feitos em 07/11, em branches com testes, e entraram na `Desenv` dos quatro repositórios em 08/11, antes das rodadas das 9h e das 10h.
+
+- **Oficina, `bf9f3c6`** (685 testes): 17, 18, 19, 20, 21 e 22. O 19 procura a conta no Back-DotNet e não no Back-Python. Para medir o 17, foram usados os PRs 140 a 180: a dúvida do revisor estava em 27 de 36, e entraram 37% dos PRs com ela e 40% dos sem.
+- **Back-DotNet, `93264ae4`, e Front, `6b5835c`:** o 23. O motivo da decisão vai a 1500 caracteres e o detalhe do evento a 2000, com uma migration que só alarga as colunas.
+- **Pregão, `30a4515`** (241 testes): o 24 e a primeira metade do 25. Ficou de fora o aviso de "pode ser do mock".
+- **08/11:** os itens 26 e 27, abaixo, no Pregão e no `DAY_TRADE` da Front.
+
 ## Oficina (`ThinkBitcoin-Back-Python-Agents-Oficina`, pasta `Agents-Front`)
 
 ### 1. Texto novo sem apoio no cálculo
@@ -215,3 +224,27 @@ Três dos 20 pedidos de 07/11 eram defeitos do front-dev, e não da plataforma:
 O item 12 já entrou no Pregão e só espera a conta de teste.
 
 Proposta: enquanto a conta não existe, não publicar achado de tempo de resposta medido no modo demonstração, porque o front-dev do Vite é mais lento que o build. E juntar aos pedidos de demonstração um aviso de "pode ser do mock" quando o número citado vem de um campo que o `mockApi.js` não preenche.
+
+### Revisão de 08/11/2026: 6 pedidos esperando decisão, 1 aprovado
+A rodada das 18h de 07/11 publicou 41 pedidos, ainda com o código de antes. Seis esperavam decisão: 4 abertos e 2 reabertos.
+- **Aprovado:** o 9765d117, para alinhar os planos do mock aos da API.
+- **Descartados:** os outros 5. O 2689692f e o 46835a46 eram recursos de day trade ou novos. O efb06e22 e o bb2939fc a tela já responde. O 95f0d24e contava errado os sinais.
+
+### 26. O termo que diz onde mexer contava como o que o ajuste pede (feito em 08/11)
+O efb06e22 foi reaberto, e o ajuste dele era "Incluir a contagem de anos validados diretamente no rótulo da tabela 'Por moeda' (ex: 'Aprovada: não (5/9)')". Para a regra do item 24, "Por moeda" era o que a correção acrescenta. Como o título da tabela está sempre na tela, a volta sairia por acaso.
+
+Feito: o termo precedido de "no rótulo", "na tabela", "ao lado do texto" e parecidos não conta (`status.LUGAR`).
+
+### 27. Day trade e recurso novo que só se viam no detalhe (feito em 08/11)
+As duas peneiras só olham o título do achado, e dois títulos passaram:
+- **2689692f, "Filtro de Horário (Sessões)":** o day trade aparecia no detalhe ("sessão de Nova York").
+- **46835a46, "Presets de Risco":** o Scalper, o stop loss e o take profit apareciam no ajuste.
+
+Feito:
+- **Day trade:** a regex `DAY_TRADE` (Front e Pregão juntos) pega o filtro de horário, as sessões de mercado e o "day trade" dito, e não a sessão do login.
+- **Recurso novo:** o `RECURSO_NOVO` pega presets e perfis de risco.
+
+### 28. O mock diverge do catálogo da API
+O 9765d117 apontava "Minerador (Acesso Completo)" contra a descrição "Acesso à tela de estratégias e aos alertas de preço". Esses nomes só existem no `mockApi.js`. A API real devolve ThinkStart (gratuito), ThinkPro (R$ 15) e ThinkElite (R$ 499,90). O pedido foi aprovado para a Oficina corrigir o mock.
+
+Proposta: um teste na Front que compara o catálogo do mock (planos, moedas, cargos) com uma gravação da resposta real, como o `mockZooEstrategia.js` já é a gravação de uma rodada. Enquanto o Pregão roda no modo demonstração, cada diferença vira pedido.
