@@ -562,7 +562,7 @@
     "fearGreed": "Fear & Greed",
     "liderancaBuscas": "Search leadership",
     "vezes": "times",
-    "participacaoTop5": "Top 5 share",
+    "participacaoTop5": "Top 5 share · {{metrica}}",
     "intensidadeMedia": "Average intensity",
     "variacao": "Change",
     "descricao": "Global map of search interest for the asset, highlighting the regions currently leading the market narrative.",

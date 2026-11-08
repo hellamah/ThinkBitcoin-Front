@@ -562,7 +562,7 @@
     "fearGreed": "Fear & Greed",
     "liderancaBuscas": "Leadership nelle ricerche",
     "vezes": "volte",
-    "participacaoTop5": "Quota nella top 5",
+    "participacaoTop5": "Quota nella top 5 · {{metrica}}",
     "intensidadeMedia": "Intensità media",
     "variacao": "Variazione",
     "descricao": "Mappatura globale dell'interesse di ricerca per l'asset, evidenziando le regioni che guidano attualmente la narrativa di mercato.",
