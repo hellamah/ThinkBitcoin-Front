@@ -196,7 +196,7 @@
   "noReading": "Aucune lecture sur la période",
   "periodPerformance": "Performance de la période",
   "cumulativeReturn": "Rendement cumulé",
-  "candlesCounted": "{{count}} bougies sur la période",
+  "candlesCounted": "{{count}} bougies de 1 heure sur la période",
   "maxDrawdown": "Drawdown maximal",
   "maxDrawdownHint": "Plus forte baisse à partir d'un sommet",
   "winRate": "Taux de hausse (Candle)",
