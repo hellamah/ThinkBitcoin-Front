@@ -30,8 +30,9 @@ export const DESCARTAVEIS = Object.freeze([...AGUARDANDO_DECISAO, STATUS.NOVA_TE
 
 export const DECISOES = Object.freeze({ APROVADO: STATUS.APROVADO, DESCARTADO: STATUS.DESCARTADO })
 
-// O tamanho da coluna do motivo (PedidoAlteracaoConfiguration.TamanhoMotivo).
-export const TAMANHO_MOTIVO = 500
+// O tamanho da coluna do motivo (PedidoAlteracaoConfiguration.TamanhoMotivo). Era 500 até
+// 07/11/2026: a nota da aprovação, que a Oficina lê para corrigir, não cabia.
+export const TAMANHO_MOTIVO = 1500
 
 // Os filtros da tela, na ordem do ciclo. "Esperando decisão" junta aberto,
 // reaberto e devolvido: é a fila de trabalho do administrador, e o padrão da tela.
