@@ -125,6 +125,7 @@
   "initialInvestment": "Investimento iniziale e piani (R$)",
   "initialInvestmentSettings": "Investimento iniziale (USD) e piani (R$)",
   "maxRiskPerTrade": "Rischio massimo per operazione (%)",
+  "maxRiskPerTradeDescription": "Salvato con le tue preferenze: nessuna simulazione o ordine usa questo limite.",
   "preferredCoin": "Criptovaluta preferita",
   "preferredCoinDescription": "La criptovaluta già selezionata all'apertura di Pannello, Simulazione e Geopolitica. Non cambia la valuta in cui sono mostrati i valori.",
   "safetyBalance": "Saldo di sicurezza",

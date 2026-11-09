@@ -669,18 +669,23 @@ function Settings() {
               <Grid size={{ xs: 12, md: 6 }}>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                   {renderField(t('maxRiskPerTrade'), (
-                    <TextField
-                      type="number"
-                      size="small"
-                      value={localPrefs?.riscoMaximoPerda ?? 0}
-                      onChange={(e) => setLocalPrefs(p => ({ ...p, riscoMaximoPerda: e.target.value }))}
-                      onBlur={(e) => {
-                        const val = parseFloat(e.target.value) || 0
-                        salvarPreferencia({ riscoMaximoPerda: val })
-                      }}
-                      sx={inputSx}
-                      InputProps={{ endAdornment: <Box sx={{ ml: 1, color: 'var(--accent-ink)', fontWeight: 700 }}>%</Box> }}
-                    />
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      <TextField
+                        type="number"
+                        size="small"
+                        value={localPrefs?.riscoMaximoPerda ?? 0}
+                        onChange={(e) => setLocalPrefs(p => ({ ...p, riscoMaximoPerda: e.target.value }))}
+                        onBlur={(e) => {
+                          const val = parseFloat(e.target.value) || 0
+                          salvarPreferencia({ riscoMaximoPerda: val })
+                        }}
+                        sx={inputSx}
+                        InputProps={{ endAdornment: <Box sx={{ ml: 1, color: 'var(--accent-ink)', fontWeight: 700 }}>%</Box> }}
+                      />
+                      <Typography sx={{ fontSize: '0.75rem', color: 'var(--text-faint)' }}>
+                        {t('maxRiskPerTradeDescription')}
+                      </Typography>
+                    </Box>
                   ))}
 
                   {renderField(t('reviewFrequency'), (

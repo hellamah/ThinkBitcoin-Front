@@ -125,6 +125,7 @@
   "initialInvestment": "Investissement initial et plans (R$)",
   "initialInvestmentSettings": "Investissement initial (USD) et plans (R$)",
   "maxRiskPerTrade": "Risque maximal par transaction (%)",
+  "maxRiskPerTradeDescription": "Enregistré avec vos préférences : aucune simulation ni commande n'utilise cette limite.",
   "preferredCoin": "Crypto préférée",
   "preferredCoinDescription": "La crypto déjà sélectionnée à l'ouverture du Tableau de bord, de la Simulation et de la Géopolitique. Elle ne change pas la devise d'affichage des valeurs.",
   "safetyBalance": "Solde de sécurité",
