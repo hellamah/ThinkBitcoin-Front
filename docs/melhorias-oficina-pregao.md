@@ -29,6 +29,10 @@ Os itens 17 a 25 foram feitos em 07/11, em branches com testes, e entraram na `D
 - **Back-DotNet, `93264ae4`, e Front, `6b5835c`:** o 23. O motivo da decisão vai a 1500 caracteres e o detalhe do evento a 2000, com uma migration que só alarga as colunas.
 - **Pregão, `30a4515`** (241 testes): o 24 e a primeira metade do 25. Ficou de fora o aviso de "pode ser do mock".
 - **08/11:** os itens 26 e 27, abaixo, no Pregão e no `DAY_TRADE` da Front.
+- **09/11, Oficina, `d178420`** (696 testes): os itens 29, 30, 31, 32, 33 e 35.
+  - **31:** a checagem `nota` exige só as chaves-alvo. A chave citada depois de um "como", ou seguida de "já explica" e "não mexer", é modelo, e vai ao pedido com o lugar no código.
+  - **32:** o aviso usa o glossário do Pregão ao lado e não vale num worktree, onde o caminho não existe.
+- **09/11, Pregão, `2f48972`** (244 testes): o 34. Ficou diferente da proposta. A regra "todos os pedaços" pura quebraria o trecho escrito com LaTeX ("MOMENTUM DA BUSCA ($\Delta$15…)"), cujo pedaço "delta" nunca esteve na tela. Por isso a comparação é com a captura de antes da correção: sai da volta o pedaço que estava e saiu, e a cauda que fechava a linha e cresceu. Nos diários de 06 e 08/11, isso pega exatamente o d636070d e o 102c5561.
 
 ## Oficina (`ThinkBitcoin-Back-Python-Agents-Oficina`, pasta `Agents-Front`)
 
