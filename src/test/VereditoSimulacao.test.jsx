@@ -31,3 +31,17 @@ describe('VereditoSimulacao › custo total', () => {
     expect(custo().textContent).not.toMatch(/\(|NaN/)
   })
 })
+
+describe('VereditoSimulacao › dica do Alfa', () => {
+  // Pedido ef656090: se o Alfa já desconta os custos. A chave fica dentro do bloco "ajuda": o t() divide a chave
+  // nos pontos, e a "ajuda.simAlpha" solta no topo do arquivo nunca era achada.
+  it('a dica abre ao passar o mouse e diz que o custo já saiu', async () => {
+    const pt = (await import('../src/lang/pt.json')).default
+    const tPt = (chave) => chave.split('.').reduce((o, k) => o?.[k], pt) ?? chave
+    render(<VereditoSimulacao metricas={METRICAS} veredito={VEREDITO} ressalvas={[]} t={tPt} capitalInicial={10000} />)
+    expect(pt['ajuda.simAlpha']).toBeUndefined()
+    const { fireEvent } = await import('@testing-library/react')
+    fireEvent.mouseOver(screen.getByText(pt.simulationAlpha))
+    expect(await screen.findByText(pt.ajuda.simAlpha)).toBeTruthy()
+  })
+})
