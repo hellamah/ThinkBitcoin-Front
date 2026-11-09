@@ -1021,7 +1021,7 @@
     "colDownCapture": "Quota del ribasso",
     "colDownCaptureHint": "Nei mesi di ribasso del buy & hold, quanta parte del ribasso ha subito la strategia",
     "colExposure": "Esposizione Media",
-    "colExposureHint": "Quota media del patrimonio investita nell'attivo durante il periodo",
+    "colExposureHint": "In media, quanta parte del capitale proprio della strategia è stata applicata all'asset durante il periodo (da 0% a 100%). Non è il peso dell'asset nel tuo portafoglio.",
     "colFees": "Commissioni pagate",
     "colFeesHint": "Quanto del patrimonio è andato in commissioni nel periodo",
     "approved": "Approvazione",

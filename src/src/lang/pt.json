@@ -1021,7 +1021,7 @@
     "colDownCapture": "Leva da queda",
     "colDownCaptureHint": "Nos meses de queda do buy & hold, quanto da queda a estratégia levou",
     "colExposure": "Exposição Média",
-    "colExposureHint": "Fração média do patrimônio em exposição ao longo do período",
+    "colExposureHint": "Em média, quanto do capital da própria estratégia ficou aplicado no ativo ao longo do período (de 0% a 100%). Não é o peso do ativo na sua carteira.",
     "colFees": "Taxa paga",
     "colFeesHint": "Quanto do patrimônio foi embora em taxa no período",
     "approved": "Aprovação",
