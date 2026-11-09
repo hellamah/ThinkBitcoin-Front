@@ -1228,7 +1228,10 @@ export default function GeoHeatmapView() {
                                 {nomePais(reg.country)}
                               </Typography>
                             </Box>
-                            <Tooltip title={t('heatmap.participacaoTop5')} arrow>
+                            {/* O percentual da lista é o mesmo do mapa: a fatia na métrica escolhida no seletor. */}
+                            <Tooltip title={t('heatmap.participacaoTop5', {
+                              metrica: metricaMapa === MapMetric.INTENSIDADE ? t('heatmap.metricaIntensidadeCurta') : t('heatmap.metricaLiderancaCurta'),
+                            })} arrow>
                               <Typography sx={{ fontWeight: 700, color: 'var(--accent-ink)', fontSize: '0.88rem', fontFamily: 'Share Tech Mono, monospace' }}>
                                 {reg.displayVal}%
                               </Typography>
