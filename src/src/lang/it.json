@@ -196,7 +196,7 @@
   "noReading": "Nessuna lettura nel periodo",
   "periodPerformance": "Performance del periodo",
   "cumulativeReturn": "Rendimento cumulato",
-  "candlesCounted": "{{count}} candele nel periodo",
+  "candlesCounted": "{{count}} candele di 1 ora nel periodo",
   "maxDrawdown": "Drawdown massimo",
   "maxDrawdownHint": "Massima discesa a partire da un picco",
   "winRate": "Tasso di rialzo (Candle)",
