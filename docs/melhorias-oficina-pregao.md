@@ -162,6 +162,53 @@ O DotNet recusa o motivo da decisão acima de 500 caracteres. Duas notas de apro
 
 Proposta (no Back-DotNet): subir o limite do motivo da aprovação para uns 1500 caracteres, ou separar a nota para a Oficina do motivo que vai para o histórico.
 
+### Revisão de 09/11/2026: 13 PRs, 8 entraram
+Os PRs 186 a 195 saíram da execução de 08/11 e os 196 a 198 da de 09/11, as duas já com os itens 17 a 22.
+
+- **Entraram 8:**
+  - 190: o Ticket Médio passou a dizer "do ativo".
+  - 191: a dica da Exposição Média, com o texto da nota.
+  - 193: a dica do MAE e do MFE.
+  - 194: "candles de 1 hora".
+  - 197: o "—" no lugar da intensidade que o mock não traz.
+  - 198: a descrição do Risco Máximo.
+  - 187 e 195, cada um com um ajuste do dono por cima (itens 29 e 30).
+- **Abandonados 5** (186, 188, 189, 192 e 196), com o motivo comentado em cada PR.
+
+Os 8 que entraram vieram com a nota do administrador. Dos 5 abandonados, 2 fizeram outra coisa que não a nota (186 e 188), e 2 renomearam uma métrica para outra (192 e 196).
+
+#### 29. Chave de idioma com ponto no nome
+O PR 195 pôs `"ajuda.simAlpha"` solto no topo dos cinco idiomas, e o 188 pôs `"ajuda.simEquilibrio"` dentro do bloco `ajuda`. O `t()` divide a chave nos pontos (`TranslationContext.buscar`) e nunca acha nenhuma das duas, e a dica mostraria o nome da chave. O revisor viu o sintoma no 195 ("a chave não existe"), mas não a causa.
+
+Proposta: a checagem dos idiomas recusa chave com ponto no nome, e diz em que bloco ela vai.
+
+#### 30. A interpolação nova num uso, e o outro uso da mesma chave sem o nome
+O PR 187 pôs `{{metrica}}` em `heatmap.participacaoTop5` e passou a métrica no tooltip do mapa. Mas a dica da lista (linha 1231) usa a mesma chave sem a métrica, e mostraria `{{metrica}}` cru. A checagem do item 21 aceitou, porque uma das chamadas passa o nome.
+
+Proposta: com um `{{nome}}` novo no texto, toda chamada `t('chave'...)` do código precisa passá-lo, e a que não passa barra o PR.
+
+#### 31. O rótulo virou a descrição, e a correção que ignora a nota
+- **PR 186:** a nota pedia "uma descrição como a do Saldo de Segurança". O PR trocou o rótulo (`initialInvestmentSettings`) pelo texto da descrição, e o campo ficou sem nome.
+- **PR 188:** a nota pedia só trocar o "hoje" de `simulationBreakEvenSub`. O PR criou uma dica nova e não mexeu nessa chave.
+
+Proposta:
+- **A nota cita uma chave** (como `simulationBreakEvenSub`) **e o diff não a muda:** a checagem barra o PR, que não seguiu a nota.
+- **A nota diz "como a do X":** o localizador manda junto o uso de X (o bloco da `safetyBalanceDescription` em `Settings.jsx`).
+- **O rótulo curto vira uma frase longa:** a correção ganha um aviso para a revisão.
+
+#### 32. O nome de uma métrica trocado pelo de outra
+- **PR 192:** trocou "Taxa de Alta" por "Taxa de Acerto", que é outra métrica.
+- **PR 196:** trocou "Profit factor" por "Média de Ganho vs. Média de Perda", que é o payoff.
+
+Nos dois, o texto novo põe na tela uma conta que o código não faz (item 1), e o revisor só desconfiou com "dúvida".
+
+Proposta: o glossário do Pregão (`persona/glossario.md`) vai ao programador com os nomes das métricas. A correção que tira de um rótulo o nome de uma métrica do glossário, ou põe o de outra, ganha um aviso ("renomeia a métrica X").
+
+#### 33. A conta do back foi, e o intervalo saiu errado
+O PR 189 é do bcd792e4, o pedido que o item 19 tinha em mente. A conta no Back-DotNet chegou ao modelo (`delta5 = valorAtual - serie[^6]`), mas ele escreveu "(0-100 pts)", o intervalo das parcelas. A diferença de duas leituras de 0 a 100 vai de -100 a +100.
+
+Proposta: a pergunta do `conta_no_back` lembra que o intervalo é o do resultado da conta, e não o das parcelas, e o rótulo com intervalo cita a conta.
+
 ## Pregão (`ThinkBitcoin-Back-Python-Agents-Pregao`)
 
 ### 9. Day trade fora das decisões do Pregão
@@ -248,3 +295,33 @@ Feito:
 O 9765d117 apontava "Minerador (Acesso Completo)" contra a descrição "Acesso à tela de estratégias e aos alertas de preço". Esses nomes só existem no `mockApi.js`. A API real devolve ThinkStart (gratuito), ThinkPro (R$ 15) e ThinkElite (R$ 499,90). O pedido foi aprovado para a Oficina corrigir o mock.
 
 Proposta: um teste na Front que compara o catálogo do mock (planos, moedas, cargos) com uma gravação da resposta real, como o `mockZooEstrategia.js` já é a gravação de uma rodada. Enquanto o Pregão roda no modo demonstração, cada diferença vira pedido.
+
+### Revisão de 09/11/2026: 12 pedidos esperando decisão, 5 aprovados
+Esperavam decisão 6 abertos, 4 devolvidos e 2 reabertos.
+- **Aprovados, com nota (5):**
+  - a2b6b205: dizer que o HHI é calculado sobre todas as regiões.
+  - 9f299a56: dizer que o Ticket Médio é o do candle mais recente.
+  - 0b7d3fce: a dica da exposição da Simulação, que é a fração do tempo em posição, e não a do capital como em Estratégias.
+  - 9765d117, aprovado de novo: os planos do mock.
+  - 2947ae85, aprovado de novo: só o texto da `centralDescricao`.
+- **Descartados (7).**
+
+As regras novas da Oficina apareceram nas devoluções:
+- **Conserto à mão (item 20):** o 9765d117 voltou porque a correção mexia em linhas do commit 8203f53. Ali a regra foi conservadora: a troca dos nomes dos planos não desfazia nada.
+- **"Mesmo problema":** o 0b7d3fce voltou como o mesmo do 30a9c425, que é de outra tela e de outra conta. A detecção juntou os dois pelo nome "Exposição".
+
+### 34. A volta que conta com um pedaço do trecho que sobrou
+O d636070d e o 102c5561 foram reabertos pela rodada das 9h de 08/11, que já rodava com os itens 24 e 25. A captura daquela rodada já tinha os textos novos ("× a mediana do ativo", sem "inc. slippage"). A volta contou mesmo assim:
+- **d636070d:** o trecho era "Custo total acumulado (USD, inc. slippage)". Um dos pedaços ("Custo total acumulado") continua na tela, e um pedaço basta (`captura.trecho_na_tela`). O pedaço que a correção tirou, "inc. slippage", não está mais.
+- **102c5561:** o trecho era "1.1× a mediana", e na tela está "1.1× a mediana do ativo". O rótulo antigo é o começo do novo, e o pedaço conta.
+
+Proposta:
+- O trecho só está na tela quando **todos** os pedaços com palavras estão.
+- O trecho que só aparece como o começo de uma linha mais longa conta como "o rótulo mudou": a correção mexeu nele, e a dúvida que sobra é um pedido novo, e não a volta do antigo.
+
+O item 14 continua valendo para o trecho que saiu inteiro.
+
+### 35. O "mesmo problema" juntou telas e contas diferentes
+O 0b7d3fce, sobre a "Exposição Média" da **Simulação** (a fração dos candles em posição, `backtest.js`), voltou como o mesmo problema do 30a9c425, sobre a "Exposição" de **Estratégias** (a fração do capital, no Back-Python).
+
+Proposta: a pergunta do par na Oficina leva a tela e a chave de cada um, e pedidos de telas diferentes, cujos textos vêm de chaves diferentes, não são o mesmo problema sem o modelo dizer por quê.
