@@ -399,7 +399,7 @@ export default function GeoHeatmapView() {
     const valorItem = (item) => {
       const lider = Number(item.frequenciaLideranca ?? item.FrequenciaLideranca ?? 0)
       const intens = Number(item.mediaIntensidade ?? item.MediaIntensidade ?? 0)
-      return metricaMapa === MapMetric.INTENSIDADE ? (intens || lider) : (lider || intens)
+      return metricaMapa === MapMetric.INTENSIDADE ? (intens ?? null) : (lider ?? null)
     }
 
     // Participações relativas do top 5
@@ -447,10 +447,8 @@ export default function GeoHeatmapView() {
       const countryCode = String(item.geoTop1Code || item.GeoTop1Code).toUpperCase()
       const extras = {
         variacao24h: variacaoMoeda,
-        [metricaMapa === MapMetric.INTENSIDADE ? 'intensidade' : 'lideranca']:
-          metricaMapa === MapMetric.INTENSIDADE
-            ? (item.mediaIntensidade ?? item.MediaIntensidade ?? null)
-            : (item.frequenciaLideranca ?? item.FrequenciaLideranca ?? null),
+        lideranca: item.frequenciaLideranca ?? item.FrequenciaLideranca ?? null,
+        intensidade: item.mediaIntensidade ?? item.MediaIntensidade ?? null,
       }
       const tooltipHtml = formatTooltipData(
         nomePais(countryCode),

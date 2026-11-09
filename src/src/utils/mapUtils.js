@@ -82,14 +82,21 @@ export const formatTooltipData = (countryName, coinSymbol, value, extras = {}, l
     </div>
   ` : '';
 
-  const blocoIntensidade = intensidade !== undefined && intensidade !== null && Number(intensidade) > 0 ? `
+  const blocoIntensidade = intensidade === undefined ? '' : (intensidade !== null && Number(intensidade) > 0 ? `
     <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 6px;">
       <span style="font-size: 12px; color: rgba(255,255,255,0.65);">${rotulos.intensidade}:</span>
       <span style="font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.9); font-family: 'Share Tech Mono', monospace;">
         ${Number(intensidade).toFixed(0)}/100
       </span>
     </div>
-  ` : '';
+  ` : `
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 6px;">
+      <span style="font-size: 12px; color: rgba(255,255,255,0.65);">${rotulos.intensidade}:</span>
+      <span style="font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.9); font-family: 'Share Tech Mono', monospace;">
+        —
+      </span>
+    </div>
+  `);
 
   return `
     <div style="
