@@ -125,6 +125,7 @@
   "initialInvestment": "Initial Investment and Plans (R$)",
   "initialInvestmentSettings": "Initial Investment (USD) and Plans (R$)",
   "maxRiskPerTrade": "Max Risk Per Trade (%)",
+  "maxRiskPerTradeDescription": "Saved with your preferences: no simulation or order uses this limit.",
   "preferredCoin": "Preferred Coin",
   "preferredCoinDescription": "The coin that opens already selected on the Dashboard, Simulation and Geopolitics. It does not change the currency values are shown in.",
   "safetyBalance": "Safety Balance",
