@@ -564,7 +564,7 @@
     "fearGreed": "Fear & Greed",
     "liderancaBuscas": "Liderança de buscas",
     "vezes": "vezes",
-    "participacaoTop5": "Participação no top 5",
+    "participacaoTop5": "Participação no top 5 · {{metrica}}",
     "intensidadeMedia": "Intensidade média",
     "variacao": "Variação",
     "descricao": "Mapeamento global do interesse de busca pelo ativo, destacando as regiões que atualmente lideram a narrativa de mercado.",

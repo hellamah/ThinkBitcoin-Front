@@ -426,8 +426,11 @@ export default function GeoHeatmapView() {
     const moedaAtual = moedasCarousel?.find(m => m.simbolo === moedaSelecionada)
     const variacaoMoeda = typeof moedaAtual?.variacao === 'number' ? moedaAtual.variacao : null
 
+    // Define o rótulo de participação com a métrica ativa para clareza
     const tooltipLabels = {
-      participacao: t('heatmap.participacaoTop5'),
+      participacao: t('heatmap.participacaoTop5', {
+        metrica: metricaMapa === MapMetric.INTENSIDADE ? t('heatmap.metricaIntensidadeCurta') : t('heatmap.metricaLiderancaCurta')
+      }),
       lideranca: t('heatmap.liderancaBuscas'),
       intensidade: t('heatmap.intensidadeMedia'),
       variacao: t('heatmap.variacao'),
@@ -1223,7 +1226,10 @@ export default function GeoHeatmapView() {
                                 {nomePais(reg.country)}
                               </Typography>
                             </Box>
-                            <Tooltip title={t('heatmap.participacaoTop5')} arrow>
+                            {/* O percentual da lista é o mesmo do mapa: a fatia na métrica escolhida no seletor. */}
+                            <Tooltip title={t('heatmap.participacaoTop5', {
+                              metrica: metricaMapa === MapMetric.INTENSIDADE ? t('heatmap.metricaIntensidadeCurta') : t('heatmap.metricaLiderancaCurta'),
+                            })} arrow>
                               <Typography sx={{ fontWeight: 700, color: 'var(--accent-ink)', fontSize: '0.88rem', fontFamily: 'Share Tech Mono, monospace' }}>
                                 {reg.displayVal}%
                               </Typography>
