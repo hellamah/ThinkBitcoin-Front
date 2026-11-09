@@ -266,7 +266,7 @@
   "divergenciaAltista": "Ribasso senza sostegno di vendita",
   "signal_divergenciaBaixista": "Divergenza ribassista",
   "signal_divergenciaAltista": "Divergenza rialzista",
-  "avgTicket": "Ticket medio (Mercato)",
+  "avgTicket": "Ticket medio (dell'asset)",
   "tradeCount": "~{{count}} operazioni",
   "signal_ticketAlto": "Ticket alto",
   "signal_volumeAtipico": "Volume atipico",
