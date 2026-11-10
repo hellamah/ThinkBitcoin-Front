@@ -558,6 +558,7 @@
     "picoTooltip": "Tempo tras il verificarsi del picco di ricerche",
     "volatilidadeTooltip": "Quanto ha oscillato l'interesse di ricerca negli ultimi 15 minuti: la deviazione standard delle letture, su una scala da 0 a 100. Non è la volatilità del prezzo.",
     "concentracaoGeo": "Concentrazione geografica",
+    "concentracaoGeo_tooltip": "Calcolato su tutte le regioni della raccolta; la lista mostrata riguarda solo i primi 5.",
     "concentrada": "Narrativa concentrata",
     "concentrada_tooltip": "Narrativa concentrata quando l'indice HHI di concentrazione geografica è uguale o superiore al 25%.",
     "distribuida": "Narrativa globalizzata",

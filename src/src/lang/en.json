@@ -558,6 +558,7 @@
     "picoTooltip": "Time since the search peak occurred",
     "volatilidadeTooltip": "How much search interest swung over the last 15 minutes: the standard deviation of the readings, on a 0 to 100 scale. It is not price volatility.",
     "concentracaoGeo": "Geographic concentration",
+    "concentracaoGeo_tooltip": "Calculated across all regions in the collection; the list shown is only for the top 5.",
     "concentrada": "Concentrated narrative",
     "concentrada_tooltip": "Concentrated narrative when the Geographic Concentration HHI index is 25% or higher.",
     "distribuida": "Globalized narrative",

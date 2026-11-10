@@ -201,7 +201,7 @@ export default function HeatmapInsights({ trend, fear, t, locale }) {
       {/* Concentração geográfica (índice HHI) */}
       {hhi !== null && (
         <BarraMedida
-          label={t('heatmap.concentracaoGeo')}
+          label={<Tooltip title={t('heatmap.concentracaoGeo_tooltip')}><Typography>{t('heatmap.concentracaoGeo')}</Typography></Tooltip>}
           valorLabel={hhi >= 0.25 ? (
             <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
               🎯 {t('heatmap.concentrada')} ({(hhi * 100).toFixed(1)}%)
