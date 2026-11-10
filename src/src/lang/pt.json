@@ -737,7 +737,7 @@
     "sinalVwapBaixo": "O preço fechou abaixo do VWAP vindo de cima dele.",
     "sinalVwapCima": "O preço fechou acima do VWAP vindo de baixo dele.",
     "taxaAlta": "Percentual de candles que fecharam acima da própria abertura. Perto de 50% é o normal do mercado e não indica tendência.",
-    "ticketMedio": "Valor médio em dólar de cada negócio fechado. Ticket baixo com volume alto é muita gente pequena negociando; ticket alto é poucas ordens grandes.",
+    "ticketMedio": "Valor médio em dólar de cada negócio fechado no candle mais recente. O valor é comparado com a mediana do histórico carregado. Ticket baixo com volume alto é muita gente pequena negociando; ticket alto é poucas ordens grandes.",
     "velas": "Cada vela mostra abertura, máxima, mínima e fechamento do candle. Verde fechou acima da abertura; vermelha, abaixo.",
     "volatilidade": "O quanto o preço oscilou dentro do candle atual, em percentual. A comparação com a mediana diz se este momento está mais agitado que o normal do período.",
     "vwap": "Preço médio do período ponderado pelo volume de cada momento. É a referência que mesa profissional usa para julgar se uma compra saiu cara ou barata."

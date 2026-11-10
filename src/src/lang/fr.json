@@ -737,7 +737,7 @@
     "sinalVwapBaixo": "Le prix a clôturé sous le VWAP en venant du dessus.",
     "sinalVwapCima": "Le prix a clôturé au-dessus du VWAP en venant du dessous.",
     "taxaAlta": "Pourcentage de bougies ayant clôturé au-dessus de leur propre ouverture. Autour de 50 %, c'est la normale du marché et cela n'indique aucune tendance.",
-    "ticketMedio": "Valeur moyenne en dollars de chaque transaction conclue. Un ticket faible avec un volume élevé, c'est beaucoup de petits intervenants ; un ticket élevé, c'est peu d'ordres importants.",
+    "ticketMedio": "Valeur moyenne en dollars de chaque transaction conclue dans le candle le plus récent. La valeur est comparée à la médiane de l'historique chargé. Un ticket faible avec un volume élevé, c'est beaucoup de petits intervenants ; un ticket élevé, c'est peu d'ordres importants.",
     "velas": "Chaque bougie montre l'ouverture, le plus haut, le plus bas et la clôture. Verte, elle a clôturé au-dessus de l'ouverture ; rouge, en dessous.",
     "volatilidade": "De combien le prix a oscillé à l'intérieur de la bougie actuelle, en pourcentage. La comparaison avec la médiane dit si ce moment est plus agité que la normale de la période.",
     "vwap": "Prix moyen de la période pondéré par le volume de chaque instant. C'est la référence qu'utilise une table professionnelle pour juger si un achat s'est fait cher ou bon marché."
