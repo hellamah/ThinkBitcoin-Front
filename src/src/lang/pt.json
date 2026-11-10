@@ -307,7 +307,7 @@
   "simulationProfitFactor": "Profit factor",
   "simulationTrades": "Operações",
   "simulationOpenAtEnd": "{{count}} operação(ões) ainda aberta(s) quando a janela acabou. Elas movem a curva de capital, mas não são acerto nem erro — as métricas contam as {{concluidas}} que tiveram desfecho.",
-  "simulationExposure": "Exposição Média",
+  "simulationExposure": "Exposição Média (Fração de Tempo)",
   "simulationTotalCost": "Custo total acumulado (USD)",
   "simulationEquity": "Curva de capital",
   "simulationTradeEntry": "Entrada",
