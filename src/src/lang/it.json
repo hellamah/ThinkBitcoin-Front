@@ -1027,6 +1027,8 @@
     "colExposureHint": "In media, quanta parte del capitale proprio della strategia è stata applicata all'asset durante il periodo (da 0% a 100%). Non è il peso dell'asset nel tuo portafoglio.",
     "colFees": "Commissioni pagate",
     "colFeesHint": "Quanto del patrimonio è andato in commissioni nel periodo",
+    "colGiro": "Giro/anno (Mediana)",
+    "colGiroHint": "Giro/anno (Mediana)",
     "approved": "Approvazione",
     "coinPicker": "Moneta delle curve e degli anni",
     "coinSelected": "{{moeda}} (scelta)",

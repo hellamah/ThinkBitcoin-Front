@@ -136,6 +136,7 @@ function TabelaRanking({ estrategias, selecionada, onSelecionar }) {
     { id: 'quedaCap', rotulo: t('zoo.colDownCapture'), dica: t('zoo.colDownCaptureHint'), numerica: true },
     { id: 'exposicao', rotulo: t('zoo.colExposure'), dica: t('zoo.colExposureHint'), numerica: true },
     { id: 'taxa', rotulo: t('zoo.colFees'), dica: t('zoo.colFeesHint'), numerica: true },
+    { id: 'giro', rotulo: t('zoo.colGiro'), dica: t('zoo.colGiroHint'), numerica: true },
   ]
 
   return (
@@ -174,6 +175,7 @@ function TabelaRanking({ estrategias, selecionada, onSelecionar }) {
                   <TableCell align="right">{pctSemSinal(e.medianaCapturaQueda)}</TableCell>
                   <TableCell align="right">{pctSemSinal(e.medianaExposicao)}</TableCell>
                   <TableCell align="right">{pctSemSinal(e.medianaTaxaPaga, 1)}</TableCell>
+                  <TableCell align="right">{num(e.medianaGiroPorAno)}</TableCell>
                 </TableRow>
               )
             })}
