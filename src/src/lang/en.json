@@ -578,7 +578,7 @@
     "filtrandoPor": "Showing assets whose search is led by:",
     "limparFiltro": "Clear Filter",
     "centralInteligencia": "Intelligence Hub",
-    "centralDescricao": "Acceleration and search dominance level of narratives by geographic region for the selected coin",
+    "centralDescricao": "Acceleration and dominance level of Google Trends search interest for the coin's terms by geographic region (dominance is each region's share of that interest)",
     "aguardandoDados": "Waiting for geographic data...",
     "semDados": "Map data not available for the selected asset in this period.",
     "erroCarregar": "Could not load geographic data at the moment.",

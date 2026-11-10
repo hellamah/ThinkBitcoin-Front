@@ -578,7 +578,7 @@
     "filtrandoPor": "Affichage des actifs dont la recherche est dominée par :",
     "limparFiltro": "Effacer le filtre",
     "centralInteligencia": "Centrale de renseignement",
-    "centralDescricao": "Niveau d'accélération et de dominance de recherche des récits par région géographique pour la crypto sélectionnée",
+    "centralDescricao": "Niveau d'accélération et de dominance de l'intérêt de recherche Google Trends pour les termes de la crypto sélectionnée par région géographique (la dominance est la part de chaque région dans cet intérêt)",
     "aguardandoDados": "En attente des données géographiques...",
     "semDados": "Données cartographiques indisponibles pour l'actif sélectionné sur la période.",
     "erroCarregar": "Impossible de charger les données géographiques pour le moment.",
