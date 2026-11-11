@@ -7,13 +7,13 @@ Anotadas em 05/11/2026, na revisão dos 8 PRs abertos da Oficina (156 a 164, dos
 Dos 40 itens anotados até 09/11, 30 entraram, 8 entraram em parte e 2 não começaram (15 e 28). Em 10/11 entraram os itens 36 a 40. Eles não vêm de uma revisão de PRs, e sim dos números das execuções: os `resumo.json` das execuções das 10h da Oficina de 05 a 09/11 (57 pedidos foram ao modelo, e dos PRs 167 a 198 entraram 17 de 32) e os diários e o relatório do Pregão de 09/11. Em 11/11 entraram o 41 e o 42, lidos do `agendado.log` do Pregão.
 
 **O que mais pesa, por ordem:**
-1. **38 (Pregão):** a `falta` fica fora da fila do administrador, a não ser que caiba no que a tela já tem. Nas rodadas de 09/11, de 21 a 24 dos 39 a 48 achados eram faltas, e na triagem de 05/11 foram descartados 90 dos 103 pedidos de falta. **Feito em 10/11**, e na `Desenv` do Pregão desde 11/11 (`3e25300`). A triagem ainda não rodou numa consolidação agendada: a das 13h de 11/11 caiu antes dela (item 42). O item diz o que entrou e o que ficou.
+1. **38 (Pregão):** a `falta` fica fora da fila do administrador, a não ser que caiba no que a tela já tem. Nas rodadas de 09/11, de 21 a 24 dos 39 a 48 achados eram faltas, e na triagem de 05/11 foram descartados 90 dos 103 pedidos de falta. **Feito em 10/11**, e na `Desenv` do Pregão desde 11/11 (`3e25300`). A triagem rodou pela primeira vez na consolidação das 18h de 11/11: das 9 faltas que se repetiram, 1 foi ao time e 8 ficaram nas sugestões do relatório. O item diz o que entrou e o que ficou.
 2. **36 (Oficina):** a etiqueta passa a usar as idas ao modelo. Em 09/11, 12 de 13 PRs saíram com "precisa de você". Com nota e até 3 idas ao modelo entraram 10 de 12 PRs; com nota e 4 ou mais, 3 de 8.
 3. **39 (Pregão):** o descarte passa a valer para o assunto, e não só para a chave. O slippage, descartado em 05/11, foi ao time em 09/11 como três problemas novos.
 4. **37 (Oficina):** a prova. Dos 32 PRs, 17 saíram sem teste que prove, e a rodada só do teste não trouxe a prova em 24 de 35 vezes.
 5. **8 (Oficina):** medir o revisor, o que ficou de fora em 05/11. Dos PRs 167 a 198, 19 têm o veredito no `agendado.log`: 16 "aprovar", dos quais 5 entraram, e 3 "recusar", dos quais 1 entrou (o 197). Dos 7 que já saíram com o veredito tirado dos itens (179, 180, 188, 192, 196, 197 e 198), o revisor acertou 3. A medição do `testes/revisor/medir.py` continua sem rodar.
 
-**Item 40 (Pregão), investigado em 11/11:** com dados reais, a série da Simulação demora mais que a espera do roteiro quando o Trader troca de moeda, e em 2 das 3 rodadas ele perdeu as duas ações seguintes. A leitura da chegada está inteira, e nenhum pedido da Simulação foi validado desde então.
+**Item 40 (Pregão), investigado em 11/11:** com dados reais, a série da Simulação demora mais que a espera do roteiro quando o Trader troca de moeda, e em 3 das 5 rodadas até 11/11 ele perdeu as duas ações seguintes. A leitura da chegada está inteira, e nenhum pedido da Simulação foi validado desde então.
 
 **Itens 41 e 42 (Pregão), de 11/11:** os dois custaram uma execução agendada inteira. O 42 foi feito no mesmo dia. Do 41 entrou uma parte, e a causa continua aberta.
 - **42:** a consolidação das 13h de 11/11 caiu quando o modelo parou de responder a uma pergunta do juiz, e o dia ficou sem relatório e sem publicação dessa rodada. **Feito em 11/11** (`6ca1dfb`), antes da rodada das 18h: o silêncio do Ollama vira "o modelo não terminou", que a consolidação já sabe tratar. Não foi medido contra o Ollama.
@@ -411,7 +411,8 @@ Proposta:
 - As duas listas ficam como atalho para o que já é conhecido, e deixam de precisar crescer.
 
 Feito em 10/11, e na `Desenv` do Pregão desde 11/11 (`e5a3af2`, merge `3e25300`, 262 testes):
-- **A primeira consolidação com a triagem** seria a das 13h de 11/11, que caiu no juiz antes de chegar a ela (item 42). O registro ainda não tem nenhuma resposta guardada.
+- **A primeira consolidação com a triagem** foi a das 18h de 11/11. A das 13h caiu no juiz antes de chegar a ela (item 42). Das 9 faltas que se repetiram, 1 foi ao time como ajuste de tela e 8 ficaram nas sugestões do relatório, com a chave para o `--promover`. O registro guardou as 9 respostas. O relatório lista 28 sugestões de recurso novo, com as 8 entre elas, e 2 faltas do que a tela já mostra ("Curva de capital").
+- **A que foi ao time** é a "Ausência de Frequência de Trades" (Simulação · Estratégias), que pede um campo novo com a quantidade de trades por dia. Parece mais um recurso novo do que um ajuste, e é a primeira resposta da triagem a conferir. A Oficina tem em correção um pedido de nome parecido, "Frequência de Operações (Turnover)" (PR 204). Não foi conferido se é o mesmo assunto.
 - **A pergunta:** a falta que se repetiu vai ao modelo uma vez por problema, depois do juiz (`faltas.triar`): é um ajuste numa tela que já existe, SIM ou NÃO? A resposta fica no registro (`ajuste_de_tela`). A que leva NÃO sai dos recorrentes antes de ganhar texto de pedido, e vai para as sugestões do relatório, com a chave.
 - **O que o administrador aprovou segue sem pergunta.** Das 133 faltas que já foram ao time, 3 estão aprovadas: "Tempo Médio de Operação", "Frequência de Operações (Turnover)" e "Indicação de Fonte de Volatilidade".
 - **O dono manda uma sugestão à fila** com `python -m trader.consolidar --promover <chave>`.
@@ -432,7 +433,7 @@ Proposta:
 - Os pares com um pedido em comum viram um grupo, e o grupo é publicado como um pedido só.
 
 ### 40. Com dados reais, a troca de moeda na Simulação estoura a espera do roteiro (10 e 11/11/2026)
-Nas rodadas com dados reais de 09/11 às 19:19 e de 10/11 às 9h, o Trader clicou em "SOL" na Simulação, e a tela mostrou "Carregando a série de análise…". As duas ações seguintes não foram executadas: "não achei 'Sinal de entrada' na tela" e "não achei 'Fixar regra e revelar' na tela". Na rodada de 10/11 às 18h, também com dados reais, a série chegou a tempo, e as três ações foram feitas. Na das 18h de 09/11, no modo demonstração, as três também foram feitas.
+Nas rodadas com dados reais de 09/11 às 19:19 e de 10/11 às 9h, o Trader clicou em "SOL" na Simulação, e a tela mostrou "Carregando a série de análise…". As duas ações seguintes não foram executadas: "não achei 'Sinal de entrada' na tela" e "não achei 'Fixar regra e revelar' na tela". Na rodada de 10/11 às 18h, também com dados reais, a série chegou a tempo, e as três ações foram feitas. Na das 18h de 09/11, no modo demonstração, as três também foram feitas. Em 11/11, com dados reais, a das 13h perdeu de novo as duas ações seguintes ("não achei 'Sinal de entrada' na tela" e "não achei 'Móvel (ATR)' na tela"), e a das 18h fez as três. São 3 de 5 rodadas com dados reais.
 
 - **A causa:** depois de cada ação, o `navegador._esperar` espera a rede parar por até 5 s, mais 1,5 s, e a tela é lida. O `rotina._visitar` só cancela as ações seguintes quando o caminho da página muda ou uma janela abre (`nav.situacao`), e a troca do `?moeda=` não conta.
 - **O que não aconteceu:** a leitura da chegada está inteira nas três rodadas, o Trader não transformou o carregamento em achado, e nenhum pedido da Simulação foi validado desde 09/11. Dois estão corrigidos, esperando a validação: "Sigla MAE / MFE sem definição" e "Dúvida se o Alfa deduz o custo total".
@@ -443,7 +444,7 @@ Proposta:
 - Medir quanto a série leva com dados reais: o que passa de 6,5 s para o Trader passa para o cliente.
 
 ### Ocorrências de 10 e 11/11/2026: duas rodadas e uma consolidação perdidas
-Lidas do `diarios/agendado.log` do Pregão. Das cinco execuções agendadas de 10/11 e de 11/11 até as 13h, duas correram inteiras (9h e 18h de 10/11).
+Lidas do `diarios/agendado.log` do Pregão. Das cinco execuções agendadas de 10/11 e de 11/11 até as 13h, duas correram inteiras (9h e 18h de 10/11). A das 18h de 11/11 também correu inteira: a consolidação dela cobriu a rodada das 13h e publicou 28 pedidos.
 
 ### 41. O front-dev responde uma vez e para (10 e 11/11/2026)
 - **13h de 10/11:** a rodada foi pulada com "o front-dev não subiu em 180 s", mas a linha saiu 41 s depois de o front-dev começar a subir (13:00:12 a 13:00:53). A saída do Vite dizia "Re-optimizing dependencies because vite config has changed" e "ready in 9747 ms".
@@ -462,7 +463,7 @@ Feito em 11/11, na `Desenv` do Pregão antes da rodada das 18h (`e2b3be4`, merge
 - **O Trader tenta de novo a abertura do `/login`**, até 3 vezes (`navegador.TENTATIVAS_DO_LOGIN`), só quando o tempo esgota. O log diz em qual tentativa abriu, e o `/login` que abre de primeira não muda.
 - **Uma página em branco entre as tentativas:** sem ela, o Chrome derruba a abertura seguinte com `net::ERR_ABORTED`. O teste com o Chrome pegou isso na primeira versão.
 - **Com o front parado de vez,** a rodada cai como antes, 60 s depois.
-- **Como foi conferido:** com os testes de unidade e com o `Navegador` de verdade contra um servidor local que não responde ao `/login`. Não foi testado contra o front-dev, e não se sabe se teria salvo a rodada das 9h de 11/11.
+- **Como foi conferido:** com os testes de unidade e com o `Navegador` de verdade contra um servidor local que não responde ao `/login`. Não foi testado contra o front-dev, e não se sabe se teria salvo a rodada das 9h de 11/11. Na rodada das 18h de 11/11 o `/login` abriu de primeira, e a nova tentativa não foi exercitada.
 
 O que ficou:
 - A rodada só começa depois de o `/login` montar, com novas tentativas dentro dos 180 s, e a mensagem diz o que falhou e em quanto tempo. Isso cobre também a rodada pulada das 13h de 10/11, que a nova tentativa do Trader não alcança.
@@ -481,7 +482,7 @@ Feito em 11/11, na `Desenv` do Pregão antes da rodada das 18h (`2653b4a`, merge
 - **O limite de leitura caiu de 900 para 300 s** (`cerebro.ESPERA`). A resposta vem em stream, e as segundas tentativas medidas em outubro levaram de 25 a 120 s.
 - **Dois silêncios seguidos ainda derrubam a consolidação** (`cerebro.SILENCIOS_SEGUIDOS`). Com o Ollama parado, cada pergunta que resta custaria 300 s, e a consolidação passaria por cima da execução seguinte. Uma resposta no meio zera a conta, e a conexão recusada sobe como antes.
 - **O diário:** o título das notas do modelo passou a dizer "o contexto encheu, ou o Ollama não respondeu".
-- **Como foi conferido:** com os testes de unidade e com o `Cerebro` de verdade contra um servidor local que se cala, com o limite em 1 s. Não foi medido contra o Ollama, porque o travamento de 11/11 não se reproduz de propósito.
+- **Como foi conferido:** com os testes de unidade e com o `Cerebro` de verdade contra um servidor local que se cala, com o limite em 1 s. Não foi medido contra o Ollama, porque o travamento de 11/11 não se reproduz de propósito. Na consolidação das 18h de 11/11, cinco perguntas entraram em laço e foram refeitas, e o Ollama respondeu a todas: a correção não foi exercitada.
 
 O que ficou:
 - **Por que o Ollama se calou** depois do laço cortado não foi investigado.
