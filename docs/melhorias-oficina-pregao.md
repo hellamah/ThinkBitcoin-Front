@@ -2,18 +2,22 @@
 
 Anotadas em 05/11/2026, na revisão dos 8 PRs abertos da Oficina (156 a 164, dos quais só 158 e 163 entraram) e na triagem dos 199 pedidos que esperavam decisão. Cada item diz o que aconteceu, com o exemplo, e o que mudaria. O objetivo é que menos PR chegue ao Azure para ser abandonado.
 
-## A fila em 10/11/2026
+## A fila em 11/11/2026
 
-Dos 40 itens anotados até 09/11, 30 entraram, 8 entraram em parte e 2 não começaram (15 e 28). Em 10/11 entraram os itens 36 a 40. Eles não vêm de uma revisão de PRs, e sim dos números das execuções: os `resumo.json` das execuções das 10h da Oficina de 05 a 09/11 (57 pedidos foram ao modelo, e dos PRs 167 a 198 entraram 17 de 32) e os diários e o relatório do Pregão de 09/11.
+Dos 40 itens anotados até 09/11, 30 entraram, 8 entraram em parte e 2 não começaram (15 e 28). Em 10/11 entraram os itens 36 a 40. Eles não vêm de uma revisão de PRs, e sim dos números das execuções: os `resumo.json` das execuções das 10h da Oficina de 05 a 09/11 (57 pedidos foram ao modelo, e dos PRs 167 a 198 entraram 17 de 32) e os diários e o relatório do Pregão de 09/11. Em 11/11 entraram o 41 e o 42, lidos do `agendado.log` do Pregão.
 
 **O que mais pesa, por ordem:**
-1. **38 (Pregão):** a `falta` fica fora da fila do administrador, a não ser que caiba no que a tela já tem. Nas rodadas de 09/11, de 21 a 24 dos 39 a 48 achados eram faltas, e na triagem de 05/11 foram descartados 90 dos 103 pedidos de falta. **Feito em 10/11**, no ramo `claude/falta-fora-da-fila` do Pregão, ainda fora da `Desenv` (o item diz o que entrou e o que ficou).
+1. **38 (Pregão):** a `falta` fica fora da fila do administrador, a não ser que caiba no que a tela já tem. Nas rodadas de 09/11, de 21 a 24 dos 39 a 48 achados eram faltas, e na triagem de 05/11 foram descartados 90 dos 103 pedidos de falta. **Feito em 10/11**, e na `Desenv` do Pregão desde 11/11 (`3e25300`). A triagem ainda não rodou numa consolidação agendada: a das 13h de 11/11 caiu antes dela (item 42). O item diz o que entrou e o que ficou.
 2. **36 (Oficina):** a etiqueta passa a usar as idas ao modelo. Em 09/11, 12 de 13 PRs saíram com "precisa de você". Com nota e até 3 idas ao modelo entraram 10 de 12 PRs; com nota e 4 ou mais, 3 de 8.
 3. **39 (Pregão):** o descarte passa a valer para o assunto, e não só para a chave. O slippage, descartado em 05/11, foi ao time em 09/11 como três problemas novos.
 4. **37 (Oficina):** a prova. Dos 32 PRs, 17 saíram sem teste que prove, e a rodada só do teste não trouxe a prova em 24 de 35 vezes.
 5. **8 (Oficina):** medir o revisor, o que ficou de fora em 05/11. Dos PRs 167 a 198, 19 têm o veredito no `agendado.log`: 16 "aprovar", dos quais 5 entraram, e 3 "recusar", dos quais 1 entrou (o 197). Dos 7 que já saíram com o veredito tirado dos itens (179, 180, 188, 192, 196, 197 e 198), o revisor acertou 3. A medição do `testes/revisor/medir.py` continua sem rodar.
 
 **Item 40 (Pregão), investigado em 11/11:** com dados reais, a série da Simulação demora mais que a espera do roteiro quando o Trader troca de moeda, e em 2 das 3 rodadas ele perdeu as duas ações seguintes. A leitura da chegada está inteira, e nenhum pedido da Simulação foi validado desde então.
+
+**Itens 41 e 42 (Pregão), de 11/11:** os dois custaram uma execução agendada inteira, e o 42 vem antes.
+- **42:** a consolidação das 13h de 11/11 caiu quando o modelo parou de responder a uma pergunta do juiz, e o dia ficou sem relatório e sem publicação dessa rodada. A correção é pequena: o limite estourado vira "o modelo não terminou", que a consolidação já sabe tratar.
+- **41:** duas rodadas perdidas em dois dias (13h de 10/11 e 9h de 11/11) com o front-dev no ar pela metade. A causa não foi investigada, e o item traz uma hipótese a conferir.
 
 **O que falta dos itens que entraram em parte:**
 - **3:** o Triador só entende o padrão `aba === Aba.X &&`, e nada foi conferido no navegador.
@@ -405,7 +409,8 @@ Proposta:
 - A mesma pergunta vale para o `errado` e o `confuso` cujo ajuste pede um recurso.
 - As duas listas ficam como atalho para o que já é conhecido, e deixam de precisar crescer.
 
-Feito em 10/11, no ramo `claude/falta-fora-da-fila` do Pregão (262 testes), ainda fora da `Desenv`:
+Feito em 10/11, e na `Desenv` do Pregão desde 11/11 (`e5a3af2`, merge `3e25300`, 262 testes):
+- **A primeira consolidação com a triagem** seria a das 13h de 11/11, que caiu no juiz antes de chegar a ela (item 42). O registro ainda não tem nenhuma resposta guardada.
 - **A pergunta:** a falta que se repetiu vai ao modelo uma vez por problema, depois do juiz (`faltas.triar`): é um ajuste numa tela que já existe, SIM ou NÃO? A resposta fica no registro (`ajuste_de_tela`). A que leva NÃO sai dos recorrentes antes de ganhar texto de pedido, e vai para as sugestões do relatório, com a chave.
 - **O que o administrador aprovou segue sem pergunta.** Das 133 faltas que já foram ao time, 3 estão aprovadas: "Tempo Médio de Operação", "Frequência de Operações (Turnover)" e "Indicação de Fonte de Volatilidade".
 - **O dono manda uma sugestão à fila** com `python -m trader.consolidar --promover <chave>`.
@@ -435,3 +440,36 @@ Proposta:
 - Depois da ação, o `_esperar` espera o "Carregando" sair da tela, com um limite de uns 20 s.
 - Passado o limite, as ações seguintes são canceladas, como quando a tela muda, e o diário diz que a tela ainda carregava.
 - Medir quanto a série leva com dados reais: o que passa de 6,5 s para o Trader passa para o cliente.
+
+### Ocorrências de 10 e 11/11/2026: duas rodadas e uma consolidação perdidas
+Lidas do `diarios/agendado.log` do Pregão. Das cinco execuções agendadas de 10/11 e de 11/11 até as 13h, duas correram inteiras (9h e 18h de 10/11).
+
+### 41. O front-dev responde uma vez e para (10 e 11/11/2026)
+- **13h de 10/11:** a rodada foi pulada com "o front-dev não subiu em 180 s", mas a linha saiu 41 s depois de o front-dev começar a subir (13:00:12 a 13:00:53). A saída do Vite dizia "Re-optimizing dependencies because vite config has changed" e "ready in 9747 ms".
+- **9h de 11/11:** o front-dev foi dado como no ar em 9 s, a rodada começou, e a abertura do `/login` estourou os 30 s do Playwright (`Page.goto: Timeout 30000ms exceeded`, à espera do `domcontentloaded`). A rodada terminou com código 1 em 39 s, antes de ler qualquer tela. A consolidação rodou sobre as 8 rodadas anteriores e publicou 29 pedidos.
+- **As outras:** as rodadas das 9h e das 18h de 10/11 e a das 13h de 11/11 subiram o front-dev do mesmo jeito e correram.
+
+O que o `agendado.ps1` faz: o laço de espera sai na primeira resposta do Vite, e quem decide é a conferência seguinte (`Front-No-Ar`, com 20 s por endereço). Em 10/11, o Vite respondeu à primeira e não respondeu à segunda em 20 s, e a mensagem dos "180 s" não diz isso. Em 11/11, respondeu às duas e parou na página do login.
+
+A causa não foi investigada. Uma hipótese a conferir:
+- O Vite refaz as dependências quando a configuração muda, e a pasta do front faz parte dela.
+- A `comparar_telas.py` da Oficina sobe um `npm run dev` de outra pasta (uma cópia do front num commit), com `--host 127.0.0.1` e sem o `VITE_USE_MOCK=false`. O `node_modules` da cópia é uma junction para o do clone, que é onde fica o cache das dependências (`node_modules/.vite`).
+- O `conferente.py` já usa o `vite preview` para não disputar esse cache com o Trader.
+- Não foi conferido se a `comparar_telas.py` rodou antes de cada uma das duas rodadas perdidas.
+
+Proposta:
+- A rodada só começa depois de o `/login` montar, com novas tentativas dentro dos 180 s, e a mensagem diz o que falhou e em quanto tempo.
+- O Trader tenta de novo a abertura do `/login` antes de desistir da rodada.
+- Se a hipótese do cache valer, a `comparar_telas.py` passa a usar um cache próprio do Vite, ou o `vite preview`, como o conferente.
+
+### 42. O modelo que para de responder derruba a consolidação (11/11/2026)
+A consolidação das 13h de 11/11 terminou com código 1 às 13:35, sem relatório e sem publicação. A rodada tinha corrido inteira (13:00 a 13:10, código 0).
+- **O que aconteceu:** uma pergunta do juiz entrou em laço e foi cortada em uns 6997 tokens. O `cerebro.conversar` refez a pergunta com a amostragem padrão do modelo, e o Ollama não mandou nem o começo dessa segunda resposta em 900 s, o limite de leitura do `_chamar`.
+- **Por que caiu tudo:** o `TimeoutError` não é um `NaoTerminou`, e o `problemas.agrupar` só trata o `NaoTerminou`. Das 144 segundas tentativas que o log registra, é a primeira que termina assim.
+- **Não era disputa pela placa:** a Oficina tinha terminado às 10:10.
+- **O que ficou:** o registro foi gravado até 13:19, com o que o juiz já tinha atribuído. O diário das 13h fica para a consolidação das 18h, que pergunta de novo o achado que travou.
+- **O item 38:** a triagem vem depois do juiz, e não chegou a rodar.
+
+Proposta:
+- O limite de leitura estourado vira `NaoTerminou` no `cerebro`: o achado fica fora desta consolidação, o relatório avisa, e as outras perguntas seguem.
+- Um limite menor que 900 s para o silêncio do modelo. A resposta vem em stream, e as segundas tentativas medidas em outubro levaram de 25 a 120 s.
