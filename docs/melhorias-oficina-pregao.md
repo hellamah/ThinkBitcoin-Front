@@ -15,8 +15,8 @@ Dos 40 itens anotados até 09/11, 30 entraram, 8 entraram em parte e 2 não come
 
 **Item 40 (Pregão), investigado em 11/11:** com dados reais, a série da Simulação demora mais que a espera do roteiro quando o Trader troca de moeda, e em 2 das 3 rodadas ele perdeu as duas ações seguintes. A leitura da chegada está inteira, e nenhum pedido da Simulação foi validado desde então.
 
-**Itens 41 e 42 (Pregão), de 11/11:** os dois custaram uma execução agendada inteira, e o 42 vem antes.
-- **42:** a consolidação das 13h de 11/11 caiu quando o modelo parou de responder a uma pergunta do juiz, e o dia ficou sem relatório e sem publicação dessa rodada. A correção é pequena: o limite estourado vira "o modelo não terminou", que a consolidação já sabe tratar.
+**Itens 41 e 42 (Pregão), de 11/11:** os dois custaram uma execução agendada inteira. O 42 foi feito no mesmo dia, e o 41 continua aberto.
+- **42:** a consolidação das 13h de 11/11 caiu quando o modelo parou de responder a uma pergunta do juiz, e o dia ficou sem relatório e sem publicação dessa rodada. **Feito em 11/11** (`6ca1dfb`), antes da rodada das 18h: o silêncio do Ollama vira "o modelo não terminou", que a consolidação já sabe tratar. Não foi medido contra o Ollama.
 - **41:** duas rodadas perdidas em dois dias (13h de 10/11 e 9h de 11/11) com o front-dev no ar pela metade. A causa não foi investigada, e o item traz uma hipótese a conferir.
 
 **O que falta dos itens que entraram em parte:**
@@ -63,6 +63,7 @@ Os itens 17 a 25 foram feitos em 07/11, em branches com testes, e entraram na `D
   - **31:** a checagem `nota` exige só as chaves-alvo. A chave citada depois de um "como", ou seguida de "já explica" e "não mexer", é modelo, e vai ao pedido com o lugar no código.
   - **32:** o aviso usa o glossário do Pregão ao lado e não vale num worktree, onde o caminho não existe.
 - **09/11, Pregão, `2f48972`** (244 testes): o 34. Ficou diferente da proposta. A regra "todos os pedaços" pura quebraria o trecho escrito com LaTeX ("MOMENTUM DA BUSCA ($\Delta$15…)"), cujo pedaço "delta" nunca esteve na tela. Por isso a comparação é com a captura de antes da correção: sai da volta o pedaço que estava e saiu, e a cauda que fechava a linha e cresceu. Nos diários de 06 e 08/11, isso pega exatamente o d636070d e o 102c5561.
+- **11/11, Pregão, `6ca1dfb`** (269 testes): o 38 (`3e25300`) e o 42.
 
 ## Oficina (`ThinkBitcoin-Back-Python-Agents-Oficina`, pasta `Agents-Front`)
 
@@ -470,6 +471,13 @@ A consolidação das 13h de 11/11 terminou com código 1 às 13:35, sem relatór
 - **O que ficou:** o registro foi gravado até 13:19, com o que o juiz já tinha atribuído. O diário das 13h fica para a consolidação das 18h, que pergunta de novo o achado que travou.
 - **O item 38:** a triagem vem depois do juiz, e não chegou a rodar.
 
-Proposta:
-- O limite de leitura estourado vira `NaoTerminou` no `cerebro`: o achado fica fora desta consolidação, o relatório avisa, e as outras perguntas seguem.
-- Um limite menor que 900 s para o silêncio do modelo. A resposta vem em stream, e as segundas tentativas medidas em outubro levaram de 25 a 120 s.
+Feito em 11/11, na `Desenv` do Pregão antes da rodada das 18h (`2653b4a`, merge `6ca1dfb`, 269 testes):
+- **O silêncio vira `NaoTerminou`** (`cerebro.SILENCIO`), sem outra tentativa: o achado fica fora daquela consolidação, o relatório avisa, e as outras perguntas seguem. Vale para a resposta que não começa e para o stream que para no meio.
+- **O limite de leitura caiu de 900 para 300 s** (`cerebro.ESPERA`). A resposta vem em stream, e as segundas tentativas medidas em outubro levaram de 25 a 120 s.
+- **Dois silêncios seguidos ainda derrubam a consolidação** (`cerebro.SILENCIOS_SEGUIDOS`). Com o Ollama parado, cada pergunta que resta custaria 300 s, e a consolidação passaria por cima da execução seguinte. Uma resposta no meio zera a conta, e a conexão recusada sobe como antes.
+- **O diário:** o título das notas do modelo passou a dizer "o contexto encheu, ou o Ollama não respondeu".
+- **Como foi conferido:** com os testes de unidade e com o `Cerebro` de verdade contra um servidor local que se cala, com o limite em 1 s. Não foi medido contra o Ollama, porque o travamento de 11/11 não se reproduz de propósito.
+
+O que ficou:
+- **Por que o Ollama se calou** depois do laço cortado não foi investigado.
+- **O limite de 300 s** fica curto se uma execução do Pregão esperar na fila do Ollama atrás da Oficina por mais de 5 minutos. Pelos horários do `agendado.log`, as duas não se cruzam hoje.
