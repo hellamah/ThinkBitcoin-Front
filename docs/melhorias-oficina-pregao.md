@@ -2,6 +2,32 @@
 
 Anotadas em 05/11/2026, na revisão dos 8 PRs abertos da Oficina (156 a 164, dos quais só 158 e 163 entraram) e na triagem dos 199 pedidos que esperavam decisão. Cada item diz o que aconteceu, com o exemplo, e o que mudaria. O objetivo é que menos PR chegue ao Azure para ser abandonado.
 
+## A fila em 10/11/2026
+
+Dos 40 itens anotados até 09/11, 30 entraram, 8 entraram em parte e 2 não começaram (15 e 28). Em 10/11 entraram os itens 36 a 40. Eles não vêm de uma revisão de PRs, e sim dos números das execuções: os `resumo.json` das execuções das 10h da Oficina de 05 a 09/11 (57 pedidos foram ao modelo, e dos PRs 167 a 198 entraram 17 de 32) e os diários e o relatório do Pregão de 09/11.
+
+**O que mais pesa, por ordem:**
+1. **38 (Pregão):** a `falta` fica fora da fila do administrador, a não ser que caiba no que a tela já tem. Nas rodadas de 09/11, de 21 a 24 dos 39 a 48 achados eram faltas, e na triagem de 05/11 foram descartados 90 dos 103 pedidos de falta. **Feito em 10/11**, no ramo `claude/falta-fora-da-fila` do Pregão, ainda fora da `Desenv` (o item diz o que entrou e o que ficou).
+2. **36 (Oficina):** a etiqueta passa a usar as idas ao modelo. Em 09/11, 12 de 13 PRs saíram com "precisa de você". Com nota e até 3 idas ao modelo entraram 10 de 12 PRs; com nota e 4 ou mais, 3 de 8.
+3. **39 (Pregão):** o descarte passa a valer para o assunto, e não só para a chave. O slippage, descartado em 05/11, foi ao time em 09/11 como três problemas novos.
+4. **37 (Oficina):** a prova. Dos 32 PRs, 17 saíram sem teste que prove, e a rodada só do teste não trouxe a prova em 24 de 35 vezes.
+5. **8 (Oficina):** medir o revisor, o que ficou de fora em 05/11. Dos PRs 167 a 198, 19 têm o veredito no `agendado.log`: 16 "aprovar", dos quais 5 entraram, e 3 "recusar", dos quais 1 entrou (o 197). Dos 7 que já saíram com o veredito tirado dos itens (179, 180, 188, 192, 196, 197 e 198), o revisor acertou 3. A medição do `testes/revisor/medir.py` continua sem rodar.
+
+**Item 40 (Pregão), investigado em 11/11:** com dados reais, a série da Simulação demora mais que a espera do roteiro quando o Trader troca de moeda, e em 2 das 3 rodadas ele perdeu as duas ações seguintes. A leitura da chegada está inteira, e nenhum pedido da Simulação foi validado desde então.
+
+**O que falta dos itens que entraram em parte:**
+- **3:** o Triador só entende o padrão `aba === Aba.X &&`, e nada foi conferido no navegador.
+- **6:** o texto renderizado em volta do trecho não vai ao modelo.
+- **10:** conferir. Este documento diz que o Sharpe, o Profit factor e a Queda máx. ficam atrás do "Aprofundar", que o roteiro não abre. O `trader/faltas.py` diz que ficam atrás do "Dá para confiar?", que o roteiro abre desde 05/11. Nos relatórios de 07 a 09/11, "Faltas do que a tela já mostra" veio com 0, e a "Falta de gráfico de Drawdown" foi ao time.
+- **11:** o par em que os dois pedidos já foram ao time. O item 39 cobre.
+- **9:** a regex do front que não pega "janelas de 1min, 5min e 15min". O item 38 cobre, sem depender da lista de palavras.
+- **1:** barrar o PR antes do push ficou de fora por decisão, porque a régua barraria 23 dos 40 PRs medidos.
+
+**O que perdeu peso:**
+- **25 e 28:** o aviso de "pode ser do mock" e o teste do catálogo do mock. O Pregão passou a rodar com dados reais (item 12), e o Trader deixa de ver o mock. O pedido 9765d117 continua aprovado, para a Oficina acertar os planos do `mockApi.js`.
+- **15:** manter os fatos no pedido de simplificar. Foi um caso só (PR 58).
+- **Pequeno, da execução de 09/11:** no d2c7e7b3, a resposta do modelo deixou `<<<<<<< ANTO` dentro do `ZooEstrategias.jsx`, e a segunda resposta deixou os marcadores de novo. Recusar o bloco de troca com marcador dentro, antes de rodar as checagens, dá ao modelo o erro certo já na segunda resposta.
+
 ## O que já entrou (05/11/2026)
 
 As duas listas abaixo foram levadas no mesmo dia, cada uma numa sessão própria, com testes. As duas foram para a `Desenv` e para os dois remotos.
@@ -11,13 +37,13 @@ As duas listas abaixo foram levadas no mesmo dia, cada uma numa sessão própria
 - **3:** a etiqueta "não vi o efeito" foi feita, e o Triador abre a aba do componente. Só entende o padrão `aba === Aba.X &&`, e nada disso foi conferido no navegador.
 - **6:** há aviso de texto repetido na seção e na tela. O texto renderizado em volta do trecho não vai ao modelo.
 - **8:** o veredito sai dos quatro itens. Os PRs 156 a 164 entraram no `testes/revisor/medir.py`, mas a medição não foi rodada, porque precisa do Ollama com a placa livre.
-- Também apareceu: `decisoes.reaprovado` procura uma marca que a rota pública não manda, e provavelmente nunca dá verdadeiro.
+- Também apareceu: `decisoes.reaprovado` procurava uma marca que a rota pública não manda, e o pedido aprovado de novo voltava devolvido em toda execução. Corrigido em 06/11 (`c0bdfec`): a devolução por uma decisão fica num registro da Oficina (`relatorios/decididos.json`), e vale a aprovação que vem depois dela.
 
 **Pregão, `Desenv` em `480296c`** (5 commits; 219 testes). Feitos: 9, 13, 14 e 16. Em parte:
 - **9:** a regex `DAY_TRADE` do front não pega "janelas de 1min, 5min e 15min". Mudá-la é mexer nos dois repositórios.
 - **10:** só pega a "Curva de capital". Sharpe, Profit factor e Queda máx. ficam atrás do "Aprofundar", que o roteiro não abre.
 - **11:** o pedido novo parecido vai junto do anterior, com "Visto também como". O par em que os dois já foram ao time continua indo ao administrador, e mandar a chave do outro pede um campo novo no contrato do .NET e do Front.
-- **12:** entrou no Desenv em 07/11/2026 (`c0e4778`). Com `"dados": "reais"`, o `agendado.ps1` sobe o front sem o mock e pula a rodada se o DotNet não responde. Antes do navegador, a rodada confere a conta (cargo Minerador, preferências de volta à semente, notificações desligadas), e uma trava de rede bloqueia cadastro, troca de senha, plano, decisão de pedido e todo DELETE. Falta só o dono criar a conta de teste e pôr o e-mail e a senha no `config.local.json`.
+- **12:** entrou no Desenv em 07/11/2026 (`c0e4778`). Com `"dados": "reais"`, o `agendado.ps1` sobe o front sem o mock e pula a rodada se o DotNet não responde. Antes do navegador, a rodada confere a conta (cargo Minerador, preferências de volta à semente, notificações desligadas), e uma trava de rede bloqueia cadastro, troca de senha, plano, decisão de pedido e todo DELETE. O `config.local.json` já está com `"dados": "reais"` e com a conta preenchida. A primeira rodada com dados reais foi a de 09/11 às 19:19, fora do agendamento (40 achados, 7 telas, 9 minutos), e a das 9h de 10/11 foi a primeira agendada a subir o front sem o modo demonstração.
 
 A rodada das 13h de 05/11 foi a primeira com o código novo. Ela tirou da fila 11 contas de arredondamento, 2 contas entre medianas, 60 achados por decisão do dono e 24 recursos novos. A queda de energia logo depois cortou a publicação; a consolidação da rodada seguinte cobre os mesmos diários.
 
@@ -213,6 +239,33 @@ O PR 189 é do bcd792e4, o pedido que o item 19 tinha em mente. A conta no Back-
 
 Proposta: a pergunta do `conta_no_back` lembra que o intervalo é o do resultado da conta, e não o das parcelas, e o rótulo com intervalo cita a conta.
 
+### Levantamento de 10/11/2026: 32 PRs, 17 entraram
+Lido dos `resumo.json` das execuções das 10h de 05 a 09/11 e do histórico do `Desenv` da Front. Nessas execuções, 57 pedidos foram ao modelo, com 3,3 idas ao modelo por pedido em média e 7 no máximo. Cada ida é uma pergunta ao modelo: a resposta, a segunda resposta feita com os erros e as rodadas só do teste. Saíram os PRs 167 a 198, e dos 32 entraram 17.
+
+#### 36. A etiqueta continua igual em quase todo PR
+O item 17 entrou em 08/11, e as etiquetas seguiram iguais. Na execução de 08/11 às 19:30, 9 de 10 PRs saíram com "precisa de você", e na de 09/11 às 10h, 12 de 13. Nas execuções de 05 a 09/11 que registraram a contagem, nenhuma marcou "pode aprovar".
+
+Duas coisas que a Oficina já sabe ao abrir o PR separam o que entrou:
+- **A nota do administrador:** com ela entraram 13 de 20 PRs, e sem ela, 4 de 12. Desde 06/11, todo PR saiu com nota.
+- **As idas ao modelo:** com até 3 entraram 13 de 17, e com 4 ou mais, 4 de 15.
+- **As duas juntas:** com nota e até 3 idas entraram 10 de 12. Os dois que ficaram são o 186 e o 189, dos itens 31 e 33. Com nota e 4 idas ou mais entraram 3 de 8 (187, 193 e 197).
+
+Ter o teste que prova separa pouco: entraram 9 de 15 com teste e 8 de 17 sem.
+
+Proposta:
+- A etiqueta usa as idas ao modelo, que já estão no `resumo.json` (`rodadas`). O PR com nota e até 3 idas sai como "confira o texto", e o de 4 ou mais como "precisa de você", com o número na descrição.
+- São 32 PRs, e a régua é medida de novo a cada revisão, como no item 17.
+
+#### 37. A prova que não sai, e a rodada só do teste que quase nunca a traz
+Dos 32 PRs, 17 saíram com o aviso "sem teste que a prove". A rodada só do teste, que custa mais uma ou duas idas ao modelo, trouxe a prova 11 vezes e não trouxe 24. O motivo mais comum nos avisos é o teste do modelo falhar com a correção já aplicada (11 vezes), e há falha que é da montagem do teste, e não da correção:
+- **38228ae8 (PR 197):** `useNavigate() may be used only in the context of a <Router> component`.
+- **2947ae85, em 09/11:** `Cannot find module '../src/pages/GeoHeatmapView'`.
+- **f7b0276c, em 09/11:** o teste "não encaixou no arquivo" (`SimulationPanel.test.jsx`).
+
+Proposta:
+- O localizador manda junto um teste que já existe do mesmo componente (em `src/test/`), de onde saem o caminho do import e a montagem com o `Router` e os provedores. Quando o componente não tem teste, a Oficina escreve o esqueleto, e o modelo só preenche o que o teste confere.
+- A rodada só do teste recebe o erro da montagem separado do erro da conferência, e não repete a mesma pergunta quando a primeira falhou na montagem.
+
 ## Pregão (`ThinkBitcoin-Back-Python-Agents-Pregao`)
 
 ### 9. Day trade fora das decisões do Pregão
@@ -329,3 +382,56 @@ O item 14 continua valendo para o trecho que saiu inteiro.
 O 0b7d3fce, sobre a "Exposição Média" da **Simulação** (a fração dos candles em posição, `backtest.js`), voltou como o mesmo problema do 30a9c425, sobre a "Exposição" de **Estratégias** (a fração do capital, no Back-Python).
 
 Proposta: a pergunta do par na Oficina leva a tela e a chave de cada um, e pedidos de telas diferentes, cujos textos vêm de chaves diferentes, não são o mesmo problema sem o modelo dizer por quê.
+
+### Levantamento de 10/11/2026: o que chega à fila do administrador
+Lido dos diários e do relatório de 09/11. As quatro rodadas do dia tiveram de 39 a 48 achados cada, e de 21 a 24 deles eram do tipo `falta`. O relatório mandou 38 problemas ao time (7 em "Errado ou não bate", 19 em "Confunde" e 12 em "Falta para o day trader") e publicou 36 pedidos. Outros 73 achados ficaram fora por decisão do dono, e 17 foram para as sugestões de recurso novo.
+
+### 38. A falta é metade do que o Trader acha, e a peneira é uma lista de palavras
+Das 12 faltas que foram ao time em 09/11, 11 ainda não tinham pedido:
+- **Slippage, três vezes:** "Simulação de Slippage", "Falta de campo para slippage estimado" e "Falta de estimativa de impacto de mercado (slippage)".
+- **Gráficos e recursos:** "Visualização de Fluxo de Ordens em Tempo Real (Order Flow)", "Histórico de Ordens Próprias", "Gráfico de Equidade sobre o Preço", "Falta de gráfico de Drawdown", "Breakdown de Lucros/Perdas" por sinal e "Falta de Filtro de Regiões no Mapa".
+- **Configuração e métrica:** "Precisão de Decimais no Risco Máximo" e "Ausência de Frequência de Trades".
+
+A que já tinha pedido é a "Frequência de Operações (Turnover)" (d2c7e7b3), aprovada.
+
+As peneiras `DAY_TRADE` e `RECURSO_NOVO` são listas de palavras, e cresceram a cada revisão (itens 9, 16 e 27). A falta escrita com outras palavras passa:
+- A do fluxo de ordens foi ao time com "Tempo Real" no título, que está na lista do `RECURSO_NOVO`. Nas outras rodadas, o Trader a descreveu como "Tape Reading" e "Time & Sales".
+- O pedido de day trade também chega com outro tipo. O "Alerta de preço não dispara se o preço voltar antes de fechar a hora" foi ao time como `errado`, e o ajuste pede alerta instantâneo com push e som.
+
+Na triagem de 05/11, foram descartados 90 dos 103 pedidos de falta: 47 de day trade, 32 de recurso novo e 11 do que a tela já mostra (`trader/faltas.py`).
+
+Proposta:
+- Inverter o padrão: a `falta` vai para as sugestões do relatório, para o dono, e não para a fila. Só vai à fila a que cabe num texto ou elemento que a tela já tem, e quem diz é o modelo, numa pergunta fechada por falta, com o texto capturado da tela.
+- A mesma pergunta vale para o `errado` e o `confuso` cujo ajuste pede um recurso.
+- As duas listas ficam como atalho para o que já é conhecido, e deixam de precisar crescer.
+
+Feito em 10/11, no ramo `claude/falta-fora-da-fila` do Pregão (262 testes), ainda fora da `Desenv`:
+- **A pergunta:** a falta que se repetiu vai ao modelo uma vez por problema, depois do juiz (`faltas.triar`): é um ajuste numa tela que já existe, SIM ou NÃO? A resposta fica no registro (`ajuste_de_tela`). A que leva NÃO sai dos recorrentes antes de ganhar texto de pedido, e vai para as sugestões do relatório, com a chave.
+- **O que o administrador aprovou segue sem pergunta.** Das 133 faltas que já foram ao time, 3 estão aprovadas: "Tempo Médio de Operação", "Frequência de Operações (Turnover)" e "Indicação de Fonte de Volatilidade".
+- **O dono manda uma sugestão à fila** com `python -m trader.consolidar --promover <chave>`.
+- **Sem resposta do modelo,** a falta fica fora da consolidação, e a seguinte pergunta de novo. Com a API do DotNet fora do ar, nada é perguntado.
+- **Ficou de fora:** a mesma pergunta para o `errado` e o `confuso` cujo ajuste pede um recurso.
+- **Medido em 10/11** (`testes/cerebro/medir_ajuste.py`, o `gemma4:12b` com contexto de 16384, de 5 a 25 s por pergunta): a pergunta foi feita às faltas que já foram ao time, contra as decisões do administrador.
+  - **As aprovadas:** as 2 que estavam na rota pública levaram SIM ("Frequência de Operações (Turnover)" e "Indicação de Fonte de Volatilidade").
+  - **As não aprovadas:** das 25 mais recentes, 14 levaram NÃO e 11 levaram SIM. Dos 11, 4 são de telas encerradas, que o `decisoes.py` já tira antes. Entre os outros 7 há recurso que passou, como o "Gráfico de Preço de candles" e a "Visualização de Take Profit / Stop Loss no Gráfico".
+  - **O que isso diz:** a pergunta corta mais da metade e não barrou o que foi aprovado, mas não é uma peneira limpa. E são só 2 aprovadas para conferir o outro lado.
+
+### 39. O assunto descartado volta com outra chave
+O Pregão só lê de volta do DotNet os pedidos aprovados (`trader/status.py`: aprovado, em-correcao, corrigido e validado). O descarte, ele só conhece pelas listas escritas à mão no `decisoes.py` e no `faltas.py`. O pedido descartado continua descartado enquanto a chave é a mesma. Quando o juiz cria o mesmo assunto como um problema novo, a chave é outra, e o pedido volta à fila.
+- **Slippage:** cinco pedidos foram descartados em 05/11 (item 8a). Em 09/11, três problemas de slippage foram ao time sem pedido ainda (item 38), e o relatório ainda lista o "Slippage (Derrapagem)" (`02c0a429`), de uma consolidação anterior.
+- **Os pares:** o relatório de 09/11 lista 8 pares, que são quatro assuntos: a divergência da Taxa de Alta (`c9802535`, `524a0ab0` e `393cffd0`), o drawdown (`95471f0d`, `8b1ad7d2` e `eff65e79`), o slippage (`02c0a429`, `c2c80f5b` e `68a09dd9`) e a "Pega da alta" (`607ccd3e` e `e71ba880`). O item 11 junta o pedido novo ao parecido, mas trata cada par sozinho.
+
+Proposta:
+- O Pregão lê também os pedidos descartados, com o motivo. A pergunta do par compara o achado novo com os descartados da mesma tela, e o que é o mesmo assunto vai para "Fora por decisão do dono", com o motivo do descarte. Isso pede que o DotNet devolva os descartados a quem publica.
+- Os pares com um pedido em comum viram um grupo, e o grupo é publicado como um pedido só.
+
+### 40. Com dados reais, a troca de moeda na Simulação estoura a espera do roteiro (10 e 11/11/2026)
+Nas rodadas com dados reais de 09/11 às 19:19 e de 10/11 às 9h, o Trader clicou em "SOL" na Simulação, e a tela mostrou "Carregando a série de análise…". As duas ações seguintes não foram executadas: "não achei 'Sinal de entrada' na tela" e "não achei 'Fixar regra e revelar' na tela". Na rodada de 10/11 às 18h, também com dados reais, a série chegou a tempo, e as três ações foram feitas. Na das 18h de 09/11, no modo demonstração, as três também foram feitas.
+
+- **A causa:** depois de cada ação, o `navegador._esperar` espera a rede parar por até 5 s, mais 1,5 s, e a tela é lida. O `rotina._visitar` só cancela as ações seguintes quando o caminho da página muda ou uma janela abre (`nav.situacao`), e a troca do `?moeda=` não conta.
+- **O que não aconteceu:** a leitura da chegada está inteira nas três rodadas, o Trader não transformou o carregamento em achado, e nenhum pedido da Simulação foi validado desde 09/11. Dois estão corrigidos, esperando a validação: "Sigla MAE / MFE sem definição" e "Dúvida se o Alfa deduz o custo total".
+
+Proposta:
+- Depois da ação, o `_esperar` espera o "Carregando" sair da tela, com um limite de uns 20 s.
+- Passado o limite, as ações seguintes são canceladas, como quando a tela muda, e o diário diz que a tela ainda carregava.
+- Medir quanto a série leva com dados reais: o que passa de 6,5 s para o Trader passa para o cliente.
