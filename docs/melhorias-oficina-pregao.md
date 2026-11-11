@@ -15,9 +15,9 @@ Dos 40 itens anotados até 09/11, 30 entraram, 8 entraram em parte e 2 não come
 
 **Item 40 (Pregão), investigado em 11/11:** com dados reais, a série da Simulação demora mais que a espera do roteiro quando o Trader troca de moeda, e em 2 das 3 rodadas ele perdeu as duas ações seguintes. A leitura da chegada está inteira, e nenhum pedido da Simulação foi validado desde então.
 
-**Itens 41 e 42 (Pregão), de 11/11:** os dois custaram uma execução agendada inteira. O 42 foi feito no mesmo dia, e o 41 continua aberto.
+**Itens 41 e 42 (Pregão), de 11/11:** os dois custaram uma execução agendada inteira. O 42 foi feito no mesmo dia. Do 41 entrou uma parte, e a causa continua aberta.
 - **42:** a consolidação das 13h de 11/11 caiu quando o modelo parou de responder a uma pergunta do juiz, e o dia ficou sem relatório e sem publicação dessa rodada. **Feito em 11/11** (`6ca1dfb`), antes da rodada das 18h: o silêncio do Ollama vira "o modelo não terminou", que a consolidação já sabe tratar. Não foi medido contra o Ollama.
-- **41:** duas rodadas perdidas em dois dias (13h de 10/11 e 9h de 11/11) com o front-dev no ar pela metade. A causa não foi investigada, e o item traz uma hipótese a conferir.
+- **41:** duas rodadas perdidas em dois dias (13h de 10/11 e 9h de 11/11) com o front-dev no ar pela metade. **Em parte, em 11/11** (`208631c`): o Trader tenta de novo a abertura do `/login`. A causa não foi investigada, e o item traz uma hipótese a conferir.
 
 **O que falta dos itens que entraram em parte:**
 - **3:** o Triador só entende o padrão `aba === Aba.X &&`, e nada foi conferido no navegador.
@@ -63,7 +63,7 @@ Os itens 17 a 25 foram feitos em 07/11, em branches com testes, e entraram na `D
   - **31:** a checagem `nota` exige só as chaves-alvo. A chave citada depois de um "como", ou seguida de "já explica" e "não mexer", é modelo, e vai ao pedido com o lugar no código.
   - **32:** o aviso usa o glossário do Pregão ao lado e não vale num worktree, onde o caminho não existe.
 - **09/11, Pregão, `2f48972`** (244 testes): o 34. Ficou diferente da proposta. A regra "todos os pedaços" pura quebraria o trecho escrito com LaTeX ("MOMENTUM DA BUSCA ($\Delta$15…)"), cujo pedaço "delta" nunca esteve na tela. Por isso a comparação é com a captura de antes da correção: sai da volta o pedaço que estava e saiu, e a cauda que fechava a linha e cresceu. Nos diários de 06 e 08/11, isso pega exatamente o d636070d e o 102c5561.
-- **11/11, Pregão, `6ca1dfb`** (269 testes): o 38 (`3e25300`) e o 42.
+- **11/11, Pregão, `208631c`** (275 testes): o 38 (`3e25300`), o 42 (`6ca1dfb`) e a nova tentativa do `/login`, do 41.
 
 ## Oficina (`ThinkBitcoin-Back-Python-Agents-Oficina`, pasta `Agents-Front`)
 
@@ -458,10 +458,15 @@ A causa não foi investigada. Uma hipótese a conferir:
 - O `conferente.py` já usa o `vite preview` para não disputar esse cache com o Trader.
 - Não foi conferido se a `comparar_telas.py` rodou antes de cada uma das duas rodadas perdidas.
 
-Proposta:
-- A rodada só começa depois de o `/login` montar, com novas tentativas dentro dos 180 s, e a mensagem diz o que falhou e em quanto tempo.
-- O Trader tenta de novo a abertura do `/login` antes de desistir da rodada.
-- Se a hipótese do cache valer, a `comparar_telas.py` passa a usar um cache próprio do Vite, ou o `vite preview`, como o conferente.
+Feito em 11/11, na `Desenv` do Pregão antes da rodada das 18h (`e2b3be4`, merge `208631c`, 275 testes):
+- **O Trader tenta de novo a abertura do `/login`**, até 3 vezes (`navegador.TENTATIVAS_DO_LOGIN`), só quando o tempo esgota. O log diz em qual tentativa abriu, e o `/login` que abre de primeira não muda.
+- **Uma página em branco entre as tentativas:** sem ela, o Chrome derruba a abertura seguinte com `net::ERR_ABORTED`. O teste com o Chrome pegou isso na primeira versão.
+- **Com o front parado de vez,** a rodada cai como antes, 60 s depois.
+- **Como foi conferido:** com os testes de unidade e com o `Navegador` de verdade contra um servidor local que não responde ao `/login`. Não foi testado contra o front-dev, e não se sabe se teria salvo a rodada das 9h de 11/11.
+
+O que ficou:
+- A rodada só começa depois de o `/login` montar, com novas tentativas dentro dos 180 s, e a mensagem diz o que falhou e em quanto tempo. Isso cobre também a rodada pulada das 13h de 10/11, que a nova tentativa do Trader não alcança.
+- A causa. Se a hipótese do cache valer, a `comparar_telas.py` passa a usar um cache próprio do Vite, ou o `vite preview`, como o conferente.
 
 ### 42. O modelo que para de responder derruba a consolidação (11/11/2026)
 A consolidação das 13h de 11/11 terminou com código 1 às 13:35, sem relatório e sem publicação. A rodada tinha corrido inteira (13:00 a 13:10, código 0).
