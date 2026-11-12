@@ -4,7 +4,7 @@ Anotadas em 05/11/2026, na revisão dos 8 PRs abertos da Oficina (156 a 164, dos
 
 ## A fila em 12/11/2026
 
-Dos 40 itens anotados até 09/11, 30 entraram, 8 entraram em parte e 2 não começaram (15 e 28). Em 10/11 entraram os itens 36 a 40. Eles não vêm de uma revisão de PRs, e sim dos números das execuções: os `resumo.json` das execuções das 10h da Oficina de 05 a 09/11 (57 pedidos foram ao modelo, e dos PRs 167 a 198 entraram 17 de 32) e os diários e o relatório do Pregão de 09/11. Em 11/11 entraram o 41 e o 42, lidos do `agendado.log` do Pregão. Dos itens de 10 e 11/11, estão feitos o 36, o 38, o 40 e o 42, e o 41 em parte; o 37 e o 39 não começaram.
+Dos 40 itens anotados até 09/11, 30 entraram, 8 entraram em parte e 2 não começaram (15 e 28). Em 10/11 entraram os itens 36 a 40. Eles não vêm de uma revisão de PRs, e sim dos números das execuções: os `resumo.json` das execuções das 10h da Oficina de 05 a 09/11 (57 pedidos foram ao modelo, e dos PRs 167 a 198 entraram 17 de 32) e os diários e o relatório do Pregão de 09/11. Em 11/11 entraram o 41 e o 42, lidos do `agendado.log` do Pregão. Dos itens de 10 e 11/11, estão feitos o 36, o 38, o 40, o 41 e o 42; o 37 e o 39 não começaram.
 
 **O que mais pesa, por ordem:**
 1. **38 (Pregão):** a `falta` fica fora da fila do administrador, a não ser que caiba no que a tela já tem. Nas rodadas de 09/11, de 21 a 24 dos 39 a 48 achados eram faltas, e na triagem de 05/11 foram descartados 90 dos 103 pedidos de falta. **Feito em 10/11**, e na `Desenv` do Pregão desde 11/11 (`3e25300`). A triagem rodou pela primeira vez na consolidação das 18h de 11/11: das 9 faltas que se repetiram, 1 foi ao time e 8 ficaram nas sugestões do relatório. O item diz o que entrou e o que ficou.
@@ -15,9 +15,9 @@ Dos 40 itens anotados até 09/11, 30 entraram, 8 entraram em parte e 2 não come
 
 **Item 40 (Pregão), investigado em 11/11:** com dados reais, a série da Simulação demora mais que a espera do roteiro quando o Trader troca de moeda, e em 3 das 5 rodadas até 11/11 ele perdeu as duas ações seguintes. A leitura da chegada está inteira, e nenhum pedido da Simulação foi validado desde então. **Feito em 11/11** (`d964238`): o Trader espera o aviso de carregamento sair, por até 20 s. Conferido com o Chrome e dados reais, sem o modelo.
 
-**Itens 41 e 42 (Pregão), de 11/11:** os dois custaram uma execução agendada inteira. O 42 foi feito no mesmo dia. Do 41 entrou uma parte, e a causa continua aberta.
+**Itens 41 e 42 (Pregão), de 11/11:** os dois custaram uma execução agendada inteira. O 42 foi feito no mesmo dia, e o 41 no dia seguinte.
 - **42:** a consolidação das 13h de 11/11 caiu quando o modelo parou de responder a uma pergunta do juiz, e o dia ficou sem relatório e sem publicação dessa rodada. **Feito em 11/11** (`6ca1dfb`), antes da rodada das 18h: o silêncio do Ollama vira "o modelo não terminou", que a consolidação já sabe tratar. Não foi medido contra o Ollama.
-- **41:** duas rodadas perdidas em dois dias (13h de 10/11 e 9h de 11/11) com o front-dev no ar pela metade. **Em parte, em 11/11** (`208631c`): o Trader tenta de novo a abertura do `/login`. A causa não foi investigada, e o item traz uma hipótese a conferir.
+- **41:** duas rodadas perdidas em dois dias (13h de 10/11 e 9h de 11/11) com o front-dev no ar pela metade. **Feito em 12/11** (`bf41d6f` na Oficina e `a60a664` no Pregão): a causa era o Triador da Oficina, que subia o Vite de outra pasta sobre o cache do `front-dev` do Pregão. Falta uma rodada depois de uma triagem de verdade para provar. Antes, em 11/11 (`208631c`), o Trader já tentava de novo a abertura do `/login`.
 
 **O que falta dos itens que entraram em parte:**
 - **3:** o Triador só entende o padrão `aba === Aba.X &&`, e nada foi conferido no navegador.
@@ -65,6 +65,8 @@ Os itens 17 a 25 foram feitos em 07/11, em branches com testes, e entraram na `D
 - **09/11, Pregão, `2f48972`** (244 testes): o 34. Ficou diferente da proposta. A regra "todos os pedaços" pura quebraria o trecho escrito com LaTeX ("MOMENTUM DA BUSCA ($\Delta$15…)"), cujo pedaço "delta" nunca esteve na tela. Por isso a comparação é com a captura de antes da correção: sai da volta o pedaço que estava e saiu, e a cauda que fechava a linha e cresceu. Nos diários de 06 e 08/11, isso pega exatamente o d636070d e o 102c5561.
 - **11/11, Pregão, `d964238`** (289 testes): o 38 (`3e25300`), o 42 (`6ca1dfb`), a nova tentativa do `/login`, do 41 (`208631c`), e o 40.
 - **12/11, Oficina, `3aabd98`** (705 testes): o 36. Junto foi a correção do teste do tempo da chamada, que falhava por arredondamento do relógio numa de três rodadas da suíte.
+- **12/11, Oficina, `bf41d6f`** (708 testes): o cache próprio do Vite da comparação de telas do Triador, do 41.
+- **12/11, Pregão, `a60a664`** (289 testes): o `Front-Firme` do `agendado.ps1`, do 41.
 
 ## Oficina (`ThinkBitcoin-Back-Python-Agents-Oficina`, pasta `Agents-Front`)
 
@@ -468,11 +470,11 @@ Lidas do `diarios/agendado.log` do Pregão. Das cinco execuções agendadas de 1
 
 O que o `agendado.ps1` faz: o laço de espera sai na primeira resposta do Vite, e quem decide é a conferência seguinte (`Front-No-Ar`, com 20 s por endereço). Em 10/11, o Vite respondeu à primeira e não respondeu à segunda em 20 s, e a mensagem dos "180 s" não diz isso. Em 11/11, respondeu às duas e parou na página do login.
 
-A causa não foi investigada. Uma hipótese a conferir:
-- O Vite refaz as dependências quando a configuração muda, e a pasta do front faz parte dela.
-- A `comparar_telas.py` da Oficina sobe um `npm run dev` de outra pasta (uma cópia do front num commit), com `--host 127.0.0.1` e sem o `VITE_USE_MOCK=false`. O `node_modules` da cópia é uma junction para o do clone, que é onde fica o cache das dependências (`node_modules/.vite`).
-- O `conferente.py` já usa o `vite preview` para não disputar esse cache com o Trader.
-- Não foi conferido se a `comparar_telas.py` rodou antes de cada uma das duas rodadas perdidas.
+A causa, investigada em 12/11: o Triador da Oficina.
+- **O mecanismo:** a `comparar_telas.py` da Oficina sobe um `npm run dev` de uma cópia do front numa pasta temporária, com o `node_modules` do clone por junction, e o cache das dependências do Vite fica lá (`node_modules/.vite`). A pasta de onde o Vite sobe entra na conta que diz se o cache vale (o `configHash`): cada subida da cópia o refazia, e o `front-dev` do Pregão, ao subir depois, o refazia de novo (a linha "Re-optimizing dependencies because vite config has changed" na saída do Vite). O `conferente.py` já usava o `vite preview` para não disputar esse cache.
+- **Reproduzido com o Chrome:** o `configHash` do cache do clone mudou depois de uma subida da cópia, e o `front-dev` seguinte refez as dependências.
+- **A coincidência:** as duas rodadas perdidas foram as primeiras depois de uma execução da Oficina em que o Triador abriu as telas (10h e 19:30 de 10/11). Nas quatro execuções de 08 a 10/11 o Triador abriu as telas, e das quatro rodadas seguintes duas se perderam. As duas que correram (9h e 13h de 09/11) eram do modo demonstração, e as perdidas são de dados reais: não se sabe se isso pesa.
+- **O que não se reproduziu:** a lentidão. Com a máquina parada, a refeita levou 5 s, e o `/login` abriu em 0,7 s. Às 9h de 11/11 o cache só ficou pronto 48 s depois de o `front-dev` começar a subir (a `_metadata.json` foi gravada às 09:01:02, e a subida começou às 09:00:14), e a abertura do `/login` espera 30 s. Não se sabe o que deixou a refeita lenta.
 
 Feito em 11/11, na `Desenv` do Pregão antes da rodada das 18h (`e2b3be4`, merge `208631c`, 275 testes):
 - **O Trader tenta de novo a abertura do `/login`**, até 3 vezes (`navegador.TENTATIVAS_DO_LOGIN`), só quando o tempo esgota. O log diz em qual tentativa abriu, e o `/login` que abre de primeira não muda.
@@ -480,9 +482,17 @@ Feito em 11/11, na `Desenv` do Pregão antes da rodada das 18h (`e2b3be4`, merge
 - **Com o front parado de vez,** a rodada cai como antes, 60 s depois.
 - **Como foi conferido:** com os testes de unidade e com o `Navegador` de verdade contra um servidor local que não responde ao `/login`. Não foi testado contra o front-dev, e não se sabe se teria salvo a rodada das 9h de 11/11. Na rodada das 18h de 11/11 o `/login` abriu de primeira, e a nova tentativa não foi exercitada.
 
+Feito em 12/11, antes da rodada das 18h:
+- **Oficina, `1997a58`, merge `bf41d6f`** (708 testes): o Vite da cópia do Triador sobe com um cache só dele. A cópia ganha um `vite.oficina.config.mjs`, que importa a configuração do front e só troca o `cacheDir` (`.vite-oficina`, dentro da cópia), e o Vite sobe com `--config`. Sem configuração conhecida na cópia, sobe como antes.
+- **Pregão, `42070d3`, merge `a60a664`** (289 testes): o laço de espera do `agendado.ps1` sai com duas respostas seguidas (`Front-Firme`), dentro dos 180 s, e não mais com a primeira. A mensagem da rodada pulada diz o que falhou e em quanto tempo: "o front-dev não respondeu duas vezes seguidas em N s".
+- **Como foi conferido, no Chrome e com o Vite de verdade:** o cache do `front-dev` do Pregão não muda depois de uma subida da cópia (o `configHash` é o mesmo antes e depois), e a comparação de telas de um commit contra ele mesmo (200 s, 7 telas) segue sem acusar nada.
+- **O `Front-Firme`,** contra um front falso que responde uma vez, cala por 25 s e volta: o laço de antes dava `False` em 24 s (a rodada seria pulada), e o novo dá `True` em 31 s. Com o front mudo e o limite de 30 s, o novo desistiu em 50 s (o de antes, em 69 s), porque o limite é conferido entre as perguntas.
+
 O que ficou:
-- A rodada só começa depois de o `/login` montar, com novas tentativas dentro dos 180 s, e a mensagem diz o que falhou e em quanto tempo. Isso cobre também a rodada pulada das 13h de 10/11, que a nova tentativa do Trader não alcança.
-- A causa. Se a hipótese do cache valer, a `comparar_telas.py` passa a usar um cache próprio do Vite, ou o `vite preview`, como o conferente.
+- **Uma rodada do Pregão depois de uma triagem de verdade.** A prova é a rodada seguinte a uma execução da Oficina em que o Triador abrir as telas: o `diarios/front-dev.log` dela não deve ter a linha "Re-optimizing dependencies", e o `/login` deve abrir de primeira.
+- **A rodada só começar depois de o `/login` montar** não virou espera do `agendado.ps1`: a conferência é a resposta da página inicial, e o que o Vite demora com as dependências fica com as 3 tentativas do Trader (uns 90 s no total). Se a refeita passar disso, a rodada cai como antes.
+- **O que mais invalida o cache:** uma mudança no `package.json` ou no `vite.config.mjs` do front, trazida pela atualização que o `agendado.ps1` faz, também o refaz. As duas proteções do Pregão cobrem isso, sem medida.
+- **A lentidão de 48 s** das 9h de 11/11 segue sem explicação.
 
 ### 42. O modelo que para de responder derruba a consolidação (11/11/2026)
 A consolidação das 13h de 11/11 terminou com código 1 às 13:35, sem relatório e sem publicação. A rodada tinha corrido inteira (13:00 a 13:10, código 0).
