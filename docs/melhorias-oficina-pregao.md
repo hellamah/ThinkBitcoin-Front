@@ -2,13 +2,13 @@
 
 Anotadas em 05/11/2026, na revisão dos 8 PRs abertos da Oficina (156 a 164, dos quais só 158 e 163 entraram) e na triagem dos 199 pedidos que esperavam decisão. Cada item diz o que aconteceu, com o exemplo, e o que mudaria. O objetivo é que menos PR chegue ao Azure para ser abandonado.
 
-## A fila em 11/11/2026
+## A fila em 12/11/2026
 
-Dos 40 itens anotados até 09/11, 30 entraram, 8 entraram em parte e 2 não começaram (15 e 28). Em 10/11 entraram os itens 36 a 40. Eles não vêm de uma revisão de PRs, e sim dos números das execuções: os `resumo.json` das execuções das 10h da Oficina de 05 a 09/11 (57 pedidos foram ao modelo, e dos PRs 167 a 198 entraram 17 de 32) e os diários e o relatório do Pregão de 09/11. Em 11/11 entraram o 41 e o 42, lidos do `agendado.log` do Pregão.
+Dos 40 itens anotados até 09/11, 30 entraram, 8 entraram em parte e 2 não começaram (15 e 28). Em 10/11 entraram os itens 36 a 40. Eles não vêm de uma revisão de PRs, e sim dos números das execuções: os `resumo.json` das execuções das 10h da Oficina de 05 a 09/11 (57 pedidos foram ao modelo, e dos PRs 167 a 198 entraram 17 de 32) e os diários e o relatório do Pregão de 09/11. Em 11/11 entraram o 41 e o 42, lidos do `agendado.log` do Pregão. Dos itens de 10 e 11/11, estão feitos o 36, o 38, o 40 e o 42, e o 41 em parte; o 37 e o 39 não começaram.
 
 **O que mais pesa, por ordem:**
 1. **38 (Pregão):** a `falta` fica fora da fila do administrador, a não ser que caiba no que a tela já tem. Nas rodadas de 09/11, de 21 a 24 dos 39 a 48 achados eram faltas, e na triagem de 05/11 foram descartados 90 dos 103 pedidos de falta. **Feito em 10/11**, e na `Desenv` do Pregão desde 11/11 (`3e25300`). A triagem rodou pela primeira vez na consolidação das 18h de 11/11: das 9 faltas que se repetiram, 1 foi ao time e 8 ficaram nas sugestões do relatório. O item diz o que entrou e o que ficou.
-2. **36 (Oficina):** a etiqueta passa a usar as idas ao modelo. Em 09/11, 12 de 13 PRs saíram com "precisa de você". Com nota e até 3 idas ao modelo entraram 10 de 12 PRs; com nota e 4 ou mais, 3 de 8.
+2. **36 (Oficina):** a etiqueta passa a usar as idas ao modelo. Em 09/11, 12 de 13 PRs saíram com "precisa de você". Com nota e até 3 idas ao modelo entraram 10 de 12 PRs; com nota e 4 ou mais, 3 de 8. **Feito em 12/11** (`73230e4`): com a nota, o PR de 4 idas ou mais sai com "precisa de você", e o de até 3, com "confira o texto". Os seis PRs abertos (199 a 204) só mudam quando forem refeitos.
 3. **39 (Pregão):** o descarte passa a valer para o assunto, e não só para a chave. O slippage, descartado em 05/11, foi ao time em 09/11 como três problemas novos.
 4. **37 (Oficina):** a prova. Dos 32 PRs, 17 saíram sem teste que prove, e a rodada só do teste não trouxe a prova em 24 de 35 vezes.
 5. **8 (Oficina):** medir o revisor, o que ficou de fora em 05/11. Dos PRs 167 a 198, 19 têm o veredito no `agendado.log`: 16 "aprovar", dos quais 5 entraram, e 3 "recusar", dos quais 1 entrou (o 197). Dos 7 que já saíram com o veredito tirado dos itens (179, 180, 188, 192, 196, 197 e 198), o revisor acertou 3. A medição do `testes/revisor/medir.py` continua sem rodar.
@@ -64,6 +64,7 @@ Os itens 17 a 25 foram feitos em 07/11, em branches com testes, e entraram na `D
   - **32:** o aviso usa o glossário do Pregão ao lado e não vale num worktree, onde o caminho não existe.
 - **09/11, Pregão, `2f48972`** (244 testes): o 34. Ficou diferente da proposta. A regra "todos os pedaços" pura quebraria o trecho escrito com LaTeX ("MOMENTUM DA BUSCA ($\Delta$15…)"), cujo pedaço "delta" nunca esteve na tela. Por isso a comparação é com a captura de antes da correção: sai da volta o pedaço que estava e saiu, e a cauda que fechava a linha e cresceu. Nos diários de 06 e 08/11, isso pega exatamente o d636070d e o 102c5561.
 - **11/11, Pregão, `d964238`** (289 testes): o 38 (`3e25300`), o 42 (`6ca1dfb`), a nova tentativa do `/login`, do 41 (`208631c`), e o 40.
+- **12/11, Oficina, `3aabd98`** (705 testes): o 36. Junto foi a correção do teste do tempo da chamada, que falhava por arredondamento do relógio numa de três rodadas da suíte.
 
 ## Oficina (`ThinkBitcoin-Back-Python-Agents-Oficina`, pasta `Agents-Front`)
 
@@ -257,9 +258,17 @@ Duas coisas que a Oficina já sabe ao abrir o PR separam o que entrou:
 
 Ter o teste que prova separa pouco: entraram 9 de 15 com teste e 8 de 17 sem.
 
-Proposta:
-- A etiqueta usa as idas ao modelo, que já estão no `resumo.json` (`rodadas`). O PR com nota e até 3 idas sai como "confira o texto", e o de 4 ou mais como "precisa de você", com o número na descrição.
-- São 32 PRs, e a régua é medida de novo a cada revisão, como no item 17.
+Feito em 12/11, na `Desenv` da Oficina (`9cba708`, merge `73230e4`, 705 testes):
+- **A descrição do PR** ganha a linha "Idas ao modelo: N (com nota do administrador)", no começo, e a etiqueta a lê de lá.
+- **Com nota e 4 idas ou mais,** o PR sai com "precisa de você", mesmo com o revisor e o Triador a favor.
+- **Com nota e até 3 idas,** sai com "confira o texto" (ou "pode aprovar", com tudo a favor), mesmo que o Triador tenha pedido o dono ou o revisor tenha pedido ajuste ou ficado em dúvida. As outras etiquetas continuam na lista.
+- **Ficou diferente da proposta num ponto:** o "recusar" do revisor e a decisão do dono seguem pedindo o dono com qualquer número de idas. Nenhum PR de até 3 idas com o veredito registrado saiu com "recusar", e não há número para soltá-lo.
+- **A régua** virou o `testes/etiquetas/medir.py`, que lê os relatórios e o histórico do `Desenv` do front. Pela regra, dos PRs 179 a 198 com as etiquetas guardadas, entraram 5 de 7 dos que sairiam com "confira o texto" e 3 de 8 dos que sairiam com "precisa de você".
+
+O que ficou:
+- **Os seis PRs abertos** (199 a 204) não têm a linha na descrição e seguem a regra de antes até serem refeitos.
+- **São poucos PRs.** A régua é medida de novo a cada revisão, como no item 17.
+- **Conferido com os testes de unidade e a régua,** sem uma execução da Oficina. A das 10h de 12/11 é a primeira.
 
 #### 37. A prova que não sai, e a rodada só do teste que quase nunca a traz
 Dos 32 PRs, 17 saíram com o aviso "sem teste que a prove". A rodada só do teste, que custa mais uma ou duas idas ao modelo, trouxe a prova 11 vezes e não trouxe 24. O motivo mais comum nos avisos é o teste do modelo falhar com a correção já aplicada (11 vezes), e há falha que é da montagem do teste, e não da correção:
