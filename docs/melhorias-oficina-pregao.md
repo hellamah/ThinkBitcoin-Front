@@ -13,7 +13,7 @@ Dos 40 itens anotados até 09/11, 30 entraram, 8 entraram em parte e 2 não come
 4. **37 (Oficina):** a prova. Dos 32 PRs, 17 saíram sem teste que prove, e a rodada só do teste não trouxe a prova em 24 de 35 vezes.
 5. **8 (Oficina):** medir o revisor, o que ficou de fora em 05/11. Dos PRs 167 a 198, 19 têm o veredito no `agendado.log`: 16 "aprovar", dos quais 5 entraram, e 3 "recusar", dos quais 1 entrou (o 197). Dos 7 que já saíram com o veredito tirado dos itens (179, 180, 188, 192, 196, 197 e 198), o revisor acertou 3. A medição do `testes/revisor/medir.py` continua sem rodar.
 
-**Item 40 (Pregão), investigado em 11/11:** com dados reais, a série da Simulação demora mais que a espera do roteiro quando o Trader troca de moeda, e em 3 das 5 rodadas até 11/11 ele perdeu as duas ações seguintes. A leitura da chegada está inteira, e nenhum pedido da Simulação foi validado desde então.
+**Item 40 (Pregão), investigado em 11/11:** com dados reais, a série da Simulação demora mais que a espera do roteiro quando o Trader troca de moeda, e em 3 das 5 rodadas até 11/11 ele perdeu as duas ações seguintes. A leitura da chegada está inteira, e nenhum pedido da Simulação foi validado desde então. **Feito em 11/11** (`d964238`): o Trader espera o aviso de carregamento sair, por até 20 s. Conferido com o Chrome e dados reais, sem o modelo.
 
 **Itens 41 e 42 (Pregão), de 11/11:** os dois custaram uma execução agendada inteira. O 42 foi feito no mesmo dia. Do 41 entrou uma parte, e a causa continua aberta.
 - **42:** a consolidação das 13h de 11/11 caiu quando o modelo parou de responder a uma pergunta do juiz, e o dia ficou sem relatório e sem publicação dessa rodada. **Feito em 11/11** (`6ca1dfb`), antes da rodada das 18h: o silêncio do Ollama vira "o modelo não terminou", que a consolidação já sabe tratar. Não foi medido contra o Ollama.
@@ -63,7 +63,7 @@ Os itens 17 a 25 foram feitos em 07/11, em branches com testes, e entraram na `D
   - **31:** a checagem `nota` exige só as chaves-alvo. A chave citada depois de um "como", ou seguida de "já explica" e "não mexer", é modelo, e vai ao pedido com o lugar no código.
   - **32:** o aviso usa o glossário do Pregão ao lado e não vale num worktree, onde o caminho não existe.
 - **09/11, Pregão, `2f48972`** (244 testes): o 34. Ficou diferente da proposta. A regra "todos os pedaços" pura quebraria o trecho escrito com LaTeX ("MOMENTUM DA BUSCA ($\Delta$15…)"), cujo pedaço "delta" nunca esteve na tela. Por isso a comparação é com a captura de antes da correção: sai da volta o pedaço que estava e saiu, e a cauda que fechava a linha e cresceu. Nos diários de 06 e 08/11, isso pega exatamente o d636070d e o 102c5561.
-- **11/11, Pregão, `208631c`** (275 testes): o 38 (`3e25300`), o 42 (`6ca1dfb`) e a nova tentativa do `/login`, do 41.
+- **11/11, Pregão, `d964238`** (289 testes): o 38 (`3e25300`), o 42 (`6ca1dfb`), a nova tentativa do `/login`, do 41 (`208631c`), e o 40.
 
 ## Oficina (`ThinkBitcoin-Back-Python-Agents-Oficina`, pasta `Agents-Front`)
 
@@ -435,13 +435,19 @@ Proposta:
 ### 40. Com dados reais, a troca de moeda na Simulação estoura a espera do roteiro (10 e 11/11/2026)
 Nas rodadas com dados reais de 09/11 às 19:19 e de 10/11 às 9h, o Trader clicou em "SOL" na Simulação, e a tela mostrou "Carregando a série de análise…". As duas ações seguintes não foram executadas: "não achei 'Sinal de entrada' na tela" e "não achei 'Fixar regra e revelar' na tela". Na rodada de 10/11 às 18h, também com dados reais, a série chegou a tempo, e as três ações foram feitas. Na das 18h de 09/11, no modo demonstração, as três também foram feitas. Em 11/11, com dados reais, a das 13h perdeu de novo as duas ações seguintes ("não achei 'Sinal de entrada' na tela" e "não achei 'Móvel (ATR)' na tela"), e a das 18h fez as três. São 3 de 5 rodadas com dados reais.
 
-- **A causa:** depois de cada ação, o `navegador._esperar` espera a rede parar por até 5 s, mais 1,5 s, e a tela é lida. O `rotina._visitar` só cancela as ações seguintes quando o caminho da página muda ou uma janela abre (`nav.situacao`), e a troca do `?moeda=` não conta.
+- **A causa:** depois de cada ação, o `navegador._esperar` esperava a rede parar por até 5 s, mais 1,5 s, e a tela era lida. Medido em 11/11: num clique que não troca de página, a espera da rede do Playwright volta na hora, e a leitura vinha uns 2,5 s depois do clique. O `rotina._visitar` só cancela as ações seguintes quando o caminho da página muda ou uma janela abre (`nav.situacao`), e a troca do `?moeda=` não conta.
 - **O que não aconteceu:** a leitura da chegada está inteira nas três rodadas, o Trader não transformou o carregamento em achado, e nenhum pedido da Simulação foi validado desde 09/11. Dois estão corrigidos, esperando a validação: "Sigla MAE / MFE sem definição" e "Dúvida se o Alfa deduz o custo total".
 
-Proposta:
-- Depois da ação, o `_esperar` espera o "Carregando" sair da tela, com um limite de uns 20 s.
-- Passado o limite, as ações seguintes são canceladas, como quando a tela muda, e o diário diz que a tela ainda carregava.
-- Medir quanto a série leva com dados reais: o que passa de 6,5 s para o Trader passa para o cliente.
+Feito em 11/11, na `Desenv` do Pregão (`dd2c3f0`, merge `d964238`, 289 testes):
+- **A espera:** depois de abrir a tela e de cada ação, o Trader espera o aviso de carregamento sair ("Carregando…", nos cinco idiomas do front), por até 20 s (`navegador.ESPERA_DO_CARREGANDO`). A tela é olhada duas vezes depois da ação, porque o aviso da Simulação só aparece 1 s depois do clique.
+- **Passado o limite,** o resultado da ação diz "a tela ainda carregava depois de 20 s de espera", as ações que restavam são canceladas, e o Trader lê que a demora é da tela, e não da ferramenta. O aviso que não sai custa o limite uma vez por tela.
+- **Como foi conferido:** com os testes de unidade e com o `Navegador` de verdade, no Chrome, com o front-dev e dados reais, sem o modelo. Com o código de antes, a ação seguinte à troca de moeda não achou o controle. Com o novo, o plano que falhou às 13h de 11/11 (SOL e duas ações) correu inteiro. Duas trocas passaram dos 20 s, com o DotNet ocupado pelos cliques em sequência do próprio teste, e saíram com o resultado certo.
+- **A medida:** a série de 6 meses (`/ThinkBitcoin/moeda/<moeda>/valor`, 3,6 MB) levou de 3,8 a 5,5 s no DotNet local em cinco pedidos, um de cada vez, e 21,6 s em um (LTC). No Chrome, a primeira troca para ETH levou 8,3 s.
+
+O que ficou:
+- **Uma rodada inteira com o modelo.** A das 9h de 12/11 é a primeira.
+- **O que o Trader faz com a demora:** quando uma troca passar dos 20 s, ele pode anotar a demora como achado.
+- **O tamanho e o tempo da série** (3,6 MB, de 4 a 6 s a cada troca de moeda) são do produto, e não dos agentes: o cliente espera o mesmo, e isso não virou item aqui.
 
 ### Ocorrências de 10 e 11/11/2026: duas rodadas e uma consolidação perdidas
 Lidas do `diarios/agendado.log` do Pregão. Das cinco execuções agendadas de 10/11 e de 11/11 até as 13h, duas correram inteiras (9h e 18h de 10/11). A das 18h de 11/11 também correu inteira: a consolidação dela cobriu a rodada das 13h e publicou 28 pedidos.
