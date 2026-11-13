@@ -407,7 +407,7 @@
   "simulationBreakEven": "Custo de equilíbrio",
   "simulationBreakEvenNever": "Nem com custo zero",
   "simulationBreakEvenAbove": "Acima de {{valor}}",
-  "simulationBreakEvenSub": "Por perna · hoje: {{atual}}",
+  "simulationBreakEvenSub": "Por perna · a simulação usa {{atual}}",
   "simulationAttempts": "Configurações testadas",
   "simulationAttemptsSub": "Limiar contra o acaso: percentil {{limiar}}",
   "simulationAttemptsReset": "Zerar contagem",

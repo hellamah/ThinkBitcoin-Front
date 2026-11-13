@@ -407,7 +407,7 @@
   "simulationBreakEven": "Break-even cost",
   "simulationBreakEvenNever": "Not even at zero cost",
   "simulationBreakEvenAbove": "Above {{valor}}",
-  "simulationBreakEvenSub": "Per leg · now: {{atual}}",
+  "simulationBreakEvenSub": "Per leg · the simulation uses {{atual}}",
   "simulationAttempts": "Configurations tested",
   "simulationAttemptsSub": "Chance threshold: percentile {{limiar}}",
   "simulationAttemptsReset": "Reset count",

@@ -407,7 +407,7 @@
   "simulationBreakEven": "Costo di pareggio",
   "simulationBreakEvenNever": "Nemmeno a costo zero",
   "simulationBreakEvenAbove": "Oltre {{valor}}",
-  "simulationBreakEvenSub": "Per gamba · attuale: {{atual}}",
+  "simulationBreakEvenSub": "Per gamba · la simulazione usa {{atual}}",
   "simulationAttempts": "Configurazioni testate",
   "simulationAttemptsSub": "Soglia contro il caso: percentile {{limiar}}",
   "simulationAttemptsReset": "Azzera il conteggio",
