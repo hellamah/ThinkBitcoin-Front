@@ -201,7 +201,9 @@ export default function HeatmapInsights({ trend, fear, t, locale }) {
       {/* Concentração geográfica (índice HHI) */}
       {hhi !== null && (
         <BarraMedida
-          label={t('heatmap.concentracaoGeo')}
+          // O rótulo já fica dentro de um Typography (um <p>) no BarraMedida: um span, e não outro Typography,
+          // senão é um <p> dentro de <p>, o erro de console que o PR 97 corrigiu.
+          label={<Tooltip title={t('heatmap.concentracaoGeo_tooltip')}><span>{t('heatmap.concentracaoGeo')}</span></Tooltip>}
           valorLabel={hhi >= 0.25 ? (
             <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
               🎯 {t('heatmap.concentrada')} ({(hhi * 100).toFixed(1)}%)

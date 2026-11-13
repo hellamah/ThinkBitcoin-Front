@@ -67,6 +67,7 @@ export const operacoesDoMotor = (registros, ativacao = ATIVACAO_MOTOR) => {
 export const estadoPelasOperacoes = (operacoes) => {
   const ultima = operacoes?.[0]
   if (!ultima) return null
+  
   return ACOES_QUE_FECHAM.includes(ultima.acao) ? 'fora' : 'dentro'
 }
 
