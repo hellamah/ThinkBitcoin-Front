@@ -1040,6 +1040,8 @@
     "curveSummary": "{{estrategia}} curve on {{moeda}}: ends at {{final}}, against {{finalBh}} for buy & hold",
     "drawdownTitle": "Drawdown from peak",
     "drawdownSub": "Worst drawdown: {{pior}} against {{piorBh}} for buy & hold. Weekly points: the daily drawdown may have been slightly deeper.",
+    "drawdownSubIgual": "Worst drawdown: {{pior}} against {{piorBh}} for buy & hold, the same as in the By coin table.",
+    "drawdownSubDiaria": "Worst drawdown: {{pior}} against {{piorBh}} for buy & hold, on the chart's weekly points. The By coin table measures it day by day: {{piorDiaria}} against {{piorBhDiaria}}, because the bottom fell on a day between two chart points.",
     "coinsTitle": "By coin",
     "coinsSub": "{{estrategia}} against buy & hold of the same coin, over the same period. Green marks a criterion condition that passes; red, one that fails. Pick a coin to see its curves and years.",
     "colCoin": "Coin",

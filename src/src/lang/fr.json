@@ -1040,6 +1040,8 @@
     "curveSummary": "Courbe de {{estrategia}} sur {{moeda}} : termine à {{final}}, contre {{finalBh}} pour le buy & hold",
     "drawdownTitle": "Baisse depuis le sommet",
     "drawdownSub": "Pire baisse : {{pior}} contre {{piorBh}} pour le buy & hold. Points hebdomadaires : la baisse journalière a pu être un peu plus forte.",
+    "drawdownSubIgual": "Pire baisse : {{pior}} contre {{piorBh}} pour le buy & hold, la même que dans le tableau Par crypto.",
+    "drawdownSubDiaria": "Pire baisse : {{pior}} contre {{piorBh}} pour le buy & hold, sur les points hebdomadaires du graphique. Le tableau Par crypto la mesure jour par jour : {{piorDiaria}} contre {{piorBhDiaria}}, car le creux est tombé un jour entre deux points du graphique.",
     "coinsTitle": "Par crypto",
     "coinsSub": "{{estrategia}} face au buy & hold de la même crypto, sur la même période. En vert, la condition du critère remplie ; en rouge, celle qui échoue. Choisissez une crypto pour voir les courbes et les années.",
     "colCoin": "Crypto",

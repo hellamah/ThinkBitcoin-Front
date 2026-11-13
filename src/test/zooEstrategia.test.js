@@ -17,6 +17,7 @@ import {
   quedaDaCurva,
   resultadoDoAno,
   rodadaAtrasada,
+  subtituloDaQueda,
 } from '../src/utils/zooEstrategia'
 
 describe('zoo › rodada atrasada', () => {
@@ -113,6 +114,43 @@ describe('zoo › curva e queda', () => {
     expect(queda.map((p) => Number(p.y.toFixed(4)))).toEqual([-0.001, 0, -0.5, 0])
     expect(piorQueda(queda)).toBeCloseTo(-0.5)
     expect(piorQueda([])).toBe(0)
+  })
+})
+
+describe('zoo › subtítulo da queda', () => {
+  // O formato das células da tela, uma casa: -0,4569 -> "-45,7%".
+  const formatar = (v) => `${(v * 100).toFixed(1).replace('.', ',')}%`
+  const queda = (pior) => [{ x: 0, y: 0 }, { x: 1, y: pior }]
+
+  // A SOL na média de 50 dias + vol-alvo de 40%, rodada de 09/11/2026: a tabela
+  // "Por moeda" deu -45,7% (fundo diário numa terça, 18/08/2026) e o gráfico,
+  // com os pontos de domingo, -44,8%. Reproduzido com os candles reais e o
+  // próprio zoo do worker: -45,69% na curva diária, -44,81% nos 310 pontos.
+  const solDaRodada = { quedaMaxima: -0.4569, quedaMaximaBuyHold: -0.9627 }
+
+  it('mostra as duas contas quando a diária da tabela difere da semanal do gráfico', () => {
+    const sub = subtituloDaQueda({ queda: queda(-0.4481), quedaBh: queda(-0.96), linha: solDaRodada, formatar })
+    expect(sub).toEqual({
+      chave: 'zoo.drawdownSubDiaria',
+      vars: { pior: '-44,8%', piorBh: '-96,0%', piorDiaria: '-45,7%', piorBhDiaria: '-96,3%' },
+    })
+  })
+
+  it('basta o buy & hold diferir para mostrar as duas', () => {
+    const linha = { quedaMaxima: -0.4481, quedaMaximaBuyHold: -0.9627 }
+    expect(subtituloDaQueda({ queda: queda(-0.4481), quedaBh: queda(-0.96), linha, formatar }).chave).toBe('zoo.drawdownSubDiaria')
+  })
+
+  it('diz que é a mesma da tabela quando os números formatados batem', () => {
+    const linha = { quedaMaxima: -0.44812, quedaMaximaBuyHold: -0.96004 }
+    const sub = subtituloDaQueda({ queda: queda(-0.4481), quedaBh: queda(-0.96), linha, formatar })
+    expect(sub).toEqual({ chave: 'zoo.drawdownSubIgual', vars: { pior: '-44,8%', piorBh: '-96,0%' } })
+  })
+
+  it('sem a linha da tabela, fica o aviso dos pontos semanais', () => {
+    for (const linha of [null, { quedaMaxima: null }]) {
+      expect(subtituloDaQueda({ queda: queda(-0.4481), quedaBh: queda(-0.96), linha, formatar }).chave).toBe('zoo.drawdownSub')
+    }
   })
 })
 

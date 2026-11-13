@@ -4,6 +4,8 @@ import { cleanup, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import pt from '../src/lang/pt.json'
 import { RODADA_ZOO } from '../src/utils/mockZooEstrategia'
+import { BUY_HOLD, estrategiaPadrao, linhaDaMoeda } from '../src/utils/zooEstrategia'
+import { comSinal, formatarPercentual } from '../src/components/comum/formato'
 import { useAuth } from '../src/context/AuthContext'
 
 import ZooEstrategias from '../src/pages/ZooEstrategias'
@@ -23,11 +25,13 @@ vi.mock('../src/hooks/useTranslation', () => ({
   default: (() => { let valor; return () => (valor ??= { t, idioma: { intl: 'pt-BR' } }) })(),
 }))
 
+// A curva que o gráfico recebe; vazia, salvo no teste do subtítulo da queda.
+const estadoDaCurva = vi.hoisted(() => ({ atual: { curvas: [], carregando: false, erro: null } }))
+
 vi.mock('../src/hooks/useZooEstrategia', async () => {
   const { RODADA_ZOO: rodada } = await import('../src/utils/mockZooEstrategia')
   const fixo = { rodada, carregando: false, erro: null, recarregar: () => {} }
-  const curva = { curvas: [], carregando: false, erro: null }
-  return { default: () => fixo, useCurvaZoo: () => curva }
+  return { default: () => fixo, useCurvaZoo: () => estadoDaCurva.atual }
 })
 
 vi.mock('../src/context/AuthContext', () => ({ useAuth: vi.fn(() => ({ user: null })) }))
@@ -85,6 +89,48 @@ describe('ZooEstrategias', () => {
     // A aprovação é só sim ou não: a contagem dos anos já está em "Anos ok".
     const celulas = within(primeiraLinha).getAllByRole('cell')
     expect([t('zoo.yes'), t('zoo.no')]).toContain(celulas.at(-1).textContent)
+  })
+
+  // Rodada do Pregão de 09/11/2026 com dados reais: a SOL tinha -45,7% na tabela
+  // (curva diária) e -44,8% no gráfico (pontos de domingo). As duas contas estão
+  // certas; o subtítulo é que precisa dizer as duas, e de onde vem cada uma.
+  it('o subtítulo da queda mostra a do gráfico e a diária da tabela, quando diferem', () => {
+    const estrategia = estrategiaPadrao(RODADA_ZOO)
+    const linha = linhaDaMoeda(RODADA_ZOO, estrategia, 'BTC')
+    const curva = (nome, valores) => ({
+      estrategia: nome,
+      pontos: valores.map((patrimonio, i) => ({ data: new Date(Date.UTC(2018, 2, 4 + 7 * i)).toISOString(), patrimonio })),
+    })
+    estadoDaCurva.atual = {
+      curvas: [curva(estrategia, [1, 0.8, 1.2]), curva(BUY_HOLD, [1, 0.5, 1.5])],
+      carregando: false,
+      erro: null,
+    }
+    try {
+      renderizar(['Minerador'])
+    } finally {
+      estadoDaCurva.atual = { curvas: [], carregando: false, erro: null }
+    }
+    const pct = (v) => comSinal(formatarPercentual(v, 1), v)
+    expect(pct(linha.quedaMaxima)).not.toBe(pct(-0.2))
+    const esperado = t('zoo.drawdownSubDiaria', {
+      pior: pct(-0.2),
+      piorBh: pct(-0.5),
+      piorDiaria: pct(linha.quedaMaxima),
+      piorBhDiaria: pct(linha.quedaMaximaBuyHold),
+    })
+    expect(screen.getByText(esperado)).toBeTruthy()
+    expect(esperado).toContain('-20,0%')
+    expect(esperado).toContain('dia a dia')
+  })
+
+  // O conferente do Pregão (trader/conferente.py, PIOR_QUEDA) acha a pior queda do
+  // gráfico por este começo de frase; sem ele, a conferência some sem aviso.
+  it('as três versões do subtítulo começam por "Pior queda: X contra Y do buy & hold"', () => {
+    const vars = { pior: '-44,8%', piorBh: '-96,0%', piorDiaria: '-45,7%', piorBhDiaria: '-96,3%' }
+    for (const chave of ['zoo.drawdownSub', 'zoo.drawdownSubIgual', 'zoo.drawdownSubDiaria']) {
+      expect(t(chave, vars)).toMatch(/^Pior queda: -44,8% contra -96,0% do buy & hold/)
+    }
   })
 
   // O robô refaz a mesma regra desde 2017, e o zoo começa o BTC em 2018: sem dizer por quê,

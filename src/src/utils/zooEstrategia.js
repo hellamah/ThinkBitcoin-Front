@@ -66,6 +66,31 @@ export const quedaDaCurva = (pontos, base = 1) => {
 export const piorQueda = (queda) => queda.reduce((pior, p) => Math.min(pior, p.y), 0)
 
 /**
+ * O subtítulo do gráfico de queda: a chave do dicionário e os valores.
+ *
+ * O gráfico recalcula a pior queda nos pontos da curva que a API manda: um por
+ * semana (domingo) mais os dias recentes, como reduz o `pontos_da_curva` do
+ * worker. A tabela "Por moeda" traz a `quedaMaxima` do worker, medida na curva
+ * diária inteira. As duas contas estão certas e podem diferir, porque o fundo
+ * diário pode cair entre dois domingos. Na SOL, em 09/11/2026: -45,7% na tabela,
+ * com o fundo numa terça (18/08/2026), e -44,8% no gráfico. O aviso genérico
+ * ("a queda diária pode ter sido um pouco maior") não dizia de quanto, e o
+ * Trader do Pregão leu os dois números como erro. Quando a diferença aparece
+ * nos números formatados, o subtítulo mostra os dois e diz de onde vem cada um.
+ *
+ * `formatar` é o mesmo formato das células, para comparar o que a tela mostra.
+ */
+export const subtituloDaQueda = ({ queda, quedaBh, linha, formatar }) => {
+  const vars = { pior: formatar(piorQueda(queda)), piorBh: formatar(piorQueda(quedaBh)) }
+  if (linha?.quedaMaxima === null || linha?.quedaMaxima === undefined) return { chave: 'zoo.drawdownSub', vars }
+  const diaria = { piorDiaria: formatar(linha.quedaMaxima), piorBhDiaria: formatar(linha.quedaMaximaBuyHold) }
+  const iguais = diaria.piorDiaria === vars.pior && diaria.piorBhDiaria === vars.piorBh
+  return iguais
+    ? { chave: 'zoo.drawdownSubIgual', vars }
+    : { chave: 'zoo.drawdownSubDiaria', vars: { ...vars, ...diaria } }
+}
+
+/**
  * O veredito de um ano: 'ok' quando as duas condições do critério valem; senão,
  * qual delas falhou ('retorno', 'queda' ou 'ambas').
  */
