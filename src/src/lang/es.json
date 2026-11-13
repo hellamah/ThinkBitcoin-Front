@@ -201,7 +201,7 @@
   "maxDrawdown": "Drawdown máximo",
   "maxDrawdownHint": "Mayor caída a partir de un pico",
   "winRate": "Tasa de subida (Candle)",
-  "winRateHint": "Velas que cerraron al alza",
+  "winRateHint": "Velas que cerraron al alza en el período seleccionado",
   "bestWorstCandle": "Mejor / peor vela",
   "comparingCoins": "{{count}} monedas comparadas",
   "coinComparison": "Comparativa de monedas",

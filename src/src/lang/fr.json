@@ -201,7 +201,7 @@
   "maxDrawdown": "Drawdown maximal",
   "maxDrawdownHint": "Plus forte baisse à partir d'un sommet",
   "winRate": "Taux de hausse (Candle)",
-  "winRateHint": "Bougies clôturées en hausse",
+  "winRateHint": "Bougies clôturées en hausse sur la période sélectionnée",
   "bestWorstCandle": "Meilleure / pire bougie",
   "comparingCoins": "{{count}} cryptos comparées",
   "coinComparison": "Comparatif des cryptos",

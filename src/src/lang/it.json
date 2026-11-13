@@ -201,7 +201,7 @@
   "maxDrawdown": "Drawdown massimo",
   "maxDrawdownHint": "Massima discesa a partire da un picco",
   "winRate": "Tasso di rialzo (Candle)",
-  "winRateHint": "Candele chiuse in rialzo",
+  "winRateHint": "Candele chiuse in rialzo nel periodo selezionato",
   "bestWorstCandle": "Migliore / peggiore candela",
   "comparingCoins": "{{count}} criptovalute confrontate",
   "coinComparison": "Confronto tra criptovalute",

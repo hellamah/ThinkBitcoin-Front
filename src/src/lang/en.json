@@ -201,7 +201,7 @@
   "maxDrawdown": "Max Drawdown",
   "maxDrawdownHint": "Largest drop from a peak",
   "winRate": "Up Rate (Candle)",
-  "winRateHint": "Candles that closed up",
+  "winRateHint": "Candles that closed up in the selected period",
   "bestWorstCandle": "Best / Worst Candle",
   "comparingCoins": "{{count}} coins compared",
   "coinComparison": "Coin Comparison",
