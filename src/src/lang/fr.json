@@ -1028,6 +1028,8 @@
     "colExposureHint": "En moyenne, quelle part du capital propre de la stratégie a été appliquée à l'actif sur la période (de 0% à 100%). Ce n'est pas le poids de l'actif dans votre portefeuille.",
     "colFees": "Frais payés",
     "colFeesHint": "Part du patrimoine partie en frais sur la période",
+    "colGiro": "Rotation/an (Médiane)",
+    "colGiroHint": "De combien la position a changé de taille par an, au total, en médiane entre les cryptos : 1,0 équivaut à une entrée ou une sortie complète, donc chaque aller-retour compte 2. Cela aide à comprendre les frais payés.",
     "approved": "Approbation",
     "coinPicker": "Crypto des courbes et des années",
     "coinSelected": "{{moeda}} (choisie)",

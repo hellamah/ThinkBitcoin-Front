@@ -1028,6 +1028,8 @@
     "colExposureHint": "On average, how much of the strategy's own capital was applied to the asset over the period (from 0% to 100%). It is not the asset's weight in your portfolio.",
     "colFees": "Fees paid",
     "colFeesHint": "How much of the portfolio went to fees over the period",
+    "colGiro": "Turnover/year (Median)",
+    "colGiroHint": "How much the position changed size per year, added up, as the median across coins: 1.0 equals one full entry or exit, so each round trip counts 2. It helps explain the fees paid.",
     "approved": "Approval",
     "coinPicker": "Coin for curves and years",
     "coinSelected": "{{moeda}} (selected)",
