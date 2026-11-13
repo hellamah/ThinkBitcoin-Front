@@ -42,11 +42,11 @@ import {
   moedasDaRodada,
   noDiaLocal,
   nomeDaEstrategia,
-  piorQueda,
   pontosDaCurva,
   quedaDaCurva,
   resultadoDoAno,
   rodadaAtrasada,
+  subtituloDaQueda,
 } from '../utils/zooEstrategia'
 
 // Zoo de estratégias (recurso pago). A pergunta desta tela é a do objetivo de
@@ -269,6 +269,15 @@ function GraficosDaCurva({ moeda, estrategia, nome, linha, versaoZoo }) {
 
   const final = series.propria.at(-1)?.y
   const finalBh = series.bh.at(-1)?.y
+  // No buy & hold, a comparação é com ele mesmo: sem a segunda curva (que o
+  // gráfico não desenha, para não sobrepor a mesma linha), o subtítulo saía
+  // "contra 0,0% do buy & hold".
+  const subtituloQueda = subtituloDaQueda({
+    queda: series.quedaPropria,
+    quedaBh: estrategia === BUY_HOLD ? series.quedaPropria : series.quedaBh,
+    linha,
+    formatar: pct,
+  })
   return (
     <>
       <Painel
@@ -291,7 +300,7 @@ function GraficosDaCurva({ moeda, estrategia, nome, linha, versaoZoo }) {
       {series.propria.length > 0 && (
         <Painel
           titulo={t('zoo.drawdownTitle')}
-          subtitulo={t('zoo.drawdownSub', { pior: pct(piorQueda(series.quedaPropria)), piorBh: pct(piorQueda(series.quedaBh)) })}
+          subtitulo={t(subtituloQueda.chave, subtituloQueda.vars)}
           sx={{ height: { xs: 260, md: 280 } }}
         >
           <Line data={dados.queda} options={opcoes.queda} aria-label={t('zoo.drawdownTitle')} />

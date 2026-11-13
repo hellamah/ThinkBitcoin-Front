@@ -1040,6 +1040,8 @@
     "curveSummary": "Curva de {{estrategia}} en {{moeda}}: termina en {{final}}, frente a {{finalBh}} del buy & hold",
     "drawdownTitle": "Caída desde el máximo",
     "drawdownSub": "Peor caída: {{pior}} frente a {{piorBh}} del buy & hold. Puntos semanales: la caída diaria puede haber sido algo mayor.",
+    "drawdownSubIgual": "Peor caída: {{pior}} frente a {{piorBh}} del buy & hold, la misma de la tabla Por moneda.",
+    "drawdownSubDiaria": "Peor caída: {{pior}} frente a {{piorBh}} del buy & hold, en los puntos semanales del gráfico. La tabla Por moneda la mide día a día: {{piorDiaria}} frente a {{piorBhDiaria}}, porque el fondo cayó en un día entre dos puntos del gráfico.",
     "coinsTitle": "Por moneda",
     "coinsSub": "{{estrategia}} contra el buy & hold de la misma moneda, en el mismo período. En verde, la condición del criterio que pasa; en rojo, la que falla. Elige una moneda para ver las curvas y los años.",
     "colCoin": "Moneda",

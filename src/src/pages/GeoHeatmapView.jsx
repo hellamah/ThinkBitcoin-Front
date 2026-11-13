@@ -854,8 +854,15 @@ export default function GeoHeatmapView() {
               {INTERVALOS_DO_MAPA.map((opt) => (
                 <button
                   key={opt.valor}
+                  type="button"
                   className={`interval-btn-mini ${intervaloMapa === opt.valor ? 'active' : ''}`}
+                  aria-pressed={intervaloMapa === opt.valor}
                   onClick={() => {
+                    // O botão aceso não muda nada. Antes ele limpava o mapa, e
+                    // como o intervalo era o mesmo, a busca não se repetia: a
+                    // tela ficava em "Dados de mapa não disponíveis" (BTC em 1D,
+                    // rodada do Pregão de 09/11/2026 com dados reais).
+                    if (opt.valor === intervaloMapa) return
                     setIntervaloMapa(opt.valor)
                     // Limpa cache ao mudar intervalo para forçar reload
                     setDadosDoCacheAtivo(false)
