@@ -256,7 +256,7 @@
   "signal_rsiSobrevenda": "RSI entered oversold",
   "signal_rompeuBandaSuperior": "Broke upper band",
   "signal_rompeuBandaInferior": "Broke lower band",
-  "vwap": "VWAP",
+  "vwap": "Period VWAP",
   "vwapAbove": "Price {{value}}% above VWAP",
   "vwapBelow": "Price {{value}}% below VWAP",
   "signal_vwapCruzamentoAlta": "Crossed VWAP Up",
