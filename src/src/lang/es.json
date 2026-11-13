@@ -578,7 +578,7 @@
     "filtrandoPor": "Mostrando activos cuya búsqueda es liderada por:",
     "limparFiltro": "Limpiar filtro",
     "centralInteligencia": "Central de inteligencia",
-    "centralDescricao": "Nivel de aceleración y dominancia de búsqueda de narrativas por región geográfica para la moneda seleccionada",
+    "centralDescricao": "Nivel de aceleración y dominancia del interés de búsqueda de Google Trends por los términos de la moneda por región geográfica (la dominancia es la cuota de cada región en ese interés)",
     "aguardandoDados": "Esperando datos geográficos...",
     "semDados": "Datos de mapa no disponibles para el activo seleccionado en el período.",
     "erroCarregar": "No se pudieron cargar los datos geográficos en este momento.",

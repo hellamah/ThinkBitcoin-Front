@@ -578,7 +578,7 @@
     "filtrandoPor": "Visualizzazione degli asset la cui ricerca è guidata da:",
     "limparFiltro": "Rimuovi filtro",
     "centralInteligencia": "Centrale di intelligence",
-    "centralDescricao": "Livello di accelerazione e dominanza di ricerca delle narrative per regione geografica per la criptovaluta selezionata",
+    "centralDescricao": "Livello di accelerazione e dominanza dell'interesse di ricerca di Google Trends per i termini della criptovaluta per regione geografica (la dominanza è la quota di ogni regione in tale interesse)",
     "aguardandoDados": "In attesa dei dati geografici...",
     "semDados": "Dati della mappa non disponibili per l'asset selezionato nel periodo.",
     "erroCarregar": "Impossibile caricare i dati geografici in questo momento.",
