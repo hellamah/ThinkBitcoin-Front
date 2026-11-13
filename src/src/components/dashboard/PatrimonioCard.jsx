@@ -55,11 +55,7 @@ export default function PatrimonioCard({ token, user }) {
             <Typography className="patrimonio-title-glow" variant="subtitle2" sx={{ fontWeight: 800 }}>
               {t('patrimonio.title')}
             </Typography>
-            {saldoBRL > 0 && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, backgroundColor: 'var(--success-a10)', color: 'var(--success-ink)', px: 1, py: 0.2, borderRadius: '10px', fontSize: '0.7rem', fontWeight: 'bold', fontFamily: "'Share Tech Mono', monospace" }}>
-                <MdTrendingUp /> ACTIVE_GROWTH
-              </Box>
-            )}
+            // Selo removido por não representar métrica real
           </Box>
 
           <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'flex-start', sm: 'baseline' }, gap: { xs: 1, sm: 3 } }}>
