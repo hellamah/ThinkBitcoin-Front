@@ -1028,7 +1028,7 @@
     "colFees": "Comisión pagada",
     "colFeesHint": "Cuánto del patrimonio se fue en comisiones en el período",
     "colGiro": "Giro/año (Mediana)",
-    "colGiroHint": "Giro/año (Mediana)",
+    "colGiroHint": "Cuánto cambió de tamaño la posición por año, sumado, en la mediana entre las monedas: 1,0 equivale a una entrada o una salida completa, así que cada operación completa cuenta 2. Ayuda a entender la comisión pagada.",
     "approved": "Aprobación",
     "coinPicker": "Moneda de las curvas y los años",
     "coinSelected": "{{moeda}} (elegida)",

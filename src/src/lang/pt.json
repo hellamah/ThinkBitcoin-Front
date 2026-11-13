@@ -1028,7 +1028,7 @@
     "colFees": "Taxa paga",
     "colFeesHint": "Quanto do patrimônio foi embora em taxa no período",
     "colGiro": "Giro/ano (Mediana)",
-    "colGiroHint": "Giro/ano (Mediana)",
+    "colGiroHint": "Quanto a posição mudou de tamanho por ano, somado, na mediana entre as moedas: 1,0 equivale a uma entrada ou uma saída inteira, então cada operação completa conta 2. Ajuda a entender a taxa paga.",
     "approved": "Aprovação",
     "coinPicker": "Moeda das curvas e dos anos",
     "coinSelected": "{{moeda}} (escolhida)",

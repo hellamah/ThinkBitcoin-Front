@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import pt from '../src/lang/pt.json'
 
@@ -68,8 +68,11 @@ describe('ZooEstrategias', () => {
     // O valor é medianaGiroPorAno = 10.5 -> formatarNumero(10.5, 2) -> "10,50"
     expect(screen.getByText('10,50')).toBeTruthy()
 
-    // Verifica a dica (title) ao passar o mouse no cabeçalho
-    fireEvent.mouseOver(header)
-    await screen.findByText(t('zoo.colGiroHint'))
+    // A dica das colunas do Ranking é o title do <th> (a dica nativa do navegador), e diz o que é o giro: com a
+    // dica igual ao rótulo, o findByText de antes achava o próprio cabeçalho e passava sem provar nada.
+    const dica = header.closest('th').getAttribute('title')
+    expect(dica).toBe(t('zoo.colGiroHint'))
+    expect(dica).not.toBe(t('zoo.colGiro'))
+    expect(dica).toMatch(/1,0 equivale a uma entrada ou uma saída inteira/)
   })
 })
