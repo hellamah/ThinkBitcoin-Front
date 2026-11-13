@@ -1635,9 +1635,9 @@ const mockHandlers = [
       const planos = [
         {
           idPlanoPagamento: 0,
-          nome: 'Consultor (Acesso Básico)',
+          nome: 'ThinkStart',
           valor: 0,
-          descricao: 'Acesso às moedas e gráficos básicos de mercado para análise elementar de portfólio.',
+          descricao: 'Plano gratuito',
           duracaoDias: 30,
           carencia: 0,
           liquidacao: 1,
@@ -1657,9 +1657,9 @@ const mockHandlers = [
         },
         {
           idPlanoPagamento: 1,
-          nome: 'Minerador (Acesso Completo)',
-          valor: 199.90,
-          descricao: 'Acesso à tela de estratégias e aos alertas de preço.',
+          nome: 'ThinkPro',
+          valor: 15,
+          descricao: 'Plano básico',
           duracaoDias: 30,
           carencia: 0,
           liquidacao: 0,
@@ -1679,9 +1679,9 @@ const mockHandlers = [
         },
         {
           idPlanoPagamento: 2,
-          nome: 'ThinkElite (Profissional)',
+          nome: 'ThinkElite',
           valor: 499.90,
-          descricao: 'Acesso ilimitado e prioritário a todas as ferramentas com atendimento private broker e taxas zero de saque.',
+          descricao: 'Plano premium',
           duracaoDias: 365,
           carencia: 0,
           liquidacao: 0,
