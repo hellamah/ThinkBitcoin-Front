@@ -533,3 +533,54 @@ Feito em 11/11, na `Desenv` do Pregão antes da rodada das 18h (`2653b4a`, merge
 O que ficou:
 - **Por que o Ollama se calou** depois do laço cortado não foi investigado.
 - **O limite de 300 s** fica curto se uma execução do Pregão esperar na fila do Ollama atrás da Oficina por mais de 5 minutos. Pelos horários do `agendado.log`, as duas não se cruzam hoje.
+
+### Revisão de 13/11/2026: 6 PRs, 6 entraram
+Os PRs 199 a 204 saíram da execução de 10/11, a primeira com os itens 29 a 35. Os seis entraram, três deles com um ajuste do dono:
+- **199:** o rótulo com dica estava num `<Typography>` dentro de outro (item 38).
+- **204:** a dica do giro repetia o rótulo, e o teste passava por isso (item 37).
+- **203:** conflitava com o 201 em linhas vizinhas do pt.json. A Oficina tinha marcado os dois com "mesmo texto do PR", e o merge foi feito à mão, mantendo as duas dicas.
+
+Os 5 que tinham nota seguiram a nota; o 200 trocou a dica pedida por um rótulo verdadeiro, "(Fração de Tempo)".
+
+O Pregão já roda com dados reais desde 10/11. Das 8 rodadas até 12/11, 7 foram reais. A das 9h de 11/11 não chegou a rodar, porque a primeira página do front-dev passou de 30 s.
+
+#### 36. O revisor não lê a nota do administrador
+O revisor recusou o 200 e o 204 cobrando o texto do pedido do Trader: "o pedido pede 'Número de Operações'". Mas a nota pedia exatamente o giro, e dizia para não chamá-lo de "Número de operações". O programador lê a nota desde o item 8c; o revisor, não.
+
+Proposta: o revisor recebe a nota junto com o pedido, e a resposta "resolve o pedido?" é conferida contra a nota quando ela existe.
+
+#### 37. A dica igual ao rótulo, e o teste que passa por isso
+No PR 204, a `colGiroHint` era "Giro/ano (Mediana)", o mesmo texto da `colGiro`. O teste passava o mouse no cabeçalho e procurava o texto da dica, mas a dica das colunas do Ranking é o `title` do `<th>`. O `findByText` achava o próprio cabeçalho e passava sem provar nada.
+
+Proposta:
+- A checagem dos idiomas avisa a chave nova de dica (`*Hint`, `*Tooltip`, `*_tooltip`, `ajuda.*`) com o mesmo texto de outra chave (item 6).
+- A prova recusa o teste de dica cujo texto esperado é igual ao de um rótulo da tela.
+
+#### 38. Um `<p>` dentro de outro `<p>`
+No PR 199, o `label` do `BarraMedida` virou `<Tooltip><Typography>…</Typography></Tooltip>`, e o `BarraMedida` já põe o rótulo dentro de um `Typography`. É o "In HTML, <p> cannot be a descendant of <p>" que o PR 97 tinha corrigido. Nem o revisor nem a prova viram.
+
+Proposta: a prova roda os testes do componente procurando no console os avisos de aninhamento do React ("cannot be a descendant of", "validateDOMNesting"), e um aviso novo barra o PR.
+
+#### 39. A primeira página do front-dev e o timeout da consolidação (Pregão)
+- **Front-dev:** na rodada das 9h de 11/11, o `agendado.ps1` subiu o front-dev, e o primeiro `goto` do login passou dos 30 s do Playwright. O Vite ainda montava a primeira página, e a rodada caiu sem diário.
+- **Consolidação:** a das 13h35 do mesmo dia caiu num timeout de rede (um `recv` sem resposta).
+
+Proposta: depois de subir o front-dev, o agendado abre a página de login uma vez e espera ela responder antes de chamar o Trader. A chamada da consolidação que estoura o tempo é tentada de novo uma vez antes de derrubar a consolidação.
+
+### Triagem de 13/11/2026: 24 pedidos esperando decisão, 7 aprovados
+Esperavam decisão 12 abertos, 8 devolvidos e 4 reabertos, já com pedidos `dados: reais`.
+- **Aprovados, com nota (7):**
+  - 1aa3fcfe: dizer que a VWAP é a do período, sem sincronizar a conta.
+  - Aprovados de novo, porque os PRs anteriores foram abandonados: a32acbe6, 4dc536a6, bcd792e4, cfc7447c (tirar o selo ACTIVE_GROWTH) e b60eb914. As notas dizem também o que o PR anterior errou.
+  - 9765d117, aprovado de novo: a nota diz o arquivo e as linhas do mock.
+- **Descartados (17):** a tela já responde (7), recurso novo ou day trade (6), atendidos por PR (3) e lentidão do front-dev (1).
+
+#### 40. A lentidão do front-dev também nas rodadas com dados reais (Pregão)
+O 255f567a, de uma rodada real, diz que "Américas" e "Ásia" ficam "estáticas por até 5 segundos". No build, o clique responde em 60 a 80 ms. O filtro do item 25 só vale para as rodadas do modo demonstração, porque supunha que, com dados reais, o Trader veria o build. Mas o `agendado.ps1` sobe o front-dev do Vite nos dois modos.
+
+Proposta: o `consolidar.lentidao` vale para toda rodada que usou o front-dev, e não só para as de demonstração. Ou o agendado passa a abrir o build (`npm run preview`) nas rodadas com dados reais.
+
+#### 41. A Oficina não manda o trecho do mock
+O 9765d117 voltou depois de 3 tentativas: "o trecho do arquivo `mockApi.js` que contém a definição dos planos não foi incluído". O f7b0276c parou do mesmo jeito em `CartoesEssenciais.jsx`. O localizador acha o componente pelo texto da tela, e o mock não tem texto de tela.
+
+Proposta: quando a nota do administrador cita um arquivo (e as linhas), o `nota.usos` manda o trecho junto, como já manda as chaves. E o "não chegou ao código" que se repete nas 3 tentativas vira devolução com o nome do arquivo que faltou, em vez de gastar as três.
