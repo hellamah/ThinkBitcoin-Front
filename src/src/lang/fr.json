@@ -407,7 +407,7 @@
   "simulationBreakEven": "Coût d'équilibre",
   "simulationBreakEvenNever": "Même pas à coût nul",
   "simulationBreakEvenAbove": "Au-dessus de {{valor}}",
-  "simulationBreakEvenSub": "Par jambe · actuel : {{atual}}",
+  "simulationBreakEvenSub": "Par jambe · la simulation utilise {{atual}}",
   "simulationAttempts": "Configurations testées",
   "simulationAttemptsSub": "Seuil contre le hasard : percentile {{limiar}}",
   "simulationAttemptsReset": "Remettre à zéro",
