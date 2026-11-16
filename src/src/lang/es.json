@@ -256,7 +256,7 @@
   "signal_rsiSobrevenda": "El RSI entró en sobreventa",
   "signal_rompeuBandaSuperior": "Rompió la banda superior",
   "signal_rompeuBandaInferior": "Rompió la banda inferior",
-  "vwap": "VWAP",
+  "vwap": "VWAP del período",
   "vwapAbove": "Precio {{value}}% por encima del VWAP",
   "vwapBelow": "Precio {{value}}% por debajo del VWAP",
   "signal_vwapCruzamentoAlta": "Cruzó el VWAP al alza",

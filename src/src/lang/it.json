@@ -256,7 +256,7 @@
   "signal_rsiSobrevenda": "L'RSI è entrato in ipervenduto",
   "signal_rompeuBandaSuperior": "Ha rotto la banda superiore",
   "signal_rompeuBandaInferior": "Ha rotto la banda inferiore",
-  "vwap": "VWAP",
+  "vwap": "VWAP del periodo",
   "vwapAbove": "Prezzo {{value}}% sopra il VWAP",
   "vwapBelow": "Prezzo {{value}}% sotto il VWAP",
   "signal_vwapCruzamentoAlta": "Ha incrociato il VWAP al rialzo",
