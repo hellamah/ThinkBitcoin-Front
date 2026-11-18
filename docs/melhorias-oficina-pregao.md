@@ -591,3 +591,47 @@ Proposta: o `consolidar.lentidao` vale para toda rodada que usou o front-dev, e 
 O 9765d117 voltou depois de 3 tentativas: "o trecho do arquivo `mockApi.js` que contém a definição dos planos não foi incluído". O f7b0276c parou do mesmo jeito em `CartoesEssenciais.jsx`. O localizador acha o componente pelo texto da tela, e o mock não tem texto de tela.
 
 Proposta: quando a nota do administrador cita um arquivo (e as linhas), o `nota.usos` manda o trecho junto, como já manda as chaves. E o "não chegou ao código" que se repete nas 3 tentativas vira devolução com o nome do arquivo que faltou, em vez de gastar as três.
+
+### Triagem de 18/11/2026: 13 pedidos esperando decisão, 11 para descartar
+Esperavam decisão 8 abertos, 3 reabertos e 2 devolvidos. No Azure não há PR ativo: dos 188, 138 foram concluídos e 50 abandonados, e os últimos (205 a 211) foram concluídos em 16/11. Cruzei cada pedido com o código do front (`Desenv`, `7c94f99`) e com o que o dono já decidiu.
+- **Para descartar (11), com o motivo escrito:** a tela já responde (7: ab453ec7 Calmar, 30a9c425 Exposição, 621d6406 o número entre parênteses, b87e475e Taxa de Alta, 295de6b4 a confirmação do alerta, 1aa3fcfe a VWAP do período, 67456409 a conta de 6,36%); leitura em momentos ou períodos diferentes (a0fb4cc9); o que a tela faz de propósito ou o Trader não lê (cd731747, 2d62822f); e a correção só no mock com o Trader em dados reais (ad771cd3).
+- **Decisão do dono (2):** a32acbe6 (7 PRs, 3 abandonados, reaprovado em 13/11) e 87ce84e0 (`$0,00` e `0,000%` no TOP 5). Nenhum pedido para aprovar.
+- **Nada foi decidido ainda.** A decisão é só de administrador (`POST /api/PedidoAlteracao/{id}/decisao`), e a conta do agente é Sistema. O parecer, as provas e o `aplicar_decisoes.py` (para o dono rodar com o login dele, em simulação por padrão) estão em `relatorios/triagem-2026-11-18/` na Oficina, que o git não guarda.
+- **O descarte do dono desde 12/11:** 41, e 17 deles (41%) pelo mesmo motivo, "a tela já responde" ou "corrigido no PR"; 5 por recurso novo ou day trade, 3 por períodos diferentes entre telas e 2 por dado de ambiente.
+
+#### 49. "A tela já responde" ainda chega à fila (Pregão)
+Dos 41 descartes desde 12/11, 17 foram porque a tela já tinha a resposta, e hoje foram 7 dos 13. Em quatro casos a dica pedida existe no `pt.json` e diz a frase que o Trader quer: o Calmar (`colCalmarHint`), a Exposição (`colExposureHint`, "Não é o peso do ativo na sua carteira"), o número entre parênteses da coluna Otimização (`colAjusteSinal`) e as duas Taxas de Alta. A Exposição já voltou depois de dois PRs (163 e 191), e o Calmar, 3 semanas depois do PR 63.
+
+Proposta: para o achado `confuso` cujo trecho é um rótulo do front, o Pregão procura a chave do rótulo e a dica dela (`ajuda.*`, `*Hint`) nos idiomas, e, se a dica já traz o que o ajuste pede (definição, período, "não é"), o achado sai com "a tela já explica", como o do item 10 faz com a `falta`. Quando o pedido foi corrigido por uma dica, o Pregão valida pela presença do texto novo, e só reabre se o Trader citar outro defeito.
+
+#### 50. A leitura que muda com o tempo ou com o período, entre telas (Pregão)
+Desde 12/11 o dono descartou 6 pedidos de "Cruzamentos entre telas", quase todos pelo mesmo motivo: o Ticket Médio é o do candle mais recente (2a9371fc), o Retorno Acumulado é do período escolhido (dac5e889), a VWAP é a do período (00bb6515). Hoje entraram mais dois: a Pressão Compradora de "agora" lida em momentos diferentes (a0fb4cc9) e a VWAP de novo (1aa3fcfe).
+
+Proposta: uma lista, em `decisoes.py`, das métricas que mudam com o tempo ou com o período (Ticket Médio, Pressão Compradora, VWAP, Retorno Acumulado, Delta Acumulado). A divergência entre telas sobre uma delas só vale se o Trader registrou o período e a hora de cada leitura e eles coincidem; sem isso, sai com "leituras em momentos diferentes".
+
+#### 51. O roteiro reporta como erro o que a tela faz de propósito (Pregão)
+- **cd731747:** o Trader digitou o preço atual no alerta, e a tela respondeu 'Esse é o preço atual. Escolha um valor acima ou abaixo.' (`validarAlerta`, `VALOR_IGUAL`), que é a regra. Ele relatou "falha na criação".
+- **295de6b4:** pediu uma confirmação de sucesso que já existe (`alertas.criadoComSucesso`) e que não aparece porque o alerta anterior foi recusado. O segundo pedido depende do primeiro.
+- **2d62822f:** "mudar para Candles não apresenta mudança visual", e o gráfico é um canvas, que o roteiro não lê.
+
+Proposta: as mensagens de validação do front (`alertas.erro.*`) entram na lista do que o Trader não deve relatar como defeito, e o Trader diz no relatório quando um controle só muda um canvas. O achado que depende de outro (295de6b4 de cd731747) sai agrupado com ele: é a segunda metade do item 39, os pares num pedido só. E o alternador Linha e Candles do `DashboardCharts` não tem teste, o que ajudaria a responder pedidos assim.
+
+#### 52. A conta de desvio que o Trader refaz errado (Pregão)
+O 67456409 diz que "Preço 6.36% abaixo da VWAP" não bate com os números da tela, que dariam 6,38%. A conta certa é (VWAP − preço) / VWAP = (69.487,28 − 65.068,57) / 69.487,28 = 6,359%, e a tela está certa. O Trader dividiu por outra base.
+
+Proposta: o item 13 passa a cobrir o desvio percentual contra uma referência: o Pregão refaz (referência − preço) / referência a partir dos números que a tela mostra e, se bate na precisão mostrada, o achado sai com "a conta confere".
+
+#### 53. A correção só no mock não se valida com dados reais (Pregão e Oficina)
+O 9765d117 era de dados `demonstracao`, e o PR 206 mudou só o `mockApi.js`, o que está certo para ele. Mas o Trader passou a navegar com dados reais, viu "PLANO ATUAL: ThinkStart" e abriu o ad771cd3, "ausência de menção ao Plano Minerador após correção": um pedido para validar uma correção que, com dados reais, não aparece. A Oficina já detecta a correção só no mock (`_so_o_mock`, `AVISO_DO_MOCK`), mas o aviso fica no PR.
+
+Proposta: a Oficina manda ao Back-DotNet que a correção é só no mock (no `detalhe` da etapa `corrigido`), e o Pregão valida esse pedido no modo em que ele nasceu, ou o marca como validado pelo PR, em vez de publicar outro pedido. O achado cujo título diz "após correção" é pedido de validação e não entra na fila como defeito novo.
+
+#### 54. O dono reaprova sem ver o histórico de PRs do pedido (Oficina)
+O a32acbe6 teve 7 PRs em 4 semanas: 4 entraram (42, 52, 65 e 126) e 3 foram abandonados (167, 186 e 207). O dono o reaprovou com nota em 13/11, e o PR 207 foi fechado de novo em 16/11, e a nota do pedido só diz "O PR da correção foi fechado sem entrar no Desenv". A contagem de tentativas (`tentativas_feitas`) recomeça a cada aprovação, o que está certo, e o teto é o próprio dono. Mas ele decide sem ver quantos PRs o pedido já gastou.
+
+Proposta: a devolução ("fechado sem entrar") leva a lista dos PRs anteriores do pedido, com o desfecho de cada um ("7 PRs: 4 entraram, 3 abandonados") e o que o último mudou, para quem reaprova o fazer sabendo. Na segunda devolução seguida do mesmo pedido, a Oficina só aceita a aprovação com nota.
+
+#### 55. Ativo sem cotação aparece como `$0,00` e `0,000%` (front)
+O 87ce84e0 mostra o TOP 5 do Início com "▲ 0.000% $0.00". O ajuste pedido (popular com mock) não corrige nada. Mas o `CoinCarousel` mostra um ativo sem cotação como se o preço fosse zero, e o PR 134 (pedido 9360cc6a) ainda subiu a precisão da variação para 3 casas.
+
+Proposta, se o dono quiser: aprovar o 87ce84e0 com uma nota que peça só "—" no preço e na variação do ativo sem cotação, sem mexer na precisão (`formatPercent(m.variacao, 3)`).
