@@ -592,11 +592,11 @@ O 9765d117 voltou depois de 3 tentativas: "o trecho do arquivo `mockApi.js` que 
 
 Proposta: quando a nota do administrador cita um arquivo (e as linhas), o `nota.usos` manda o trecho junto, como já manda as chaves. E o "não chegou ao código" que se repete nas 3 tentativas vira devolução com o nome do arquivo que faltou, em vez de gastar as três.
 
-### Triagem de 18/11/2026: 13 pedidos esperando decisão, 11 para descartar
+### Triagem de 18/11/2026: 13 pedidos esperando decisão, 11 descartados e 2 reaprovados com nota
 Esperavam decisão 8 abertos, 3 reabertos e 2 devolvidos. No Azure não há PR ativo: dos 188, 138 foram concluídos e 50 abandonados, e os últimos (205 a 211) foram concluídos em 16/11. Cruzei cada pedido com o código do front (`Desenv`, `7c94f99`) e com o que o dono já decidiu.
 - **Para descartar (11), com o motivo escrito:** a tela já responde (7: ab453ec7 Calmar, 30a9c425 Exposição, 621d6406 o número entre parênteses, b87e475e Taxa de Alta, 295de6b4 a confirmação do alerta, 1aa3fcfe a VWAP do período, 67456409 a conta de 6,36%); leitura em momentos ou períodos diferentes (a0fb4cc9); o que a tela faz de propósito ou o Trader não lê (cd731747, 2d62822f); e a correção só no mock com o Trader em dados reais (ad771cd3).
-- **Decisão do dono (2):** a32acbe6 (7 PRs, 3 abandonados, reaprovado em 13/11) e 87ce84e0 (`$0,00` e `0,000%` no TOP 5). Nenhum pedido para aprovar.
-- **Aplicado em 18/11, com o ok do dono:** os 11 descartes foram gravados pela página de administrador (`/pedidos-pregao`), na sessão do dono no navegador do app, cada um com o motivo da lista, e a API confirma os 11 como `descartado`. Os 2 que são decisão dele seguem `devolvido`. A decisão é só de administrador (`POST /api/PedidoAlteracao/{id}/decisao`), e a conta do agente é Sistema, então não foi o agente que decidiu. O parecer, as provas e o `aplicar_decisoes.py` (que o dono pode rodar com o login dele, em simulação por padrão) estão em `relatorios/triagem-2026-11-18/` na Oficina, que o git não guarda.
+- **Aprovar de novo, com nota (2):** a32acbe6 (as moedas nas Configurações) e 87ce84e0 (`$0,00` e `0,000%` no TOP 5). Eu os tinha posto como decisão do dono, e ele me passou a decisão. Pela linha do tempo, os dois têm nota dele com a correção exata (o a32acbe6, 3 notas, a última de 13/11; o 87ce84e0, a de 16/11), e a Oficina falhou nos dois por defeitos dela (melhorias 56 e 57). Descartar seria desfazer a vontade dele. As notas novas repetem as dele e dizem o que os PRs anteriores erraram.
+- **Aplicado em 18/11:** os 11 descartes foram gravados pela página de administrador (`/pedidos-pregao`), na sessão do dono no navegador do app, cada um com o motivo da lista, e a API confirma os 11 como `descartado`. As 2 aprovações levam nota, e a página não tem campo de nota na aprovação (melhoria 58): vão pelo `aplicar_decisoes.py`, que o dono roda com o login de administrador, em simulação por padrão. A decisão é só de administrador (`POST /api/PedidoAlteracao/{id}/decisao`), e a conta do agente é Sistema, então não foi o agente que decidiu. O parecer, as provas e o script estão em `relatorios/triagem-2026-11-18/` na Oficina, que o git não guarda.
 - **O descarte do dono desde 12/11:** 41, e 17 deles (41%) pelo mesmo motivo, "a tela já responde" ou "corrigido no PR"; 5 por recurso novo ou day trade, 3 por períodos diferentes entre telas e 2 por dado de ambiente.
 
 #### 49. "A tela já responde" ainda chega à fila (Pregão)
@@ -629,9 +629,25 @@ Proposta: a Oficina manda ao Back-DotNet que a correção é só no mock (no `de
 #### 54. O dono reaprova sem ver o histórico de PRs do pedido (Oficina)
 O a32acbe6 teve 7 PRs em 4 semanas: 4 entraram (42, 52, 65 e 126) e 3 foram abandonados (167, 186 e 207). O dono o reaprovou com nota em 13/11, e o PR 207 foi fechado de novo em 16/11, e a nota do pedido só diz "O PR da correção foi fechado sem entrar no Desenv". A contagem de tentativas (`tentativas_feitas`) recomeça a cada aprovação, o que está certo, e o teto é o próprio dono. Mas ele decide sem ver quantos PRs o pedido já gastou.
 
-Proposta: a devolução ("fechado sem entrar") leva a lista dos PRs anteriores do pedido, com o desfecho de cada um ("7 PRs: 4 entraram, 3 abandonados") e o que o último mudou, para quem reaprova o fazer sabendo. Na segunda devolução seguida do mesmo pedido, a Oficina só aceita a aprovação com nota.
+Proposta: a devolução ("fechado sem entrar") leva a lista dos PRs anteriores do pedido, com o desfecho de cada um ("7 PRs: 4 entraram, 3 abandonados") e o que o último mudou, para quem reaprova o fazer sabendo. A Oficina já devolve a aprovação sem nota (`aprovacao-sem-nota`), e isso está certo.
 
 #### 55. Ativo sem cotação aparece como `$0,00` e `0,000%` (front)
-O 87ce84e0 mostra o TOP 5 do Início com "▲ 0.000% $0.00". O ajuste pedido (popular com mock) não corrige nada. Mas o `CoinCarousel` mostra um ativo sem cotação como se o preço fosse zero, e o PR 134 (pedido 9360cc6a) ainda subiu a precisão da variação para 3 casas.
+O 87ce84e0 mostra o TOP 5 do Início com "▲ 0.000% $0.00". O ajuste do Trader (popular com mock) não corrige nada, mas o dono já achou a causa e a pediu em 16/11: em `src/src/utils/cotacoesCarrossel.js` (linha 43) cada moeda entra na lista com `valor: 0` e `variacao: 0` antes de a cotação chegar, e o `CoinCarousel` mostra isso como se fosse dado. Acontece de manhã, quando a API demora a pôr os candles em dia. Ele aprovou com a nota "—" no preço e na variação enquanto a cotação não chegou, e a moeda sem cotação fora do Top 5. Não há proposta nova: a correção está pedida, e o que a barrou foi a melhoria 57.
 
-Proposta, se o dono quiser: aprovar o 87ce84e0 com uma nota que peça só "—" no preço e na variação do ativo sem cotação, sem mexer na precisão (`formatPercent(m.variacao, 3)`).
+#### 56. O revisor recusa o PR que segue a nota, e a Oficina o refaz contra ela (Oficina)
+No a32acbe6, o dono escreveu 3 notas (05/11, 07/11 e 13/11), cada vez mais exatas: uma chave nova, `initialInvestmentDescription`, num `Typography` sob o campo Investimento Inicial, "sem unificar as moedas" e com o rótulo como está. A primeira versão do PR 207 seguia a nota (uma descrição sob o campo). O revisor (`qwen3-coder:30b`) a recusou: "não resolve a confusão entre USD e R$", que é justamente o que a nota manda não fazer. A Oficina a refez "com o que o revisor apontou", trocou os rótulos nos 5 idiomas ("Planos em R$ (Base de Validação)"), o revisor recusou de novo, e o dono abandonou o PR em 16/11. O PR 186 já tinha trocado o rótulo pela descrição. O item 43 (o revisor lê a nota) já estava no `Desenv` desde 13/11, 07:11, e o PR 207 é das 13h27: não bastou.
+
+Proposta:
+- A recusa do revisor só dispara o refazer se não contradisse a nota. Quando a nota proíbe o que o revisor cobra ("sem unificar", "fica como está", "não mexer"), a Oficina fica com a primeira versão e põe no PR o aviso "o revisor recusou, mas a nota manda ...".
+- O PR refeito é conferido, antes do push, contra os arquivos e as chaves que a nota cita (`nota.usos`, `nota.trechos_citados`): o que larga a chave nova da nota e muda rótulos que ela manda manter não sai.
+- Recusado duas vezes, o PR vai ao dono com a primeira versão guardada num ramo.
+
+#### 57. A Oficina confunde "mexe nas mesmas linhas" com "desfaz" (Oficina)
+No 87ce84e0, o dono aprovou com nota exata: "—" enquanto a cotação não chegou, e as 3 casas do PR 134 ficam. A Oficina devolveu o pedido: "A correção desfaz a do pedido 9360cc6a (Variações de 0.00%)". A `repetido.correcoes_desfeitas` marca como desfeita a linha de uma correção validada (pelo `git blame`) que a nova troca, e envolver `formatPercent(m.variacao, 3)` numa condição troca a linha, embora mantenha o 3.
+
+Proposta: a linha trocada só conta como desfeita se a versão nova deixou de ter o que a correção validada acrescentou (aqui, o `3` em `formatPercent(m.variacao, 3)`); se o que ela acrescentou continua lá, é uma edição em volta. E quando a nota do dono cita o arquivo e as linhas, como aqui, a checagem não barra: a nota já decidiu.
+
+#### 58. A tela de decisão não tem campo de nota na aprovação (front)
+No 87ce84e0, o dono aprovou pela tela às 11h10 de 16/11, e a Oficina devolveu às 11h13: "Volta para receber a nota: foi aprovado pela tela, que não tem campo de nota na aprovação". Ele aprovou de novo, pela API, com a nota. As 7 aprovações de 13/11 foram todas com nota, e todas pela API: a nota é o que faz a Oficina acertar, e só a API a leva.
+
+Proposta: "Aprovar" abre o mesmo formulário do descarte, com um campo de nota opcional enviado como `motivo` (a API já o aceita na aprovação). A Oficina deixa de precisar devolver a aprovação sem nota, e a decisão com nota não depende de quem tem o login para rodar um script.
