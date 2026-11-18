@@ -2,9 +2,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import CartaoPedido from '../src/components/pregao/CartaoPedido'
+import { TAMANHO_MOTIVO } from '../src/utils/pedidoAlteracao'
 
-// O cartão de um pedido do Pregão: aprovar vai direto, descartar só com motivo,
-// e o erro da API aparece junto do pedido. Sem provider de tradução, `t`
+// O cartão de um pedido do Pregão: aprovar aceita uma nota opcional, descartar só
+// com motivo, e o erro da API aparece junto do pedido. Sem provider de tradução, `t`
 // devolve a chave: as asserções leem as chaves.
 
 afterEach(cleanup)
@@ -68,10 +69,56 @@ describe('Cartão do pedido do Pregão', () => {
     expect(screen.queryByRole('button', { name: 'pregao.aprovar' })).toBeNull()
   })
 
-  it('aprovar manda a decisão sem motivo', async () => {
+  it('aprovar abre a nota e não decide antes de confirmar', () => {
+    // 18/11/2026: o clique direto não deixava escrever a nota, e a Oficina só acerta com ela.
     const { onDecidir } = renderizar()
     fireEvent.click(botao('pregao.aprovar'))
+    expect(screen.getByRole('textbox', { name: /pregao.notaRotulo/ })).toBeTruthy()
+    expect(screen.queryByRole('textbox', { name: /pregao.motivoRotulo/ })).toBeNull()
+    expect(screen.getByText(/pregao\.notaAjuda/)).toBeTruthy()
+    expect(botao('pregao.confirmarAprovacao')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'pregao.aprovar' })).toBeNull()
+    expect(onDecidir).not.toHaveBeenCalled()
+  })
+
+  it('a nota da aprovação é opcional: sem ela, a decisão vai sem motivo', async () => {
+    const { onDecidir } = renderizar()
+    fireEvent.click(botao('pregao.aprovar'))
+    const confirmar = botao('pregao.confirmarAprovacao')
+    expect(confirmar.disabled).toBe(false)
+    fireEvent.change(screen.getByRole('textbox', { name: /pregao.notaRotulo/ }), { target: { value: '   ' } })
+    expect(confirmar.disabled).toBe(false)
+    fireEvent.click(confirmar)
     await waitFor(() => expect(onDecidir).toHaveBeenCalledWith('aprovado', null))
+  })
+
+  it('aprovar com nota manda a nota como motivo, sem os espaços das pontas', async () => {
+    const { onDecidir } = renderizar()
+    fireEvent.click(botao('pregao.aprovar'))
+    fireEvent.change(screen.getByRole('textbox', { name: /pregao.notaRotulo/ }), { target: { value: ' O rótulo fica como está. ' } })
+    fireEvent.click(botao('pregao.confirmarAprovacao'))
+    await waitFor(() => expect(onDecidir).toHaveBeenCalledWith('aprovado', 'O rótulo fica como está.'))
+    // Decidido o pedido, o formulário fecha e a nota não fica para o próximo.
+    await waitFor(() => expect(screen.queryByRole('textbox')).toBeNull())
+  })
+
+  it('a nota que passa da coluna da API não deixa confirmar', () => {
+    const { onDecidir } = renderizar()
+    fireEvent.click(botao('pregao.aprovar'))
+    fireEvent.change(screen.getByRole('textbox', { name: /pregao.notaRotulo/ }), { target: { value: 'a'.repeat(TAMANHO_MOTIVO + 1) } })
+    expect(botao('pregao.confirmarAprovacao').disabled).toBe(true)
+    expect(onDecidir).not.toHaveBeenCalled()
+  })
+
+  it('cancelar a aprovação fecha a nota sem decidir e sem guardar o texto', () => {
+    const { onDecidir } = renderizar()
+    fireEvent.click(botao('pregao.aprovar'))
+    fireEvent.change(screen.getByRole('textbox', { name: /pregao.notaRotulo/ }), { target: { value: 'rascunho' } })
+    fireEvent.click(botao('pregao.cancelar'))
+    expect(screen.queryByRole('textbox')).toBeNull()
+    expect(onDecidir).not.toHaveBeenCalled()
+    fireEvent.click(botao('pregao.descartar'))
+    expect(screen.getByRole('textbox', { name: /pregao.motivoRotulo/ }).value).toBe('')
   })
 
   it('descartar abre o motivo, e só confirma com ele preenchido', async () => {
@@ -103,14 +150,18 @@ describe('Cartão do pedido do Pregão', () => {
     const erro = Object.assign(new Error('O pedido está aprovado: só se decide um pedido aberto ou reaberto.'), { status: 400, hasBackendMessage: true })
     renderizar(PEDIDO, vi.fn().mockRejectedValue(erro))
     fireEvent.click(botao('pregao.aprovar'))
+    fireEvent.change(screen.getByRole('textbox', { name: /pregao.notaRotulo/ }), { target: { value: 'Vale para todo day trader.' } })
+    fireEvent.click(botao('pregao.confirmarAprovacao'))
     expect(await screen.findByText(erro.message)).toBeTruthy()
-    // O botão volta: dá para tentar de novo.
-    expect(botao('pregao.aprovar').disabled).toBe(false)
+    // O botão volta, e a nota escrita fica: dá para tentar de novo sem digitar tudo outra vez.
+    expect(botao('pregao.confirmarAprovacao').disabled).toBe(false)
+    expect(screen.getByRole('textbox', { name: /pregao.notaRotulo/ }).value).toBe('Vale para todo day trader.')
   })
 
   it('falha sem mensagem da API vira a frase genérica', async () => {
     renderizar(PEDIDO, vi.fn().mockRejectedValue(new Error('Failed to fetch')))
     fireEvent.click(botao('pregao.aprovar'))
+    fireEvent.click(botao('pregao.confirmarAprovacao'))
     expect(await screen.findByText('pregao.erroDecisao')).toBeTruthy()
   })
 

@@ -1077,7 +1077,7 @@
   },
   "pregao": {
     "title": "Demandes du Pregão",
-    "intro": "Le Trader, utilisateur synthétique de l’Équipe Pregão, utilise la plateforme trois fois par jour comme un day trader. Ce qu’il voit se répéter sur des jours différents devient une demande. Approuver envoie la demande à qui la corrige ; écarter demande le motif, qui aide à ajuster le Trader.",
+    "intro": "Le Trader, utilisateur synthétique de l’Équipe Pregão, utilise la plateforme trois fois par jour comme un day trader. Ce qu’il voit se répéter sur des jours différents devient une demande. Approuver envoie la demande à qui la corrige, avec une note facultative sur ce qu’il faut changer ; écarter demande le motif, qui aide à ajuster le Trader.",
     "atualizar": "Actualiser",
     "filtroRotulo": "Filtrer par statut",
     "filtroComTotal": "{{filtro}} ({{total}})",
@@ -1128,6 +1128,9 @@
     "motivoObrigatorio": "Indiquez le motif de l’écart.",
     "motivoLongo": "Le motif dépasse {{max}} caractères.",
     "confirmarDescarte": "Confirmer l’écart",
+    "notaRotulo": "Note pour qui corrige (facultative)",
+    "notaAjuda": "Précisez ce qu’il faut changer et ce qu’il faut laisser tel quel : la personne qui corrige lit cette note en préparant la PR.",
+    "confirmarAprovacao": "Confirmer l’approbation",
     "cancelar": "Annuler",
     "enviando": "Envoi…",
     "erroDecisao": "Impossible d’enregistrer la décision. Réessayez.",

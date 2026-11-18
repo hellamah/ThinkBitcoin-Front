@@ -1077,7 +1077,7 @@
   },
   "pregao": {
     "title": "Richieste del Pregão",
-    "intro": "Il Trader, utente sintetico del Team Pregão, usa la piattaforma tre volte al giorno come un day trader. Ciò che vede ripetersi in giorni diversi diventa una richiesta. Approvare invia la richiesta a chi la corregge; scartare chiede il motivo, che aiuta a regolare il Trader.",
+    "intro": "Il Trader, utente sintetico del Team Pregão, usa la piattaforma tre volte al giorno come un day trader. Ciò che vede ripetersi in giorni diversi diventa una richiesta. Approvare invia la richiesta a chi la corregge, con una nota facoltativa su cosa cambiare; scartare chiede il motivo, che aiuta a regolare il Trader.",
     "atualizar": "Aggiorna",
     "filtroRotulo": "Filtra per stato",
     "filtroComTotal": "{{filtro}} ({{total}})",
@@ -1128,6 +1128,9 @@
     "motivoObrigatorio": "Indica il motivo dello scarto.",
     "motivoLongo": "Il motivo supera i {{max}} caratteri.",
     "confirmarDescarte": "Conferma scarto",
+    "notaRotulo": "Nota per chi corregge (facoltativa)",
+    "notaAjuda": "Indica cosa cambiare e cosa lasciare com’è: chi corregge legge questa nota quando prepara la PR.",
+    "confirmarAprovacao": "Conferma approvazione",
     "cancelar": "Annulla",
     "enviando": "Invio…",
     "erroDecisao": "Impossibile registrare la decisione. Riprova.",
