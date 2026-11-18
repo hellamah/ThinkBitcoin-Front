@@ -1077,7 +1077,7 @@
   },
   "pregao": {
     "title": "Pregão requests",
-    "intro": "The Trader, the synthetic user of the Pregão Team, uses the platform three times a day as a day trader. What he sees repeat on different days becomes a request. Approving sends the request to whoever fixes it; discarding asks for the reason, which helps tune the Trader.",
+    "intro": "The Trader, the synthetic user of the Pregão Team, uses the platform three times a day as a day trader. What he sees repeat on different days becomes a request. Approving sends the request to whoever fixes it, with an optional note on what to change; discarding asks for the reason, which helps tune the Trader.",
     "atualizar": "Refresh",
     "filtroRotulo": "Filter by status",
     "filtroComTotal": "{{filtro}} ({{total}})",
@@ -1128,6 +1128,9 @@
     "motivoObrigatorio": "Enter the reason for discarding.",
     "motivoLongo": "The reason is longer than {{max}} characters.",
     "confirmarDescarte": "Confirm discard",
+    "notaRotulo": "Note for whoever fixes it (optional)",
+    "notaAjuda": "Say what to change and what to leave as it is: whoever fixes it reads this note when writing the PR.",
+    "confirmarAprovacao": "Confirm approval",
     "cancelar": "Cancel",
     "enviando": "Sending…",
     "erroDecisao": "Could not record the decision. Try again.",

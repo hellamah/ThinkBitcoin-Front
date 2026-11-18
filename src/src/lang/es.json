@@ -1077,7 +1077,7 @@
   },
   "pregao": {
     "title": "Pedidos del Pregão",
-    "intro": "El Trader, usuario sintético del Equipo Pregão, usa la plataforma tres veces al día como un day trader. Lo que ve repetirse en días distintos se convierte en un pedido. Aprobar envía el pedido a quien lo corrige; descartar pide el motivo, que ayuda a ajustar al Trader.",
+    "intro": "El Trader, usuario sintético del Equipo Pregão, usa la plataforma tres veces al día como un day trader. Lo que ve repetirse en días distintos se convierte en un pedido. Aprobar envía el pedido a quien lo corrige, con una nota opcional de qué cambiar; descartar pide el motivo, que ayuda a ajustar al Trader.",
     "atualizar": "Actualizar",
     "filtroRotulo": "Filtrar por estado",
     "filtroComTotal": "{{filtro}} ({{total}})",
@@ -1128,6 +1128,9 @@
     "motivoObrigatorio": "Indica el motivo del descarte.",
     "motivoLongo": "El motivo supera los {{max}} caracteres.",
     "confirmarDescarte": "Confirmar descarte",
+    "notaRotulo": "Nota para quien corrige (opcional)",
+    "notaAjuda": "Indica qué cambiar y qué dejar como está: quien corrige lee esta nota al hacer el PR.",
+    "confirmarAprovacao": "Confirmar aprobación",
     "cancelar": "Cancelar",
     "enviando": "Enviando…",
     "erroDecisao": "No se pudo registrar la decisión. Inténtalo de nuevo.",

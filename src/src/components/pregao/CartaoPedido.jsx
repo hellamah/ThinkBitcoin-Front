@@ -20,27 +20,31 @@ import {
 } from '../../utils/pedidoAlteracao'
 
 // Um pedido de alteração do Pregão na tela do administrador: o essencial para
-// decidir (CartaoBase) e os botões. Aprovar vai direto; descartar abre o campo
-// do motivo, que é obrigatório. Na nova tentativa, só descartar: quem corrige já
-// vai tentar de novo sozinho.
+// decidir (CartaoBase) e os botões. As duas decisões abrem o mesmo formulário:
+// descartar pede o motivo, que é obrigatório, e aprovar aceita uma nota para quem
+// corrige, que é opcional (até 18/11/2026 a aprovação não tinha campo, e a nota, que
+// é o que faz a Oficina acertar, só chegava por quem tinha o login da API). Na nova
+// tentativa, só descartar: quem corrige já vai tentar de novo sozinho.
 
 const estiloDoBotao = { textTransform: 'none', fontWeight: 600 }
 
 export default function CartaoPedido({ pedido, onDecidir }) {
   const { t } = useTranslation()
-  const [descartando, setDescartando] = useState(false)
+  // Qual decisão está com o formulário aberto (aprovar ou descartar), ou nenhuma.
+  const [decidindo, setDecidindo] = useState(null)
   const [motivo, setMotivo] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState('')
 
   const decidivel = podeDecidir(pedido)
   const descartavel = podeDescartar(pedido)
-  const motivoValido = !conferirMotivo(DECISOES.DESCARTADO, motivo).erro
+  const aprovando = decidindo === DECISOES.APROVADO
+  const motivoValido = !!decidindo && !conferirMotivo(decidindo, motivo).erro
   // Antes do botão de aprovar: o que uma decisão do dono já responde (a regra do descarte por grupo).
   const grupo = decidivel ? grupoDoPedido(pedido) : null
 
   const enviar = async (decisao) => {
-    const conferido = conferirMotivo(decisao, decisao === DECISOES.DESCARTADO ? motivo : '')
+    const conferido = conferirMotivo(decisao, motivo)
     if (conferido.erro) {
       setErro(t(conferido.erro, { max: TAMANHO_MOTIVO }))
       return
@@ -49,7 +53,7 @@ export default function CartaoPedido({ pedido, onDecidir }) {
     setEnviando(true)
     try {
       await onDecidir(decisao, conferido.motivo)
-      setDescartando(false)
+      setDecidindo(null)
       setMotivo('')
     } catch (e) {
       // A regra recusada pela API (pedido já decidido, motivo faltando) vem com
@@ -60,8 +64,13 @@ export default function CartaoPedido({ pedido, onDecidir }) {
     }
   }
 
-  const cancelarDescarte = () => {
-    setDescartando(false)
+  const abrir = (decisao) => {
+    setErro('')
+    setDecidindo(decisao)
+  }
+
+  const cancelar = () => {
+    setDecidindo(null)
     setMotivo('')
     setErro('')
   }
@@ -121,26 +130,24 @@ export default function CartaoPedido({ pedido, onDecidir }) {
         </Typography>
       )}
 
-      {descartavel && !descartando && (
+      {descartavel && !decidindo && (
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 0.5 }}>
           {decidivel && (
             <Button
               variant="contained"
               size="small"
               startIcon={<MdCheck />}
-              disabled={enviando}
-              onClick={() => enviar(DECISOES.APROVADO)}
+              onClick={() => abrir(DECISOES.APROVADO)}
               sx={estiloDoBotao}
             >
-              {enviando ? t('pregao.enviando') : t('pregao.aprovar')}
+              {t('pregao.aprovar')}
             </Button>
           )}
           <Button
             variant="outlined"
             size="small"
             startIcon={<MdClose />}
-            disabled={enviando}
-            onClick={() => { setErro(''); setDescartando(true) }}
+            onClick={() => abrir(DECISOES.DESCARTADO)}
             sx={{ ...estiloDoBotao, color: 'var(--text-primary)', borderColor: 'var(--border-strong)' }}
           >
             {t('pregao.descartar')}
@@ -148,11 +155,11 @@ export default function CartaoPedido({ pedido, onDecidir }) {
         </Box>
       )}
 
-      {descartavel && descartando && (
+      {descartavel && decidindo && (
         <Box
           component="form"
           noValidate
-          onSubmit={(e) => { e.preventDefault(); enviar(DECISOES.DESCARTADO) }}
+          onSubmit={(e) => { e.preventDefault(); enviar(decidindo) }}
           sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 0.5 }}
         >
           <TextField
@@ -161,12 +168,12 @@ export default function CartaoPedido({ pedido, onDecidir }) {
             multiline
             minRows={2}
             size="small"
-            label={t('pregao.motivoRotulo')}
+            label={t(aprovando ? 'pregao.notaRotulo' : 'pregao.motivoRotulo')}
             value={motivo}
             onChange={(e) => setMotivo(e.target.value)}
             disabled={enviando}
-            required
-            helperText={`${motivo.length}/${TAMANHO_MOTIVO} · ${t('pregao.motivoAjuda')}`}
+            required={!aprovando}
+            helperText={`${motivo.length}/${TAMANHO_MOTIVO} · ${t(aprovando ? 'pregao.notaAjuda' : 'pregao.motivoAjuda')}`}
             slotProps={{
               htmlInput: { maxLength: TAMANHO_MOTIVO },
               inputLabel: { sx: { color: 'var(--text-muted)' } },
@@ -183,7 +190,7 @@ export default function CartaoPedido({ pedido, onDecidir }) {
               variant="contained"
               size="small"
               disabled={enviando || !motivoValido}
-              sx={{
+              sx={aprovando ? estiloDoBotao : {
                 ...estiloDoBotao,
                 backgroundColor: 'var(--danger)',
                 color: '#fff',
@@ -191,9 +198,9 @@ export default function CartaoPedido({ pedido, onDecidir }) {
                 '&.Mui-disabled': { backgroundColor: 'var(--danger-a10)', color: 'var(--text-faint)' },
               }}
             >
-              {enviando ? t('pregao.enviando') : t('pregao.confirmarDescarte')}
+              {enviando ? t('pregao.enviando') : t(aprovando ? 'pregao.confirmarAprovacao' : 'pregao.confirmarDescarte')}
             </Button>
-            <Button size="small" onClick={cancelarDescarte} disabled={enviando} sx={{ ...estiloDoBotao, color: 'var(--text-muted)' }}>
+            <Button size="small" onClick={cancelar} disabled={enviando} sx={{ ...estiloDoBotao, color: 'var(--text-muted)' }}>
               {t('pregao.cancelar')}
             </Button>
           </Box>
