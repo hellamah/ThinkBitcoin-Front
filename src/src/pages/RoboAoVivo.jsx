@@ -41,7 +41,9 @@ import { padraoDeDataCurta } from '../utils/dateUtils'
 import { readToken } from '../utils/themeTokens'
 import {
   ATIVACAO_MOTOR,
+  BANDA_DO_MOTOR,
   ESTRATEGIA_MOTOR,
+  agruparNoites,
   chaveDaAcao,
   estadoDeHoje,
   executouAoReligar,
@@ -112,6 +114,20 @@ const textoDaDecisao = (t, noite) => {
   if (!noite.rodou) return t('robo.noites.naoRodou')
   const decisao = noite.decisao ? t(`robo.noites.${noite.decisao}`) : '–'
   return noite.depois ? `${decisao} · ${t(`robo.${noite.depois}`)}` : decisao
+}
+
+// O porquê da noite: o que a regra leu no fechamento (o preço contra a média de 50
+// dias e a dose). Nulo quando a regra não tem o dia. Com o robô dentro e a decisão de
+// manter, a dose estava a menos de uma banda do peso, e é por isso que ele não mexeu.
+const textoDaLeitura = (t, noite) => {
+  const l = noite.leitura
+  if (!l) return null
+  const dados = { fechamento: num(l.fechamento), media: num(l.media), distancia: pctSemSinal(Math.abs(l.distancia), 1) }
+  if (!l.acima) return t('robo.noites.leitura.abaixo', dados)
+  const frase = t('robo.noites.leitura.acima', { ...dados, dose: pctSemSinal(l.dose, 0), volatilidade: pctSemSinal(l.volatilidade, 0) })
+  return noite.decisao === 'manter' && noite.depois === 'dentro'
+    ? `${frase} ${t('robo.noites.leitura.banda', { banda: pctSemSinal(BANDA_DO_MOTOR, 0) })}`
+    : frase
 }
 
 function nomeDaAcao(t, acao) {
@@ -855,6 +871,8 @@ function Noites({ noites, erro, operacoes, erroOperacoes, ordem }) {
     if (!noite.rodou) return 'var(--perf-warn)'
     return agiu(noite) ? 'var(--text-primary)' : 'var(--text-muted)'
   }
+  // As seguidas e iguais numa linha só; cada linha diz o que a regra leu no fechamento.
+  const grupos = agruparNoites(noites)
   return (
     <Painel titulo={t('robo.noites.title')} subtitulo={t('robo.noites.sub')} sx={entradaEmOrdem(ordem)} corpoSx={{ mx: { xs: -2, md: -2.5 }, mb: { xs: -2, md: -2.5 } }}>
       {/* A falha das velas tira as noites, mas não as operações, que vêm de outra busca. */}
@@ -875,19 +893,34 @@ function Noites({ noites, erro, operacoes, erroOperacoes, ordem }) {
               </TableRow>
             </TableHead>
             <TableBody>
-              {noites.map((noite) => (
-                <TableRow key={noite.dia} sx={agiu(noite) ? { backgroundColor: 'var(--accent-a05)' } : undefined}>
-                  <TableCell sx={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', color: agiu(noite) ? 'var(--text-primary)' : 'var(--text-muted)' }}>{formatarDia(noite.dia, idioma.intl)}</TableCell>
-                  <TableCell sx={{ color: corDaDecisao(noite), fontWeight: agiu(noite) ? 600 : 400 }}>
-                    <Box sx={{ display: 'inline-flex', alignItems: 'center' }}>
-                      {noite.decisao === 'comprar' && <MdArrowDropUp aria-hidden="true" size={20} color="var(--perf-up)" />}
-                      {noite.decisao === 'vender' && <MdArrowDropDown aria-hidden="true" size={20} color="var(--perf-down)" />}
-                      <span>{textoDaDecisao(t, noite)}</span>
-                    </Box>
-                  </TableCell>
-                  <TableCell sx={{ color: agiu(noite) ? 'var(--text-primary)' : 'var(--text-muted)' }}>{operacao(noite)}</TableCell>
-                </TableRow>
-              ))}
+              {grupos.map((noite) => {
+                const leitura = textoDaLeitura(t, noite)
+                return (
+                  <TableRow key={noite.dia} sx={agiu(noite) ? { backgroundColor: 'var(--accent-a05)' } : undefined}>
+                    <TableCell sx={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', color: agiu(noite) ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                      {formatarDia(noite.dia, idioma.intl)}
+                      {noite.noites.length > 1 && (
+                        <Typography variant="caption" component="span" sx={{ display: 'block', color: 'var(--text-muted)' }}>
+                          {t('robo.noites.seguidas', { quantidade: noite.noites.length, desde: formatarDia(noite.desde, idioma.intl) })}
+                        </Typography>
+                      )}
+                    </TableCell>
+                    <TableCell sx={{ color: corDaDecisao(noite), fontWeight: agiu(noite) ? 600 : 400 }}>
+                      <Box sx={{ display: 'inline-flex', alignItems: 'center' }}>
+                        {noite.decisao === 'comprar' && <MdArrowDropUp aria-hidden="true" size={20} color="var(--perf-up)" />}
+                        {noite.decisao === 'vender' && <MdArrowDropDown aria-hidden="true" size={20} color="var(--perf-down)" />}
+                        <span>{textoDaDecisao(t, noite)}</span>
+                      </Box>
+                      {leitura && (
+                        <Typography variant="caption" component="span" data-testid="robo-noite-leitura" sx={{ display: 'block', color: 'var(--text-muted)', fontWeight: 400, maxWidth: 520 }}>
+                          {leitura}
+                        </Typography>
+                      )}
+                    </TableCell>
+                    <TableCell sx={{ color: agiu(noite) ? 'var(--text-primary)' : 'var(--text-muted)' }}>{operacao(noite)}</TableCell>
+                  </TableRow>
+                )
+              })}
             </TableBody>
           </Table>
         </TableContainer>
@@ -924,8 +957,10 @@ export default function RoboAoVivo() {
 
   const noites = useMemo(() => {
     if (sequencias === undefined) return undefined
-    return noitesDoRobo(sequencias.registros, operacoes, { ultimoDiaDoZoo: ultimoDiaDoPlacar(placar), desde: sequencias.desde })
-  }, [sequencias, operacoes, placar])
+    return noitesDoRobo(sequencias.registros, operacoes, {
+      ultimoDiaDoZoo: ultimoDiaDoPlacar(placar), desde: sequencias.desde, pontos: regra?.pontos,
+    })
+  }, [sequencias, operacoes, placar, regra])
 
   const linhaDaTela = { display: 'grid', gap: 2, gridTemplateColumns: COLUNAS_DA_TELA, alignItems: 'stretch' }
   return (

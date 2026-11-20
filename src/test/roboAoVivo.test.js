@@ -4,6 +4,7 @@ import { getMockResponse } from '../src/utils/mockApi'
 import { DECISOES_ROBO, PLACAR_ROBO, RADAR_ROBO, REGRA_ROBO, SEQUENCIAS_ROBO } from '../src/utils/mockRoboAoVivo'
 import {
   ATIVACAO_MOTOR,
+  agruparNoites,
   carteirasDoRobo,
   chaveDaAcao,
   diaDaDecisao,
@@ -303,6 +304,96 @@ describe('as noites do robô', () => {
     expect(sequenciasDaBusca({ totalRegistros: 2, registros }).desde).toBeNull()
     expect(sequenciasDaBusca({ totalRegistros: 900, registros }).desde).toBe(Date.UTC(2026, 9, 26))
     expect(sequenciasDaBusca(undefined)).toEqual({ registros: [], desde: null })
+  })
+})
+
+describe('o porquê de cada noite', () => {
+  const agora = Date.parse('2026-10-28T19:30:00Z')
+  const dia = (iso) => Date.UTC(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10)))
+  const ponto = (data, fechamento, media, volatilidade, dose) => ({ data: `${data}T00:00:00`, fechamento, media, volatilidade, dose })
+  const velaDas23h = (data, tipo) => ({ dataHora: `${data}T23:00:00`, tipo })
+
+  it('cada noite traz o que a regra leu no fechamento, dos números reais do .NET', () => {
+    const noites = noitesDoRobo(SEQUENCIAS_ROBO, opsReais, { ultimoDiaDoZoo: ultimoDiaDoPlacar(PLACAR_ROBO), agora, pontos: REGRA_ROBO.pontos })
+    // 27/10: 80.909,77 contra a média de 81.885,68; abaixo dela a dose é 0, sem precisar da volatilidade.
+    expect(noites[0].leitura).toMatchObject({ fechamento: 80909.77, media: 81885.68, acima: false, dose: 0, volatilidade: null })
+    expect(noites[0].leitura.distancia).toBeCloseTo(80909.77 / 81885.68 - 1, 12)
+    // 23/10, a venda: o fechamento já tinha caído abaixo da média, e é por isso que a regra mandou sair.
+    expect(noites.at(-1)).toMatchObject({ decisao: 'vender', leitura: { acima: false, dose: 0 } })
+    // O mesmo número que o painel de cima mostra: a regra de hoje e o último ponto do gráfico.
+    expect(noites[0].leitura.fechamento).toBe(REGRA_ROBO.precoFechamento)
+  })
+
+  it('acima da média a leitura leva a dose e a volatilidade', () => {
+    const noites = noitesDoRobo([velaDas23h('2026-10-23', 1)], [], {
+      agora, pontos: [ponto('2026-10-23', 84000, 80000, 0.62, 0.6452)],
+    })
+    expect(noites[0].leitura).toMatchObject({ fechamento: 84000, media: 80000, acima: true, dose: 0.6452, volatilidade: 0.62 })
+    expect(noites[0].leitura.distancia).toBeCloseTo(0.05, 12)
+  })
+
+  it('sem o dia nos pontos, ou sem o que a regra comprada precisa, a noite fica sem leitura', () => {
+    const vela = [velaDas23h('2026-10-23', 0)]
+    const leitura = (pontos) => noitesDoRobo(vela, [], { agora, pontos })[0].leitura
+    expect(leitura(undefined)).toBeNull()
+    expect(leitura([])).toBeNull()
+    // Outro dia.
+    expect(leitura([ponto('2026-10-24', 84000, 80000, 0.62, 0.64)])).toBeNull()
+    // A média ainda aquece.
+    expect(leitura([ponto('2026-10-23', 84000, null, 0.62, null)])).toBeNull()
+    // Um .NET que ainda não devolve a dose e a volatilidade: acima da média, não dá para dizer a dose.
+    expect(leitura([{ data: '2026-10-23T00:00:00', fechamento: 84000, media: 80000 }])).toBeNull()
+    // Abaixo da média a dose é 0, com ou sem os campos novos.
+    expect(leitura([{ data: '2026-10-23T00:00:00', fechamento: 79000, media: 80000 }])).toMatchObject({ acima: false, dose: 0 })
+  })
+
+  describe('as noites iguais seguidas numa linha só', () => {
+    const ops = [
+      operacao('ComprarTudo', '2026-10-24T00:00:00', 0.01, 84000, 1000, 160),
+      operacao('VenderTudo', '2026-10-28T00:00:00', 0.01, 79000, 160, 950),
+    ]
+    const velas = [
+      velaDas23h('2026-10-27', 2), velaDas23h('2026-10-26', 0), velaDas23h('2026-10-25', 0), velaDas23h('2026-10-24', 0), velaDas23h('2026-10-23', 1),
+    ]
+    const acima = (data) => ponto(data, 84000, 80000, 0.62, 0.6452)
+    const pontos = [acima('2026-10-23'), acima('2026-10-24'), acima('2026-10-25'), acima('2026-10-26'), ponto('2026-10-27', 79000, 80000, 0.6, 0)]
+
+    it('três noites de manter, dentro do mercado e com a regra acima da média, viram uma; quem agiu fica sozinho', () => {
+      const noites = noitesDoRobo(velas, ops, { agora, pontos })
+      expect(noites.map((n) => n.decisao)).toEqual(['vender', 'manter', 'manter', 'manter', 'comprar'])
+      const grupos = agruparNoites(noites)
+      expect(grupos.map((g) => g.noites.length)).toEqual([1, 3, 1])
+      // O grupo é a noite mais recente dele, com o dia da mais antiga em `desde`.
+      expect(grupos[1]).toMatchObject({ dia: dia('2026-10-26'), desde: dia('2026-10-24'), decisao: 'manter', depois: 'dentro' })
+      expect(grupos[1].noites.map((n) => n.dia)).toEqual([dia('2026-10-26'), dia('2026-10-25'), dia('2026-10-24')])
+      expect(grupos[0].decisao).toBe('vender')
+      expect(grupos[2].decisao).toBe('comprar')
+    })
+
+    it('nos dados reais, as quatro noites de manter fora do mercado viram uma, e a venda de 23/10 fica à parte', () => {
+      const noites = noitesDoRobo(SEQUENCIAS_ROBO, opsReais, { ultimoDiaDoZoo: ultimoDiaDoPlacar(PLACAR_ROBO), agora, pontos: REGRA_ROBO.pontos })
+      const grupos = agruparNoites(noites)
+      expect(grupos.map((g) => g.noites.length)).toEqual([4, 1])
+      expect(grupos[0]).toMatchObject({ dia: dia('2026-10-27'), desde: dia('2026-10-24'), decisao: 'manter', depois: 'fora' })
+    })
+
+    it('a noite sem rodar, ou com a regra do outro lado da média, quebra o grupo', () => {
+      const semAvela = velas.filter((v) => !v.dataHora.startsWith('2026-10-25'))
+      const quebrada = agruparNoites(noitesDoRobo(semAvela, ops, { agora, pontos }))
+      expect(quebrada.map((g) => g.noites.length)).toEqual([1, 1, 1, 1, 1])
+      expect(quebrada[2]).toMatchObject({ rodou: false })
+
+      // Fechou abaixo da média numa das noites do meio: o robô só manteve, mas o motivo mudou.
+      const virou = [acima('2026-10-23'), acima('2026-10-24'), ponto('2026-10-25', 79000, 80000, 0.6, 0), acima('2026-10-26'), pontos[4]]
+      expect(agruparNoites(noitesDoRobo(velas, ops, { agora, pontos: virou })).map((g) => g.noites.length)).toEqual([1, 1, 1, 1, 1])
+    })
+
+    it('sem leitura (a regra sem o dia), as noites iguais ainda se juntam; lista vazia ou ausente dá lista vazia', () => {
+      const noites = noitesDoRobo(SEQUENCIAS_ROBO, opsReais, { ultimoDiaDoZoo: ultimoDiaDoPlacar(PLACAR_ROBO), agora })
+      expect(agruparNoites(noites).map((g) => g.noites.length)).toEqual([4, 1])
+      expect(agruparNoites([])).toEqual([])
+      expect(agruparNoites(undefined)).toEqual([])
+    })
   })
 })
 

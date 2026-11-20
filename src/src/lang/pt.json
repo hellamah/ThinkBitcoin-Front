@@ -895,7 +895,7 @@
     },
     "noites": {
       "title": "As noites do robô",
-      "sub": "A decisão de cada vela das 23h UTC, tomada às 21h02 de Brasília, e a operação que a executou. Manter não vira operação. Uma noite sem decisão é uma noite em que o robô não rodou nessa hora, como com o PC do cluster desligado.",
+      "sub": "A decisão de cada vela das 23h UTC, tomada às 21h02 de Brasília, e a operação que a executou. Manter não vira operação. Uma noite sem decisão é uma noite em que o robô não rodou nessa hora, como com o PC do cluster desligado. Noites seguidas e iguais ficam numa linha só, e cada linha diz o que a regra leu no fechamento.",
       "colDia": "Fechamento",
       "colDecisao": "Decisão",
       "colOperacao": "Operação",
@@ -907,6 +907,12 @@
       "pendente": "Executa na próxima ativação",
       "naoExecutada": "Não executada",
       "aoReligar": "ao religar, ao preço das 23h",
+      "seguidas": "{{quantidade}} noites seguidas, desde {{desde}}",
+      "leitura": {
+        "abaixo": "Fechou em {{fechamento}}, {{distancia}} abaixo da média de 50 dias ({{media}}): a regra manda ficar fora.",
+        "acima": "Fechou em {{fechamento}}, {{distancia}} acima da média de 50 dias ({{media}}): a regra manda ficar com {{dose}} do patrimônio, pela volatilidade de {{volatilidade}} ao ano.",
+        "banda": "O ajuste que faltava ficou abaixo da banda de {{banda}}, e a regra não mexe por menos que isso."
+      },
       "erro": "Não foi possível carregar as decisões do robô.",
       "vazio": "Nenhuma noite desde a ativação."
     },

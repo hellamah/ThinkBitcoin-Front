@@ -895,7 +895,7 @@
     },
     "noites": {
       "title": "The robot's nights",
-      "sub": "The decision at each 23:00 UTC candle, made at 21:02 Brasília time, and the trade that carried it out. Holding does not become a trade. A night with no decision is a night when the robot did not run at that hour, such as with the cluster PC switched off.",
+      "sub": "The decision at each 23:00 UTC candle, made at 21:02 Brasília time, and the trade that carried it out. Holding does not become a trade. A night with no decision is a night when the robot did not run at that hour, such as with the cluster PC switched off. Identical nights in a row share one line, and each line says what the rule read at the close.",
       "colDia": "Close",
       "colDecisao": "Decision",
       "colOperacao": "Trade",
@@ -907,6 +907,12 @@
       "pendente": "Runs at the next activation",
       "naoExecutada": "Not carried out",
       "aoReligar": "on restart, at the 23:00 price",
+      "seguidas": "{{quantidade}} nights in a row, since {{desde}}",
+      "leitura": {
+        "abaixo": "Closed at {{fechamento}}, {{distancia}} below the 50-day average ({{media}}): the rule says stay out.",
+        "acima": "Closed at {{fechamento}}, {{distancia}} above the 50-day average ({{media}}): the rule says hold {{dose}} of the portfolio, for a volatility of {{volatilidade}} a year.",
+        "banda": "The adjustment left to make was under the {{banda}} band, and the rule does not trade for less."
+      },
       "erro": "Could not load the robot's decisions.",
       "vazio": "No nights since activation."
     },

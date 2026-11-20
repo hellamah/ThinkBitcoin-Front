@@ -895,7 +895,7 @@
     },
     "noites": {
       "title": "Le notti del robot",
-      "sub": "La decisione di ogni candela delle 23 UTC, presa alle 21:02 di Brasília, e l'operazione che l'ha eseguita. Mantenere non diventa un'operazione. Una notte senza decisione è una notte in cui il robot non ha girato a quell'ora, come con il PC del cluster spento.",
+      "sub": "La decisione di ogni candela delle 23 UTC, presa alle 21:02 di Brasília, e l'operazione che l'ha eseguita. Mantenere non diventa un'operazione. Una notte senza decisione è una notte in cui il robot non ha girato a quell'ora, come con il PC del cluster spento. Le notti uguali e consecutive stanno su una sola riga, e ogni riga dice cosa ha letto la regola alla chiusura.",
       "colDia": "Chiusura",
       "colDecisao": "Decisione",
       "colOperacao": "Operazione",
@@ -907,6 +907,12 @@
       "pendente": "Si esegue alla prossima attivazione",
       "naoExecutada": "Non eseguita",
       "aoReligar": "al riavvio, al prezzo delle 23",
+      "seguidas": "{{quantidade}} notti di fila, dal {{desde}}",
+      "leitura": {
+        "abaixo": "Chiusura a {{fechamento}}, {{distancia}} sotto la media a 50 giorni ({{media}}): la regola dice di restare fuori.",
+        "acima": "Chiusura a {{fechamento}}, {{distancia}} sopra la media a 50 giorni ({{media}}): la regola dice di tenere {{dose}} del patrimonio, con una volatilità di {{volatilidade}} annua.",
+        "banda": "L'aggiustamento mancante era sotto la banda di {{banda}}, e la regola non muove per meno di questo."
+      },
       "erro": "Impossibile caricare le decisioni del robot.",
       "vazio": "Nessuna notte dall'attivazione."
     },

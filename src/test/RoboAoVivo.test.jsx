@@ -86,17 +86,35 @@ describe('Robô ao vivo', () => {
   it('mostra a última decisão, as noites, o critério do servidor e que ainda não houve conferência', async () => {
     renderizar()
     const noites = await screen.findByTestId('robo-noites')
-    expect(noites.querySelectorAll('tbody tr')).toHaveLength(5)
-    // A última decisão é a primeira noite: a vela das 23h de 27/10, manter.
+    // As quatro noites de manter, fora do mercado (24 a 27/10), numa linha só; a venda de 23/10 fica à parte.
+    expect(noites.querySelectorAll('tbody tr')).toHaveLength(2)
+    // A última decisão é a primeira linha: a vela das 23h de 27/10, manter.
     const primeira = noites.querySelector('tbody tr').textContent
     expect(primeira).toMatch(/27/)
     expect(primeira).toContain('robo.noites.manter · robo.fora')
+    expect(primeira).toContain('robo.noites.seguidas')
     expect(noites.textContent).toContain('robo.noites.vender · robo.fora')
     expect(screen.getByTestId('robo-criterio-fidelidade').textContent).toBe('robo.criterio.dentro')
     expect(screen.getByTestId('robo-criterio-queda').textContent).toBe('robo.criterio.dentro')
     // O buy & hold não caiu 20%: a comparação das quedas não se aplica.
     expect(screen.getByTestId('robo-criterio-relativa').textContent).toBe('–')
     expect(screen.getByTestId('robo-conferencia').textContent).toBe('robo.criterio.semConferencia')
+  })
+
+  // Em 20/11/2026: 14 noites seguidas de "Manter · Fora do mercado", todas iguais, sem dizer por quê.
+  it('cada linha das noites diz o que a regra leu no fechamento; sem a regra, as noites seguem sem o motivo', async () => {
+    renderizar()
+    const noites = await screen.findByTestId('robo-noites')
+    await waitFor(() => expect(noites.querySelectorAll('[data-testid="robo-noite-leitura"]')).toHaveLength(2))
+    // Sem provider de tradução, `t` devolve a chave: as duas linhas fecharam abaixo da média.
+    expect(noites.textContent).toContain('robo.noites.leitura.abaixo')
+    cleanup()
+
+    apiRequest.mockImplementation(responder({ regra: falha }))
+    renderizar()
+    const semRegra = await screen.findByTestId('robo-noites')
+    await waitFor(() => expect(semRegra.querySelectorAll('tbody tr')).toHaveLength(2))
+    expect(semRegra.querySelectorAll('[data-testid="robo-noite-leitura"]')).toHaveLength(0)
   })
 
   it('mostra a última conferência diária do servidor', async () => {

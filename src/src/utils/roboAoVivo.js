@@ -164,13 +164,44 @@ const carteiraNoDia = ({ inicial, depois }, dia) => {
 export const DECISOES = Object.freeze({ 0: 'manter', 1: 'comprar', 2: 'vender' })
 
 /**
+ * O que a regra leu no fechamento de cada dia (os pontos de GET api/RoboAoVivo/regra:
+ * fechamento, média de 50 dias, volatilidade e dose), por dia UTC. Dia sem média (o
+ * histórico ainda aquece) ou sem a volatilidade e a dose de que a regra comprada
+ * precisa fica de fora: a tela não diz o que não sabe.
+ */
+const leiturasPorDia = (pontos) => {
+  const porDia = new Map()
+  for (const p of Array.isArray(pontos) ? pontos : []) {
+    const ms = instanteUtc(p.data)
+    const fechamento = Number(p.fechamento)
+    const media = Number(p.media)
+    if (Number.isNaN(ms) || p.media == null || !Number.isFinite(fechamento) || !Number.isFinite(media) || media <= 0) continue
+    const acima = fechamento > media
+    // Abaixo da média a dose é 0, sem precisar da volatilidade.
+    const dose = acima ? p.dose : 0
+    if (dose == null || (acima && p.volatilidade == null)) continue
+    porDia.set(diaUtc(ms), {
+      fechamento,
+      media,
+      distancia: fechamento / media - 1,
+      volatilidade: acima ? Number(p.volatilidade) : null,
+      dose: Number(dose),
+      acima,
+    })
+  }
+  return porDia
+}
+
+/**
  * As noites do robô, da mais recente para a mais antiga, desde a primeira vela
  * das 23h depois da ativação: a decisão daquela vela (a linha das 23h de
- * sequenciasRetorno) e as operações que a executaram.
+ * sequenciasRetorno), as operações que a executaram e o que a regra leu naquele
+ * fechamento (`leitura`, dos `pontos` da regra; nulo quando ela não tem o dia).
  *
  * - Noite sem a linha das 23h: o robô não rodou nessa vela (o PC do cluster
- *   desligado às 21:02 de Brasília, por exemplo). A decisão dela se perde, a
- *   menos que o pod que sobe a recupere, e então a operação aparece.
+ *   desligado às 21:02 de Brasília, por exemplo). Desde 20/11/2026 o pod que sobe
+ *   depois da ativação grava a decisão da vela com a hora dela, então essa noite
+ *   só fica sem linha quando o pod nem chegou a subir antes da vela seguinte.
  * - As noites vão até a última que a sequência ou o zoo já têm (o zoo grava o
  *   dia às 00:30 UTC, mesmo quando o robô não rodou).
  * - `desde`: o dia da linha mais antiga que a busca trouxe, quando ela veio
@@ -178,9 +209,10 @@ export const DECISOES = Object.freeze({ 0: 'manter', 1: 'comprar', 2: 'vender' }
  *   de fora.
  */
 export const noitesDoRobo = (sequencias, operacoes, {
-  ultimoDiaDoZoo = null, desde = null, ativacao = ATIVACAO_MOTOR, limite = 14, agora = Date.now(),
+  ultimoDiaDoZoo = null, desde = null, ativacao = ATIVACAO_MOTOR, limite = 14, agora = Date.now(), pontos = null,
 } = {}) => {
   const primeiro = Math.max(diaUtc(Date.parse(ativacao)), desde ?? -Infinity)
+  const leituras = leiturasPorDia(pontos)
   const decisoes = new Map()
   for (const s of sequencias ?? []) {
     const ms = instanteUtc(s.dataHora)
@@ -215,10 +247,46 @@ export const noitesDoRobo = (sequencias, operacoes, {
       operacoes: ops,
       execucao,
       depois: !carteira || carteira.quantidade === null ? null : carteira.quantidade > 0 ? 'dentro' : 'fora',
+      leitura: leituras.get(dia) ?? null,
     })
   }
   return noites
 }
+
+// Duas noites seguidas contam como a mesma quando o robô só manteve, no mesmo estado,
+// com a regra do mesmo lado da média: nada mudou de uma para a outra.
+const mesmaSituacao = (a, b) => (
+  a.rodou && b.rodou
+  && a.decisao === 'manter' && b.decisao === 'manter'
+  && !a.operacoes?.length && !b.operacoes?.length
+  && !a.execucao && !b.execucao
+  && a.depois === b.depois
+  && (a.leitura?.acima ?? null) === (b.leitura?.acima ?? null)
+)
+
+/**
+ * As noites com as seguidas e iguais numa linha só (da mais recente para a mais antiga,
+ * como vieram): 14 noites de manter, fora do mercado, viram uma linha. Cada grupo é a
+ * noite mais recente dele mais `desde` (o dia da mais antiga) e `noites` (todas, na
+ * ordem). A noite em que o robô agiu, não rodou ou mudou de lado fica sozinha.
+ */
+export const agruparNoites = (noites) => {
+  const grupos = []
+  for (const noite of noites ?? []) {
+    const ultimo = grupos.at(-1)
+    if (ultimo && mesmaSituacao(ultimo.noites[0], noite)) {
+      ultimo.noites.push(noite)
+      ultimo.desde = noite.dia
+    } else {
+      grupos.push({ ...noite, desde: noite.dia, noites: [noite] })
+    }
+  }
+  return grupos
+}
+
+// A banda do motor: ele só ajusta a dose quando o peso está a pelo menos isto do alvo
+// (10 pontos do patrimônio; services/zoo_estrategias.py do Back-Python).
+export const BANDA_DO_MOTOR = 0.1
 
 /** O dia (meia-noite UTC) do último fechamento do placar, ou nulo. */
 export const ultimoDiaDoPlacar = (placar) => {

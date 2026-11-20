@@ -895,7 +895,7 @@
     },
     "noites": {
       "title": "Las noches del robot",
-      "sub": "La decisión de cada vela de las 23h UTC, tomada a las 21:02 de Brasilia, y la operación que la ejecutó. Mantener no se convierte en operación. Una noche sin decisión es una noche en que el robot no corrió a esa hora, como con el PC del clúster apagado.",
+      "sub": "La decisión de cada vela de las 23h UTC, tomada a las 21:02 de Brasilia, y la operación que la ejecutó. Mantener no se convierte en operación. Una noche sin decisión es una noche en que el robot no corrió a esa hora, como con el PC del clúster apagado. Las noches seguidas e iguales quedan en una sola línea, y cada línea dice lo que la regla leyó en el cierre.",
       "colDia": "Cierre",
       "colDecisao": "Decisión",
       "colOperacao": "Operación",
@@ -907,6 +907,12 @@
       "pendente": "Se ejecuta en la próxima activación",
       "naoExecutada": "No ejecutada",
       "aoReligar": "al reiniciar, al precio de las 23h",
+      "seguidas": "{{quantidade}} noches seguidas, desde {{desde}}",
+      "leitura": {
+        "abaixo": "Cerró en {{fechamento}}, {{distancia}} por debajo de la media de 50 días ({{media}}): la regla manda quedarse fuera.",
+        "acima": "Cerró en {{fechamento}}, {{distancia}} por encima de la media de 50 días ({{media}}): la regla manda tener {{dose}} del patrimonio, por la volatilidad de {{volatilidade}} anual.",
+        "banda": "El ajuste que faltaba quedó por debajo de la banda de {{banda}}, y la regla no opera por menos que eso."
+      },
       "erro": "No se pudieron cargar las decisiones del robot.",
       "vazio": "Ninguna noche desde la activación."
     },
